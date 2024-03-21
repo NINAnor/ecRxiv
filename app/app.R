@@ -1,6 +1,15 @@
-
 library(shiny)
 library(DT)
+
+# Sample data 
+data <- data.frame(
+  Ecosystem = c("Skog og fjell", "Other Ecosystem"),
+  Egenskap  = c("Primærproduksjon", "Other"),
+  ECT       =c("Structural state characteristic", "Other"),
+  Contact   =c("Anders Kolstad","Anders Kolstad"),
+  HTML_File = c("C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/Skog og fjell.html",
+                "C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/other_ecosystem.html")
+)
 
 ui <- shiny::fluidPage(
   shiny::tags$head(
@@ -27,22 +36,29 @@ ui <- shiny::fluidPage(
 
 server <- function(input, output) {
   output$indicatorTable <- DT::renderDT(
-    data.frame(Ecosystem = "Skog og fjell",
-               Egenskap = "Primærproduksjon",
-               ECT = "Structural state characteristic",
-               Contact = "Anders Kolstad")
+    data |> 
+      dplyr::select(!HTML_File),
+    selection = "single"
   )
+  
   
   output$documentation <- renderUI({
     selected_row <- input$indicatorTable_rows_selected
     if (length(selected_row) == 0) {
       return(NULL)
     } else {
-      selected_row <- data.frame(Ecosystem = "Skog og fjell",
-                                 HTML_Content = "<h1>Ecosystem Documentation</h1><p>This is the documentation for Skog og fjell.</p>")
-      HTML(selected_row$HTML_Content)
-    }
+      selected_ecosystem <- data$Ecosystem[selected_row]
+      html_file_path <- data$HTML_File[data$Ecosystem == selected_ecosystem]
+      print(html_file_path)
+      if (!file.exists(html_file_path)) {
+        return(shiny::tags$p("No documentation available for the selected ecosystem."))
+        } else {
+          shiny::includeHTML(html_file_path)
+        }
+      }
   })
 }
 
+
 shiny::shinyApp(ui = ui, server = server)
+
