@@ -3,12 +3,16 @@ library(DT)
 
 # Sample data 
 data <- data.frame(
-  Ecosystem = c("Skog og fjell", "Other Ecosystem"),
-  Egenskap  = c("Primærproduksjon", "Other"),
-  ECT       =c("Structural state characteristic", "Other"),
-  Contact   =c("Anders Kolstad","Anders Kolstad"),
-  HTML_File = c("C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/Skog og fjell.html",
-                "C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/other_ecosystem.html")
+  Ecosystem = c("Våtmark, Naturlig åpne områder under skoggrensa, Semi-naturlig mark", "Våtmark"),
+  Egenskap  = c("Biologisk mangfold", "Landskapsøkologiske mønstre"),
+  ECT       =c("B1 Compositional state characteristics
+
+", "Landscape and seascape characteristics
+
+"),
+  Contact   =c("Anders Kolstad","Vegar Bakkestuen"),
+  HTML_File = c("C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/indicators/NO_ALIE_001/NO_ALIE_001.html",
+                "C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/indicators/NO_CONN/NO_CONN_001.html")
 )
 
 ui <- shiny::fluidPage(
