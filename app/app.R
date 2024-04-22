@@ -1,19 +1,9 @@
 library(shiny)
 library(DT)
+#create_metadata function
 
-# Sample data 
-data <- data.frame(
-  Ecosystem = c("Våtmark, Naturlig åpne områder under skoggrensa, Semi-naturlig mark", "Våtmark"),
-  Egenskap  = c("Biologisk mangfold", "Landskapsøkologiske mønstre"),
-  ECT       =c("B1 Compositional state characteristics
-
-", "Landscape and seascape characteristics
-
-"),
-  Contact   =c("Anders Kolstad","Vegar Bakkestuen"),
-  HTML_File = c("C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/indicators/NO_ALIE_001/NO_ALIE_001.html",
-                "C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/indicators/NO_CONN/NO_CONN_001.html")
-)
+# data 
+data <- readRDS("C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/data/App_data.RDS")
 
 ui <- shiny::fluidPage(
   shiny::tags$head(
@@ -51,8 +41,8 @@ server <- function(input, output) {
     if (length(selected_row) == 0) {
       return(NULL)
     } else {
-      selected_ecosystem <- data$Ecosystem[selected_row]
-      html_file_path <- data$HTML_File[data$Ecosystem == selected_ecosystem]
+      selected_ecosystem <- data$ID[selected_row]
+      html_file_path <- data$HTML_File[data$ID == selected_ecosystem]
       print(html_file_path)
       if (!file.exists(html_file_path)) {
         return(shiny::tags$p("No documentation available for the selected ecosystem."))
