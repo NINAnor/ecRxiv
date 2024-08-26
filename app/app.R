@@ -18,13 +18,17 @@ ui <- shiny::fluidPage(
   ),
   shiny::navbarPage(
     title = "Ecosystem Condition Indicators",
-    shiny::tabPanel("Overview"),
+    shiny::tabPanel("Overview",
+                    includeMarkdown("overview.md")),
     shiny::tabPanel("Find indicator",
+                    p("Select an indicator from the list and then move to the Documentation page to see the associated documentation"),
                     DT::DTOutput("indicatorTable")),
     shiny::tabPanel("Documentation",
                     uiOutput("documentation")),
-    shiny::tabPanel("Contribute"),
-    shiny::tabPanel("Contact"),
+    shiny::tabPanel("Contribute",
+                    includeMarkdown("contribute.md")),
+    shiny::tabPanel("Contact",
+                    includeMarkdown("contact.md")),
   )
 )
 
