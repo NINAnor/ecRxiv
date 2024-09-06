@@ -3,7 +3,7 @@ library(DT)
 #create_metadata function
 
 # data 
-data <- readRDS("C:/Users/matthew.grainger/Documents/Projects_in_development/ECindicators/data/App_data.RDS")
+data <- readRDS(here::here("data/App_data.RDS"))
 
 ui <- shiny::fluidPage(
   shiny::tags$head(
