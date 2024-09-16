@@ -130,6 +130,17 @@ meta |>
 
 ```
 
+
+```{r}
+#| echo: false
+#| warning: false
+
+#sapply(list.files("../data/functions/", full.names = TRUE), source)
+source("../data/defineRegion.R")
+newCrs <- "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=km +no_defs"
+regionGeometry <- defineRegion(level = "country", region = "Norway", crs = newCrs)
+```
+
 # Pollinator indicators
 
 <!--# Replace 'indicator name' with your the actual indicator name -->
@@ -288,8 +299,8 @@ plot_ly(x = c(asoDataMeadows$bio1),
 ```{r}
 ggplot(asoDataMeadows) +
   gg(asoDataMeadows["overallDiversity"], aes(col = overallDiversity)) +
-scale_fill_gradientn(colours = terrain.colors(30))#+
-  #geom_sf(data = regionGeometry, alpha = 0.1)
+scale_fill_gradientn(colours = terrain.colors(30))+
+  geom_sf(data = regionGeometry, alpha = 0.1)
 ```
 
 <!--# Describe the reference values used to set the lower and upper limits on the normative indicator scale. Why was the current option chosen and how were the reference values quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here. -->
@@ -324,9 +335,18 @@ scale_fill_gradientn(colours = terrain.colors(30))#+
 
 ###  7.3. Covariates
 
-**Write a summary of the covariate names and how they were obtained in a table. Have an Yes / No indicating whether they were used to fit pollinator or plant ISDM.**
+We used several covariates to fit both the pollinator and plant ISDMs. The names of the covariates, their description and source are presented in @tbl-covariate. Additionally, we include the indication of whether the covariate is a habitat, trait or climatic variables as well as which of the ISDMs it was used to fit in @tbl-covariate. 
 
-The environmental covariates used for the model is presented in @fig-covariates.
+```{r tbl-covariate}
+#| tbl-cap: 'Description of covariates used to fit the integrated species distribution models and the source the covariates were retrieved from. The table indicated what type of covariate (habitat, trait and climatic) and which of the distributions it was used for (pollinator and/or plant) ISDM'
+#| echo: false
+#| warning: false
+readxl::read_excel("../data/covariateDescription.xlsx")%>%
+  kable()
+```
+
+
+We present the distribution of the covariates described in @tbl-covariate here in @fig-covariates.
 
 ![Covariates used to fit the ISDM.](../img/environmentalCovariates.png){#fig-covariates}
 
@@ -592,21 +612,28 @@ where $r_i(s) = \frac{\lambda^{\star}_i(s)}{\sum_{i} \lambda^{\star}_i(s)}$.
 ## 10. Results
 
 <!--# Repeat the final results here. Typically this is a map or table of indicator values.-->
-![Covariate effects of pollinators.](../img/PollinatorPredictions.png){#fig-pollCovEffs}
 
-![Pollinator Predictions.](../img/PollinatorPredictions.png){#fig-pollPreds}
+### 10.1. Distribution of pollinators accross Norway
 
-![Standard deviation of Pollinator Predictions.](../img/PollinatorPredictionsSD.png){#fig-pollPredsSD}
+We present the predictions of log-intensity of the pollinators in @fig-pollPreds and its standard error in @fig-pollPredsSD. The log-intensity for the three pollinators: bees, butterflies and hoverflies are similar with standard error close to $0$. This result can be seen as a direct consequence of the estimates of climatic and trait variables on the pollinator distribution (@fig-pollinatorModelFixedEffects and @fig-pollinatorModelLandCover).
 
-![Plant species fixed effects.](../img/plantsCovariateFixedEffects.png){#fig-plantModelFixedEffects}
+![Log intensity of pollinators (bees, butterfliesand hoverflies) across the study region from the fitted integrated species distribution model.](../img/PollinatorPredictions.png){#fig-pollPreds}
 
-![Plant species land cover effects.](../img/plantsCovariateLandCoverEffects.png){#fig-plantModelFixedEffects}
+![Standard error of the log-intensity of pollinators (bees, butterfliesand hoverflies) across the study region from the fitted integrated species distribution model.](../img/PollinatorPredictionsSD.png){#fig-pollPredsSD}
+
+The effects of traits and climatic variables on the pollinator distribution in @fig-pollinatorModelFixedEffects. There is a negative latitudinal effect on bees and butterflies, but a positive effect on hoverflies. However, there is a positive effect of annual temperature on butterflies and bees, but a negative effect on hoverflies. There is an insignificant trait effects on the hoverflies distribution as their credible interval of these covariates includes $0$. The contrast of this statement is true for the bees and butterflies distribution. 
+
+![Effects of traits and climatic variables on the pollinator distribution.](../img/plantsCovariateFixedEffects.png){#fig-pollinatorModelFixedEffects}
+
+In contrast to the trait and climatic variables, there seems to be ... (@fig-pollinatorModelLandCover).
+
+![Plant species land cover effects.](../img/plantsCovariateLandCoverEffects.png){#fig-pollinatorModelLandCover}
 
 
 
 ![Plant species Predictions.](../img/plantSpeciesProbabilities.png){#fig-plantPreds}
 
-![Pollinator Diversity.](../img/pollinatorDiversity.png){#fig-pollDiversity}
+![Diversity of pollinators across Norway.](../img/pollinatorDiversity.png){#fig-pollDiversity}
 
 ## 11. Export file
 
