@@ -1,22 +1,32 @@
 # find the metadata files & use them to populate the table
 
-library(readxl)
-library(tidyverse)
+#' create the metadata table
+#'
+#' @param path path to the indicators folder
+#'
+#' @return creates a metadata dataframe
+#' @export
 
 create_metadata_table <- function(path) {
-  # Get list of all Excel files
-  excel_files <- list.files(path, pattern = "\\.xlsx$", recursive = TRUE, full.names = TRUE)
+   # Get list of all Excel files
+  excel_files <- list.files(here::here(path), pattern = "\\.xlsx$", recursive = TRUE, full.names = TRUE)
   # Get list of all HTML files
-  html_files <- list.files(path, pattern = "\\.html$", recursive = TRUE, full.names = TRUE)
-  
+  html_files <- list.files(here::here(path), pattern = "\\.html$", recursive = TRUE, full.names = TRUE)
   # Read each Excel file and assign corresponding HTML file
   metadata <- map2(excel_files, html_files, ~{
     df <- read_excel(.x)
     df$HTML_File <- .y
     df
   })
+}
   
-  # Define and call the function to process and bind dataframes
+#' Function to process and bind dataframes
+#'
+#' @param df_list list of dataframes 
+#'
+#' @return combined metadata dataframe
+#' @export
+
   process_and_bind_dfs <- function(df_list) {
     # Transform each dataframe
     df_wide_list <- map(df_list, ~{
@@ -36,27 +46,21 @@ create_metadata_table <- function(path) {
     # Combine all transformed dataframes into one
     bind_rows(df_wide_list)
   }
-  
-  # Return the combined data
-  process_and_bind_dfs(metadata)
+
+#' create the app data
+#'
+#' @return App data
+#' @export
+#'
+create_data<-function(combined_metadata){
+    App_data<-combined_metadata |> 
+    dplyr::mutate(HTML_File=combined_metadata$HTML_File)
+    App_data<-write_rds(App_data, here::here("data/App_data.RDS"))
+
 }
 
-create_data<-function(){
-  data<-create_metadata_table("indicators")
-  
-  data<-data |> 
-    dplyr::mutate(HTML_File=paste0(here::here(HTML_File)))
-App_data<-write_rds(data, here::here("data/App_data.RDS"))
-
-}
-
-App_data<-create_data()
-
-
-# # Example usage
-# combined_metadata <- create_metadata_table("indicators")
-# print(combined_metadata)
-# 
-# data<-create_metadata_table(path="indicators")
-#  data
-
+library(readxl)
+library(tidyverse)
+combined_metadata <- create_metadata_table("indicators")
+combined_metadata<-process_and_bind_dfs(combined_metadata)
+create_data(combined_metadata = combined_metadata)
