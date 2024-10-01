@@ -1,0 +1,38 @@
+---
+title: "Managing PRs"
+format: pdf
+editor: visual
+author:
+  - name: Anders L. Kolstad
+date: last-modified
+toc: true
+---
+
+## A guide for ecRxiv GitHub administrators
+
+Indicator documentation authors will submit PRs of very different quality. This guide is a help to tackle common use cases for administrators to help them with the review and publication process.
+
+## 1. Too many modified files
+
+It's common that PR contain more files than what we actually want to update in the main. This can be draft documents, old rendered pdf or html outputs, or large data files that should be handled outside of gh.
+
+If the PR comes from a private fork, you have the following options:
+
+-   ask the contributor to revert or unstage certain files in the PR
+-   ask the contributor to create a new PR from a new branch taken from PR branch and where certain files are reverted
+-   Make [adjustments to the compare branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork) in the fork
+-   [checkout the PR locally](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally#modifying-an-inactive-pull-request-locally)
+
+```{r}
+#| eval: false
+git fetch origin pull/3/head:my_new_branch 
+git checkout my_new_branch
+```
+
+... and from this branch revert certain files and make a new PR. See also [here](https://stackoverflow.com/questions/62432498/how-do-i-checkout-a-pr-from-a-fork).
+
+Making a new PR makes the history a bit more convoluted, but this can be ok since we use tags/labels to tie PRs together.
+
+If the PR comes from a branch on ecRxiv (this should not happen), then basically the same alternatives exist, except the last one.
+
+The first two options are preferred, especially if the contributor is from outside of NINA. Unless there are files in the PR that the contributor needs to keep, then the first option is the cleanest.
