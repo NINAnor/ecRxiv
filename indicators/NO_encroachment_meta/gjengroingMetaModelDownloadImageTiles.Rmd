@@ -1,0 +1,279 @@
+# (PART\*) INDICATORS{-}
+
+# Enchroachment {#gjengroing}
+<br />
+
+
+<!-- Limit code block height and force scrolling -->
+```{css, echo=FALSE}
+pre {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+pre[class] {
+  max-height: 200px;
+}
+```
+
+Norwegian name: **Gjengroing**
+
+
+*Author and date:*
+
+Andrew Gray
+
+September 2024
+
+<br />
+
+<!-- Load all you dependencies here -->
+
+```{r setup, include=FALSE}
+library(knitr)
+library(sf)
+library(tidyverse)
+library(flextable)
+library(dplyr)
+library(parallel)
+library(httr)
+library(jsonlite)
+# Set global variable defining whether you want to run everything from scratch (very long runtime) or use pre-exported data (short runtime)
+runFromScratch <- FALSE
+
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+```
+
+<!-- Fill in which ecosystem the indicator belongs to, as well as the ecosystem characteristic it should be linked to. It's OK to use some Norwegian here -->
+
+```{r, echo=F}
+Ecosystem <- "Våtmark og Semi-/Naturlig-åpne" 
+Egenskap  <- "Funksjonell sammensetning innen trofiske nivåer"
+ECT       <- "Structural state characteristic" 
+Contact   <- "Andrew Gray"
+```
+
+```{r, echo=F}
+metaData <- data.frame(Ecosystem,
+                       "Økologisk egenskap" = Egenskap,
+                       "ECT class" = ECT,
+                       check.names = F)
+flextable(metaData) %>%
+  bg(bg = "lightblue", part="header") %>%
+  theme_vanilla() %>%
+  set_table_properties(layout = "autofit")
+```
+
+<!-- Don't remove these three html lines -->
+
+<br /> <br />
+
+<hr />
+
+<!-- Document you work below. Try not to change  the headers too much. Data can be stored on NINA server. Since the book is rendered on the R Server this works fine, but note that directory paths are different on the server compared to you local machine. If it is not too big you may store under /data/ on this repository -->
+
+## Introduction {#intro-enc}
+
+The Norwegian word "gjengroing" is directly translated to "regrowing" in English. The gjengroing indicator describes the regrowth of woody vegetation (trees and bushes) in open ecosystems (wetland, semi- and naturally open areas) across Norway. Here, we use meta's canopy height base model to predict canopy height within areas of interest using airborne imagery from norge i bilder. This approach will allow future monitoring of encroachment, as airborne imagery is scheduled to be collected every 5 - 10 years whereas national LiDAR data has no future schedule. It is worth noting that the yet-to-be-launched P-Band radar satellite, Biomass, may provide an more precise method for future monitoring once data is available. Here though, we will use a spatial reference approach where reference areas define good or optimal vegetation regrowth heights.
+
+This script downloads image tiles to be used in the meta canopy height model (INSERT CROSSREF).
+
+
+
+##### Directories
+
+```{r}
+wms_base_url <- 'https://wms.geonorge.no/skwms1/wms.nib?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:25833'
+output_dir <- "data/encroachment/metamodel/tiles"
+metadata_url <- 'https://tjenester.norgeibilder.no/rest/projectMetadata.ashx'
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE)
+}
+```
+
+###### Querying the airborne imagery metadata
+
+This enables us to determine the date of the orthophoto tiles we will later download from the geonorge webserver. 
+
+```{r}
+ query_metadata <- function(xmin, ymin, xmax, ymax, crs_code) {
+  bbox_coords <- sprintf("%f,%f;%f,%f;%f,%f;%f,%f", xmin, ymin, xmin, ymax, xmax, ymax, xmax, ymin)
+  
+  param <- list(
+    Filter = "ortofototype in (1,2,3,4,5,7,8,9,10,11,12)",
+    Coordinates = bbox_coords,
+    InputWKID = as.character(crs_code),
+    ReturnMetadata = TRUE,
+    StopOnCover = FALSE
+  )
+  
+  response <- httr::GET(
+    url = metadata_url,
+    query = list(request = jsonlite::toJSON(param, auto_unbox = TRUE))
+  )
+  
+  response_content <- httr::content(response, "text", encoding = "UTF-8")
+  
+  if (httr::http_status(response)$category != "Success") {
+    return(NULL)
+  }
+  
+  if (response_content == "" || is.null(response_content)) {
+    return(NULL)
+  }
+  
+  parsed_metadata <- tryCatch({
+    fromJSON(response_content, flatten = TRUE)
+  }, error = function(e) {
+    return(NULL)
+  })
+  
+  return(parsed_metadata)
+}
+```
+The WMS provides the most recent image over each search area so we can pull the date from the metadata service to add to the tile filename. 
+
+```{r}
+get_most_recent_metadata <- function(metadata) {
+  filtered_metadata <- metadata$ProjectMetadata %>%
+    filter(!is.na(properties.fotodato_date)) %>%
+    mutate(fotodato_date = as.Date(properties.fotodato_date)) %>%
+    arrange(desc(fotodato_date)) %>%
+    slice(1)  # Get the most recent one
+  
+  if (nrow(filtered_metadata) == 0) {
+    return(NULL)
+  }
+  
+  return(filtered_metadata)
+}
+```
+
+##### Defining the area of interest
+Here we include a shapefile of our area of intertest. The script will loop through all features in the shapefile, calculate their extent and query the WMS to download orthophotos within that extent in 256 x 256 pixel tiles. The AOI shape file should be in EPSG:25833 
+```{r}
+
+AOIs <- sf::st_read("data/encroachment/metamodel/AOIs.shp")
+
+tile_size <- 256
+resolution <- 0.5  # 0.5 meter resolution
+```
+
+This is the function to get and download the orthophotos over our areas of interest. 
+```{r}
+fn.getOrtoImages <- function(geometry, id_field, output_dir) {
+  tryCatch({
+    if (!st_is_valid(geometry)) {
+      geometry <- st_make_valid(geometry)
+    }
+    
+    geom_extent <- st_bbox(geometry)
+    
+    # Query metadata to get the most recent layer and date
+    metadata <- query_metadata(geom_extent$xmin, geom_extent$ymin, geom_extent$xmax, geom_extent$ymax, 25833)
+    
+    if (is.null(metadata) || is.null(metadata$ProjectMetadata)) {
+      return(NULL)
+    }
+    
+    recent_project <- get_most_recent_metadata(metadata)
+    
+    if (is.null(recent_project)) {
+      return(NULL)
+    }
+    
+    recent_layer <- recent_project$properties.prosjektnavn
+    image_date <- recent_project$properties.fotodato_date
+    
+    tile_width_meters <- tile_size * resolution
+    tile_height_meters <- tile_size * resolution
+    
+    # Ensure tile size remains 256x256
+    x_min <- floor(geom_extent$xmin / tile_width_meters) * tile_width_meters
+    y_min <- floor(geom_extent$ymin / tile_height_meters) * tile_height_meters
+    x_max <- ceiling(geom_extent$xmax / tile_width_meters) * tile_width_meters
+    y_max <- ceiling(geom_extent$ymax / tile_height_meters) * tile_height_meters
+    
+    # Calculate number of tiles in x and y directions
+    x_tiles <- ceiling((x_max - x_min) / tile_width_meters)
+    y_tiles <- ceiling((y_max - y_min) / tile_height_meters)
+    
+    tile_index <- 1
+    
+    for (i in 0:(x_tiles - 1)) {
+      for (j in 0:(y_tiles - 1)) {
+        xmin <- x_min + i * tile_width_meters
+        xmax <- xmin + tile_width_meters
+        ymin <- y_min + j * tile_height_meters
+        ymax <- ymin + tile_height_meters
+        
+        # Ensure the tiles have consistent size
+        bbox_polygon <- st_polygon(list(matrix(c(
+          xmin, ymin,
+          xmin, ymax,
+          xmax, ymax,
+          xmax, ymin,
+          xmin, ymin
+        ), ncol = 2, byrow = TRUE)))
+        bbox_polygon <- st_sfc(bbox_polygon, crs = st_crs(geometry))
+        
+        bbx <- st_bbox(bbox_polygon)
+        
+        # Construct WMS URL dynamically with correct SRS, LAYERS, and BBOX in EPSG:25833
+        wms_url <- paste0(
+          'https://wms.geonorge.no/skwms1/wms.nib?',
+          'SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap',
+          '&LAYERS=', URLencode(recent_layer),
+          '&SRS=EPSG:25833',
+          '&BBOX=', paste(bbx[c("xmin", "ymin", "xmax", "ymax")], collapse = ","),
+          '&WIDTH=', tile_size,
+          '&HEIGHT=', tile_size,
+          '&FORMAT=image/tiff',
+          '&TRANSPARENT=TRUE'
+        )
+        
+        # Output file path using the "id" field, tile index, and image date in the file name
+        t <- file.path(output_dir, paste0(image_date,"_", id_field, "_", tile_index, ".tif"))
+        
+        # GDAL translate options for 0.5 meter pixel size
+        reso <- c('-tr', as.character(resolution), as.character(resolution), '-co', 'COMPRESS=NONE')
+        
+        # Try downloading the tile
+        result <- try({
+          sf::gdal_utils('translate', source = wms_url, destination = t, options = reso)
+        }, silent = TRUE)
+        
+        # Retry mechanism
+        for (k in 1:5) {
+          if (!file.exists(t)) {
+            Sys.sleep(1)
+            result <- try({
+              sf::gdal_utils('translate', source = wms_url, destination = t, options = reso)
+            }, silent = TRUE)
+          }
+        }
+        
+        tile_index <- tile_index + 1
+      }
+    }
+    
+  }, error = function(e) {
+    return(NULL)
+  })
+}
+```
+
+We can run the functions in parallel to speed up processing time adjust the number of cores to suit your setup.
+```{r}
+numCores <- 30  
+
+# Use mclapply for parallel processing
+mclapply(1:nrow(AOIs), function(i) {
+  geometry <- AOIs[i, ]
+  id_field <- AOIs$id[i]  # Adjust field name if necessary
+  fn.getOrtoImages(geometry, id_field, output_dir)
+}, mc.cores = numCores)
+```
+
+OK, now that we have our tiles, we can pass them to the canopy height model please see https://github.com/facebookresearch/HighResCanopyHeight for more details on the model.
+Please follow (INSERT CROSSREF)
