@@ -3,6 +3,7 @@ title: "Pollinator Indicators"
 format: 
   html:
     embed-resources: true
+    code-fold: true
 author:
   - name: Kwaku Peprah Adjei              # Enter name
     email: kwaku.adjei@nina.no  # Enter email
@@ -16,6 +17,7 @@ author:
     affiliations:
       - ref: myID               # To reuse affiliations referecen the id like this
 date: August 19, 2024 # Enter date 
+bibliography: references.bib
 callout-icon: false
 ---
 
@@ -141,7 +143,7 @@ newCrs <- "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=km +no_
 regionGeometry <- defineRegion(level = "country", region = "Norway", crs = newCrs)
 ```
 
-# Pollinator indicators
+# Pollinator potential indicators
 
 <!--# Replace 'indicator name' with your the actual indicator name -->
 
@@ -163,54 +165,65 @@ with some plant species. From the estimated diversity across the nation, we inte
 to look at the estimates in the ASO Data meadows by using their values as the reference
 values. To achieve this, we do the following:
 
-* obtain data from GBIF for bumblebees, butterflies and bees
+* a) obtain data from the Global Biodiversity Infrastructure Facility ([GBIF](www.gbif.org) ) for bumblebees, butterflies and bees.
 
-* fit an integrated species distribution model (ISDM) to the data to obtain pollinator intensities
+* b) fit an integrated species distribution model (ISDM) to the data to obtain the distribution of pollinators
 
-* obtain a web plot of the pollinator and plant species
+* c) obtain a web plot interaction matrix of the pollinator and plant species
 
-* get data on the interaction plant species from GBIF
+* d) get data on the plant species within the interaction matrix from GBIF
 
-* fit an ISDM to the plant species data to obtain the species occurrence probability
+* e) fit an ISDM data obtained in step (d) to estimate their respective species occurrence probability
 
-* estimate the alpha diversity index of the pollinators across Norway
+* f) estimate the alpha diversity index of the pollinators across Norway using the results obtained in (b), (c) and (d).
 
-![Flowchart of the modelling framework used in estimating the pollinator diversity indices. The modelling start with A) fitting ISDMs to the pollinator data, then B) fitting ISDMs to the plant data, C) constructing the web interactions between the plant and pollinators and D) estimating the alpha diversity indices. The dataset and covariates are enclosed in dashed green-colored rectangular regions. ](../img/framework.png){#fig-framework}
+![Flowchart of the modelling framework used in estimating the pollinator potential in this project. The modelling start with A) obtaining bees, bumblebees and hoverflies data from GBIF and fitting ISDMs to the pollinator data, then B) obtaining data on some selected plant species from GBIF and fitting ISDMs to the plant data, C) constructing the interraction between the plant and pollinators (from a given data) and D) estimating the alpha diversity indices. The covariate used to fit the ISDMs are presented in @tbl-covariate. The dataset and covariates are enclosed in dashed green-colored rectangular regions. ](../img/framework.png){#fig-framework}
 
 ## 2. About the underlying data
 
-The pollinator and plant species data used to fit the ISDMs were obtained from GBIF. **Cite the DOI of the downloaded data.** 
+The pollinator [@pollinatordata] and plant species [@plantData] data used to fit the ISDMs were obtained from GBIF. The data was downloaded via the R-package **rgbif** [@rgbif], and extract the associated metadata using the same R-package. We downloaded GBIF data contains $26$ datasets and $30$ datasets with records on pollinators and plants respectively. We present a summary of the datasets downloaded for the pollinator and plant species respectively in @tbl-pollinatorMetaData and @tbl-plantMetaData respectively.
+
+From the metadata, we ascertain the type of each dataset: either presence-only, presence-absence or count data. We merge all the presence-only data into one dataset (which we call `mergedDatasetPO`), but we do not merge the rest of the datasets. This is because the presence-absence data (procesed from sampling event protocols) have different sampling protocols, and we would like to preserve their unique attributes. A summary of the formatted dataset used to fit the ISDMs are presented in @tbl-pollinatorOcc and @tbl-plantSpsOcc.
+
+```{r tbl-pollinatorOcc}
+#| tbl-cap: 'Number of pollinator occurrences from the formatted datasets obtained from GBIF. All presence-only datasets are merged into one dataset (mergedDataset).'
+#| echo: false
+#| warning: false
+
+readr::read_csv("../data/pollinatorSummaryByDataset.csv")|>
+  kbl(col.names = c("Dataset name", "No. of bees occurrences", "No. of butterflies occurrences", "No. of hoverflies occurrences"))
+
+```
+
+
+```{r tbl-plantSpsOcc}
+#| tbl-cap: 'Number of plant occurrences from the formatted datasets obtained from GBIF. All presence-only datasets are merged into one dataset (mergedDataset).'
+#| echo: false
+#| warning: false
+
+readr::read_csv("../data/plantSummaryByDataset.csv")|>
+  kbl()
+
+```
+
 
 <!--# Describe the data you have used, it's origin, biases, avaiabilit ect.-->
 
 ### 2.1 Spatial and temporal resolution
 
-Both pollinator and plant data obtained was for the entire Norway observed within $2005$ to $2024$. For each dataset within the downloaded GBIF data, we formatted them based on their meta data into presence-only and presence-absence data. Then, we merge all the presence-absence datasets into one dataset: mergedDatasetPA and all the presence-only datasets into one dataset: mergedDatasetPO. The number of occurrences in each dataset for the pollinators are presented in @tbl-letters.
+Both pollinator and plant data obtained on a National scale (entire Norway) observed within $2010$ to $2024$. We present an illustration of the spatial distribution of the pollinator in the merged Presence-only and National insect monitoring in Norway datasets across the study region in @fig-pollinatorPOandNSOS.
 
-
-| Dataset | Pollinator | No. of observations |
-|------|------|------|
-| Presence-only    | Bees    | 84485    |
-|     | Butterflies    | 474857    |
-|     | Hoverflies   | 79683    |
-|     | TOTAL    | 639025    |
-| Presence-absebce    | Bees    | 40429    |
-|     | Butterflies    | 39321    |
-|     | Hoverflies    | 51861    |
-|     | TOTAL    | 131611    |
-
-: Number of occurrence records for each pollinator in the merged presence-absence and presence-only datasets {#tbl-letters}
+![Distribution of bees, butterflies and hoverfies in the merged Presence-only and National insect monitoring in Norway datasets. The merged Presence-only dataset is colored by the taxon, and the National insect monitoring dataset is colored by the presence (1) or absence (0) value. ](../img/pollinatorPlots1.png){#fig-pollinatorPOandNSOS}
 
 <!--# Describe the temporal and spatial resolution of the data used-->
 
-![Distribution of 54 plant species in the merged presence-absence dataset. ](../img/plantsPA.png){#fig-plantsPA}
 
-![Distribution of 54 plant species in the merged presence-only dataset. ](../img/plantsPO.png){#fig-plantsPO}
 
 ```{r tbl-plantOcc}
 #| tbl-cap: 'Number of plant species occurrences from the merged presence-absence and presence-only datasets obtained from GBIF.'
 #| echo: false
 #| warning: false
+#| include: false
 plantPAocc <- read_csv("../data/plantPAocc.csv")
 colnames(plantPAocc)[3] <- "Presence-absence"
 #head(plantPAocc)
@@ -224,13 +237,15 @@ merge(plantPAocc[, 2:3],
   kbl(col.names = c("Plant species", "Presence-absence", "Presence-only")) 
 
 ```
+
 **Iintend to keep either the table or the figures in the final document, depending on what is needed for the report.**
 
 ### 2.2 Original units
 
 <!--# What are the original units for the most relevant  variables in the data-->
 
-Is it presence-absence or presence only. Is it abundance or etc.
+The original unit of the each dataset obtained from GBIF for the pollinators and plants are provided in @tbl-pollinatorMetaData and @tbl-plantMetaData respectively. The dataset are either presence-only and presence-absence. 
+
 
 ### 2.3 Additional comments about the dataset
 
@@ -299,6 +314,10 @@ plot_ly(x = c(asoDataMeadows$bio1),
 ```
 
 ```{r}
+#| fig-cap: 'Shannon diversity indices at ASO data locations.'
+#| echo: false
+#| warning: false
+#| label: asoDiversity
 ggplot(asoDataMeadows) +
   gg(asoDataMeadows["overallDiversity"], aes(col = overallDiversity)) +
 scale_fill_gradientn(colours = terrain.colors(30))+
@@ -325,19 +344,69 @@ scale_fill_gradientn(colours = terrain.colors(30))+
 
 ## 7. Datasets
 
-<!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
+Here, we describe each of the dataset used for the modelling. We refer the readers to the dataset description provided on the [GBIF](www.gbif.org) website.  
 
-### 7.1 Dataset A
+```{r tbl-dataDescription}
+#| tbl-cap: 'Datasets obtained on selected plant species from GBIF, the type of dataset, total number of occurrence records in each dataset and its percentage in the total number of occurrence records. The dataset with type sampling_event is treated as presence-absence, occurrence as presence-only and insectMonitoring as count data.'
+#| echo: false
+#| warning: false
+readxl::read_excel("../data/dataDescription.xlsx") %>%
+  kbl()
+```
+*Here, intend to link all the datasets to their correct version on the GBIF repository.*
+
+
+### 7.1 Pollinator datasets
 
 <!--# Describe the main dataset, typicaly the one containing the variable of (most) interest. Change the header from Dataset A to the name of the actuall dataset. -->
 
-### 7.2. Dataset B
+```{r tbl-pollinatorMetaData}
+#| tbl-cap: 'Datasets obtained on pollinators from GBIF, the type of dataset, total number of occurrence records in each dataset and its percentage in the total number of occurrence records. The dataset with type sampling_event is treated as presence-absence, occurrence as presence-only and insectMonitoring as count data.'
+#| echo: false
+#| warning: false
+readr::read_csv("../data/pollinatorMetaData.csv")|>
+  kbl(col.names = c("Dataset name", "Data type", "No. of observations", "Percent")) 
+```
 
+Out of the 26 datasets obtained from GBIF, over half of the total occurrence reports for the pollinators were from the [Norwegian species Observation Service](https://www.gbif.org/dataset/b124e1e0-4755-430f-9eab-894f25a9b59c), a third of the total occurrence report were from the [National insect monitoring in Norway](https://www.gbif.org/dataset/19fe96b0-0cf3-4a2e-90a5-7c1c19ac94ee), and the other 24 datasets cover 22 percent of the total pollinator occurrences.
+
+
+<!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
+
+![Distribution of bees, butterflies and hoverfies caight in window traps and those collected in large-scale field experiment in power line clearings. The observations are colored by the presence (1) or absence (0) value. ](../img/pollinatorPlots2.png){#fig-pollinator2}
+
+After processing the data, it is important that we filter only the bees from the following datasets: Solitary bees collected in a large-scale field experiment in power line clearings (southeast Norway), Bumble bees collected in a large-scale field experiment in power line clearings (southeast Norway), as can be seen in @fig-pollinator2 and @fig-pollinator3.
+
+![Distribution of bees, butterflies and hoverfies NTNU university Museum collection and large scale field experiment in Norway. The observations are colored by the presence (1) or absence (0) value. ](../img/pollinatorPlots3.png){#fig-pollinator3}
+
+We also filter out bees and butterflies datasets from the Bumblebees and butterflies in Norway dataset, displayed in @fig-pollinator4.
+
+![Distribution of bees, butterflies and hoverfies in the Bumblebees and butterflies in Norway and freshwater pelagic invertebrates ecological collection from the NTNU University Museum datasets. The observations are colored by the presence (1) or absence (0) value. ](../img/pollinatorPlots4.png){#fig-pollinator4}
+
+
+
+### 7.2. Plant datasets
+
+From our query for datasets from GBIF, we got a total of 30 datasets which we used to fit the ISDM for the plants. Out of these occurrence records, about 86 percent of these records were from the [Norwegian species Observation Service](https://www.gbif.org/dataset/b124e1e0-4755-430f-9eab-894f25a9b59c).
 <!--# Describe additional datasets in a similar was as above. Deleteor add ned subheaders as needed. -->
+
+
+```{r tbl-plantMetaData}
+#| tbl-cap: 'Datasets obtained on selected plant species from GBIF, the type of dataset, total number of occurrence records in each dataset and its percentage in the total number of occurrence records. The dataset with type sampling_event is treated as presence-absence, occurrence as presence-only and insectMonitoring as count data.'
+#| echo: false
+#| warning: false
+readr::read_csv("../data/plantMetaData.csv")|>
+  kbl(col.names = c("Dataset name", "Data type", "No. of observations", "Percent")) 
+```
+
+
+![Distribution of plant species in the merged presence-only dataset.](../img/plantsPO.png){#fig-plantSp1}
+
+![Distribution of plant species in the ASO data. The observations are colored by the presence (1) or absence (0) value.](../img/plantsPA.png){#fig-plantASO}
 
 ###  7.3. Covariates
 
-We used several covariates to fit both the pollinator and plant ISDMs. The names of the covariates, their description and source are presented in @tbl-covariate. Additionally, we include the indication of whether the covariate is a habitat, trait or climatic variables as well as which of the ISDMs it was used to fit in @tbl-covariate. 
+We used several covariates to fit both the pollinator and plant ISDMs. The names of the covariates, their description and source are presented in @tbl-covariate. Additionally, we include the indication of whether the covariate is a habitat, trait or climatic variables as well as which of the ISDMs it was used to fit in @tbl-covariate. The rasters of the covariates are on $1$ km resolution.
 
 ```{r tbl-covariate}
 #| tbl-cap: 'Description of covariates used to fit the integrated species distribution models and the source the covariates were retrieved from. The table indicated what type of covariate (habitat, trait and climatic) and which of the distributions it was used for (pollinator and/or plant) ISDM'
@@ -350,7 +419,7 @@ readxl::read_excel("../data/covariateDescription.xlsx")%>%
 
 We present the distribution of the covariates described in @tbl-covariate here in @fig-covariates.
 
-![Covariates used to fit the ISDM.](../img/environmentalCovariates.png){#fig-covariates}
+![Covariates used to fit the ISDM. The resolution of the covariates are on a 1 km resolution.](../img/environmentalCovariates.png){#fig-covariates}
 
 ## 8. Spatial units
 
@@ -359,28 +428,41 @@ We present the distribution of the covariates described in @tbl-covariate here i
 ## 9. Analyses
 
 <!--# Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. -->
-We fitted an ISDM using the point process framework [REF] to the merged pollinator presence-only (PO) and presence-absence (PA) datasets. ISDMs are various models that are linked together by a shared ecological process. 
+We fitted an ISDM using the point process framework [REF] to the merged pollinator presence-only (PO) and presence-absence (PA) datasets. ISDMs are various observation models that are linked together by a shared ecological process. 
 
-Using the poisson process framework, we model the presence-only data as a Poisson point process model [REF] with mean intensity $\lambda_i(s)$ for each pollinator $i \in \{bees, butterflies, hoverflies\}$. This mean intensity is modelled as:
+### 9.1. General overview of ISDMs
+
+In this subsection, we present an overview of the ISDMs for general understanding of this document. For further details on ISDM, refer to @isaac2020data, @Dorazio2014 and @Fithian2015. The models are described using the point process framework as described in @peprah2023point. Additionally, we present the description of these models under the assumption that we are fitting a multi-species ISDM.
+
+We model the presence-only data as a Poisson point process model [@illian2008statistical] with mean intensity $\lambda_i(s)$ for each species $i = 1, \ldots, S$, where $S$ is the number of species.This mean intensity modelled as:
 \begin{equation} \label{eq:int}
 \ln(\lambda_i(s)) = \beta_{0i} + \beta_{ji} X_j(s) + \omega_i(s) + \eta(s),
 \end{equation}
-where $\beta_{0i}$ is the pollinator-specific intercept, $\beta_{ji}$ is the pollinator-specific effect of covariate $j$, $X_j(s)$ is the $j^{th}$ covariate field, $\omega_i(s)$ is the pollinator-specific spatial autocorrelation field and $\eta(s)$ is the bias field. $\omega_i(s)$  and $\eta(s)$ are modeled as zero mean Gaussian random field (i.e. $\omega_i(s) \sim N(0, \Sigma)$, where $\Sigma$ is a Mat'ern covariance matrix with variance $\sigma_{\omega}^2$ and range $\kappa$ and $\eta(s) \sim N(0, \Sigma_\eta)$, where $\Sigma_\eta$ is a Mat'ern covariance matrix with variance $\sigma_{\eta}^2$ and range $\kappa_\eta$).  
+where $\beta_{0i}$ is the species-specific intercept, $\beta_{ji}$ is the species-specific effect of covariate $j$, $X_j(s)$ is the $j^{th}$ covariate field, $\omega_i(s)$ is the species-specific spatial autocorrelation field and $\eta(s)$ is the bias field. $\omega_i(s)$  and $\eta(s)$ are modeled as zero mean Gaussian random field (i.e. $\omega_i(s) \sim N(0, \Sigma)$, where $\Sigma$ is a Mat'ern covariance matrix with variance $\sigma_{i}^2$ and range $\kappa_i$ and $\eta(s) \sim N(0, \Sigma_\eta)$, where $\Sigma_\eta$ is a Mat'ern covariance matrix with variance $\tau^2$ and range $\kappa_\eta$). 
 
-We model the PA with a logistic regression model. Let $y_i(s)$ be a binary value at location $s$ with $0$ indicating absence of pollinator $i$ and $1$ indicating presence of pollinator $i$. Then $y_i(s) \sim \text{Bernoulli}(\Psi_i(s))$ with:
+We model the presence-absence data with a logistic regression model. Let $y_i(s)$ be a binary value at location $s$ with $0$ indicating absence of species $i$ and $1$ indicating presence of species $i$. Then $y_i(s) \sim \text{Bernoulli}(\Psi_i(s))$ with:
 $$
 cloglog(\Psi_i(s)) = \beta_{0i} + \beta_{ji} X_j(s) + \omega_i(s) 
 $$
-where the parameters are defined in equation \ref{eq:int}.
+where the parameters $\beta_0$, $\beta_1$ and $\omega$ are defined in equation \ref{eq:int}.
 
-All the ISDMs were fitted using the R-package PointedSDMs [REF].  
+All the ISDMs were fitted using the R-package PointedSDMs [@mostert2023pointedsdms].  
 
-### 9.1. ISDM for pollinators
-Using the model framework defined above, we fitted the ISDM to the pollinator dataset obtained from GBIF. 
+### 9.2. ISDM for pollinators
+
+Using the model framework defined above, we fitted the ISDM to the pollinator dataset obtained from GBIF. Due to memory available, we fit the ISDM seperately for each pollinator.
+
+
 ```{r}
 #| echo: true
 #| warning: false
 #| eval: false
+
+# Load data and covariates
+source("pipeline/dataImport/importPollinatorFromGBIF.R")
+source("pipeline/dataImport/environmentalDataImport.R")
+
+# Set the model
 model <- PointedSDMs::startSpecies(PointsBeesAndButterfliesAndHoverflies, # list of pollinator dataset (containing both mergedDatasetPA and mergedDatasetPO) 
                                    Boundary = regionGeometry, # boundary of the study
                                    Projection = newCrs, # projection
@@ -400,17 +482,19 @@ model <- PointedSDMs::startSpecies(PointsBeesAndButterfliesAndHoverflies, # list
 model$addBias(datasetNames = 'mergedDatasetPO')
 ```
 
-*Priors*
+#### 9.2.1 Priors
 
 We assume the following priors for the pollinator ISDM:
 
-* The probability that the standard deviation of the pollinator spatial field is greater than $0.1$ is $0.1$ (i.e. $P(\sigma_\omega > 0.1) = 0.1$).
+* The probability that the standard deviation of the pollinator spatial field is greater than $1$ is $0.1$ (i.e. $P(\sigma_\omega > 0.1) = 0.1$).
 
-* The probability that the standard deviation of the bias field is greater than $0.1$ is $0.1$ (i.e. $P(\sigma_\eta > 0.1) = 0.1$)
+* The probability that the standard deviation of the bias field is greater than $1$ is $0.1$ (i.e. $P(\sigma_\eta > 0.1) = 0.1$)
 
-* The probability that the spatial range of the pollinator spatial field is greater than $50$ is $0.1$ (i.e $P(\kappa_\omega < 50) = 0.1$)
+* The probability that the spatial range of the pollinator spatial field is less than $15$km is $0.1$ (i.e $P(\kappa_\omega < 15) = 0.1$)
 
-* The probability that the spatial range of the pollinator spatial field is greater than $50$ is $0.1$ (i.e. $P(\kappa_\eta < 50) = 0.1$)
+* The probability that the spatial range of the pollinator spatial field is less than $15$km is $0.1$ (i.e. $P(\kappa_\eta < 15) = 0.1$)
+
+* effects of continuous covariates (all covariates except land cover) and the intercept for each pollinator is assumed to be from a Normal distribution with mean $0$ and variance of $1$. 
 
 ```{r}
 #| echo: true
@@ -419,13 +503,13 @@ We assume the following priors for the pollinator ISDM:
 
 # hyper parameters of the spatial field (shared across species)
 model$specifySpatial(Species = TRUE,  # define same prior for the all species
-                     prior.sigma = c(0.6, 0.1),  # SD of field variation; 
-                     prior.range = c(5, 0.1))  # range of spatial correlation; 
+                     prior.sigma = c(1, 0.1),  # SD of field variation; 
+                     prior.range = c(15, 0.1))  # range of spatial correlation; 
 
 
 model$specifySpatial(Bias = TRUE, # Change the prior
                                  prior.sigma = c(1, 0.1),
-                                 prior.range = c(5, 0.1))
+                                 prior.range = c(15, 0.1))
 
 model$specifyRandom(
   # precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)
@@ -435,16 +519,35 @@ model$specifyRandom(
   # precision parameter on the baseline species occurrence rate
   speciesIntercepts = list(prior = 'pc.prec',
                            param = c(0.1, 0.1)))  
+
+# Specify priors for covariate effects (continuous)
+covariatesToAddEffects <- c("bio1", "bio.sq", "bmInt", "RegCom", "mBio1", "sdBio1", "sdmInt", "Latitude", "mLat", "sdLat", "mlatInt")
+for(covs in covariatesToAddEffects){
+  model$priorsFixed(Effect = covs,
+                    mean.linear = 0,
+                    prec.linear = 1)
+}
+
 ```
 
-*Fit model and make predictions*
+#### 9.2.2 Fit model and make predictions
 
-We fit the model and make predictions of the pollinator intensity within the study region.
+We fit the model and make predictions of the pollinator intensity within the study region. We fit the model by using the adaptive strategy of the composite design integration strategy in `INLA` [@inla]. 
+
 ```{r}
 #| echo: true
 #| warning: false
 #| eval: false
 
+modelOptions <- list(num.threads = 4,
+                     control.inla = list(int.strategy = 'ccd', 
+                                         diagonal = 0.001, 
+                                         cmin = 0, 
+                                         strategy = "adaptive",
+                                         control.vb= list(enable = FALSE)), 
+                     verbose = FALSE, 
+                     safe = TRUE, 
+                     inla.mode = "experimental")
 
 modelRun <- PointedSDMs::fitISDM(data = model, 
                             options = modelOptions)
@@ -456,9 +559,12 @@ modelRun <- PointedSDMs::fitISDM(data = model,
           n.samples = 100)
 ```
 
+#### 9.2.3 Pollinator ISDM validation
+
+We perform a five-fold cross validation to assess the trait effect on the pollinator distribution across the study region.
 
 
-### 9.2. ISDM for plant species
+### 9.3. ISDM for plant species
 
 Modelling all the $54$ species required memoey allocations we did not have, so we split the species into groups with $10$ species in each group. We fitted independent ISDMs for each of the groups.
 
@@ -514,7 +620,7 @@ speciesModelShared$addBias(datasetNames = 'mergedPlantsPO')
 
 ```
 
-*Priors*
+#### 9.3.1 Priors
 We assume the following priors for the pollinator ISDM:
 
 * The probability that the standard deviation of the pollinator spatial field is greater than $0.1$ is $0.1$ (i.e. $P(\sigma_\omega > 0.1) = 0.1$).
@@ -552,18 +658,24 @@ speciesModelShared$specifyRandom(
 
 ```
 
-*Model fitting and predictions*
+#### 9.3.2 Model fitting and predictions
+
+We fit the model by using the adaptive strategy of the composite design integration strategy in `INLA`. 
 ```{r}
 #| echo: true
 #| warning: false
 #| eval: false
 
 # specify the model options for INLA
-modelOptions <- list(control.inla = list(int.strategy = 'eb', 
-                                         diagonal = 0.1, 
-                                         cmin = 0), 
+modelOptions <- list(num.threads = 4,
+                     control.inla = list(int.strategy = 'ccd', 
+                                         diagonal = 0.001, 
+                                         cmin = 0, 
+                                         strategy = "adaptive",
+                                         control.vb= list(enable = FALSE)), 
                      verbose = FALSE, 
-                     safe = TRUE)
+                     safe = TRUE, 
+                     inla.mode = "experimental")
 
 # Species-specific spatial effects model
 speciesSharedEst <- PointedSDMs::fitISDM(data = speciesModelShared, 
@@ -574,11 +686,11 @@ speciesSharedEst <- PointedSDMs::fitISDM(data = speciesModelShared,
 individualDatasetPreds <- predict(speciesSharedEst,
                                   data = ppxl,
                                   predictor = TRUE,
-                                  n.samples = 10)
+                                  n.samples = 500)
 ```
 
 
-### 9.3 Species Interractions
+### 9.4 Species Interractions
 
 ```{r}
 #| fig-cap: 'Webplot of plant species and pollinator interractions.'
@@ -594,7 +706,7 @@ individualDatasetPreds <- predict(speciesSharedEst,
 ```
 
 
-### 9.4. Diversity Indices
+### 9.5. Diversity Indices
 
 To define the diversity of the pollinators, we estimate the pollinator intensity given their interaction with the plants species within the location $s$. This is estimated as:
 \begin{equation}
@@ -644,3 +756,9 @@ In contrast to the trait and climatic variables, there seems to be ... (@fig-pol
 ```{r export}
 #| eval: false
 ```
+
+
+## 12. References
+
+::: {#refs}
+:::
