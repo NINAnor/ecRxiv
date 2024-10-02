@@ -16,12 +16,21 @@ Indicator documentation authors will submit PRs of very different quality. This 
 
 It's common that PR contain more files than what we actually want to update in the main. This can be draft documents, old rendered pdf or html outputs, or large data files that should be handled outside of gh.
 
-If the PR comes from a private fork, you have the following options:
+If the PR comes from a private fork, you have three general options:
 
--   ask the contributor to revert or unstage certain files in the PR
--   ask the contributor to create a new PR from a new branch taken from PR branch and where certain files are reverted
--   Make [adjustments to the compare branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork) in the fork
--   [checkout the PR locally](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/checking-out-pull-requests-locally#modifying-an-inactive-pull-request-locally)
+-    Ask contributor to delete files from the branch where the PR comes from
+
+-   Ask the contributor to make a new, clean PR
+
+-   Or, make a new clean PR yourself, by first checking out the PR locally, modifying it and making a new PR.
+
+The latter is best if the collaborator cannot be reached or for some reason don't want to work on this anymore themselves. The first option is perhaps nicest, but sometimes there are relaly a lot of files and hard to know which ones to delete. Then it might be a good idea just make a new fork and copy only the correc files oner to that. This of coarse removes the git history for that work.
+
+## 2. Reviewing a PR
+
+Start by adding a label to the PR matching th indicator code.
+
+If the PR claims to be self-contained, then you can try to knit the html and see it that works. To do that you can checkout the PR locally like this
 
 ```{r}
 #| eval: false
@@ -29,10 +38,6 @@ git fetch origin pull/3/head:my_new_branch
 git checkout my_new_branch
 ```
 
-... and from this branch revert certain files and make a new PR. See also [here](https://stackoverflow.com/questions/62432498/how-do-i-checkout-a-pr-from-a-fork).
+If the contributor dont want to work on the revisions themselves, you can use this local copy to make changes and then make a new PR based on that. This requires a clear understanding around roles and authorship.
 
-Making a new PR makes the history a bit more convoluted, but this can be ok since we use tags/labels to tie PRs together.
-
-If the PR comes from a branch on ecRxiv (this should not happen), then basically the same alternatives exist, except the last one.
-
-The first two options are preferred, especially if the contributor is from outside of NINA. Unless there are files in the PR that the contributor needs to keep, then the first option is the cleanest.
+You can start a review on github and make comments to specifi lines that you want the contributor to look at or to change. However, for some formatting issues ect it makes sens e to just make these suggestions directly yourself. You can then fork the PR branch and make fixes there and do a PR back to the contributing fork. Try to mark this review in the original PR log.
