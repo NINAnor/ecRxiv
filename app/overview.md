@@ -1,0 +1,5 @@
+## A quick overview of the project
+
+Ecosystem condition indicators are used in ecosystem condition assessments and accounts to monitor the quality and integrity of nature. These assessments and accounts can be important policy instruments that guide nature governance. When presented in reports aimed for managers and policy makers, indicators are often described just enough for them to be interpretable. However, indicator calculations/designs are often quite technical and includes many steps that cannot be described fully in a rapport that may include several indicators and indices. There is a need to document these workflows in order to validate and review their soundness and relevance for describing ecosystem condition. This documentation will also be a benefit to the ecosystem condition indicator community of practice because it makes it easier to learn from each other and develop the field quicker.
+
+This ShinyApp allows documentation to be viewed. It will be updated when new indicator documentation is added to the repository. 
