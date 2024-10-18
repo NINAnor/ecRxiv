@@ -287,11 +287,11 @@ Anders will help with this
 
 ### 4. 2. Reference values
 
-We first estimate the richness, Shannon-Wiener and Simpson diversity indices (described in @sec-divIndices) across the study region (presented in @fig-allIndices). We present the Shannon diversity estimates for the alpine, boreal and temperate pollinators with the ASO data meadows in the Appendix (@fig-alpineDiversity, @fig-borealDiversity and @fig-temperateDiversity respectively). 
+We first estimate the richness, Shannon-Wiener and inverse Simpson diversity indices (described in @sec-divIndices) across the study region (presented in @fig-allIndices). We present the Simpson diversity estimates for the alpine, boreal and temperate pollinators with the ASO data meadows in the Appendix (@fig-alpineDiversity, @fig-borealDiversity and @fig-temperateDiversity respectively). 
 
 
 ```{r fig-allIndices}
-#| fig-cap: 'The Shannon Weiner and Simpson diversity indices for alpine, boreal, temperate and all zones estimated across Norway.'
+#| fig-cap: 'The Shannon Weiner and inverse Simpson diversity indices for alpine, boreal, temperate and all zones estimated across Norway.'
 #| fig-width: 100
 #| echo: false
 #| warning: false
@@ -300,7 +300,7 @@ knitr::include_graphics("../img/diversityEstimates.png")
 
 #### 4.2.1 Minimum and maximum values
 
-To define the reference values, we extract the diversity indices at the ASO locations, find the maximum and minimum values within a predefined cluster based on annual temperature and latitude. We present a summary of these reference values in @tbl-maxminvalues.
+To define the reference values, we extract the diversity indices at the ASO locations, find the maximum and minimum values within a predefined cluster based on annual temperature and latitude. We present these reference values within each geographic cluster in @tbl-maxminvalues.
 
 ```{r}
 #| echo: false
@@ -329,58 +329,125 @@ dat %>%
 ```
 
 
+With these indicator values (presented in @tbl-maxminvalues), we scale the inverse Simpson diversity indices for each of the ASO meadow locations by the indicator values. We present these scaled diversity indices in @fig-asoDiversity. An increase in the inverse Simpson index reflects an increase in diversity [@zhou2002spatial].
 
- We further present the scaled diversity indices with their maximum value in @fig-asoDiversity. 
+We observed that the temperate pollinators were the most diverse followed by the boreal and temperate pollinators. 
 
 ```{r}
-#| fig-cap: 'Shannon diversity indices at ASO data locations.'
+#| fig-cap: 'Scaled pollinator diversity indices at the meadow locations. The estimated shannon indices within each zone (alpine, boreal and temperate) are divided by the indicator values within that zone (defined in @tbl-maxminvalues).'
 #| echo: false
 #| warning: false
 #| label: fig-asoDiversity
+#| fig-width: 9
+#| fig-height: 9
 
-# load the asodata
-
-library(plotly)
 
 g1 <- ggplot(asoDataMeadows) +
   gg(asoDataMeadows["alpineReference"], aes(col = alpineReference)) +
-scale_color_gradientn(colours = terrain.colors(9), 
-                      breaks = seq(0.6, 1, 0.05), 
-                      limits = c(0.6, 1))+
+scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
+                      breaks = seq(0, 1, 0.2), 
+                      limits = c(0, 1) )+
   geom_sf(data = regionGeometry, alpha = 0.1)+
   theme_bw()+
-  labs(color = " ")
+  labs(color = " ",
+       title = "a) Alpine")
 
 g2 <- ggplot(asoDataMeadows) +
   gg(asoDataMeadows["borealReference"], aes(col = borealReference)) +
-scale_color_gradientn(colours = terrain.colors(9), 
-                      breaks = seq(0.6, 1, 0.05), 
-                      limits = c(0.6, 1))+
+scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
+                      breaks = seq(0, 1, 0.2), 
+                      limits = c(0, 1))+
   geom_sf(data = regionGeometry, alpha = 0.1)+
   theme_bw()+
-  labs(color = " ")
+  labs(color = " ",
+       title = "b) Boreal")
 
 g3 <- ggplot(asoDataMeadows) +
   gg(asoDataMeadows["temperateReference"], aes(col = temperateReference)) +
-scale_color_gradientn(colours = terrain.colors(9), 
-                      breaks = seq(0.6, 1, 0.05), 
-                      limits = c(0.6, 1))+
+scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
+                      breaks = seq(0, 1, 0.2), 
+                      limits = c(0, 1))+
   geom_sf(data = regionGeometry, alpha = 0.1)+
   theme_bw()+
-  labs(color = " ")
+  labs(color = " ",
+       title = "c) Temperate")
 
-ggarrange(g1, g2, g3,
-          ncol = 3,
+g4 <- ggplot(asoDataMeadows) +
+  gg(asoDataMeadows["allReference"], aes(col = allReference)) +
+  scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
+                      breaks = seq(0, 1, 0.2), 
+                      limits = c(0, 1))+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "d) All zones")
+
+ggarrange(g1, g2, g3, g4,
+          ncol = 2, nrow = 2,
           common.legend = TRUE,
           legend = "bottom")
 ```
 
 
-**Will the Simpson index be a better estimate? I will cherish a discussion on the best diversity index to us. Moreover, this run is on 20km scale, and on a 1km scale, things will change.**
-
 <!--# Describe the reference values used to set the lower and upper limits on the normative indicator scale. Why was the current option chosen and how were the reference values quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here. -->
 
 #### 4.2.2. Threshold value for defining *good ecological condition (if relevant)*
+
+We present three threshold values for defining a good condition. Any scales indicator greater than the scaled indicators (@fig-ecosystemCondition (a) are deemed to refer to `good conditions` at the location, otherwise `poor conditions`. We define three threshold values which ca be considered: 
+
+- Threshold of 0.5 [@fig-ecosystemCondition (b)]
+
+- Threshold of 0.6 [@fig-ecosystemCondition (c)]
+
+- Threshold of 0.75 [@fig-ecosystemCondition (d)]
+
+**What does this mean and how do we interpret these thresholds. Does these conditions make sense and how do we interpret those?**
+```{r}
+#| fig-cap: 'Shannon diversity indices at ASO data locations.'
+#| echo: false
+#| warning: false
+#| label: fig-ecosystemCondition
+#| fig-width: 9
+#| fig-height: 9
+  load("../data/ecosystemConditions.RData")
+g1 <- ggplot(selectedVars) +
+  gg(selectedVars["condition50"], aes(col = condition50)) +
+scale_color_discrete( )+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "b) Threshold: 0.50")
+
+g2 <- ggplot(selectedVars) +
+  gg(selectedVars["condition60"], aes(col = condition60)) +
+scale_color_discrete( )+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "c) Threshold: 0.60")
+
+g3 <- ggplot(selectedVars) +
+  gg(selectedVars["condition75"], aes(col = condition75)) +
+scale_color_discrete( )+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "d) Threshold: 0.75")
+
+g4 <- ggplot(selectedVars) +
+  gg(selectedVars["allReference"], aes(col = allReference)) +
+  scale_color_gradientn(colours = terrain.colors(10, rev = TRUE))+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "a) Indicator Values")
+
+ggarrange(g4, g1, g2, g3,
+          ncol = 2, nrow = 2,
+          common.legend = FALSE,
+          legend = "bottom")
+```
+
 
 <!--# Describe the different reference values here and the justification for using these -->
 
@@ -495,7 +562,7 @@ To ascertain the trait effect on the pollinator distribution, we randomise the t
 ## 9. Analyses
 
 <!--# Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. -->
-We fitted an ISDM using the point process framework [REF] to the merged pollinator presence-only (PO) and presence-absence (PA) datasets. ISDMs are various observation models that are linked together by a shared ecological process. 
+We fitted an ISDM using the point process framework [@illian2008statistical] to the merged pollinator presence-only (PO) and presence-absence (PA) datasets. ISDMs are various observation models that are linked together by a shared ecological process. 
 
 ### 9.1. General overview of ISDMs {#sec-isdmOverview}
 
@@ -529,7 +596,7 @@ plot(meshForProject)
 
 ### 9.2. ISDM for pollinators
 
-Using the model framework defined above, we fitted the ISDM to the pollinator dataset obtained from GBIF. Due to memory available, we fit the ISDM seperately for each pollinator using @eq-int and @eq-occ.
+Using the model framework defined in @sec-isdmOverview, we fitted the ISDM to the pollinator dataset obtained from GBIF. 
 
 
 ```{r}
@@ -565,15 +632,15 @@ model$addBias(datasetNames = 'mergedDatasetPO')
 
 We assume the following priors for the pollinator ISDM:
 
-* The probability that the standard deviation of the pollinator spatial field is greater than $0.5$ is $0.1$ (i.e. $P(\sigma_\omega > 0.5) = 0.1$).
+* The probability that the standard deviation of the pollinator spatial field is greater than $0.5$ is $0.1$ (i.e. $P(\sigma_\omega > 0.5) = 0.01$).
 
-* The probability that the standard deviation of the bias field is greater than $0.5$ is $0.1$ (i.e. $P(\sigma_\eta > 0.5) = 0.1$)
+* The probability that the standard deviation of the bias field is greater than $1$ is $0.01$ (i.e. $P(\sigma_\eta > 1) = 0.01$)
 
-* The probability that the spatial range of the pollinator spatial field is less than $1$km is $0.1$ (i.e $P(\kappa_\omega < 1) = 0.1$)
+* The probability that the spatial range of the pollinator spatial field is less than $1$km is $0.01$ (i.e $P(\kappa_\omega < 1) = 0.01$)
 
 * The probability that the spatial range of the pollinator spatial field is less than $1$km is $0.1$ (i.e. $P(\kappa_\eta < 1) = 0.1$)
 
-* effects of continuous covariates (all covariates except land cover) and the intercept for each pollinator is assumed to be from a Normal distribution with mean $0$ and variance of $1$. 
+* effects of continuous covariates (all covariates except land cover) and the intercept for each pollinator is assumed to be from a Normal distribution with mean $0$ and precision of $0.01$ and Normal distribution with mean $0$ and precision of $2$ respectively. 
 
 ```{r}
 #| echo: true
@@ -581,30 +648,54 @@ We assume the following priors for the pollinator ISDM:
 #| eval: false
 
 # hyper parameters of the spatial field (shared across species)
-model$specifySpatial(Species = TRUE,  # define same prior for the all species
-                     prior.sigma = c(1, 0.1),  # SD of field variation; 
-                     prior.range = c(15, 0.1))  # range of spatial correlation; 
+for(taxon in c("Bees", "Butterflies", "Hoverflies")){
+  # hyper parameters of the spatial field (shared across species)
+  model$specifySpatial(Species = taxon,  # define same prior for the all species
+                       prior.sigma = c(0.5, 0.01),  # SD of field variation; 
+                       prior.range = c(1, 0.01),  # range of spatial correlation; 
+                       constr = FALSE
+  )
+  
+  # PC prior for intercepts
+  model$priorsFixed(Effect = "intercept",  # define same prior for the all species
+                    Species = taxon,
+                    mean.linear = 0,
+                    prec.linear = 2
+  )
+  
+  model$changeComponents(paste0("", taxon, "_bio.sq(main = ", taxon, "_bio.sq, model = ", '"', "clinear", '"', ", range = c(-10, 0))"))
+  
+  model$changeComponents(paste0("", taxon, "_landCover(main = ", taxon, "_landCover, model = ", '"', "factor_contrast", '"', ", hyper = list(theta = list(initial = 0, fixed = TRUE)))"))
+  
+}
 
+# Prior for bias field
+model$specifySpatial(Bias = 'mergedDatasetPO', # Change the prior
+                     prior.sigma = c(1, 0.01),
+                     prior.range = c(1, 0.01))
 
-model$specifySpatial(Bias = TRUE, # Change the prior
-                                 prior.sigma = c(1, 0.1),
-                                 prior.range = c(15, 0.1))
-
+# prior for random effects (mesh nodes of spatial field and species intercepts)
 model$specifyRandom(
   # precision parameter on how much each species' spatial field (how much they can deviate from the shared ___)
   speciesGroup = list(model = "iid", 
-                      hyper = list(prec = list(prior = "pc.prec",
-                                               param = c(0.1, 0.1)))), 
+                      hyper = list(prec = list(initial = 0, fixed = TRUE))), # InitialValue of sigma^2 = 1/exp(1) = 0.3
   # precision parameter on the baseline species occurrence rate
-  speciesIntercepts = list(prior = 'pc.prec',
-                           param = c(0.1, 0.1)))  
+  speciesIntercepts = list(initial = 0,
+                           fixed = TRUE),
+  
+  copyBias =  list(model = "iid", 
+                   hyper = list(prec = list(initial = 0, fixed = TRUE)))#list(beta = list(initial = 0, fixed = TRUE))
+)  
+
+model$changeComponents(paste0("mergedDatasetPO_biasField(main = geometry, model = mergedDatasetPO_bias_field,control.group = list(model =", '"', "iid", '"' , ", hyper = list(prec = list(initial = 0, fixed = TRUE))))"))
 
 # Specify priors for covariate effects (continuous)
-covariatesToAddEffects <- c("bio1", "bio.sq", "bmInt", "RegCom", "mBio1", "sdBio1", "sdmInt", "Latitude", "mLat", "sdLat", "mlatInt")
+covariatesToAddEffects <- c("bio1", "bmInt", "RegCom", "mBio1", "sdBio1", "sdmInt", "Latitude", "mLat", "sdLat", "mlatInt")
+#covariatesToAddEffects <- c("bio1","Latitude")
 for(covs in covariatesToAddEffects){
   model$priorsFixed(Effect = covs,
                     mean.linear = 0,
-                    prec.linear = 1)
+                    prec.linear = 0.01)
 }
 
 ```
@@ -649,7 +740,7 @@ The model with the lowest DIC score is deemed to be the best.
 
 ### 9.3. ISDM for plant species
 
-There are $54$ plant species we aim to estimate their species distribution. Looking at the number of occurrence records in @tbl-plantMetaData, developing a multi-species ISDM will produce stable estimates for the species with fewer occurrence records like Hieracium umbellatum. However, we do not have the required memory allocations to fit all the $54$ species together, so we split the total number of species into $11$ groups, with $5$ species in each group. The splitting is done by sorting the total occurrence in each dataset and assigning the species to each group so that the highest occurrence is in the first group, the second is in the second group and the list continues. 
+There are $54$ plant species we aim to estimate their species distribution. Looking at the number of occurrence records in @tbl-plantMetaData, developing a multi-species ISDM will produce stable estimates for the species with fewer occurrence records like `Hieracium umbellatum`. However, we do not have the required memory allocations to fit all the $54$ species together, so we split the total number of species into $6$ groups, with $9$ species in each group. The splitting is done by sorting the total occurrence in each dataset and assigning the species to each group so that the highest occurrence is in the first group, the second is in the second group and the list continues. 
 
 After splitting the data into the groups, we fit a multi-species ISDMs (described in @sec-isdmOverview) to each group. 
 
@@ -777,11 +868,15 @@ individualDatasetPreds <- predict(speciesSharedEst,
 
 ### 9.4 Species Interractions
 
+We visualise the bipartite networks between the pollinator taxon and the plant species using data from **where?**. The networks were created using the `frame2webs` function in the R-package `bipartite` [@bipartite]. The web plot of the network is presented in @fig-webplot. 
+
+The data available for use in this project has interaction data on only 245 out of over 8000 pollinator species modelled here. So we derive an interraction between the pollinator taxon and the plant species and use it account for the interraction.
+
 ```{r}
 #| fig-cap: 'Webplot of plant species and pollinator interractions.'
 #| echo: true
 #| warning: false
-#| label: webplot
+#| label: fig-webplot
 
 
   load("../data/webPlot.RData")
@@ -797,16 +892,12 @@ To define the diversity of the pollinators, we estimate the pollinator intensity
 \begin{equation}
 \begin{split}
 \text{Intensity for intensity} &\propto \text{Estimated pollinator intensity} \times \text{Interraction weight} \times \text{plant species occurrence probability}\\
-\implies \lambda^{\star}_i(s) &= \frac{\lambda_i(s) \times w_{ik} \times \Psi_k(s)}{\sum_k \lambda_i(s) \times w_k \times \Psi_k(s)}, 
+\implies \lambda^{\star}_i(s) &= 1/K \times \sum_k \frac{\lambda_i(s) \times w_{ik} \times \Psi_k(s)}{\sum_k \lambda_i(s) \times w_k \times \Psi_k(s)}, 
 \end{split}
 \end{equation}
 where $w_k$ is the weight of the interaction between pollinator $i$ and plant species $k$, $\Psi_k(s)$ is the occurrence probability of plant species $k$ and $\lambda_i(s)$ is the intensity of pollinator $i$.
 
-We estimated the Hill's diversity indices for the pollinators. The Hill's diversity indices are defined as:
-$$
-H(s) = r_i(s) \times log(r_i(s));
-$$
-where $r_i(s) = \frac{\lambda^{\star}_i(s)}{\sum_{i} \lambda^{\star}_i(s)}$.
+We estimated the Hill's diversity indices for the pollinators. We estimated the species richness, Shannon diversity and inverse Simposon index using the R-package `vegan` [@vegan].
 
 ## 10. Results
 
@@ -837,12 +928,12 @@ In contrast to the trait and climatic variables, there seems to be ... (@fig-pol
 ### 10.2. Pollinator indicators
 
 ```{r}
-#| fig-cap: 'Shannon diversity estimates for the alpine pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
+#| fig-cap: 'Simpson diversity estimates for the alpine pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
 #| echo: false
 #| warning: false
 #| label: fig-alpineDiversity
 
-
+library(plotly)
 
 axx <- list(
   title = "Annual temperature"
@@ -858,7 +949,7 @@ axz <- list(
 
 fig <- plot_ly(x = c(asoDataMeadows$bio1), 
         y = c(asoDataMeadows$Latitude), 
-        z = c(asoDataMeadows$alpine_shannon), 
+        z = c(asoDataMeadows$alpine_simpson), 
         type = "scatter3d", # "scatter3d"
         mode = "markers", 
         color = c(asoDataMeadows$cluster),
@@ -873,14 +964,14 @@ hide_legend(fig)
 
 
 ```{r}
-#| fig-cap: 'Shannon diversity estimates for the boreal pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
+#| fig-cap: 'Simpson diversity estimates for the boreal pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
 #| echo: false
 #| warning: false
 #| label: fig-borealDiversity
 
 plot_ly(x = c(asoDataMeadows$bio1), 
         y = c(asoDataMeadows$Latitude), 
-        z = c(asoDataMeadows$boreal_shannon), 
+        z = c(asoDataMeadows$boreal_simpson), 
         type = "scatter3d", # "scatter3d"
         mode = "markers", 
         color = c(asoDataMeadows$cluster))%>%
@@ -891,14 +982,14 @@ plot_ly(x = c(asoDataMeadows$bio1),
 
 
 ```{r}
-#| fig-cap: 'Shannon diversity estimates for the temperate pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
+#| fig-cap: 'Simpson diversity estimates for the temperate pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
 #| echo: false
 #| warning: false
 #| label: fig-temperateDiversity
 
 plot_ly(x = c(asoDataMeadows$bio1), 
         y = c(asoDataMeadows$Latitude), 
-        z = c(asoDataMeadows$temperate_shannon), 
+        z = c(asoDataMeadows$temperate_simpson), 
         type = "scatter3d", # "scatter3d"
         mode = "markers", 
         color = c(asoDataMeadows$cluster))%>%
