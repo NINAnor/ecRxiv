@@ -55,7 +55,7 @@ If you are starting to work on a new indicator (not updating an existing indicat
 
 All indicators are given a unique code:
 
-`CO_NAME_XXX_YYY`
+`CO_NAME_XXX`
 
 where
 
