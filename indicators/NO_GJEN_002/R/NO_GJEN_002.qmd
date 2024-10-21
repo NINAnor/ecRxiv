@@ -43,6 +43,12 @@ library(viridisLite)
 library(patchwork)
 library(magick)
 knitr::opts_chunk$set(echo = TRUE)
+
+# conditional path
+dir <- substr(getwd(), 1,3)
+p_path <- switch(dir, "C:/" = "P:/", "P:/" = "/data/P-Prosjekter2/")
+r_path <- switch(dir, "C:/" = "R:/", "P:/" = "/data/R/")
+
 ```
 
 ```{r source}
@@ -361,7 +367,7 @@ Here we include a shapefile of our area of intertest. The script will loop throu
 
 ```{r}
 
-AOIs <- sf::st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/AOIs.shp")
+AOIs <- sf::st_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/AOIs.shp"))
 
 tile_size <- 256
 resolution <- 0.5  # 0.5 meter resolution
@@ -493,7 +499,7 @@ mclapply(1:nrow(AOIs), function(i) {
 To use our model output as an indicator, we need to bring in some datasets to stratify our inferred canopy height statistics. The regional delineation for Norway (five regions) are used for aggregating and reporting gjengroing condition values.
 
 ```{r}
-regions <- sf::st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/regions.shp", options = "ENCODING=UTF8") %>%
+regions <- sf::st_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/regions.shp"), options = "ENCODING=UTF8") %>%
   mutate(region = factor(region))
 ```
 
@@ -502,7 +508,7 @@ regions <- sf::st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andre
 The [Moen's bioclimatic regions](https://data.artsdatabanken.no//Natur_i_Norge/Natursystem/Beskrivelsessystem/Regional_naturvariasjon/Bioklimatisk_sone) are imported from NINA R/GeoSpatialData/ server.
 
 ```{r}
-bioclim <- st_read('/data/R/GeoSpatialData/BiogeographicalRegions/Norway_VegetationZones_Moen/Original/Vector/soner.shp') %>%
+bioclim <- st_read(paste0(r_path, 'GeoSpatialData/BiogeographicalRegions/Norway_VegetationZones_Moen/Original/Vector/soner.shp')) %>%
   mutate(NAVN = ifelse(NAVN == 'S°rboreal', 'Sørboreal', NAVN))
 bioclim <- st_transform(bioclim, st_crs(regions))
 ```
@@ -779,7 +785,7 @@ if __name__ == '__main__':
 Here we import a shapefile of the areas of interest used to download image tiles. QGIS has been used to perform zonal statistics to calculate the median and maximum canopy height, calculated from both Meta model inference and LiDAR data, for each NiN feature.
 
 ```{r}
-metaChm <- st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiN_metaTest.shp")
+metaChm <- st_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiN_metaTest.shp"))
 ```
 
 #### 9.2.1 Adding reference information
@@ -877,7 +883,7 @@ cleanRegClim <- function(data){
 }
 
 
-skog_region_bioclim <- read_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Ida/From_GEE/vegHeights_skog_climZoneRegion.csv")
+skog_region_bioclim <- read_csv(paste0(p_path, "412421_okologisk_tilstand_2024/Ida/From_GEE/vegHeights_skog_climZoneRegion.csv"))
 
 
 names(skog_region_bioclim)[2:4] <- c("vegClimZone","skog","region_id")
@@ -909,9 +915,9 @@ head(metaChm)
 Import the reference height data to be used as "good" condition reference values
 
 ```{r}
-refvaatmark  <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refvaatmark.csv', sep = ",")
-refaapne  <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refaapne.csv', sep = ";")
-refsemi  <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refsemi.csv', sep = ",")
+refvaatmark  <- read.csv(paste0(p_path, '412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refvaatmark.csv'), sep = ",")
+refaapne  <- read.csv(paste0(p_path, '412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refaapne.csv'), sep = ";")
+refsemi  <- read.csv(paste0(p_path, '412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refsemi.csv'), sep = ",")
 
 ```
 
@@ -1023,9 +1029,9 @@ Here is an example of the output from the meta model compared to LiDAR canopy he
 ```{r}
 #| eval: false
 
-rgb_img <- stack("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4.tif")  
-pred_img <- raster("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_pred.tif") 
-lidar_img <- raster("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_LiDAR_2017.tif")  
+rgb_img <- stack(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4.tif"))  
+pred_img <- raster(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_pred.tif"))
+lidar_img <- raster(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_LiDAR_2017.tif"))  
 
 rgb_df <- as.data.frame(rgb_img, xy = TRUE)
 pred_df <- as.data.frame(pred_img, xy = TRUE)
@@ -1064,7 +1070,7 @@ print(combined_plot)
 ```
 
 ```{r}
-img <- image_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/tileComparison.png")
+img <- image_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/tileComparison.png"))
 
 plot(img)
 ```
@@ -1072,7 +1078,7 @@ plot(img)
 Initial validation attempts showed poor performance relating to airborne images taken outside of the months of June, July and August. This was expected, since the model was trained on vegetation at peak foliation. For this reason, imagery collected outside of this month range was excluded from validation. We also filtered out points that intersected with the FKB building footprints layer, points that were in shadow (calculated by sampling the blue channel of the input RGB images and filtering out based on a threshold value). The resulting csv file after filtering contains c. 30000 points with LiDAR and Meta model based canopy heights. Future iterations of this script will automate these vaildation steps.
 
 ```{r}
-val <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiNpointSamples.csv')
+val <- read.csv(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiNpointSamples.csv"))
 ggplot(val, aes(x = lidmax, y = metamax)) +
   geom_point(size=2.5, alpha=0.2, stroke=0, color = 'darkgray') +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, color = "darkblue") +  # Line of best fit
