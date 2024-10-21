@@ -63,8 +63,12 @@ where
 
 -   `NAME` = four letter code for the indicator name (usually the first four letters of the full name, e.g. ALIE for the the indicator Alien Species)
 
--   `XXX` = three digit major version number. Major versions include substantial updates to the methodology or data origins behind the indicator. If the same indicator is used more-or-less in the same way for two ecosystem types, version number can also refer to ecosystem type. 
+-   `XXX` = three digit **major version number**. Major versions include substantial updates to the methodology or data origins behind the indicator. If the same indicator is used more-or-less in the same way for two ecosystem types, version number can also refer to ecosystem type. 
 
--   `YYY` = three digit minor version number. Minor version changes include updates bigger than just an increase in the data (e.g. from a yearly update), but smaller than a major update.
 
-If unsure about how to name you version, note that major version are published side-by-side, whereas minor versions overwrite each other.
+Each indicator (each unique indicator ID) will also have its own **version number**,
+where 000.001 denotes a dirst draft not ready for wide use, 
+and 001.000 is used for the first operational version.
+The version number is not part of the indicator ID, and subsequent versions overwrite each other.
+
+
