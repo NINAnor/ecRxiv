@@ -1,8 +1,9 @@
 ---
-title: "Encroachment Meta Model"
+title: "Woody enchroachment - approach based on LiDAR"
 format: 
   html:
     embed-resources: true
+    code-fold: true
 author:
   - name: Andrew Gray             # Enter name
     email: andrew.gray@nina.no  # Enter email
@@ -17,11 +18,10 @@ author:
       - ref: myID              # To reuse affiliations referecen the id like this
 date: October 10, 2024 # Enter date 
 callout-icon: false
+execute: 
+  cache: true
+bibliography: references.bib
 ---
-
-<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, Be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
-
-<!--# Load all you dependencies here -->
 
 ```{r setup}
 #| include: false
@@ -43,13 +43,17 @@ library(viridisLite)
 library(patchwork)
 library(magick)
 knitr::opts_chunk$set(echo = TRUE)
+
+# conditional path
+dir <- substr(getwd(), 1,3)
+p_path <- switch(dir, "C:/" = "P:/", "P:/" = "/data/P-Prosjekter2/")
+r_path <- switch(dir, "C:/" = "R:/", "P:/" = "/data/R/")
+
 ```
 
 ```{r source}
 #| echo: false
 source(here::here("_common.R"))
-
-here::here()
 ```
 
 ```{r}
@@ -66,6 +70,9 @@ auth <- meta |>
   pull(Value)
 year <- meta |>
   filter(Variable == "yearAdded") |>
+  pull(Value)
+id <- meta |>
+  filter(Variable == "indicatorID") |>
   pull(Value)
 name <- meta |>
   filter(Variable == "indicatorName") |>
@@ -92,17 +99,18 @@ meta <- meta |>
 
 <!--# The following parts are autogenertaed. Do not edit. -->
 
-::: {layout-ncol="3"}
 ```{r}
 #| echo: false
 #| results: asis
 status(st)
 ```
 
+::::: {layout-ncol="2"}
+
 ::: {.callout-note style="background: cornsilk;"}
 ## Recomended citation
 
-`r paste(auth, year, ".", name, "v.", version, "ecRxiv", url, sep=" ")`
+`r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 :::
 
 ::: {.callout-note style="background: khaki;"}
@@ -110,12 +118,17 @@ status(st)
 
 `r version`
 :::
+:::::
+
+::: callout-note
+## Logg
+- 11 Oct. 2024 - Original PR
+- 21 Oct. 2024 - Reviewed by Anders Kolstad
 :::
 
-```{=html}
+
 <details>
 <summary>Show metadata</summary>
-```
 
 ```{r tbl-meta}
 #| tbl-cap: 'Indicator metadata'
@@ -128,28 +141,42 @@ meta |>
 
 ```
 
-```{=html}
 </details>
-```
-# Gjengroing
 
-<!--# Replace 'indicator name' with your the actual indicator name -->
 
-<br />
 
-<!--# Don't remove these three html lines -->
+# Gjengroing / Woody enchroachment
 
-<br /> <br />
+::: callout-warning
+## In review
+
+This indicator is in review and is subject to change
+:::
+
+::: callout-note
+This indicator (NO_GJEN_002) is very similar to NO_GJEN_001 in what it is trying to do. The difference is that NO_GJEN_001 is based on LiDAR and NO_GJEN_002 uses aerial images. The developers of NO_GJEN_001 are also implemented in NO_GJEN_002, and hence we decided to reuse some of the text directly, without quotations.
+:::
 
 <hr />
 
-<!--# Document you work below.  -->
-
 ## 1. Introduction
 
-The Norwegian word "gjengroing" is directly translated to "regrowing" in English. The gjengroing indicator describes the regrowth of woody vegetation (trees and bushes) in open ecosystems (wetland, semi- and naturally open areas) across Norway. We will use a spatial reference approach where reference areas define good or optimal vegetation regrowth heights. We have produced an index to assess regrowth using LiDAR-based canopy height data which is documented in our NO_GJEN indicator workbook. A primary limitation of this index, however, is its reliance on Norway's national LiDAR survey, which is a static dataset with no planned resurvey (as of 2024). Here, we present a workflow to utilise airborne images to derive canopy height metrics using Meta's [High Resolution Canopy Height](https://github.com/facebookresearch/HighResCanopyHeight/tree/main) backbone model. Airborne imagery is scheduled for national resurvey every 5 to 10 years and so this implementation of the gjengroing index may be used to monitor future changes in ecosystem condition. It is worth noting that the yet-to-be-launched P-Band radar satellite, Biomass, may provide an more precise method for future monitoring once data is available.
+The Norwegian word "gjengroing" is directly translated to "regrowing" in English. The two gjengroing indicators (NO_GJEN_001 and \*\_002) describes the regrowth of woody vegetation (trees and bushes) in open ecosystems (wetland, semi- and naturally open areas) across Norway. We will use a spatial reference approach where reference areas define good or optimal vegetation their vegetation heights. We have previously produced an indicator to assess regrowth using LiDAR-based canopy height data (indicator ID: NO_GJEN_001). A primary limitation of that indicator, however, is its reliance on Norway's national LiDAR survey, which is a static dataset with no planned resurvey (as of 2024). Here, we present a workflow to utilise airborne images to derive canopy height metrics using Meta's [High Resolution Canopy Height](https://github.com/facebookresearch/HighResCanopyHeight/tree/main) backbone model [@tolan2024very]. Airborne imagery is scheduled for national resurvey every 5 to 10 years and so this implementation of the gjengroing indicator may be used to monitor future changes in ecosystem condition. It is worth noting that the yet-to-be-launched P-Band radar satellite, Biomass, may provide an more precise method for future monitoring once data is available.
 
 This workbook presents the necessary steps to download image tiles, run the model (in a Jupyter Notebook), validate the data against LiDAR canopy heights, compares LiDAR and modeled index scores and discusses the limitations of this approach.
+
+**Summary and conclusion**
+
+In this proof-of-concept, the indicator is calculated over a small number of areas / polygons.
+However, also in he future the indicator can probably only be calculated for a subset of Norways area, and not wall-to-wall.
+This is because there is no compiled dataset of aerial images over Norway that can be used directly.
+The indicator can, however, in the future be calculated for a representative sample of ecosystem occurrences, 
+for example the ASO or GRUK polygons, or new ground-truthing polygons from new nature monitoring programs that are currently under development.
+
+The canopy height estimated with the meta model show a relatively good agreement with the canopy heights from LiDAR (R^2^= 0.58), with possibly a slight bias towards taller canopies. 
+Although the indicator values may be inprecise at the level of individual points, and may individual polygons,
+this also tells us that the indicator will be quite sufficient to estimate indicator values at bigger spatial scales, such as from municipalities to regional scale.
+These is, however, a need to the reference levels to be recalculated base don the meta model. The current version *borrows*'* the reference levels from the LiDAR approach, which as was mentioned, could be systematically lower.
 
 
 ## 2. About the underlying data
@@ -157,13 +184,12 @@ This workbook presents the necessary steps to download image tiles, run the mode
 We rely on the following datasets:
 
 -   [Nature type polygons](https://kartkatalog.miljodirektoratet.no/Dataset/Details/2031) are used to identify reference areas with good ecological condition.
--   Reference values for forest and good condition were taken from our LiDAR based index approach (NO_GJEN). Future implementations of this code will derive these values using Meta's model. 
+-   Reference levels (X~0~ and X~100~) were taken from our LiDAR based index approach (NO_GJEN_001). Future implementations of this code will derive these values using Meta's model.
 -   Moen's [bioclimatic zones](https://artsdatabanken.no/Pages/181901/Bioklimatiske_soner). We use this to stratify reference (good condition) and forest (poor condition) heights by bioclimatic (also referred to as vegetation/climatic) zones.
 -   [FKB building footprints](https://kartkatalog.geonorge.no/metadata/fkb-bygning/8b4304ea-4fb0-479c-a24d-fa225e2c6e97) are used to isolate vegetation in the canopy height comparison.
 -   The [SSB 10km grid](https://kartkatalog.geonorge.no/metadata/statistisk-rutenett-5000m/32ac0653-d95c-446c-8558-bf9b79f4934e) is used for visualization purposes.
--   The regional delineation for Norway (five regions) are used for aggregating and reporting gjengroing condition values.
--   Norwegian Public Roads Administration, the Norwegian Institute for Bioeconomics (NIBIO) and the National Mapping Authority's Norway in [Images aerial imagery](https://www.norgeibilder.no/). 
-
+-   The regional delineation for Norway (five regions) are used for aggregating and reporting indicator values.
+-   Norwegian Public Roads Administration, the Norwegian Institute for Bioeconomics (NIBIO) and the National Mapping Authority's Norway in [Images aerial imagery](https://www.norgeibilder.no/).
 
 ### 2.1 Spatial and temporal resolution
 
@@ -171,7 +197,7 @@ This approach processes small image tiles over selected areas of interest and in
 
 ### 2.2 Original units
 
-The original units for ecological condition are meters. This is the height of the vegetation within reference, polygon and forest areas.
+The original units for are meters, i.e. the height of the vegetation within reference areas, population samples (polygons) and forest areas is measured in meters.
 
 ### 2.3 Additional comments about the dataset
 
@@ -181,45 +207,90 @@ None.
 
 ### 3.1. ECT
 
-<!--# Describe the rationale for assigning the indicator to the ECT class -->
+Structural state characteristic (B2)
 
 ### 3.2. Ecosystem condition characteristic
 
-<!--# Describe the ecosystem condition characteristic represneted in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be. -->
+In good condition, the three target ecosystems are characterised as being open, with little trees.
 
 ### 3.3. Other standards
 
-Funksjonell sammensetning innen trofiske nivåer, reflecting the change in dominant growth form.
+The indicator is related to the *Funksjonell sammensetning innen trofiske nivåer* in the Norwegian standard for ecosystem condition assessments.
 
 ### 3.4. Collinearities with other indicators
 
-There is possibly a collinearity with the [primary production indicator](#NDVI-indicator-natopen) (primærproduksjon). The primary production indicator uses the normalized difference vegetation index (NDVI) as a proxy for vegetation production. NDVI can be correlated with vegetation height and consequently yield similar results to the LiDAR-based gjengroing indicator.
+There is possibly a collinearity with a [preliminary indicator](https://ninanor.github.io/ecosystemCondition/NDVI-indicator-natopen.html) called based on the normalized difference vegetation index (NDVI) as a proxy for vegetation production. NDVI can be correlated with vegetation height and consequently yield similar results to the gjengroing indicator.
 
+For wetlands especially, woody enchroachment is associated with trenching, which is the topic of an indicator based on [field-recorded mire trenching](https://ecoevorxiv.org/repository/view/7221/), and another indicator based on the [amount of trenching](https://ninanor.github.io/mire-trenching/) as inferred from LiDAR.
 
 ## 4. Reference condition and values
 
+::: callout-note
+Chapter 4 is a direct quote from the documentation of NO_GJEN_001. In the future it is possible to calculate reference levels also with the meta model.
+:::
+
 ### 4. 1. Reference condition
 
-The methodology used to calculate the *gjengroing* indicator is outlined in the NO_GJEN indicator. NO_GJEN_002 is a proof of concept for using airborne imagery as an alternative to LiDAR data for producing canopy heigh maps and producing an ecosystem condition index. A full spatial analysis of the gjengroing condition is available in our original script. 
+The reference condition is defined as a minimally disturbed state, with a climate similar to the 1961-1990 period, and with a native species assemblage similar as today. See @nybo_fagsystem_2017. This reference condition translates to one where open ecosystems are indeed open, with little to no woody encroachment. For natural ecosystems this reflects a state where climate warming, wetland drainage, and alien species etc have not led to any net loss of these nature types and their internal functioning. For semi natural ecosystems it reflects a state where traditional husbandry is keeping the ecosystems open due to grazing and hay making.
 
+### 4. 2. Reference values
+
+#### 4.2.1 Minimum and maximum values
+
+The methodology used to calculate the *gjengroing* indicator is outlined in @fig-enc-workflow. The workflow in the schematic is conducted for all reference and population polygons in Norway and repeated for each ecosystem type (våtmark, naturlig åpne og semi-naturlig), respectively. The indicator values are aggregated to a 50km grid (for visualisation purposes) and regional level (the ecosystem assests) at the end. The individual steps are discussed in turn in the following subsections.
+
+```{r fig-enc-workflow}
+#| fig.cap: |
+#|   "Schematic illustration of how the encroachment indicator is calculated. 
+#|   The lower bound for poor condition is set by LiDAR heights from mature forest 
+#|   surrounding the population polygon. The upper bound for good condition is set 
+#|   by regional median LiDAR heights within NiN polygons in the same 
+#|   bioclimatic-elevation zone as the population polygon."
+#| echo: false
+#| out-width: '70%'
+knitr::include_graphics("../img/gjengroing_schematic.jpg")
+```
+
+::: callout-note
+Obs, there is an error in the figure. X~0~ is defined as the 90th percentile of mature forest height, not the 50th.
+:::
+
+[NiN polygons](https://kartkatalog.miljodirektoratet.no/Dataset/Details/2031) of "Våtmark", "Naturlig åpne områder under skoggrensa" and "Semi-naturlig mark" with good ecological condition (we use the aggregated "Tilstand" variable assigned to each NiN polygon) are used as spatial references to define the optimal reference level (X~100~).
+
+::: callout-warning
+This part is subject to change. One reviewer suggested using the field-recorded variable *rask suksesjon* instead. This variable is essentially the same as woody enchroachemnt.
+:::
+
+The 50th percentile of LiDAR-derived vegetation heights within these polygons is used as X~100~. We cannot define local reference values based on proximity, because the NiN polygons are spatially biased and not close to all population polygons. Therefore we calculate regional reference values using regions and bioclimatic zones as stratification layers. These strata exuates to homogeneous ecosystem areas sensu @vallecillo_eu-wide_2022. We calculate the mean reference value for each unique combination of region-bioclimatic zone. When calculating the indicator for each population polygon, the X~100~ reference level is inherited from the region-bioclimatic zone it falls within.
+
+Once we have the reference vegetation height for a given ecosystem type and region-bioclimatic zone, we need to define the minimum (or worst/bad) condition (X~0~). We use the 90th percentile of LiDAR-derived vegetation heights within "nasjonalt grunnkart skog" polygons to define a climax vegetation successional stage where gjengroing is at its most extreme, representing a completely deteriorated state for naturally open areas. In order not to include forest patches that have recently been harvested, we mask out any forest which has been clear-cut since 1986 [@senf2021mapping]. Here, 1986 is a hard limit defined by the clear-cut dataset which was based on Landsat imagery. Therefore we can be assured that we are measuring forest that is at least 35 years old. For the naturally open areas, however, we set a manual, expert derived threshold (0.8 m) for the X~0~ value (explained below).
+
+The vegetation height percentiles are then scaled to between 0 and 1 using a sigmoid transformation @oliver2021new.
+
+#### 4.2.2. Threshold value for defining *good ecological condition (if relevant)*
+
+There are currently no other reference levels than X~0~ and X~100~ defined.
 
 #### 4.2.3. Spatial resolution and validity
 
-<!--# Describe the spatial resolution of the reference values. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale is the reference values valid? For example, if the reference value has a regional resolution (varies between regions), it might mean that it is only valid and correct to use for scaling local variable values that are first aggregated to regional scale. However, sometimes the reference value is insensitive to this and can be used to scale variables at the local (e.g. plot) scale.  -->
+The reference levels are unique to homogeneous ecosystem areas defined as cross sections of region (five regions in Norway) and biomclimatic zone. Note that som biomclimatic zones may have been merged.
+
+Indicators are normalised at the polygon level with reference levels that are defined for much bigger regions. This means that indicator values are not precise at the polygon level, and probably should not be presented at that scale.
 
 ## 5. Uncertainties
 
--   The Meta model performs generally worse than LiDAR on very low lying vegetation (grasses ect) and tends to overestimate their height. 
--   In some instances, mismatch was due to temporal differences between LiDAR data and image capture, where trees had been removed or planted, natural growth had occurred or datasets were from different periods within the phenological cycle. 
--   The models poor performance over shaded areas has the potential to create large uncertainty when calculating median vegetation height over an area of interest. Shade would introduce significant error when comparing images from different years based on the time of year and time of day. 
--   The LiDAR based canopy height model was better able to resolve canopy structure and small gaps within vegetation canopy. This explains the majority of points where LiDAR canopy heights were very low but modeled canopy height was high. 
+-   The Meta model performs generally worse than LiDAR on very low lying vegetation (grasses ect) and tends to overestimate their height.
+-   In some instances, mismatch was due to temporal differences between LiDAR data and image capture, where trees had been removed or planted, natural growth had occurred or datasets were from different periods within the phenological cycle.
+-   The models poor performance over shaded areas has the potential to create large uncertainty when calculating median vegetation height over an area of interest. Shade would introduce significant error when comparing images from different years based on the time of year and time of day.
+-   The LiDAR based canopy height model was better able to resolve canopy structure and small gaps within vegetation canopy. This explains the majority of points where LiDAR canopy heights were very low but modeled canopy height was high.
 -   Georectification of the two datasets was sometimes resulting in mismatch at forest/vegetation edges
 -   The Meta model has visible edge effects on the output tiles. We have tried to minimise the influence of these by downloading tiles with overlapping regions, but these were also responsible for some mismatches.
--   There may be different camera specifications for different airborne surveys which could affect inference. The normalisation steps within the model should mitigate these effects but we have not tested the impact of different sensor/lens combinations.   
+-   There may be different camera specifications for different airborne surveys which could affect inference. The normalisation steps within the model should mitigate these effects but we have not tested the impact of different sensor/lens combinations.
 
 ## 6. References
 
-Tolan, J., Yang, H.-I., Nosarzewski, B., Couairon, G., Vo, H. V., Brandt, J., Spore, J., Majumdar, S., Haziza, D., Vamaraju, J., Moutakanni, T., Bojanowski, P., Johns, T., White, B., Tiecke, T., & Couprie, C. (2024). Very high resolution canopy height maps from RGB imagery using self-supervised vision transformer and convolutional decoder trained on aerial lidar. In Remote Sensing of Environment (Vol. 300, p. 113888). Elsevier BV. https://doi.org/10.1016/j.rse.2023.113888
+::: {#refs}
+:::
 
 ## 7. Datasets
 
@@ -233,11 +304,11 @@ There are several datasets which are used in GEE which will not be imported into
 
 The remaining datasets will be imported into the R session.
 
-
 ### 7.1 Downloading image tiles
 
 #### 7.1.1 Setting directories
-Here we define the directories to download images and image metadata (date) from and set the output folder for downloading tiles into.  
+
+Here we define the directories to download images and image metadata (date) from and set the output folder for downloading tiles into.
 
 ```{r}
 wms_base_url <- 'https://wms.geonorge.no/skwms1/wms.nib?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:25833'
@@ -250,7 +321,7 @@ if (!dir.exists(output_dir)) {
 
 #### 7.1.2 Querying the airborne imagery metadata
 
-This enables us to determine the date of the orthophoto tiles we will later download from the geonorge webserver. 
+This code enables us to determine the date of the orthophoto tiles we will later download from the geonorge webserver.
 
 ```{r}
  query_metadata <- function(xmin, ymin, xmax, ymax, crs_code) {
@@ -288,7 +359,8 @@ This enables us to determine the date of the orthophoto tiles we will later down
   return(parsed_metadata)
 }
 ```
-The WMS provides the most recent image over each search area so we can pull the date from the metadata service to add to the tile filename. 
+
+The WMS provides the most recent image over each search area so we can pull the date from the metadata service to add to the tile filename.
 
 ```{r}
 get_most_recent_metadata <- function(metadata) {
@@ -306,13 +378,19 @@ get_most_recent_metadata <- function(metadata) {
 }
 ```
 
-#### 7.1.3  Defining the area of interest
+#### 7.1.3 Defining the area of interest
 
-Here we include a shapefile of our area of intertest. The script will loop through all features in the shapefile, calculate their extent and query the WMS to download orthophotos within that extent in 256 x 256 pixel tiles. The AOI shape file should be in EPSG:25833. The shapefile provided here is a random sample of NiN polygons intended for testing this approach. Tile size must be kept to 256 to enable image normalisation as part of the preprocessing for running the meta model. Model performance has been tested at 1 m and 0.5 m resolution, with significantly better results at 0.5 m resolution. Imagery is available at finer scales which may again improve performance, but may also require additional tuning of the model's hyperparameters for best results.   
+Here we include a shapefile of our area of intertest (AOI). The script will loop through all features in the shapefile, calculate their extent and query the WMS to download orthophotos within that extent in 256 x 256 pixel tiles. The AOI shape file should be in EPSG:25833. The shapefile provided here is a random sample of NiN polygons intended for testing this approach. Tile size must be kept to 256 to enable image normalisation as part of the preprocessing for running the meta model. Model performance has been tested at 1 m and 0.5 m resolution, with significantly better results at 0.5 m resolution. Imagery is available at finer scales which may again improve performance, but may also require additional tuning of the model's hyperparameters for best results.
+
+::: {.callout-warning}
+One reviewer has pointed out that it would be good to see how the AOIs.shp file was created and what nature types it contains. 
+It is also not completely obvious if the AOIs are all in good condition, or if they are chosen radnomly within the main ecosystem type.
+:::
 
 ```{r}
 
-AOIs <- sf::st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/AOIs.shp")
+AOIs <- sf::st_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/AOIs.shp"),
+                    quiet = T)
 
 tile_size <- 256
 resolution <- 0.5  # 0.5 meter resolution
@@ -320,7 +398,8 @@ resolution <- 0.5  # 0.5 meter resolution
 
 #### 7.1.4 Downloading image tiles
 
-This function downloads the orthophoto image tiles over our areas of interest. 
+This function downloads the orthophoto image tiles over our areas of interest.
+
 ```{r}
 fn.getOrtoImages <- function(geometry, id_field, output_dir) {
   tryCatch({
@@ -425,6 +504,7 @@ fn.getOrtoImages <- function(geometry, id_field, output_dir) {
 ```
 
 We can run the functions in parallel to speed up processing time adjust the number of cores to suit your setup.
+
 ```{r}
 #| eval: false
 numCores <- 30  
@@ -437,13 +517,15 @@ mclapply(1:nrow(AOIs), function(i) {
 }, mc.cores = numCores)
 ```
 
-
 ### 7.3 Regions {#reg-enc}
 
 To use our model output as an indicator, we need to bring in some datasets to stratify our inferred canopy height statistics. The regional delineation for Norway (five regions) are used for aggregating and reporting gjengroing condition values.
 
 ```{r}
-regions <- sf::st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/regions.shp", options = "ENCODING=UTF8") %>%
+regions <- sf::st_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/regions.shp"),
+  options = "ENCODING=UTF8",
+  quiet = T
+) %>%
   mutate(region = factor(region))
 ```
 
@@ -452,24 +534,26 @@ regions <- sf::st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andre
 The [Moen's bioclimatic regions](https://data.artsdatabanken.no//Natur_i_Norge/Natursystem/Beskrivelsessystem/Regional_naturvariasjon/Bioklimatisk_sone) are imported from NINA R/GeoSpatialData/ server.
 
 ```{r}
-bioclim <- st_read('/data/R/GeoSpatialData/BiogeographicalRegions/Norway_VegetationZones_Moen/Original/Vector/soner.shp') %>%
-  mutate(NAVN = ifelse(NAVN == 'S°rboreal', 'Sørboreal', NAVN))
+bioclim <- st_read(paste0(r_path, "GeoSpatialData/BiogeographicalRegions/Norway_VegetationZones_Moen/Original/Vector/soner.shp"),
+  quiet = T
+) %>%
+  mutate(NAVN = ifelse(NAVN == "S°rboreal", "Sørboreal", NAVN))
 bioclim <- st_transform(bioclim, st_crs(regions))
 ```
 
-
 ## 8. Spatial units
 
-Image tiles must be 256 x 256 pixels to pass into the model for inference. We have tested the model using the compressed_SSLhuge_aerial.pth checkpoint on 1 m and 0.5 m pixel resolution and found 0.5 m to perform better.   
+Image tiles must be 256 x 256 pixels to pass into the model for inference. We have tested the model using the compressed_SSLhuge_aerial.pth checkpoint on 1 m and 0.5 m pixel resolution and found 0.5 m to perform better.
 
 ## 9. Analyses
 
-### 9.1 Modeling canopy height 
+The methodology used to calculate the *gjengroing* indicator is outlined in the NO_GJEN_001 indicator, which is based on LiDAR data. NO_GJEN_002 is a proof of concept for using airborne imagery as an alternative to LiDAR data for producing canopy height maps and producing an ecosystem condition index. A full spatial analysis of the gjengroing condition is available in our original script.
 
-Now that we have our tiles, we can pass them to the canopy height model. Please see [Meta's High Resolution Canopy Height Model](https://github.com/facebookresearch/HighResCanopyHeight/tree/main) and Tolan et al. (2024) for more details on the model. Install the model according to the instructions on the facebookresearch github page. 
+### 9.1 Modeling canopy height
 
-The following is python code to run on the downloaded image tiles.  
+Now that we have our tiles, we can pass them to the canopy height model. Please see [Meta's High Resolution Canopy Height Model](https://github.com/facebookresearch/HighResCanopyHeight/tree/main) and Tolan et al. (2024) for more details on the model. Install the model according to the instructions on the facebookresearch github page.
 
+The following is python code to run on the downloaded image tiles.
 
 ```{python}
 #| eval: false
@@ -721,15 +805,15 @@ if __name__ == '__main__':
 
 ```
 
-
 ### 9.2 Calculating the gjengroing index
 
 #### 9.2.1 Importing the data
 
-Here we import a shapefile of the areas of interest used to download image tiles. QGIS has been used to perform zonal statistics to calculate the median and maximum canopy height, calculated from both Meta model inference and LiDAR data, for each NiN feature.  
+Here we import a shapefile of the areas of interest used to download image tiles. QGIS has been used to perform zonal statistics to calculate the median and maximum canopy height, calculated from both Meta model inference and LiDAR data, for each NiN feature.
 
 ```{r}
-metaChm <- st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiN_metaTest.shp")
+metaChm <- st_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiN_metaTest.shp"),
+                   quiet = T)
 ```
 
 #### 9.2.1 Adding reference information
@@ -801,13 +885,15 @@ metaChm <- metaChm %>%
   left_join(vegLookup, by = 'vegClimZone')
 
 # View the updated metaChm
-head(metaChm)
+#head(metaChm)
 
 
 ```
 
 Import forest heights per region-bioclimatic zone strata.
+
 ```{r}
+#| message: false
 cleanRegClim <- function(data){
   
   dataOut <- data %>%
@@ -826,7 +912,7 @@ cleanRegClim <- function(data){
 }
 
 
-skog_region_bioclim <- read_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Ida/From_GEE/vegHeights_skog_climZoneRegion.csv")
+skog_region_bioclim <- read_csv(paste0(p_path, "412421_okologisk_tilstand_2024/Ida/From_GEE/vegHeights_skog_climZoneRegion.csv"))
 
 
 names(skog_region_bioclim)[2:4] <- c("vegClimZone","skog","region_id")
@@ -834,7 +920,7 @@ names(skog_region_bioclim)[2:4] <- c("vegClimZone","skog","region_id")
 
 ```
 
-Add the forest height metric to each NiN polygon based on bioclimatic and region zones. 
+Add the forest height metric to each NiN polygon based on bioclimatic and region zones.
 
 ```{r}
 
@@ -852,19 +938,20 @@ metaChm <- metaChm %>%
   )
 
 # View the updated metaChm
-head(metaChm)
+#head(metaChm)
 ```
- 
+
 Import the reference height data to be used as "good" condition reference values
+
 ```{r}
-refvaatmark  <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refvaatmark.csv', sep = ",")
-refaapne  <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refaapne.csv', sep = ";")
-refsemi  <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refsemi.csv', sep = ",")
+refvaatmark  <- read.csv(paste0(p_path, '412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refvaatmark.csv'), sep = ",")
+refaapne  <- read.csv(paste0(p_path, '412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refaapne.csv'), sep = ";")
+refsemi  <- read.csv(paste0(p_path, '412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/refsemi.csv'), sep = ",")
 
 ```
 
+Split our canopy height dataframe into ecosystem types
 
-Split our cnopy height dataframe into ecosystem types 
 ```{r}
 metaAapne <- metaChm %>%
   filter(hvdksys == "Naturlig aapne")
@@ -879,6 +966,7 @@ metaVaatmark <- metaChm %>%
 ```
 
 Add the "good" reference values to the separate ecosystem types
+
 ```{r}
 
 metaAapne <- metaAapne %>%
@@ -901,6 +989,7 @@ metaNaturlig <- metaNaturlig %>%
 ```
 
 Filter out NA values and join back together in a dataframe
+
 ```{r}
 metaNaturlig <- metaNaturlig %>%
   filter(!is.na(ref) & !is.na(skog))
@@ -912,12 +1001,9 @@ metaVaatmark <- metaVaatmark %>%
 metaCHM <- bind_rows(metaAapne, metaNaturlig, metaVaatmark)
 ```
 
+#### 9.2.2 Calculating the indicator
 
-#### 9.2.2 Calculating the index
-
-
-We will calculate the gjengroing index for each population polygon using a Sigmoid scaling function.
-
+We will calculate the gjengroing indicator for each population polygon using a Sigmoid scaling function.
 
 ```{r}
 # Define Sigmoid scaling function
@@ -931,7 +1017,8 @@ scaleSigmoid <- function(pop, ref, skog) {
 }
 ```
 
-Now calculate the index using the median canopy height value from the meta model output
+Now calculate the indicator using the median canopy height value from the meta model output
+
 ```{r}
 metaCHM <- metaCHM %>%
   # Apply the scaling function to calculate the index for each polygon
@@ -942,9 +1029,11 @@ metaCHM <- metaCHM %>%
   )
 
 # View the updated metaChm
-head(metaCHM)
+#head(metaCHM)
 ```
+
 And now calculate it from the LiDAR based canopy height model
+
 ```{r}
 metaCHM <- metaCHM %>%
   # Apply the scaling function to calculate the index for each polygon
@@ -955,24 +1044,24 @@ metaCHM <- metaCHM %>%
   )
 
 # View the updated metaChm
-head(metaCHM)
+#head(metaCHM)
 ```
-
 
 ## 10. Results
 
 ### 10.1 Validation of canopy height inference
 
-After running inference on the meta model, we have raster tiles of canopy height estimate corresponding to our downloaded image tiles. These were mosaiced into a virtual raster for validation. Sampling for validation was performed in QGIS and consisted of creating 1000 random points within each NiN polygon used as AOI's for the tile download. These were used to sample the modeled canopy height as well as the canopy height based on LiDAR data. 
+After running inference on the meta model, we have raster tiles of canopy height estimate corresponding to our downloaded image tiles. These were mosaiced into a virtual raster for validation. 
+@fig-threeImages shows an example of the output from the meta model compared to LiDAR canopy height and the image tile used to model the canopy height. Interestingly this shows encroachment in action as the vegetation heights are visibly higher in the 2020 image tile than in the 2017 LiDAR data. This is an area where new trees were planted in c. 2015.
 
-Here is an example of the output from the meta model compared to LiDAR canopy height and the image tile used to model the canopy height. Interestingly this shows encroachment in action as the vegetation heights are visibly higher in the 2020 image tile than in the 2017 LiDAR data. This is an area where new trees were planted in c. 2015.   
+
 
 ```{r}
 #| eval: false
 
-rgb_img <- stack("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4.tif")  
-pred_img <- raster("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_pred.tif") 
-lidar_img <- raster("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_LiDAR_2017.tif")  
+rgb_img <- stack(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4.tif"))  
+pred_img <- raster(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_pred.tif"))
+lidar_img <- raster(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/TileID_4_LiDAR_2017.tif"))  
 
 rgb_df <- as.data.frame(rgb_img, xy = TRUE)
 pred_df <- as.data.frame(pred_img, xy = TRUE)
@@ -1010,16 +1099,25 @@ print(combined_plot)
 
 ```
 
-```{r}
-img <- image_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/tileComparison.png")
+```{r fig-threeImages}
+#| fig-cap: "Three images of the same area showing the aerial (RGB) image (left), the canopy height model based on the meta model (centre) and the Lidar approach (right). Click to enlarge."
+#| lightbox: true
+img <- image_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/tileComparison.png"))
 
 plot(img)
 ```
 
-Initial validation attempts showed poor performance relating to airborne images taken outside of the months of June, July and August. This was expected, since the model was trained on vegetation at peak foliation. For this reason, imagery collected outside of this month range was excluded from validation. We also filtered out points that intersected with the FKB building footprints layer, points that were in shadow (calculated by sampling the blue channel of the input RGB images and filtering out based on a threshold value). The resulting csv file after filtering contains c. 30000 points with LiDAR and Meta model based canopy heights. Future iterations of this script will automate these vaildation steps. 
+We sampled 1000 random points within each NiN polygon (those used as AOI's for the tile download).
+This was done in QGIS.
+These points were used to sample the modeled canopy height as well as the canopy height based on LiDAR data.
+Initial validation attempts showed poor performance relating to airborne images taken outside of the months of June, July and August. 
+This was expected, since the model was trained on vegetation at peak foliation. For this reason, imagery collected outside of this month range was excluded from validation. We also filtered out points that intersected with the FKB building footprints layer, points that were in shadow (calculated by sampling the blue channel of the input RGB images and filtering out based on a threshold value). The resulting csv file after filtering contains c. 30000 points with LiDAR and Meta model based canopy heights. Future iterations of this script will automate these validation steps. 
+The validation based on these values gave a reasonable agreement canopy height estimated using Lidar and the meta model (@fig-scatter).
 
-```{r}
-val <- read.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiNpointSamples.csv')
+```{r fig-scatter}
+#| message: false
+#| fig-cap: "Comparison of canopy height estimated by either LiDAR or the meta model."
+val <- read.csv(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiNpointSamples.csv"))
 ggplot(val, aes(x = lidmax, y = metamax)) +
   geom_point(size=2.5, alpha=0.2, stroke=0, color = 'darkgray') +  # Scatter plot
   geom_smooth(method = "lm", se = FALSE, color = "darkblue") +  # Line of best fit
@@ -1031,10 +1129,14 @@ ggplot(val, aes(x = lidmax, y = metamax)) +
            hjust = 1.1, vjust = 1.1, size = 5, color = "darkblue")+ xlim(0,30) + ylim(0,30) 
 ```
 
-### 10.2 Comparison of modelled vs LiDAR gjengroing index
+### 10.2 Comparison of modelled vs LiDAR gjengroing indicator
 
-We can plot a scatterplot to compare LiDAR based index with the Meta based index. Note that in the subsample of NiN areas used here, most of them have a good index values. Future work to scale this over a greater number of sites should give a better spread of data for a more robust comparison. 
-```{r}
+@fig-scatterEco and @fig-scatterReg compare indicator values between the LiDAR and the meta model approach where one point equals a polygon (and not a point as in @fig-scatter)
+Note that in the subsample of NiN areas used here, most of them have good indicator values.
+Future work to scale this over a greater number of sites should give a better spread of data for a more robust comparison.
+
+```{r fig-scatterEco}
+#| fig-cap: "Comparing indicator values between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
 
 ggscatterhist(
   metaCHM, x = "indexLiD", y = "indexMeta",
@@ -1044,6 +1146,10 @@ ggscatterhist(
   )
 
 
+```
+
+```{r fig-scatterReg}
+#| fig-cap: "Comparing indicator values between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
 ggscatterhist(
   metaCHM, x = "indexLiD", y = "indexMeta",
   color = "tilstnd", size = 3, alpha = 0.4,
@@ -1051,13 +1157,16 @@ ggscatterhist(
   margin.params = list(fill = "hvdksys", color = "black", size = 0.2)
   )
 
-
 ```
 
-They are mostly in agreement, but for this subsample of NiN areas, most have a score close to 1 (looking at the data distribution on the subplots). Visual inspection of the outliers indicates that shade within the image tiles used for inference contributed to median canopy height mismatches between the two datasets. 
 
-We can also compare this data with a box plot:
-```{r}
+They are mostly in agreement, but for this subsample of NiN areas, most have a score close to 1 (looking at the data distribution on the subplots). Visual inspection of the outliers indicates that shade within the image tiles used for inference contributed to median canopy height mismatches between the two datasets.
+
+We can also compare this data with a box plot (@fig-scatterBox, @fig-scatterBox2).
+
+```{r fig-scatterBox}
+#| fig-cap: "Comparing indicator avlues between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
+
 chm_long <- metaCHM %>%
   dplyr::select(hvdksys, indexMeta, indexLiD) %>%
   pivot_longer(cols = c(indexMeta, indexLiD), 
@@ -1077,6 +1186,10 @@ ggplot(chm_long, aes(x = hvdksys, y = value, fill = index_type)) +
   ) +
   theme_minimal() +
    ylim(0, 1.1)
+```
+
+```{r fig-scatterBox2}
+#| fig-cap: "Comparing indicator avlues between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
 
 chm_long_region <- metaCHM %>%
   dplyr::select(region_id, indexMeta, indexLiD) %>%
