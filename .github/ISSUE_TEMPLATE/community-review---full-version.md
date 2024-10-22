@@ -24,7 +24,7 @@ Also, under **lables** in the right column, locate and choose the correct indica
 
 ### Code of Conduct
 
-- [ ] I confirm that I read and will adhere to the [code of conduct](docs/code_of_conduct.md).
+- [ ] I confirm that I read and will adhere to the [code of conduct](https://github.com/NINAnor/ecRxiv/blob/main/docs/code_of_conduct.md).
 
 ### General checks
 
