@@ -154,7 +154,7 @@ This indicator is in review and is subject to change
 :::
 
 ::: callout-note
-This indicator (NO_GJEN_002) is very similar to NO_GJEN_001 in what it is trying to do. The difference is that NO_GJEN_001 is based on LiDAR and NO_GJEN_002 uses aerial images. The developers of NO_GJEN_001 are also implemented in NO_GJEN_002, and hence we decided to reuse some of the text directly, without quotations.
+This indicator (NO_GJEN_002) is very similar to NO_GJEN_001 in what it is trying to do. The difference is that NO_GJEN_001 is based on LiDAR and NO_GJEN_002 uses aerial images. The developers of NO_GJEN_001 are also involved in NO_GJEN_002, and hence we decided to reuse some of the text directly, without quotations.
 :::
 
 <hr />
@@ -163,20 +163,20 @@ This indicator (NO_GJEN_002) is very similar to NO_GJEN_001 in what it is trying
 
 The Norwegian word "gjengroing" is directly translated to "regrowing" in English. The two gjengroing indicators (NO_GJEN_001 and \*\_002) describes the regrowth of woody vegetation (trees and bushes) in open ecosystems (wetland, semi- and naturally open areas) across Norway. We will use a spatial reference approach where reference areas define good or optimal vegetation their vegetation heights. We have previously produced an indicator to assess regrowth using LiDAR-based canopy height data (indicator ID: NO_GJEN_001). A primary limitation of that indicator, however, is its reliance on Norway's national LiDAR survey, which is a static dataset with no planned resurvey (as of 2024). Here, we present a workflow to utilise airborne images to derive canopy height metrics using Meta's [High Resolution Canopy Height](https://github.com/facebookresearch/HighResCanopyHeight/tree/main) backbone model [@tolan2024very]. Airborne imagery is scheduled for national resurvey every 5 to 10 years and so this implementation of the gjengroing indicator may be used to monitor future changes in ecosystem condition. It is worth noting that the yet-to-be-launched P-Band radar satellite, Biomass, may provide an more precise method for future monitoring once data is available.
 
-This workbook presents the necessary steps to download image tiles, run the model (in a Jupyter Notebook), validate the data against LiDAR canopy heights, compares LiDAR and modeled index scores and discusses the limitations of this approach.
+This workbook presents the necessary steps to download image tiles, run the model, validate the data against LiDAR canopy heights, compare LiDAR and modeled index scores and discusses the limitations of this approach.
 
 **Summary and conclusion**
 
 In this proof-of-concept, the indicator is calculated over a small number of areas / polygons.
-However, also in he future the indicator can probably only be calculated for a subset of Norways area, and not wall-to-wall.
-This is because there is no compiled dataset of aerial images over Norway that can be used directly.
+However, also in he future the indicator can probably only be calculated for specific areas of interest in Norway, and not wall-to-wall.
+This is due to compute and data storage limitations of handling national-scale airborne datasets.
 The indicator can, however, in the future be calculated for a representative sample of ecosystem occurrences, 
 for example the ASO or GRUK polygons, or new ground-truthing polygons from new nature monitoring programs that are currently under development.
 
 The canopy height estimated with the meta model show a relatively good agreement with the canopy heights from LiDAR (R^2^= 0.58), with possibly a slight bias towards taller canopies. 
 Although the indicator values may be inprecise at the level of individual points, and may individual polygons,
 this also tells us that the indicator will be quite sufficient to estimate indicator values at bigger spatial scales, such as from municipalities to regional scale.
-These is, however, a need to the reference levels to be recalculated base don the meta model. The current version *borrows*'* the reference levels from the LiDAR approach, which as was mentioned, could be systematically lower.
+These is, however, a need for the reference levels to be recalculated based on the meta model. The current version *borrows*'* the reference levels from the LiDAR approach, which as was mentioned, could be systematically lower.
 
 
 ## 2. About the underlying data
@@ -283,7 +283,7 @@ Indicators are normalised at the polygon level with reference levels that are de
 -   In some instances, mismatch was due to temporal differences between LiDAR data and image capture, where trees had been removed or planted, natural growth had occurred or datasets were from different periods within the phenological cycle.
 -   The models poor performance over shaded areas has the potential to create large uncertainty when calculating median vegetation height over an area of interest. Shade would introduce significant error when comparing images from different years based on the time of year and time of day.
 -   The LiDAR based canopy height model was better able to resolve canopy structure and small gaps within vegetation canopy. This explains the majority of points where LiDAR canopy heights were very low but modeled canopy height was high.
--   Georectification of the two datasets was sometimes resulting in mismatch at forest/vegetation edges
+-   Georectification errors in the two datasets was sometimes resulting in mismatch at forest/vegetation edges
 -   The Meta model has visible edge effects on the output tiles. We have tried to minimise the influence of these by downloading tiles with overlapping regions, but these were also responsible for some mismatches.
 -   There may be different camera specifications for different airborne surveys which could affect inference. The normalisation steps within the model should mitigate these effects but we have not tested the impact of different sensor/lens combinations.
 
@@ -380,12 +380,7 @@ get_most_recent_metadata <- function(metadata) {
 
 #### 7.1.3 Defining the area of interest
 
-Here we include a shapefile of our area of intertest (AOI). The script will loop through all features in the shapefile, calculate their extent and query the WMS to download orthophotos within that extent in 256 x 256 pixel tiles. The AOI shape file should be in EPSG:25833. The shapefile provided here is a random sample of NiN polygons intended for testing this approach. Tile size must be kept to 256 to enable image normalisation as part of the preprocessing for running the meta model. Model performance has been tested at 1 m and 0.5 m resolution, with significantly better results at 0.5 m resolution. Imagery is available at finer scales which may again improve performance, but may also require additional tuning of the model's hyperparameters for best results.
-
-::: {.callout-warning}
-One reviewer has pointed out that it would be good to see how the AOIs.shp file was created and what nature types it contains. 
-It is also not completely obvious if the AOIs are all in good condition, or if they are chosen radnomly within the main ecosystem type.
-:::
+Here we include a shapefile of our area of intertest (AOI), this is a random selection of 300 vaatmark, 300 semi naturlig and 300 natural aapne NiN polygons and includes all ecosystem condition classes. The script will loop through all features in the shapefile, calculate their extent and query the WMS to download orthophotos within that extent in 256 x 256 pixel tiles. The AOI shape file should be in EPSG:25833. The shapefile provided here is a random sample of NiN polygons intended for testing this approach. Tile size must be kept to 256 to enable image normalisation as part of the preprocessing for running the meta model. Model performance has been tested at 1 m and 0.5 m resolution, with significantly better results at 0.5 m resolution. Imagery is available at finer scales which may again improve performance, but may also require additional tuning of the model's hyperparameters for best results.
 
 ```{r}
 
@@ -553,7 +548,7 @@ The methodology used to calculate the *gjengroing* indicator is outlined in the 
 
 Now that we have our tiles, we can pass them to the canopy height model. Please see [Meta's High Resolution Canopy Height Model](https://github.com/facebookresearch/HighResCanopyHeight/tree/main) and Tolan et al. (2024) for more details on the model. Install the model according to the instructions on the facebookresearch github page.
 
-The following is python code to run on the downloaded image tiles.
+The following is python code to run on the downloaded image tiles. After installing the model, save this code as a .py file within the main folder of the model and run. 
 
 ```{python}
 #| eval: false
@@ -1100,7 +1095,7 @@ print(combined_plot)
 ```
 
 ```{r fig-threeImages}
-#| fig-cap: "Three images of the same area showing the aerial (RGB) image (left), the canopy height model based on the meta model (centre) and the Lidar approach (right). Click to enlarge."
+#| fig-cap: "Three images of the same area showing the aerial (RGB) image (left), the canopy height model based on the meta model (centre) and the LiDAR approach (right). Click to enlarge."
 #| lightbox: true
 img <- image_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/img/tileComparison.png"))
 
@@ -1136,26 +1131,30 @@ Note that in the subsample of NiN areas used here, most of them have good indica
 Future work to scale this over a greater number of sites should give a better spread of data for a more robust comparison.
 
 ```{r fig-scatterEco}
-#| fig-cap: "Comparing indicator values between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
+#| fig-cap: "Comparing indicator values between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good spread of data for comparison."
 
 ggscatterhist(
   metaCHM, x = "indexLiD", y = "indexMeta",
   color = "hvdksys", size = 3, alpha = 0.4,
   palette = c("#00AFBB", "#E7B800", "#FC4E07"),
   margin.params = list(fill = "hvdksys", color = "black", size = 0.2)
-  )
+  ) +
+  xlab("LiDAR indicator") +
+  ylab("Modelled indicator")
 
 
 ```
 
 ```{r fig-scatterReg}
-#| fig-cap: "Comparing indicator values between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
+#| fig-cap: "Comparing indicator values between the LiDAR and the meta model based approach at the polygon level. Note that the sample of polygons used here are biased towards high indicator values and may not give a very good spread of data for comparison."
 ggscatterhist(
   metaCHM, x = "indexLiD", y = "indexMeta",
   color = "tilstnd", size = 3, alpha = 0.4,
   palette = c("#3b949a", "#3b9a41", "#63265f", "#9a3b94"),
   margin.params = list(fill = "hvdksys", color = "black", size = 0.2)
-  )
+  ) +
+  xlab("LiDAR indicator") +
+  ylab("Modelled indicator")
 
 ```
 
@@ -1165,7 +1164,7 @@ They are mostly in agreement, but for this subsample of NiN areas, most have a s
 We can also compare this data with a box plot (@fig-scatterBox, @fig-scatterBox2).
 
 ```{r fig-scatterBox}
-#| fig-cap: "Comparing indicator avlues between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
+#| fig-cap: "Comparing indicator values between the LiDAR and the meta model based approach at the polygon level. Note that the sample of polygons used here are biased towards high indicator values and may not give a very good data spread for comparison."
 
 chm_long <- metaCHM %>%
   dplyr::select(hvdksys, indexMeta, indexLiD) %>%
@@ -1177,9 +1176,9 @@ chm_long <- metaCHM %>%
 ggplot(chm_long, aes(x = hvdksys, y = value, fill = index_type)) +
   geom_boxplot(position = position_dodge(width = 0.8), color = "black") +
   scale_fill_manual(values = c("indexLiD" = "grey50", "indexMeta" = "white"),
-                    labels = c("indexLiD" = "Index LiDAR", "indexMeta" = "Index Meta")) +
+                    labels = c("indexLiD" = "LiDAR indicator", "indexMeta" = "Modelled indicator")) +
   labs(
-    title = "Distribution of modelled- and LiDAR-based gjengroing index scores",
+    title = "Distribution of modelled- and LiDAR-based gjengroing indicator scores",
     x = "Ecoystem type",
     y = "Value",
     fill = "Index Type"
@@ -1189,7 +1188,7 @@ ggplot(chm_long, aes(x = hvdksys, y = value, fill = index_type)) +
 ```
 
 ```{r fig-scatterBox2}
-#| fig-cap: "Comparing indicator avlues between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good reason for comparison."
+#| fig-cap: "Comparing indicator avlues between the LiDAR and the meta model based approach at the polygon level. Note thet the sample of polygons used here are biased towards high indicator values and may not give a very good data spread for comparison."
 
 chm_long_region <- metaCHM %>%
   dplyr::select(region_id, indexMeta, indexLiD) %>%
@@ -1201,9 +1200,9 @@ chm_long_region <- metaCHM %>%
 ggplot(chm_long_region, aes(x = region_id, y = value, fill = index_type)) +
   geom_boxplot(position = position_dodge(width = 0.8), color = "black") +
   scale_fill_manual(values = c("indexLiD" = "grey50", "indexMeta" = "white"),
-                    labels = c("indexLiD" = "Index LiDAR", "indexMeta" = "Index Meta")) +
+                    labels =  c("indexLiD" = "LiDAR indicator", "indexMeta" = "Modelled indicator")) +
   labs(
-    title = "Distribution of modelled- and LiDAR-based gjengroing index scores",
+    title = "Distribution of modelled- and LiDAR-based gjengroing indicator scores",
     x = "Ecoystem type",
     y = "Value",
     fill = "Index Type"
