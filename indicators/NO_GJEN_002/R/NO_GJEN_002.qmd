@@ -1,5 +1,5 @@
 ---
-title: "Woody enchroachment - approach based on LiDAR"
+title: "Gjengroing / Woody enchroachment [NO_GJEN_002]"
 format: 
   html:
     embed-resources: true
@@ -21,6 +21,7 @@ callout-icon: false
 execute: 
   cache: true
 bibliography: references.bib
+lightbox: true
 ---
 
 ```{r setup}
@@ -46,8 +47,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # conditional path
 dir <- substr(getwd(), 1,3)
-p_path <- switch(dir, "C:/" = "P:/", "P:/" = "/data/P-Prosjekter2/")
-r_path <- switch(dir, "C:/" = "R:/", "P:/" = "/data/R/")
+p_path <- switch(dir, "C:/" = "P:/", "/da" = "/data/P-Prosjekter2/")
+r_path <- switch(dir, "C:/" = "R:/", "/da" = "/data/R/")
 
 ```
 
@@ -124,6 +125,7 @@ status(st)
 ## Logg
 - 11 Oct. 2024 - Original PR
 - 21 Oct. 2024 - Reviewed by Anders Kolstad
+- 22 Oct. 2024 - Slightly revised version
 :::
 
 
@@ -385,10 +387,11 @@ Here we include a shapefile of our area of intertest (AOI), this is a random sel
 ```{r}
 
 AOIs <- sf::st_read(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/AOIs.shp"),
-                    quiet = T)
+  quiet = T
+)
 
 tile_size <- 256
-resolution <- 0.5  # 0.5 meter resolution
+resolution <- 0.5 # 0.5 meter resolution
 ```
 
 #### 7.1.4 Downloading image tiles
@@ -1137,10 +1140,9 @@ ggscatterhist(
   metaCHM, x = "indexLiD", y = "indexMeta",
   color = "hvdksys", size = 3, alpha = 0.4,
   palette = c("#00AFBB", "#E7B800", "#FC4E07"),
-  margin.params = list(fill = "hvdksys", color = "black", size = 0.2)
-  ) +
-  xlab("LiDAR indicator") +
-  ylab("Modelled indicator")
+  margin.params = list(fill = "hvdksys", color = "black", size = 0.2),
+  xlab = "LiDAR indicator",
+  ylab = "Modelled indicator")
 
 
 ```
@@ -1151,10 +1153,9 @@ ggscatterhist(
   metaCHM, x = "indexLiD", y = "indexMeta",
   color = "tilstnd", size = 3, alpha = 0.4,
   palette = c("#3b949a", "#3b9a41", "#63265f", "#9a3b94"),
-  margin.params = list(fill = "hvdksys", color = "black", size = 0.2)
-  ) +
-  xlab("LiDAR indicator") +
-  ylab("Modelled indicator")
+  margin.params = list(fill = "hvdksys", color = "black", size = 0.2),
+  xlab =  "LiDAR indicator",
+  ylab = "Modelled indicator")
 
 ```
 
