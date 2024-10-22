@@ -13,6 +13,11 @@ Reviewers, please go though the checklist below and tick the boxes that are fulf
 If one check is not fulfilled, or requires some more discussion, press the *target* sign to the right on that line and *convert to issue*. Follow up the point there.
 The reviewes may add any additional comments, besides these general checks, as commenst below.
 
+Before you start:
+
+Please add the indicator ID to the title of this issue (replacing the placeholder text that reads "indicatorID"), or check that it is not already there. 
+Also, under **lables** in the right column, locate and choose the correct indicatorID from the list (if not already chosen).   
+
 ### Conflict of interest
 
 - [ ] I confirm that I have conflict of interest that makes me unsuited to review this indiator. If not, I will convert this checkbox into an issue and declare my conflict there.
