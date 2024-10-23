@@ -201,7 +201,7 @@ The original units for are meters, i.e. the height of the vegetation within refe
 
 ### 2.3 Additional comments about the dataset
 
-None.
+We also tested a model based on Sentinel 1 and 2 data, trained using the national LiDAR dataset, for deriving canopy height information. However, we found the performance of the Meta-based model to outperform these efforts. 
 
 ## 3. Indicator properties
 
@@ -1106,12 +1106,12 @@ We sampled 1000 random points within each NiN polygon (those used as AOI's for t
 This was done in QGIS.
 These points were used to sample the modeled canopy height as well as the canopy height based on LiDAR data.
 Initial validation attempts showed poor performance relating to airborne images taken outside of the months of June, July and August. 
-This was expected, since the model was trained on vegetation at peak foliation. For this reason, imagery collected outside of this month range was excluded from validation. We also filtered out points that intersected with the FKB building footprints layer, points that were in shadow (calculated by sampling the blue channel of the input RGB images and filtering out based on a threshold value). The resulting csv file after filtering contains c. 30000 points with LiDAR and Meta model based canopy heights. Future iterations of this script will automate these validation steps. 
-The validation based on these values gave a reasonable agreement canopy height estimated using Lidar and the meta model (@fig-scatter).
+This was expected, since the model was trained on vegetation at peak foliation. For this reason, imagery collected outside of this month range was excluded from validation. We also filtered out points that intersected with the FKB building footprints layer, points that were in shadow (calculated by sampling the blue channel of the input RGB images and filtering out based on a threshold value). The resulting csv file after filtering contains c. 40000 points with LiDAR and Meta model based canopy heights. Future iterations of this script will automate these validation steps. 
+The validation based on these values gave a reasonable agreement between canopy height estimated using LiDAR and the meta model (@fig-scatter). The Meta model tends to overestimate the height of low-lying vegetation, struggles with shaded areas, and shows edge effects on image tiles, resulting in more errors compared to LiDAR. Temporal differences, georectification errors, and potential variations in camera specifications also contribute to inconsistencies between datasets. Ultimately, field validation concurrent with airborne image data collection would be necessary to establish a true error estimate for the dataset. The mean absolute error reported by Meta (also based on airborne LiDAR data) was 2.8m (Tolan et al., 2024).
 
 ```{r fig-scatter}
 #| message: false
-#| fig-cap: "Comparison of canopy height estimated by either LiDAR or the meta model."
+#| fig-cap: "Comparison of canopy height estimated by either LiDAR or the meta model. n = 39877. "
 val <- read.csv(paste0(p_path, "412421_okologisk_tilstand_2024/Andrew/meta/github/ecRxiv_encroachment/indicators/NO_GJEN_002/data/NiNpointSamples.csv"))
 ggplot(val, aes(x = lidmax, y = metamax)) +
   geom_point(size=2.5, alpha=0.2, stroke=0, color = 'darkgray') +  # Scatter plot
