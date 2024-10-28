@@ -1,8 +1,7 @@
-# ecRxiv
+![alt text](https://github.com/NINAnor/ecRxiv/blob/main/docs/_ecrxiv_logo_hovedlogo_tekst_under.png?raw=true)
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
-### - a publishing platform for Ecosystem condition indicators.
 
 ## Rationale
 
