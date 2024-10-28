@@ -21,6 +21,9 @@ bibliography: references.bib
 callout-icon: false
 editor_options: 
   chunk_output_type: console
+execute: 
+  cache: true
+lightbox: true
 ---
 
 
@@ -44,12 +47,15 @@ library(bipartite)
 library(ggpubr)
 library(rgbif)
 library(stringi)
+library(csmaps)
+library(giscoR)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r source}
 #| echo: false
-source(here::here("R/_common.R"))
+source(here::here("_common.R"))
+path <- "P:/412421_okologisk_tilstand_2024/pollinatorIndicators/oldScripts/Data/markdownResults/image"
 ```
 
 ```{r}
@@ -67,7 +73,10 @@ auth <- meta |>
 year <- meta |>
   filter(Variable == "yearAdded") |>
   pull(Value)
-name <- year <- meta |>
+id <- meta |>
+  filter(Variable == "indicatorID") |>
+  pull(Value)
+name <- meta |>
   filter(Variable == "indicatorName") |>
   pull(Value)
 url <- meta |>
@@ -92,17 +101,18 @@ meta <- meta |>
 
 <!--# The following parts are autogenertaed. Do not edit. -->
 
-::: {layout-ncol="3"}
 ```{r}
 #| echo: false
 #| results: asis
 status(st)
 ```
 
+::: {layout-ncol="2"}
+
 ::: {.callout-note style="background: cornsilk;"}
 ## Recomended citation
 
-`r paste(auth, year, name, "v.", version, "ecRxiv", url, sep=" ")`
+`r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 :::
 
 ::: {.callout-note style="background: khaki;"}
@@ -112,26 +122,24 @@ status(st)
 :::
 :::
 
+```{=html}
+<details>
+<summary>Show metadata</summary>
+```
+
 ```{r tbl-meta}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
 
 meta |>
-  dplyr::select(Variable, Value) |>
+  select(Variable, Value) |>
   kbl(col.names = NULL) 
 
 ```
 
-
-```{r}
-#| echo: false
-#| warning: false
-
-#sapply(list.files("../data/functions/", full.names = TRUE), source)
-source("../data/defineRegion.R")
-newCrs <- "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=km +no_defs"
-regionGeometry <- defineRegion(level = "country", region = "Norway", crs = newCrs)
+```{=html}
+</details>
 ```
 
 # Pollinator potential indicators
@@ -397,7 +405,7 @@ We present three threshold values for defining a good condition. Any scales indi
 #| label: fig-ecosystemCondition
 #| fig-width: 9
 #| fig-height: 9
-  load("../data/ecosystemConditions.RData")
+load(paste0(path, "/ecosystemConditions.RData"))
 g1 <- ggplot(selectedVars) +
   gg(selectedVars["condition50"], aes(col = condition50)) +
 scale_color_discrete( )+
