@@ -14,6 +14,7 @@ create_metadata_table <- function(path) {
   
   # Get list of all HTML files
   html_files <- list.files(here::here(path), pattern = "\\.html$", recursive = TRUE, full.names = TRUE)
+  html_files <- html_files[!grepl("Sandbox", html_files)]
   # Read each Excel file and assign corresponding HTML file
   metadata <- map2(excel_files, html_files, ~{
     df <- read_excel(.x)
