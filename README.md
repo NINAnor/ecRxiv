@@ -2,6 +2,11 @@
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
+## NEWS
+ecRciv is now reciving indicator documentation. These are being subjected to both code reviews and other more general reviews.
+Code reviews are typically found under old/closed pull requests, whilst other reviews are found under _issues_ by filtering for the tag _REVIEW_.
+
+We plan to publish and make the documentation (the fact sheets) available through an online wep portal. This app is under active development and will be made available soon (within year 2024).
 
 ## Rationale
 
