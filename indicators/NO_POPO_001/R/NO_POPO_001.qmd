@@ -4,6 +4,10 @@ format:
   html:
     embed-resources: true
     code-fold: true
+    code-tools: true
+    code-summary: "Show the code"
+    code-line-numbers: true
+    code-link: true
 author:
   - name: Kwaku Peprah Adjei              # Enter name
     email: kwaku.adjei@nina.no  # Enter email
@@ -174,35 +178,642 @@ This indicator is in review and is subject to change
 source("../data/defineRegion.R")
 newCrs <- "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=km +no_defs"
 regionGeometry <- defineRegion(level = "country", region = "Norway", crs = newCrs)
+
 ```
 
 ## 1. Introduction
 
 <!--# Describe the indicator in general terms. It is a good idea to include a bullet point list of the spesific steps in the workflow -->
-We aim to model the diversity of pollinators in Norway given their know interaction
-with some plant species. From the estimated diversity across the nation, we intend
-to look at the estimates in the ASO Data meadows by using their values as the reference
-values. To achieve this, we do the following:
+We aim to model the ecosystem conditions in Norway given their known interactions with some plant species. We develop pollinator indicators which are used to describe ecosystem conditions by focusing on the ASO data meadows, which represent the semi-natural habitats we are interested in describing. To achieve this objective, we do the following:
 
-* a) obtain data from the Global Biodiversity Infrastructure Facility ([GBIF](www.gbif.org) ) for bumblebees, butterflies and bees.
+* a) obtain data from the Global Biodiversity Infrastructure Facility ([GBIF](www.gbif.org) ) for bumblebees, butterflies and bees (which we will refer to as **pollinators** in this study) and plant hosts (only the plant species we have interaction data of). We also obtain covariates that will be needed for the model fit [@tbl-covariate].
 
-* b) fit an integrated species distribution model (ISDM) to the data to obtain the distribution of pollinators
+* b) fit an integrated species distribution model (ISDM) to the data and predict the intensities of each pollinator (average abundance of each pollinator within a grid cell) of across the `alpine`, ``boreal`` and ``temperate`` zones [REF to the table with zones]. Cluster all the pollinator species (over $8000$ of them) either as alpine, boreal or temperate pollinators and assign each set of species the predicted intensities estimated. Also, fit an ISDM to the plant host data and predict their occurrence probability across the study region.
 
-* c) obtain a web plot interaction matrix of the pollinator and plant species
+* c) obtain a web plot interaction matrix of the pollinator and plant hosts using data described in @sec-speciesInterractions.
 
-* d) get data on the plant species within the interaction matrix from GBIF
+* d) using the intensities of the pollinator species and plant species occurrence probabilities (see (a)), together with the interaction matrix (see (c)), estimate the alpha diversity index (specifically species richness, Shannon and Simpson indices) of the pollinators across Norway. 
 
-* e) fit an ISDM data obtained in step (d) to estimate their respective species occurrence probability
+* e) extract the diversity indices, latitude and annual temperature value for the ASO meadow locations. Cluster the diversity indices based on the geo-climatic region (defined by the latitude and annual temperature; see @tbl-maxminvalues), and estimate the maximum diversity for each geo-climatic region.
 
-* f) estimate the alpha diversity index of the pollinators across Norway using the results obtained in (b), (c) and (d).
+* f) scale the rest of the diversity indices by this indicator value to obtain nominal indicators for the study region. We then describe the ecosystem conditions using a threshold value of our choice.
 
-![Flowchart of the modelling framework used in estimating the pollinator potential in this project. The modelling start with A) obtaining bees, bumblebees and hoverflies data from GBIF and fitting ISDMs to the pollinator data, then B) obtaining data on some selected plant species from GBIF and fitting ISDMs to the plant data, C) constructing the interraction between the plant and pollinators (from a given data) and D) estimating the alpha diversity indices. The covariate used to fit the ISDMs are presented in @tbl-covariate. The dataset and covariates are enclosed in dashed green-colored rectangular regions. ](../img/framework.png){#fig-framework}
+We summarise these steps in @fig-framework.
+
+![Modelling framework used to describe the pollinator potential in this project. The modelling start with obtaining A) bees, bumblebees and hoverflies data from GBIF, B) plant host data from GBIF and C) climatic and trait covariates described in @tbl-covariate. The pollinator and plant host data used were both presence only (with locations indicated with black dots) and presence-absence (with presence indicated by the correct sign and absence indicated by the x sign). Using the data at hand, we fit integrated species distribution models (ISDMs) to predict the D) pollinator intensities and E) plant host occurrence probabilities. We then construct F) interraction between the plant and pollinators using the data described in @sec-speciesInterractions and G) estimate the alpha diversity indices. We extract the diversity indices at the ASO meadows and use these values to calculate te indicators H) ASO meadows and I)entire study region. The deep blue color indicates region with high diversity/indicators and light blue color indicate region with low diversity/indicators.](../img/frameworkNew.png){#fig-framework}
 
 ## 2. About the underlying data
 
 The pollinator [@pollinatordata] and plant species [@plantData] data used to fit the ISDMs were obtained from GBIF. The data was downloaded via the R-package **rgbif** [@rgbif], and its associated metadata was extracted using the same R-package. The downloaded GBIF data contains $26$ datasets and $30$ datasets with records on pollinators and plants respectively. We present a summary of the datasets downloaded for the pollinator and plant species respectively in @tbl-pollinatorMetaData and @tbl-plantMetaData respectively.
 
 From the metadata, we ascertain the type of each dataset: either presence-only, presence-absence or count data. We merge all the presence-only data into one dataset (which we call `mergedDatasetPO`), but we do not merge the rest of the datasets. This is because the presence-absence data (processed from sampling event protocols) have different sampling protocols, and we would like to preserve their unique attributes. A summary of the formatted dataset used to fit the ISDMs are presented in @tbl-pollinatorOcc and @tbl-plantSpsOcc.
+
+```{r}
+#| echo: true
+#| warning: false
+#| eval: false
+
+######################################################
+# POLLINATOR DATA FORMAT
+#####################################################
+
+pollinatorFolder <- paste0(dataFolder,"/pollinatorDataFolder")
+taxonKey <- c(811, 797, 1457)
+formattedData <- list()
+
+if(!file.exists(paste0(pollinatorFolder, "/formatData/formattedPollinatorData.RDS"))){
+  
+  #for(i in seq_along(taxonKey)){
+ occurrences <- lapply(seq_along(taxonKey), function(i){
+  
+  # select the taxaKey for a particular pollinator
+  taxaIndex <- taxonKey[i]
+  
+  #if(!file.exists(paste0(pollinatorFolder, "/", taxaIndex,"formattedData.RDS"))){
+    
+    if(!file.exists(paste0(pollinatorFolder, "/", taxaIndex,"occurrences.RDS"))){
+      
+      # Get download key 
+      if (file.exists(paste0(pollinatorFolder, "/",taxaIndex, "DownloadKey.RDS"))) {
+        downloadKey <- readRDS(paste0(pollinatorFolder, "/",taxaIndex, "DownloadKey.RDS"))
+      } else {
+        downloadKey <- getDownloadKey(taxaIndex, regionGeometry)
+        if(waitForGbif){
+          message("Download key has been created and will download once it is ready (5-30 minutes). ",
+                  "View the download status at https://www.gbif.org/occurrence/download/", 
+                  downloadKey)
+          downloadKey <- occ_download_wait(downloadKey, curlopts = list(), quiet = FALSE)
+          attr(downloadKey,'doi') <- downloadKey$doi
+          saveRDS(downloadKey, file = paste0(pollinatorFolder, "/",taxaIndex, "DownloadKey.RDS"))
+        } else {
+          downloadKey <- occ_download_meta(downloadKey) 
+          saveRDS(downloadKey, file = paste0(pollinatorFolder, "/",taxaIndex, "DownloadKey.RDS"))
+          stop(paste0("Download key has been created and your download is being prepared. View the download at https://www.gbif.org/occurrence/download/",
+                      downloadKey$key, ". Come back and start the download in 5-30 minutes."))
+        }
+      } 
+      
+      
+      # Start GBIF Download  
+      
+      #### FORMAT SCHEDULED DOWNLOAD ####
+      
+      # This script takes your download key and downloads and produces a data frame containing all your 
+      # relevant species occurrences. It also adds a few important columns.
+      
+      # Download and unzip the file from GBIF
+      
+      downloadGet <- occ_download_get(key=downloadKey$key, path=paste0(pollinatorFolder), overwrite=TRUE)
+      occurrences <- occ_download_import(downloadGet)
+      saveRDS(occurrences, 
+              paste0(pollinatorFolder, "/", taxaIndex,"occurrences.RDS"))
+    } else {
+      occurrences <- readRDS(paste0(pollinatorFolder, "/", taxaIndex,"occurrences.RDS"))
+    }
+    # Create dataset types
+    # using the default creation from the hotspot project
+    # Import metadata information
+    if(file.exists(paste0(dataFolder, "/metadataSummary.csv"))){
+      dataTypes <- read.csv(paste0(dataFolder, "/metadataSummary.csv"))
+    } 
+    
+    # Reduce to relevant columns immediately to save space
+    occurrences <- occurrences[,c("acceptedScientificName", "decimalLongitude", "decimalLatitude", "basisOfRecord",
+                                  "year", "month", "datasetKey", "datasetName", "taxonRank", "kingdomKey", "phylumKey", "classKey", "orderKey",
+                                  "familyKey", "genusKey", "speciesKey", "issue", "genus", "order", "family", "occurrenceID")]
+    
+    # Remove any occurrences with certain issues attached to them
+    issuesToFlag <- c("ZERO_COORDINATE|COORDINATE_OUT_OF_RANGE|COORDINATE_INVALID|COORDINATE_PRECISION_INVALID|COORDINATE_UNCERTAINTY_METRES_INVALID")
+    occurrences <- occurrences %>%
+      filter(datasetKey %in% dataTypes$datasetKey[!is.na(dataTypes$processing)]) %>%
+      filter(!grepl(issuesToFlag,issue))
+    
+    # Assign a taxon key based on what level of taxonomy the key is valid for
+    occurrences$taxonKeyProject <- ifelse(occurrences$speciesKey %in% taxonKey, occurrences$speciesKey,
+                                          ifelse(occurrences$genusKey %in% taxonKey, occurrences$genusKey,
+                                                 ifelse(occurrences$familyKey %in% taxonKey, occurrences$familyKey,
+                                                        ifelse(occurrences$orderKey %in% taxonKey, occurrences$orderKey,
+                                                               ifelse(occurrences$classKey %in% taxonKey, occurrences$classKey,
+                                                                      ifelse(occurrences$phylumKey %in% taxonKey, occurrences$phylumKey,
+                                                                             ifelse(occurrences$kingdomKey %in% taxonKey, occurrences$kingdomKey, NA)))))))
+    
+    # Add taxa and reduce to relevant columns
+    occurrences$taxa <- taxaIndex #focalTaxon$taxa[match(occurrences$taxonKeyProject, focalTaxon$key)]
+    
+    occurrences <- occurrences[,c("acceptedScientificName", "decimalLongitude", "decimalLatitude", "basisOfRecord",
+                                  "year", "month", "datasetKey", "datasetName", "taxa", "taxonKeyProject", "taxonRank", "genus", "order", "family", "occurrenceID")] %>%
+      filter(!is.na(taxa))
+    # }
+    
+  })
+ 
+    # Put all groups together
+     occurrences <- occurrences %>%
+       do.call("rbind", .)%>%
+       dplyr::filter(order %in% c("Diptera", "Lepidoptera", "Hymenoptera"))%>%
+       dplyr::filter(year > 2009)%>%
+       dplyr::mutate(Taxon = ifelse(order == "Lepidoptera", "Butterflies",
+                                                           ifelse(order == "Hymenoptera", "Bees",
+                                                                  "Hoverflies")))
+    ###------------------------------###
+    ### 3. Attach relevant metadata ####
+    ###------------------------------###
+    
+    # Now we import metadata related to GBIF data
+    metadataList <- metadataPrep(occurrences, 
+                                 metaSummary = TRUE)
+    
+    # Import dataset type based on dataset name. If no dataset information is provided, all data will be downloaded and assumed to
+    # be presence only data
+    GBIFImportCompiled <- merge(occurrences, 
+                                metadataList$metadata, 
+                                all.x=TRUE, 
+                                by = "datasetKey")
+    
+    # Narrow down to known data types and split into data frames
+    projcrs <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+    GBIFLists <- lapply(unique(GBIFImportCompiled$name), FUN  = function(x) {
+      GBIFItem <- GBIFImportCompiled[GBIFImportCompiled$name == x,]
+      GBIFItem <- st_as_sf(GBIFItem,                         
+                           coords = c("decimalLongitude", "decimalLatitude"),
+                           crs = projcrs)%>%
+        st_transform(., newCrs)
+      GBIFcropped <- st_intersection(GBIFItem, regionGeometry)
+      GBIFcropped
+    })
+    
+    names(GBIFLists) <- unique(GBIFImportCompiled$name)
+    
+    # Put the dataLists together and save them
+    dataList <- list(species = GBIFLists, 
+                     metadata = metadataList, 
+                     projcrs = newCrs)
+    attr(dataList, "level") <- attr(regionGeometry, "level")
+    attr(dataList, "region") <- attr(regionGeometry, "region")
+    saveRDS(dataList, 
+            paste0(pollinatorFolder, "/speciesDataImported.RDS"))
+    
+    ##########################
+    # Process datasets
+    ##########################
+    speciesData <- dataList[["species"]]
+    metadata <- dataList$metadata$metadata
+    rm("dataList")
+    
+    # start processing each dataset
+    processedData <- list()
+    namesProcessedData <- c()
+    for (ds in seq_along(speciesData)) {
+      print(ds)
+      focalData <- speciesData[[ds]]
+      
+      # If the dataset is empty, skip it
+      if (nrow(focalData) == 0) next
+      
+      dataType <- unique(focalData$type)
+      #if(is.null(dataType)) dataType <- "OCCURRENCE"
+      datasetName <- names(speciesData)[ds]
+      newDataset <- NULL
+      
+      cat("Currently processing dataset '", datasetName,"' \n", sep = "")
+      
+      if (dataType == "SAMPLING_EVENT") {
+        focalEndpoint <- metadata$DWCEndpoint[metadata$name == datasetName]
+        newDataset <- tryCatch(processFieldNotesEventGenus(focalEndpoint, pollinatorFolder , datasetName, regionGeometry, taxonKey, newCrs, projcrs, focalData),
+                               error = function(e) {NULL})
+        
+        # No need to do anything to presence only data (yet) except add individualCount column
+      } else if (dataType == "OCCURRENCE") {
+        
+        #ensure the coordinates are distrinct
+       # coordsgbif.no <- datagbif.no[,c("lon","lat")]
+       
+        focalData <- focalData %>%
+          dplyr::group_by(Taxon) %>%
+          dplyr::distinct(geometry)
+        
+        focalData$dataType <- "PO"
+        newDataset <- focalData[,c("acceptedScientificName", "geometry", "dataType", "taxa", "year", "taxonKeyProject", "order")]
+      } else if (dataType == "insectMonitoring") {
+        focalEndpoint <- metadata$DWCEndpoint[metadata$name == datasetName]
+        newDataset <- processNationalInsectMonitoring(focalData, focalEndpoint, pollinatorFolder, regionGeometry)
+      }
+      
+      if (is.null(newDataset)) {next}
+      
+      
+      # convert year to numeric
+      newDataset$year <- as.numeric(newDataset$year)
+      
+      # Save and name new dataset
+      processedData[[ds]] <- newDataset
+      namesProcessedData[ds] <- datasetName
+    }
+    
+    names(processedData) <- namesProcessedData
+    
+    #extract processed Data without NA names
+    processedData <- processedData[namesProcessedData[!is.na(namesProcessedData)]]
+    # Save for use in model construction
+    processedData <- processedData[lapply(processedData,nrow)>0]
+    saveRDS(processedData, paste0(pollinatorFolder, "/speciesDataProcessed.RDS"))
+
+    #Check if all the datasets are of the same dataType
+    mergedDataWithType <- lapply(processedData, function(x){
+      unique(x$dataType)
+    })%>%
+      do.call("rbind", .)%>%
+      as.data.frame(.)%>%
+      mutate(datasetName = rownames(.))%>%
+      rename(dataType = V1)
+    
+    uniqueDataType <- unique(mergedDataWithType$dataType)
+    
+    mergedDatasets <- list()
+    
+    # Merge all presence-only data
+    
+      dataToMerge <- mergedDataWithType[mergedDataWithType$dataType == "PO", ]
+      mergedDatasets[[1]] <- processedData[dataToMerge$datasetName]%>%
+        do.call("rbind", .)%>%
+        as.data.frame(., row.names = NULL)%>%
+        dplyr::group_by(acceptedScientificName, dataType, taxa, year, taxonKeyProject, order)%>%
+        distinct(geometry)%>%
+        dplyr::ungroup()
+      
+      rownames(mergedDatasets[[1]]) <- NULL
+      
+      mergedDatasets[[1]] <- mergedDatasets[[1]] %>%
+        st_as_sf(., crs = newCrs)%>%
+        filter(!is.na(order))%>%
+        dplyr::select(order, dataType) %>%
+        dplyr::group_by(dataType, order)%>%
+        distinct()%>%
+        dplyr::ungroup()
+      
+      names(mergedDatasets)[1] <- paste0("mergedDataset", "PO")
+      
+      # Format PA data
+      dataToMerge <- mergedDataWithType[mergedDataWithType$dataType == "PA", ]
+      
+     paData <-  lapply(dataToMerge$datasetName, function(x){
+        processedData[[x]] %>%
+         dplyr::group_by(individualCount, dataType, taxa, year, taxonKeyProject, order) %>%
+         distinct(geometry)%>%
+         dplyr::ungroup()
+      })
+      
+     names(paData) <- dataToMerge$datasetName
+     
+     # Format count data
+     dataToMerge <- mergedDataWithType[mergedDataWithType$dataType == "Counts", ]
+     countData <- processedData[dataToMerge$datasetName]
+
+    # Put all datasets togehter      
+    mergedDatasets <- c(mergedDatasets,
+                        countData,
+                        paData
+    )
+
+saveRDS(mergedDatasets,
+        paste0(pollinatorFolder, "/formatData/formattedPollinatorData.RDS"))
+} else {
+
+  pollinatorData <- readRDS(paste0(pollinatorFolder, "/formatData/formattedPollinatorData.RDS"))
+}
+
+
+# Format the data
+PointsBeesAndButterfliesAndHoverflies <- lapply(pollinatorData, function(x){
+  ret <-  x %>%
+    dplyr::mutate(Taxon = ifelse(order == "Lepidoptera", "Butterflies",
+                                 ifelse(order == "Hymenoptera", "Bees",
+                                        "Hoverflies")))
+  return(ret)
+})
+
+# Shorten the names of the datasets
+shortNames <- str_replace_all(names(PointsBeesAndButterfliesAndHoverflies), " ", "")
+names(PointsBeesAndButterfliesAndHoverflies) <- shortNames
+
+# We need to filter out some taxonomic groups
+beesOnly <-  c("Solitarybeescollectedinalarge-scalefieldexperimentinpowerlineclearings,southeastNorway" , "Bumblebeescollectedinalarge-scalefieldexperimentinpowerlineclearings,southeastNorway")
+ ret <- lapply(PointsBeesAndButterfliesAndHoverflies[beesOnly], function(x){
+   x %>%
+     filter(Taxon == "Bees")
+ })
+ 
+ PointsBeesAndButterfliesAndHoverflies[beesOnly] <- ret
+
+ beesAndButterfles <-  c("BumblebeesandbutterfliesinNorway")
+ ret <- lapply(PointsBeesAndButterfliesAndHoverflies[beesAndButterfles], function(x){
+   x %>%
+     filter(Taxon != "Hoverflies")
+ })
+ 
+ PointsBeesAndButterfliesAndHoverflies[beesAndButterfles] <- ret
+ 
+ 
+ ################################################
+ # PLANT SPECIES FORMAT
+ ####################################################
+
+ # The plant data format is similar to the pollinators
+ # Except we select the species within the pollinator-plants interaction data.
+ 
+if(!file.exists(paste0(dataFolder, "/plantDataFolder/formattedData/formattedPlantData.RDS"))){
+taxonKey <- 7707728
+  if (file.exists(paste0(dataFolder, "/downloadKey.RDS"))) {
+    downloadKey <- readRDS(paste0(dataFolder, "/downloadKey.RDS"))
+  } else {
+    downloadKey <- getDownloadKey(taxonKey, regionGeometry)
+    if(waitForGbif){
+      message("Download key has been created and will download once it is ready (5-30 minutes). ",
+              "View the download status at https://www.gbif.org/occurrence/download/", 
+              downloadKey)
+      downloadKey <- occ_download_wait(downloadKey, curlopts = list(), quiet = FALSE)
+      attr(downloadKey,'doi') <- downloadKey$doi
+      saveRDS(downloadKey, file = paste0(dataFolder, "/downloadKey.RDS"))
+    } else {
+      downloadKey <- occ_download_meta(downloadKey) 
+      saveRDS(downloadKey, file = paste0(dataFolder, "/downloadKey.RDS"))
+      stop(paste0("Download key has been created and your download is being prepared. View the download at https://www.gbif.org/occurrence/download/",
+                  downloadKey$key, ". Come back and start the download in 5-30 minutes."))
+    }
+  }
+  
+  # Start GBIF Download  
+  
+  #### FORMAT SCHEDULED DOWNLOAD ####
+  
+  # This script takes your download key and downloads and produces a data frame containing all your 
+  # relevant species occurrences. It also adds a few important columns.
+  
+  # Download and unzip the file from GBIF
+if(!file.exists(paste0(dataFolder, "/plantDataFolder/data/occurrences.RDS"))){
+  downloadGet <- occ_download_get(key=downloadKey$key, path=paste0(dataFolder, "/plantDataFolder/data"), overwrite=TRUE)
+  occurrences <- occ_download_import(downloadGet)
+  saveRDS(occurrences, 
+          paste0(dataFolder, "/plantDataFolder/data/occurrences.RDS"))
+} else {
+  occurrences <- readRDS(paste0(dataFolder, "/plantDataFolder/data/occurrences.RDS"))
+}
+  # Create dataset types
+  # using the default creation from the hotspot project
+  # Import metadata information
+  if(file.exists(paste0(dataFolder, "/metadataSummary.csv"))){
+    dataTypes <- read.csv(paste0(dataFolder, "/metadataSummary.csv"))
+  } 
+  
+  # Reduce to relevant columns immediately to save space
+  occurrences <- occurrences[,c("acceptedScientificName", "decimalLongitude", "decimalLatitude", "basisOfRecord",
+                                "year", "month", "datasetKey", "datasetName", "taxonRank", "kingdomKey", "phylumKey", "classKey", "orderKey",
+                                "familyKey", "genusKey", "speciesKey", "issue", "genus", "order")]
+  
+  # Remove any occurrences with certain issues attached to them
+  issuesToFlag <- c("ZERO_COORDINATE|COORDINATE_OUT_OF_RANGE|COORDINATE_INVALID|COORDINATE_PRECISION_INVALID|COORDINATE_UNCERTAINTY_METRES_INVALID")
+  occurrences <- occurrences %>%
+    filter(datasetKey %in% dataTypes$datasetKey[!is.na(dataTypes$processing)]) %>%
+    filter(!grepl(issuesToFlag,issue))
+  
+  # Assign a taxon key based on what level of taxonomy the key is valid for
+  occurrences$taxonKeyProject <- ifelse(occurrences$speciesKey %in% taxonKey, occurrences$speciesKey,
+                                        ifelse(occurrences$genusKey %in% taxonKey, occurrences$genusKey,
+                                               ifelse(occurrences$familyKey %in% taxonKey, occurrences$familyKey,
+                                                      ifelse(occurrences$orderKey %in% taxonKey, occurrences$orderKey,
+                                                             ifelse(occurrences$classKey %in% taxonKey, occurrences$classKey,
+                                                                    ifelse(occurrences$phylumKey %in% taxonKey, occurrences$phylumKey,
+                                                                           ifelse(occurrences$kingdomKey %in% taxonKey, occurrences$kingdomKey, NA)))))))
+  
+  # Add taxa and reduce to relevant columns
+  occurrences$taxa <- "plants"#focalTaxon$taxa[match(occurrences$taxonKeyProject, focalTaxon$key)]
+  
+  occurrences <- occurrences[,c("acceptedScientificName", "decimalLongitude", "decimalLatitude", "basisOfRecord",
+                                "year", "month", "datasetKey", "datasetName", "taxa", "taxonKeyProject", "taxonRank", "genus", "order")] %>%
+    filter(!is.na(taxa))
+  
+  # Get the data with interractions
+  source("pipeline/webForInterractions/webPlotsForModels.R")
+  
+  # select only the species within the interraction matrix
+  occurrences <- occurrences %>%
+  mutate(
+    simpleScientificName = coalesce(
+      #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+      str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    )
+  )%>%
+    dplyr::filter(simpleScientificName %in% interractionMatrix$species)%>%
+    dplyr::filter(year > 2009)
+  
+###------------------------------###
+### 3. Attach relevant metadata ####
+###------------------------------###
+
+# Now we import metadata related to GBIF data
+metadataList <- metadataPrep(occurrences, metaSummary = TRUE)
+
+# Import dataset type based on dataset name. If no dataset information is provided, all data will be downloaded and assumed to
+# be presence only data
+GBIFImportCompiled <- merge(occurrences, 
+                            metadataList$metadata, 
+                            all.x=TRUE, 
+                            by = "datasetKey")
+
+# Narrow down to known data types and split into data frames
+projcrs <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+GBIFLists <- lapply(unique(GBIFImportCompiled$name), FUN  = function(x) {
+  GBIFItem <- GBIFImportCompiled[GBIFImportCompiled$name == x,]
+  GBIFItem <- st_as_sf(GBIFItem,                         
+                       coords = c("decimalLongitude", "decimalLatitude"),
+                       crs = projcrs)%>%
+    st_transform(., newCrs)
+  GBIFcropped <- st_intersection(GBIFItem, regionGeometry)
+  GBIFcropped
+})
+
+names(GBIFLists) <- unique(GBIFImportCompiled$name)
+
+# Put the dataLists together and save them
+dataList <- list(species = GBIFLists, 
+                 metadata = metadataList, 
+                 projcrs = newCrs)
+attr(dataList, "level") <- attr(regionGeometry, "level")
+attr(dataList, "region") <- attr(regionGeometry, "region")
+saveRDS(dataList, 
+        paste0(dataFolder, "/plantDataFolder/formattedData/speciesDataImported.RDS"))
+
+##########################
+# Process datasets
+##########################
+speciesData <- dataList[["species"]]
+metadata <- dataList$metadata$metadata
+rm("dataList")
+
+
+# start processing each dataset
+processedData <- list()
+namesProcessedData <- c()
+for (ds in seq_along(speciesData)) {
+  focalData <- speciesData[[ds]]
+  
+  # If the dataset is empty, skip it
+  if (nrow(focalData) == 0) next
+  
+  dataType <- unique(focalData$type)
+  #if(is.null(dataType)) dataType <- "OCCURRENCE"
+  datasetName <- names(speciesData)[ds]
+  newDataset <- NULL
+  
+  cat("Currently processing dataset '", datasetName,"' \n", sep = "")
+  
+ if (dataType == "SAMPLING_EVENT") {
+   surveyedSpecies <- interractionMatrix$species
+    focalEndpoint <- metadata$DWCEndpoint[metadata$name == datasetName]
+    newDataset <- tryCatch(processFieldNotesEvent(focalEndpoint, dataFolder , datasetName, regionGeometry, taxonKey, newCrs, projcrs, focalData, surveyedSpecies),
+                           error = function(e) {NULL})
+    
+    # No need to do anything to presence only data (yet) except add individualCount column
+  } else if (dataType == "OCCURRENCE") {
+    focalData$dataType <- "PO"
+    newDataset <- focalData[,c("acceptedScientificName", "geometry", "dataType", "taxa", "year", "taxonKeyProject", "genus", "order")]
+  }
+  
+  if (is.null(newDataset)) {break}
+
+  
+  # convert year to numeric
+  newDataset$year <- as.numeric(newDataset$year)
+  
+  # Save and name new dataset
+  processedData[[ds]] <- newDataset
+  namesProcessedData[ds] <- datasetName
+}
+
+names(processedData) <- namesProcessedData
+
+# Save for use in model construction
+processedData <- processedData[lapply(processedData,nrow)>0]
+saveRDS(processedData, paste0(dataFolder, "/plantDataFolder/formattedData/speciesDataProcessed.RDS"))
+
+
+###--------------------------------###
+### 3. Compile into one data.frame ####
+###--------------------------------###
+
+# Edit data frames to have the same number of columns
+processedDataCompiled <- do.call(rbind, lapply(1:length(processedData), FUN = function(x) {
+  dataset <- processedData[[x]]
+  datasetName <- names(processedData)[x]
+  datasetType <- unique(dataset$dataType)
+  if (datasetType == "PO") {
+    dataset$individualCount <- 1
+  }
+  datasetShort <- dataset[, c("acceptedScientificName", "individualCount", "geometry", "taxa", "year", "dataType", 
+                              "taxonKeyProject", "genus", "order")]
+  datasetShort$dsName <- datasetName
+  datasetShort
+}))
+
+# Remove absences, combine into one data frame and add date accessed
+processedPresenceData <- processedDataCompiled[processedDataCompiled$individualCount > 0,]
+saveRDS(processedPresenceData, paste0(dataFolder, "/plantDataFolder/processedPresenceData.RDS"))
+
+rm("GBIFLists")
+rm("GBIFImportCompiled")
+rm("newDataset")
+
+############################
+# Matching Processed data species to that from ASO data
+#########################
+# We are using ASO data as the basis for modelling the plant interractions
+# So the species in the ASOdata are selected and 
+# all datasets are filtered to have those species
+asoDataNames <- processedData[[19]]
+saveRDS(asoDataNames, paste0(dataFolder, "/plantDataFolder/formattedData/asoData.RDS"))
+asoDataNames <- unique(asoDataNames$acceptedScientificName)
+
+# selecting the ASO data species 
+formattedData <- lapply(processedData, function(x){
+  out <- x %>%
+    dplyr::filter(acceptedScientificName %in% asoDataNames)
+  return(out)
+})
+
+rm("processedData")
+rm("occurrences")
+rm("speciesData")
+#Check if all the datasets are of the same dataType
+mergedDataWithType <- lapply(formattedData, function(x){
+  unique(x$dataType)
+})%>%
+  do.call("rbind", .)%>%
+  as.data.frame(.)%>%
+  mutate(datasetName = rownames(.))%>%
+  rename(dataType = V1)
+
+uniqueDataType <- unique(mergedDataWithType$dataType)
+
+# create the merged dataset
+mergedDatasets <- list()
+#for(i in seq_along(uniqueDataType)){
+
+# Merge all Presence-only datasets together
+  dataToMerge <- mergedDataWithType[mergedDataWithType$dataType == "PO", ]
+  mergedDatasets[[1]] <- formattedData[dataToMerge$datasetName]%>%
+    do.call("rbind", .)%>%
+    as.data.frame(., row.names = NULL)
+  
+  rownames(mergedDatasets[[1]]) <- NULL
+  
+  mergedDatasets[[1]] <- mergedDatasets[[1]] %>%
+    st_as_sf(., crs = newCrs)%>%
+    mutate(
+      simpleScientificName = coalesce(
+        #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+        str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+      )
+    )%>%
+    dplyr::filter(simpleScientificName %in% interractionMatrix$species)
+  
+  names(mergedDatasets)[1] <- paste0("mergedDataset", "PO")
+  
+  otherData <- mergedDataWithType[!mergedDataWithType$dataType %in% "PO", "datasetName"] %>%
+    lapply(., function(x){
+      print(x)
+      #ds <- which(x %in% mergedDataWithType[!mergedDataWithType$dataType %in% "PO", "datasetName"])
+      mergeData <- formattedData[x][[1]]%>%
+        st_as_sf(., crs = newCrs)%>%
+        mutate(
+          simpleScientificName = coalesce(
+            #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+            str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+          )
+        )%>%
+        dplyr::filter(simpleScientificName %in% interractionMatrix$species)
+      
+      #names(mergeData) <- x
+      return(mergeData)
+    })
+  
+  names(otherData) <- mergedDataWithType[!mergedDataWithType$dataType %in% "PO", "datasetName"]
+  
+  mergedDatasets <- c(mergedDatasets,
+                      otherData)
+  # Kepp the individual Presence-only data
+  
+#}
+
+# save the data
+saveRDS(mergedDatasets, paste0(dataFolder, "/plantDataFolder/formattedData/formattedPlantData.RDS"))
+} else {
+
+  plantSpeciesData <- readRDS(paste0(dataFolder, "/plantDataFolder/formattedData/formattedPlantData.RDS"))
+  } 
+
+```
+
+
 
 ```{r tbl-pollinatorOcc}
 #| tbl-cap: 'Number of pollinator occurrences from the formatted datasets obtained from GBIF. All presence-only datasets are merged into one dataset (mergedDataset).'
@@ -240,6 +851,8 @@ For both pollinator and plant data obtained on a National scale (entire Norway),
 
 plot(regionGeometry)
 ```
+
+We describe the indicators at the semi-natural habitats from the ASO Data meadows. The ASO Data locations and their presence/absence records are presented in @fig-plantASO.
 
 
 <!--# Describe the temporal and spatial resolution of the data used-->
@@ -295,36 +908,40 @@ Anders will help with this
 
 <!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
 
-## 4. Reference condition and values
+## 4. Reference condition and values {#sec-refConditionValues}
 
-### 4. 1. Reference condition
+### 4. 1. Reference condition {#sec-refCondition}
+
+The reference condition is defined as the maximum ecological potential of pollinators in semi-natural meadows in Norway. This reference condition represents a state where all conditional indicators have a value of $1$ [@keith2020conceptual]. Our reference conditions are based on modeled reference conditions [@hickler2012projecting; @keith2020conceptual] of ASO meadows. Specifically, the pollinator potential at a given reference condition represents the highest diversity within a geo-climatic region. Although we estimated three alpha diversity indices (see @sec-divIndices), we chose to use the inverse-Simpson index to describe the diversity, since it disproportionately favors common species than the species richness and Shannon-Weiener indices [@jost2006entropy].  An increase in the inverse Simpson index reflects an increase in diversity [@zhou2002spatial].
+
+An advantage of this model-based reference condition is that we can describe a national indicators for difference landscapes or ecosystems, with reference to the semi-natural habitats or ecosystems, and describe ecosystem variables that can affect the conditions within these landscapes. As a downside, it becomes difficult to scale conditions at levels with indicator values higher than the reference [@keith2020conceptual], especially for regions where alpha diversity is higher than those in the semi-natural grasslands.
 
 <!--# Define the reference condition (or refer to where it is defined). Note the destinction between reference condition and reference values 10.3897/oneeco.5.e58216  -->
 
 ### 4. 2. Reference values
 
-We first estimate the richness, Shannon-Wiener and inverse Simpson diversity indices (described in @sec-divIndices) across the study region (presented in @fig-allIndices). We present the Simpson diversity estimates for the alpine, boreal and temperate pollinators with the ASO data meadows in the Appendix (@fig-alpineDiversity, @fig-borealDiversity and @fig-temperateDiversity respectively). 
+<!--# Describe the reference values used to set the lower and upper limits on the normative indicator scale. Why was the current option chosen and how were the reference values quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here. -->
 
+As defined by @keith2020conceptual, we define the value of our ecosystem variable (alpha diversity described in @sec-divIndices) at reference condition and this value will be used to re-scale a variable to derive individual indicators. Putting all pollinators together, we set $0$ and the maximum diversity value as the endpoints of the range of a condition variable we use in re-scaling. A value of $0$ shows a `poor` condition where there is no pollinator diversity and a value of $1$ indicates a `good` condition with the highest potential pollinator diversity.
 
-```{r fig-allIndices}
-#| fig-cap: 'The Shannon Weiner and inverse Simpson diversity indices for alpine, boreal, temperate and all zones estimated across Norway.'
-#| fig-width: 100
-#| echo: false
-#| warning: false
-knitr::include_graphics("../img/diversityEstimates.png")
-```
+In summary, there are two steps to obtaining these reference values: 
 
-#### 4.2.1 Minimum and maximum values
+* Estimating the maximum values and re-scaling the ecosystem variable
+* Defining a threshold value for defining good ecological condition
 
-To define the reference values, we extract the diversity indices at the ASO locations, find the maximum and minimum values within a predefined cluster based on annual temperature and latitude. We present these reference values within each geographic cluster in @tbl-maxminvalues.
+#### 4.2.1 Maximum values {#sec-maxValues}
+
+We divide our semi-natural meadows into ``geo-climatic regions`` (that is, they are clustered according to their *latitude* and *annual temperature* values). This is a simplification as compared to using a more stable and partly historic vegetation zones (described by [feltkurskompendium biologisk mangfold terrestrisk biologi](https://www.finse.uio.no/courses/biology/bio1200-biodiversity/ressurser/bio1200_terrestrisk_biologi_2014.pdf) and [store norske leksikon](https://snl.no/vegetasjonssone)). Moreover, this clusters allows us to track species distribution with rising temperatures and the latitude accounts for lag time in establishment [REF].
+
+In each of these clusters, we estimate the maximum alpha diversity index and use this value as reference value for that geo-climatic region. The estimates of the maximum diversity indices within each geo-climatic regions is presented in @tbl-maxminvalues.
+
 
 ```{r}
 #| echo: false
 #| warning: false
-#| tbl-cap: 'The maximum and minimum values of the shannon indices estimated within difference geographic clusters based on Latitude and annual temperature values.'
+#| tbl-cap: 'The maximum values of the alpha diversity (inverse Simpson index) estimated within difference geo-climatic regions based on their scaled latitude and annual temperature values at the ASO data meadows.'
 #| label: tbl-maxminvalues
-
-  load("../data/asoDataMeadows.RData")
+load("../data/asoDataMeadows.RData")
 dat <- asoDataMeadows%>%
   dplyr::select(maxReference, minReference, cluster)%>%
   st_drop_geometry()%>%
@@ -335,143 +952,361 @@ dat <- asoDataMeadows%>%
                 Temperature = ifelse(cluster == 1, "Positive",
                                   ifelse(cluster == 2, "Positive",
                                          ifelse(cluster == 3, "Negative", "Negative"))))%>%
-  dplyr::select(cluster, Latitude, Temperature, minReference, maxReference) %>%
+  dplyr::select(cluster, Latitude, Temperature, maxReference) %>%
   dplyr::arrange(cluster)
 
 rownames(dat) <- NULL
 
 dat %>%
-  kbl()
+  knitr::kable(., 
+               col.names = c("Geo climatic region",
+                             "Latitude",
+                             "Temperature",
+                             "Maximum value"))%>%     
+kable_styling(bootstrap_options=c('striped','hover',
+  'condensed','responsive'),position='center',
+   font_size = 9,full_width=F)
 ```
 
 
-With these indicator values (presented in @tbl-maxminvalues), we scale the inverse Simpson diversity indices for each of the ASO meadow locations by the indicator values. We present these scaled diversity indices in @fig-asoDiversity. An increase in the inverse Simpson index reflects an increase in diversity [@zhou2002spatial].
-
-We observed that the temperate pollinators were the most diverse followed by the boreal and temperate pollinators. 
+Using the reference values presented in @tbl-maxminvalues, we use a linear transformation to calculate the ecosystem condition indicators [@keith2020conceptual]:
+$$
+Indicator = \frac{D - V_L}{V_H - V_L};
+$$
+where $D$ is the alpha diversity estimate, $V_L$ is the lowest reference level (which we have set to $0$) and $V_H$ is the maximum reference value. We present these indicator values for the ASO meadows and the national scale in @fig-asoDiversity. Note that the indicators on the national scale needs to be interpreted with reference to the ASO meadows. 
 
 ```{r}
-#| fig-cap: 'Scaled pollinator diversity indices at the meadow locations. The estimated shannon indices within each zone (alpine, boreal and temperate) are divided by the indicator values within that zone (defined in @tbl-maxminvalues).'
+#| echo: true
+#| warning: false
+#| eval: false
+
+
+speciesForTaxon <- biotraits %>%
+  dplyr::select(acceptedScientificName, Taxon, zone)%>%
+  group_by(Taxon, zone)%>%
+  distinct()%>%
+  ungroup()%>%
+  mutate(
+    simpleScientificName = coalesce(
+      #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+      str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    ))%>%
+  na.omit()
+
+# Load all the plant predictions result
+if(!exists("interractionMatrix")) source("pipeline/webForInterractions/webPlotsForModels.R")
+
+asoDatasf <- readRDS(file = paste0(dataFolder, "/plantDataFolder/formattedData/asoData.RDS"))%>%
+  mutate(
+    simpleScientificName = coalesce(
+      #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+      str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    )) %>%
+  dplyr::filter(simpleScientificName %in% c(interractionMatrix$species)) #
+
+plantSpecies <- unique(asoDatasf$simpleScientificName)
+
+plantSpecies <- sapply(plantSpecies, function(x){
+  rt <- stringr::str_split(x, " ")[[1]]
+  taxon <- paste(rt[1], rt[2], sep = "_") 
+  return(taxon)
+}) %>%
+  c()
+
+plantSpecies <- as.character(plantSpecies)
+
+
+##################################################
+# Plant Species results
+#########################################
+
+speciesData <- lapply(paste0(dataFolder, "/modelOutputs/plants/", plantSpecies), function(x){
+ # try(list.files(x, pattern = paste0("predictions.rds"), recursive = TRUE, full.names = TRUE))
+  preds <- readRDS(list.files(x, pattern = paste0("predictions.rds"), recursive = TRUE, full.names = TRUE))
+  return(preds$Probabilities)
+})|>  
+  rast() |>  # combine raster layers
+  #scale() |>  # scale raster layers
+  setNames(plantSpecies)
+
+if(rerun){
+
+######################################
+# ZONAL DIVERSITY ESTIMATES
+#####################################
+zone <- c("alpine", "boreal", "temperate")
+# Make predictions for all the zones
+sp <- "allTaxa"
+spPred <- estimateTaxonDiversity(pollinatorSpeciesNames = NULL,
+                                 speciesForTaxon =  speciesForTaxon,
+                                 taxa = sp,
+                                 predRast = predRast,
+                                 silent = FALSE)   
+
+path <- paste0(dataFolder, "/modelOutputs/diversity/", sp)
+if(!file.exists(path)){
+  dir.create(path)
+}
+saveRDS(spPred, file.path(path, paste0("predictions.rds")))
+
+} else {
+  # load(paste0(dataFolder, "/modelOutputs/diversity/alpineDiversity.RData"))
+  # load(paste0(dataFolder, "/modelOutputs/diversity/borealDiversity.RData"))
+  
+  alpine <- readRDS("Data/modelOutputs/diversity/alpine/predictions.rds")
+  boreal <- readRDS("Data/modelOutputs/diversity/boreal/predictions.rds")
+  temperate <- readRDS("Data/modelOutputs/diversity/temperate/predictions.rds")
+  
+  bees <- readRDS("Data/modelOutputs/diversity/Bees/predictions.rds")
+  butterflies <- readRDS("Data/modelOutputs/diversity/Butterflies/predictions.rds")
+  hoverflies <- readRDS("Data/modelOutputs/diversity/Hoverflies/predictions.rds")
+}
+
+#############################
+# Diverisity at ASOData locations
+#############################
+source("pipeline/webForInterractions/webPlotsForModels.R")
+asoDatasf <- readRDS(file = paste0(dataFolder, "/plantDataFolder/formattedData/asoData.RDS"))%>%
+  mutate(
+    simpleScientificName = coalesce(
+      str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    )) %>%
+  dplyr::filter(simpleScientificName %in% c(interractionMatrix$species))%>%
+  st_transform(newCrs)# Select the species in the interraction matrix
+
+source("pipeline/dataImport/environmentalDataImport.R")
+names(environmentalCovariates)[14] <- "bio.sq"
+names(environmentalCovariates)[16] <- "bm.Intsq"
+
+# Reclassify the levels of the environmental covariates
+levels(environmentalCovariates$landCover)[[1]][,2][c(18, 19, 23, 24, 25, 26)] <- "Other forest"
+levels(environmentalCovariates$landCover)[[1]][,2][29:37] <- "Others"
+
+# Reclassify the levels of environmentalCovariates randomised
+levels(environmentalCovariatesRandomized$landCover)[[1]][,2][c(18, 19, 23, 24, 25, 26)] <- "Other forest"
+levels(environmentalCovariatesRandomized$landCover)[[1]][,2][29:37] <- "Others"
+
+# Estract the covariates and diversity values at these locations
+asoDataDiv <- terra::extract(allRast, 
+                             unique(vect(st_geometry(asoDatasf))))
+asoDataCovs <- terra::extract(environmentalCovariates, 
+                              unique(vect(st_geometry(asoDatasf))))
+
+asoDataMeadows <- cbind(asoDataDiv,
+                        asoDataCovs,
+                        crds(unique(vect(st_geometry(asoDatasf)))))%>%
+  st_as_sf(., coords = c("x", "y"), crs = newCrs)
+
+asoDataMeadows <- asoDataMeadows[complete.cases(asoDataMeadows%>% st_drop_geometry()), ]%>%
+  rowwise()%>%
+  mutate(sumShannon = sum(c_across(c(3, 6, 9)))) %>%
+  mutate(cluster = ifelse(Latitude > 0 & bio1 > 0, 1,
+                          ifelse(Latitude < 0 & bio1 > 0, 2,
+                                 ifelse(Latitude > 0 & bio1 < 0, 3, 4))))%>%
+  dplyr::group_by(cluster)%>%
+  dplyr::mutate(alpineReference = alpine_simpson/ max(allZones_simpson),
+         borealReference = boreal_simpson/ max(allZones_simpson),
+         temperateReference = temperate_simpson/ max(allZones_simpson),
+         allReference = allZones_simpson / max(allZones_simpson),
+         maxReference = max(allZones_simpson),
+         minReference = min(allZones_simpson))%>%
+  ungroup()
+
+
+#save the asoData meadows for plot later
+save(asoDataMeadows,
+     file = paste0(dataFolder, "/markdownResults/image/asoDataMeadows.RData"))
+
+```
+
+
+```{r}
+#| fig-cap: 'Indicator values at a) ASO meadows and b) National scale with the ASO meadows (black rectangles) on a 500m resolution. For each grid cell on the national scale, assign it a geoclimatic zone and scale its diversity index by its respective reference value presented in @tbl-maxminvalues.'
 #| echo: false
 #| warning: false
 #| label: fig-asoDiversity
 #| fig-width: 9
 #| fig-height: 9
 
+load(paste0(path, "/ecosystemConditions.RData"))
 
-g1 <- ggplot(asoDataMeadows) +
-  gg(asoDataMeadows["alpineReference"], aes(col = alpineReference)) +
-scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
-                      breaks = seq(0, 1, 0.2), 
-                      limits = c(0, 1) )+
-  geom_sf(data = regionGeometry, alpha = 0.1)+
-  theme_bw()+
-  labs(color = " ",
-       title = "a) Alpine")
-
-g2 <- ggplot(asoDataMeadows) +
-  gg(asoDataMeadows["borealReference"], aes(col = borealReference)) +
-scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
+gg1 <- ggplot(asoDataMeadows) +
+  geom_sf(aes(col = allReference), size = 2, shape = 15) +
+  scale_color_gradientn(colours = terrain.colors(20, rev = TRUE), 
                       breaks = seq(0, 1, 0.2), 
                       limits = c(0, 1))+
   geom_sf(data = regionGeometry, alpha = 0.1)+
   theme_bw()+
   labs(color = " ",
-       title = "b) Boreal")
+       title = "a) ASO meadows")
 
-g3 <- ggplot(asoDataMeadows) +
-  gg(asoDataMeadows["temperateReference"], aes(col = temperateReference)) +
-scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
-                      breaks = seq(0, 1, 0.2), 
-                      limits = c(0, 1))+
+gg2 <- ggplot(selectedVars) +
+  gg(selectedVars["allReference"], aes(col = allReference)) +
+  scale_color_gradientn(colours = terrain.colors(20, rev = TRUE))+
   geom_sf(data = regionGeometry, alpha = 0.1)+
+  geom_sf(data = asoDataMeadows, size = 2, shape = 0) +
   theme_bw()+
   labs(color = " ",
-       title = "c) Temperate")
+       title = "b) National scale")
 
-g4 <- ggplot(asoDataMeadows) +
-  gg(asoDataMeadows["allReference"], aes(col = allReference)) +
-  scale_color_gradientn(colours = terrain.colors(5, rev = TRUE), 
-                      breaks = seq(0, 1, 0.2), 
-                      limits = c(0, 1))+
-  geom_sf(data = regionGeometry, alpha = 0.1)+
-  theme_bw()+
-  labs(color = " ",
-       title = "d) All zones")
 
-ggarrange(g1, g2, g3, g4,
-          ncol = 2, nrow = 2,
-          common.legend = TRUE,
+ggarrange(gg1, gg2,
+          ncol = 2, nrow = 1,
+         common.legend = TRUE,
           legend = "bottom")
 ```
 
 
-<!--# Describe the reference values used to set the lower and upper limits on the normative indicator scale. Why was the current option chosen and how were the reference values quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here. -->
-
 #### 4.2.2. Threshold value for defining *good ecological condition (if relevant)*
 
-We present three threshold values for defining a good condition. Any scales indicator greater than the scaled indicators (@fig-ecosystemCondition (a) are deemed to refer to `good conditions` at the location, otherwise `poor conditions`. We define three threshold values which ca be considered: 
+Given the indicator values estimated in @sec-maxValues, we define threshold values for defining a good ecosystem condition. These choose three threshold values and assess the impacts of the choice of threshold on the ecosystem condition:
 
-- Threshold of 0.5 [@fig-ecosystemCondition (b)]
+- Threshold of 0.5 
 
-- Threshold of 0.6 [@fig-ecosystemCondition (c)]
+- Threshold of 0.6 (used by @framstad2022condition in defining condition of forest and mountain ecosystem in Norway)
 
-- Threshold of 0.75 [@fig-ecosystemCondition (d)]
+- Threshold of 0.75 
+
+Any location or grid cell or meadow with its indicator greater than this threshold is deemed to be in a `good condition`, otherwise in a `poor condition`. @fig-ecosystemCondition presents the conditions of pollinators in ASO meadows. 
+
+```{r}
+#| echo: true
+#| warning: false
+#| eval: false
+
+
+interestedVars <- c("alpine_simpson", "boreal_simpson", "temperate_simpson", "allZones_simpson")
+
+selectedVars <- lapply(interestedVars, function(x){
+  allRast[[x]]
+}) %>%
+  rast()%>%
+  as.data.frame(na.rm = TRUE, xy = TRUE)%>%
+  st_as_sf(., coords = c("x", "y"), crs = newCrs)%>%
+  cbind(., terra::extract(environmentalCovariates, 
+                                         unique(vect(st_geometry(.)))))%>%
+  dplyr::mutate(allReference = ifelse(Latitude > 0 & bio1 > 0, (allZones_simpson/7714.728),
+                          ifelse(Latitude < 0 & bio1 > 0, (allZones_simpson/7552.012),
+                                 ifelse(Latitude > 0 & bio1 < 0, (allZones_simpson/7714.728), 
+                                        (allZones_simpson/6021.358)))))%>%
+  dplyr::mutate(condition75 = ifelse(allReference > 0.75, "Good", "Poor"),
+                condition60 = ifelse(allReference > 0.60, "Good", "Poor"),
+                condition50 = ifelse(allReference > 0.5, "Good", "Poor"))%>%
+  select(allReference, condition50, condition60, condition75)
+
+save(selectedVars,
+     file = paste0(dataFolder, "/markdownResults/image/ecosystemConditions.RData"))
+```
 
 **What does this mean and how do we interpret these thresholds. Does these conditions make sense and how do we interpret those?**
 ```{r}
-#| fig-cap: 'Shannon diversity indices at ASO data locations.'
+#| fig-cap: 'The condition of pollinators in semi-natural ecosystem (ASO meadows). The green colored points represent the meadows with good ecosystem conditions and the red colored points represent the meadows with poor ecosystem conditions.'
 #| echo: false
 #| warning: false
 #| label: fig-ecosystemCondition
 #| fig-width: 9
 #| fig-height: 9
-load(paste0(path, "/ecosystemConditions.RData"))
-g1 <- ggplot(selectedVars) +
-  gg(selectedVars["condition50"], aes(col = condition50)) +
-scale_color_discrete( )+
+
+cbPalette <- c("#1b9e77", "#d95f02")
+
+asoMeadowConditions <- asoDataMeadows %>%
+  dplyr::mutate(condition75 = ifelse(allReference > 0.75, "Good", "Poor"),
+                condition60 = ifelse(allReference > 0.60, "Good", "Poor"),
+                condition50 = ifelse(allReference > 0.5, "Good", "Poor"))%>%
+  dplyr::select(allReference, condition50, condition60, condition75)
+
+g1 <- ggplot(asoMeadowConditions) +
+  gg(asoMeadowConditions["condition50"], aes(col = condition50)) +
+#scale_color_discrete( )+
+  scale_colour_manual(values=cbPalette)+
   geom_sf(data = regionGeometry, alpha = 0.1)+
   theme_bw()+
   labs(color = " ",
-       title = "b) Threshold: 0.50")
+       title = "a) Threshold: 0.50")
 
-g2 <- ggplot(selectedVars) +
-  gg(selectedVars["condition60"], aes(col = condition60)) +
-scale_color_discrete( )+
+g2 <- ggplot(asoMeadowConditions) +
+  gg(asoMeadowConditions["condition60"], aes(col = condition60)) +
+  scale_colour_manual(values=cbPalette)+
+#scale_color_discrete( )+
   geom_sf(data = regionGeometry, alpha = 0.1)+
   theme_bw()+
   labs(color = " ",
-       title = "c) Threshold: 0.60")
+       title = "b) Threshold: 0.60")
 
-g3 <- ggplot(selectedVars) +
-  gg(selectedVars["condition75"], aes(col = condition75)) +
-scale_color_discrete( )+
+g3 <- ggplot(asoMeadowConditions) +
+  gg(asoMeadowConditions["condition75"], aes(col = condition75)) +
+scale_colour_manual(values=cbPalette)+
   geom_sf(data = regionGeometry, alpha = 0.1)+
   theme_bw()+
   labs(color = " ",
-       title = "d) Threshold: 0.75")
+       title = "c) Threshold: 0.75")
 
-g4 <- ggplot(selectedVars) +
-  gg(selectedVars["allReference"], aes(col = allReference)) +
-  scale_color_gradientn(colours = terrain.colors(10, rev = TRUE))+
-  geom_sf(data = regionGeometry, alpha = 0.1)+
-  theme_bw()+
-  labs(color = " ",
-       title = "a) Indicator Values")
 
-ggarrange(g4, g1, g2, g3,
-          ncol = 2, nrow = 2,
-          common.legend = FALSE,
-          legend = "bottom")
+ ggarrange(g1, g2, g3,
+           ncol = 2, nrow = 2,
+           common.legend = TRUE,
+           legend = "bottom")
 ```
 
 
 <!--# Describe the different reference values here and the justification for using these -->
 
+
+
 #### 4.2.3. Spatial resolution and validity
 
 <!--# Describe the spatial resolution of the reference values. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale is the reference values valid? For example, if the reference value has a regional resolution (varies between regions), it might mean that it is only valid and correct to use for scaling local variable values that are first aggregated to regional scale. However, sometimes the reference value is insensitive to this and can be used to scale variables at the local (e.g. plot) scale.  -->
 
+The reference values are estimated on $500$ meter resolution and it is fixed across all areas. We also present the pollinator condition on the national scale in @fig-ecosystemConditionNational.
+
+```{r}
+#| fig-cap: 'The condition of pollinators across several habitat types in Norway with reference to the conditions in semi-natural ecosystem (ASO meadows). The green colored points represent the meadows with good ecosystem conditions and the red colored points represent the meadows with poor ecosystem conditions.'
+#| echo: false
+#| warning: false
+#| label: fig-ecosystemConditionNational
+#| fig-width: 9
+#| fig-height: 9
+
+cbPalette <- c("#1b9e77", "#d95f02")
+
+gg1 <- ggplot(selectedVars) +
+  gg(selectedVars["condition50"], aes(col = condition50)) +
+#scale_color_discrete( )+
+  scale_colour_manual(values=cbPalette)+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "d) Threshold: 0.50")
+
+gg2 <- ggplot(selectedVars) +
+  gg(selectedVars["condition60"], aes(col = condition60)) +
+  scale_colour_manual(values=cbPalette)+
+#scale_color_discrete( )+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "e) Threshold: 0.60")
+
+gg3 <- ggplot(selectedVars) +
+  gg(selectedVars["condition75"], aes(col = condition75)) +
+scale_colour_manual(values=cbPalette)+
+  geom_sf(data = regionGeometry, alpha = 0.1)+
+  theme_bw()+
+  labs(color = " ",
+       title = "f) Threshold: 0.75")
+
+ ggarrange(gg1, gg2, gg3,
+           ncol = 2, nrow = 2,
+           common.legend = TRUE,
+           legend = "bottom")
+```
+
+
 ## 5. Uncertainties
+
+Instead of resampling our data to define the uncertainties [@framstad2022condition], we use the 95\% from the pollinator intensity and plant species occurrence probability.
+
+**This can be done, but I need some time to do this.**
 
 <!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
 
@@ -481,7 +1316,7 @@ ggarrange(g4, g1, g2, g3,
 :::
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
 
-## 7. Datasets
+## 7. Datasets {#sec-datasetsProcessing}
 
 Here, we describe each of the dataset used for the modelling. We refer the readers to the dataset description provided on the [GBIF](www.gbif.org) website.  
 
@@ -497,7 +1332,7 @@ readxl::read_excel("../data/dataDescription.xlsx") %>%
 
 ### 7.1 Pollinator datasets
 
-<!--# Describe the main dataset, typicaly the one containing the variable of (most) interest. Change the header from Dataset A to the name of the actuall dataset. -->
+<!--# Describe the main dataset, typical the one containing the variable of (most) interest. Change the header from Dataset A to the name of the actual dataset. -->
 
 ```{r tbl-pollinatorMetaData}
 #| tbl-cap: 'Datasets obtained on pollinators from GBIF, the type of dataset, total number of occurrence records in each dataset and its percentage in the total number of occurrence records. The dataset with type sampling_event is treated as presence-absence, occurrence as presence-only and insectMonitoring as count data.'
@@ -546,7 +1381,471 @@ readr::read_csv("../data/plantMetaData.csv")|>
 
 ###  7.3. Covariates
 
-We used several covariates to fit both the pollinator and plant ISDMs. The names of the covariates, their description and source are presented in @tbl-covariate. Additionally, we include the indication of whether the covariate is a habitat, trait or climatic variables as well as which of the ISDMs it was used to fit in @tbl-covariate. The rasters of the covariates are on $1$ km resolution.
+```{r}
+#| echo: true
+#| eval: false
+
+#########################################################################
+## Load bioclimatic variables
+#########################################################################
+
+#BIO1 = Annual Mean Temperature
+
+
+if(!file.exists(paste0(dataFolder, "/Rasters/environmentalCovariates.tiff"))){
+  
+  # convert crs to format accepted by sf, terra, and intSDM (& dependencies) 
+  projCRS <- newCrs #sf::st_crs(crs)$proj4string
+
+  
+  #download the data
+  #bioclim <- geodata::worldclim_country("NO", res = 10, var = "bio", path = paste0(dataFolder, "/Rasters"))
+
+  # Import the climatic variables
+  BioClimNorway <- rast(paste0(dataFolder, "/Rasters/wc2.1_country/NOR_wc2.1_30s_bio.tif"))%>%
+  terra::project(., projCRS)
+
+# Create a 1km grid cell
+OnekmCellID <- BioClimNorway[[1]]
+names(OnekmCellID) <- "CellID"
+OnekmCellID[] <- 1:ncell(OnekmCellID)
+OnekmCellID <- mask(OnekmCellID,BioClimNorway[[1]])
+
+# Extract the latitude covariate
+LatitudeRast <- BioClimNorway[[1]]
+LatitudeRast[] <- crds(LatitudeRast, na.rm = FALSE)[,2]
+LatitudeRast <- mask(LatitudeRast,BioClimNorway[[1]])
+names(LatitudeRast) <- "Latitude"
+
+#Extract the longitude covariate
+LongitudeRast <- BioClimNorway[[1]]
+LongitudeRast[] <- crds(LongitudeRast, na.rm = FALSE)[,1]
+LongitudeRast <- mask(LongitudeRast,BioClimNorway[[1]])
+names(LongitudeRast) <- "Longitude"
+
+# Put them together
+BioClimsForSpeciesRegions <- c(BioClimNorway[[1]],
+                               OnekmCellID,
+                               LatitudeRast, 
+                               LongitudeRast)
+
+names(BioClimsForSpeciesRegions)[1] <- "bio1"
+
+
+# Extract the points within the spatial points
+#source("pipeline/dataImport/importPollinatorDataset.R")
+speciesDataImported <- readRDS(paste0(dataFolder, "/pollinatorDataFolder/speciesDataImported.RDS"))
+
+PointsBeesAndButterfliesAndHoverfliesUsed <- speciesDataImported[["species"]]%>%
+  do.call("rbind", .)%>%
+  sf::st_as_sf(., coords = c('X', 'Y'), crs = newCrs)%>%
+  dplyr::select(acceptedScientificName, Taxon)
+
+rm("speciesDataImported")
+gc()
+#PointsBeesAndButterfliesAndHoverfliesUsed <- PointsBeesAndButterfliesAndHoverflies$mergedDatasetPO%>%
+#  st_transform(newCrs)%>%
+#  vect()
+
+#Extract values for the Bioclims and PointsBeesAndButterfliesAndHoverflies
+climaticVarsExtracted <- terra::extract(BioClimsForSpeciesRegions,
+                                        PointsBeesAndButterfliesAndHoverfliesUsed)%>%
+cbind(., st_coordinates(st_as_sf(PointsBeesAndButterfliesAndHoverfliesUsed)))%>%
+  st_as_sf(., coords = c('X', 'Y'), crs = projCRS)%>%
+  st_join(st_as_sf(PointsBeesAndButterfliesAndHoverfliesUsed), .,join = st_nearest_feature, left = TRUE)
+
+
+# Calculate the mean and SD of the bio1
+Bio1Traits <- aggregate(bio1~acceptedScientificName+Taxon,
+                        climaticVarsExtracted, 
+                        mean)
+names(Bio1Traits)[3] <- "mBio1"
+
+Bio1Traits$sdBio1 <- aggregate(bio1~acceptedScientificName+Taxon,
+                               climaticVarsExtracted,
+                               sd)[,3]
+vals <- Bio1Traits$sdBio1
+vals[is.na(vals)] <- 0
+Bio1Traits$sdBio1 <- vals
+
+Bio1Traits$mLat <- aggregate(Latitude ~ acceptedScientificName+Taxon,
+                               climaticVarsExtracted,
+                               mean)[,3]
+
+Bio1Traits$sdLat <- aggregate(Latitude ~ acceptedScientificName+Taxon,
+                             climaticVarsExtracted,
+                             sd)[,3]
+vals <- Bio1Traits$sdLat 
+vals[is.na(vals)] <- 0
+Bio1Traits$sdLat  <- vals
+
+# Community estimates for each 1 Km grid
+Bio1Traits$RegCom <-aggregate(CellID~acceptedScientificName+Taxon,
+                                     climaticVarsExtracted, 
+                              function(x)length(unique(x)))[,3]
+
+roundFunction <- function(x, digits) round(x, 1)
+
+Bio1Traits <- Bio1Traits %>%
+  mutate_at(c("mBio1", "sdBio1", "mLat", "sdLat", "RegCom"), scale)#%>%
+ #mutate_at(c("mBio1", "sdBio1", "mLat", "sdLat", "RegCom"), roundFunction)
+
+write.csv(Bio1Traits, file = paste0(dataFolder, "/bioTraits.csv"))
+
+# We randomize the traits for use in cross validation.
+# We create some background locations for this purpose
+BackgroundBioClim <- BioClimsForSpeciesRegions[]
+BackgroundBioClim <- data.frame(BackgroundBioClim[complete.cases(BackgroundBioClim),])
+BackgroundBioClim$Lat <- BackgroundBioClim$Latitude
+#BackgroundBioClim$Occurrence <- 0
+#head(BackgroundBioClim)
+
+RandomSampleBioClimTraits <- Bio1Traits[sample(1:nrow(Bio1Traits[,3:7]),
+                                               nrow(BackgroundBioClim),
+                                               replace = TRUE),
+                                        3:7]
+
+
+# Merge these estimates with the climatic variables extracted
+climaticVarsExtractedNew <- merge(climaticVarsExtracted,
+                                  Bio1Traits ,
+                                  by = c("acceptedScientificName", "Taxon"))%>%
+  na.omit()%>%
+  select(-c(acceptedScientificName, Taxon, ID, Longitude))
+
+# Climatic variables with randomised covariates
+
+climaticVarsExtractedRandomized <- cbind(BackgroundBioClim, 
+                                         RandomSampleBioClimTraits)%>%
+  na.omit()%>%
+  as.data.frame() %>%
+  st_as_sf(., coords = c('Longitude', 'Lat'), crs = projCRS)#%>%
+  #rbind(., climaticVarsExtracted)
+
+# COnvert the sf object to a raster
+# climaticVarsExtracted <- climaticVarsExtracted%>%
+#   st_as_sf()%>%
+#   rast()
+
+# define region to download as bounding box of buffered and projected mesh/regionGeometry
+regionGeometryBuffer <-st_union(if(exists("meshForProject")) {
+  meshForProject |>
+    inlaMeshToSf()
+}
+else regionGeometry) |>
+  st_buffer(200) |>
+  st_transform(projCRS) |> 
+  st_bbox() |> 
+  st_as_sfc() |>
+  st_segmentize(dfMaxLength = 100) |> 
+  vect() 
+
+# define working project raster 
+baseRaster <- terra::rast(extent = ext(regionGeometryBuffer), 
+                          res = c(1, 1), 
+                          crs = projCRS)
+
+# rasterise regionGeometry
+regionGeometryRast <- regionGeometry |>
+  st_as_sf() |>
+  st_transform(projCRS) |> 
+  vect() |>
+  terra::rasterize(baseRaster, FUN = "mode") 
+
+#Write a funtion to perform the rasterisation
+# rasterFunction <- function (x) terra::rasterize(climaticVarsExtracted, 
+#                                                 regionGeometryRast, 
+#                                                 x, 
+#                                                 FUN = "sum",
+#                                                 background = NA)
+
+myMax <- function(x){
+  max(x, na.rm = TRUE)
+}
+
+# Creating the environmental covariates we need to fit the models
+# Trying to create the them as the same resolution with the bioclim raster
+# climaticVarsExtractedWithoutBioclimVars <- climaticVarsExtractedNew
+ #climaticVarsExtractedWithoutBioclimVarsRandomized <- climaticVarsExtractedRandomized#[-c(1:3)]
+
+# Create a function to rasterise the covariates
+ rasterFunction <- function (i, sfObject){
+   terra::rasterize(x = st_coordinates(sfObject), 
+                    #y = regionGeometryRast, 
+                    y = BioClimNorway,
+                    values = c( sfObject[[i]]), 
+                    FUN = "mean")#,
+                    #update = TRUE, cover = TRUE)
+ }
+ 
+ # Create a function to rasterise the covariates by filling the missing values
+ # mbio1 and mLats with its sd counterparts have missing values for the raster 
+ # created for the model in pointedSDMs.
+ # To deal with this, we use the inlabru's missing value function to fill the 
+ # missing values
+ rasterFunctionWithMissingValues <- function(oldRaster){
+   # create an sf object with the coordinates of the bioclim vars
+   sfObject <- st_as_sf(as.data.frame(crds(BioClimsForSpeciesRegions)),
+                        coords = c("x", "y"),
+                        crs = projCRS
+   )
+   
+   # use the coordinates and the oldRaster with missing values
+   # to get the new raster
+  fillingMissingValues <- covariateMissingValues(sfObject, 1,  "last", oldRaster)
+   
+  # Create a rester with the new values
+   terra::rasterize(x = st_coordinates(sfObject), 
+                    y = BioClimsForSpeciesRegions,
+                    values = c(fillingMissingValues), 
+                    FUN = "mean")
+   
+ }
+ 
+ # library(tidyverse)
+ # library(sf)
+ # library(stars)
+
+ #rt <- st_rasterize(climaticVarsExtracted %>% dplyr::select(Latitude, geometry))
+
+ # Create rasters for environmental covariates 
+foo_sf <- list()
+for(i in 1:(length(climaticVarsExtractedNew)-1)){
+  x <- names(climaticVarsExtractedNew)[i]
+  oldRaster <- rasterFunction(x, climaticVarsExtractedNew)
+  foo_sf[[i]] <- rasterFunctionWithMissingValues(oldRaster)
+}
+
+
+
+# Create rasters for randomised covariates
+foo_sf_random <- list()
+for(i in 1:(length(climaticVarsExtractedRandomized)-1)){
+  x <- names(climaticVarsExtractedRandomized)[i]
+  oldRaster <- rasterFunction(x, climaticVarsExtractedRandomized)
+  foo_sf_random[[i]] <-  rasterFunctionWithMissingValues(oldRaster)
+}
+
+# Add the other BioClim variables to the new raster
+fooBioclim_sf <- fooBioclim_sf_randomized <- list()
+namesOfBioClimVars <- c("bio1", "CellID", "Latitude")
+for(i in 1:length(namesOfBioClimVars)){
+  fooBioclim_sf[[i]] <- BioClimsForSpeciesRegions[[i]]
+  fooBioclim_sf_randomized[[i]] <- BioClimsForSpeciesRegions[[i]]
+}
+
+
+# Now we load land corine cover and habitat heterogeneity
+if(!file.exists(paste0(dataFolder, "/Rasters/landCoverClassification.tiff"))){
+# Note that the function corineReclassification will require you
+# to open the ZIP file with the land corine dataset.
+# For this work, the file is located at the Data/50599
+  landCover <- corineReclassification()%>%
+  terra::project(., projCRS)
+
+ # For some reason, NaNs are added as factors in the model,
+  # so I set that as water bodies since 
+  levels(landCover)[[1]][,2][is.na(levels(landCover)[[1]][,2])] <- "Water bodies"
+  levels(landCover)[[1]][,2][28] <- "Moors and heathland"
+  #values(landCover)[,1][is.nan(values(landCover)[,1])] <- 48
+  
+# save the land cover covariate
+# It takes a long time to finish the projection
+writeRaster(landCover, 
+            paste0(dataFolder, "/Rasters/landCoverClassification.tiff"), 
+            overwrite=TRUE)
+} else {
+  # Load the already formatted copy
+  landCover <- rast(paste0(dataFolder, "/Rasters/landCoverClassification.tiff"))
+}
+
+soilPh <- rast(paste0(dataFolder, "/Rasters/soil_ph.tiff"))%>%
+  terra::project(., projCRS)
+
+soilCoarseFraction <- rast(paste0(dataFolder, "/Rasters/soil_coarse_fraction.tiff"))%>%
+  terra::project(., projCRS)
+
+soilMoisture <- rast(paste0(dataFolder, "/Rasters/soil_moisture.tiff"))%>%
+  terra::project(., projCRS)
+
+soilOrganicCarbon <- rast(paste0(dataFolder, "/Rasters/soil_organic_carbon.tiff"))%>%
+  terra::project(., projCRS)
+
+# Put all the lists together
+allFoo_sf <- c(fooBioclim_sf,
+               foo_sf[-c(1:3)],
+               landCover,
+               soilPh,
+               soilCoarseFraction,
+               soilOrganicCarbon,
+               soilMoisture)
+
+allFoo_sf_random <- c(fooBioclim_sf_randomized,
+                      foo_sf_random[-c(1:3)],
+                      landCover,
+                      soilPh,
+                      soilCoarseFraction,
+                      soilOrganicCarbon,
+                      soilMoisture)
+
+# set the names to use for the raster
+namesToUse <- c(#namesOfBioClimVars, 
+                names(climaticVarsExtractedNew)[-length(names(climaticVarsExtractedNew))],
+                "landCover",
+                "soilPh",
+                "soilCoarseFraction",
+                "soilOrganicCarbon",
+                "soilMoisture")
+
+
+# Put all the parameters together
+#z <- 0
+parametersCropped <- allFoo_sf |> 
+  lapply(function(x) {
+    #print(z +1)
+    #print(is.raster(x))
+    regionExt <- as.polygons(terra::project(regionGeometryBuffer, x), extent = TRUE)
+    # Crop each covariate to extent of regionGeometryBuffer
+    out <- terra::crop(x, regionExt, snap = "near")
+    # Project all rasters to baseRaster and combine
+    
+    
+    if(is.factor(x)) {
+      if("Water bodies" %in% levels(out)[[1]][,2]){
+      values(out)[,1][is.nan(values(out)[,1])] <- 48
+      levels(out) <- levels(x)
+      }
+      # project categorical rasters
+      out <- terra::project(out, baseRaster, method = "mode")
+      levels(out) <- levels(x)  # reassign levels 
+      out
+    } else {
+      # project & scale continuous rasters
+      ifel(is.na(regionGeometryRast), NA,
+           terra::project(out, baseRaster)) |>
+        scale()
+    }
+    }) |>  
+  rast() |>  # combine raster layers
+  #scale() |>  # scale raster layers
+  setNames(namesToUse)
+
+parametersCroppedRandomized <- allFoo_sf_random  |> 
+  lapply(function(x) {
+    #print(z +1)
+    #print(is.raster(x))
+    regionExt <- as.polygons(terra::project(regionGeometryBuffer, x), extent = TRUE)
+    # Crop each covariate to extent of regionGeometryBuffer
+    out <- terra::crop(x, regionExt, snap = "near")
+    # Project all rasters to baseRaster and combine
+    
+    
+    if(is.factor(x)) {
+      # I make sure that NaNs are not part of the land Cover values
+      if("Water bodies" %in% levels(out)[[1]][,2]){
+        values(out)[,1][is.nan(values(out)[,1])] <- 48
+        levels(out) <- levels(x)
+      }
+      # project categorical rasters
+      out <- terra::project(out, baseRaster, method = "mode")
+      levels(out) <- levels(x)  # reassign levels 
+      out
+    } else {
+      # project & scale continuous rasters
+      ifel(is.na(regionGeometryRast), NA,
+           terra::project(out, baseRaster)) |>
+        scale()
+    }
+  }) |>  
+  rast() |>  # combine raster layers
+  #scale() |>  # scale raster layers
+  setNames(namesToUse)
+
+
+#plot(parametersCropped)
+#plot(parametersCroppedRandomized)
+
+# Define the covariates needed
+#r <- disagg(parametersCropped, fact = 30, method = "bilinear")
+#parameters <- parametersCropped
+# The prediction data is in a bounded box, and for landCover, we have values within
+# the entire bounded box. We need to mask the covariates by the regionGeometry
+parameters <- parametersCropped
+
+parameters <- regionGeometry %>%
+  st_transform(., newCrs)%>%
+  vect( )%>%
+  mask(parameters, .)
+
+# define geometries to combine with prediction 
+geometries <- xyFromCell(parameters , seq(ncell(parameters))) %>% 
+  as.data.frame() %>% 
+  st_as_sf(coords = c("x", "y"), crs = newCrs) 
+
+pars <- parameters %>% 
+  as.data.frame(na.rm = FALSE)%>% 
+  select(bio1)%>%
+  bind_cols(geometries)%>% # transform the prediction data to the units used in model runs
+  filter(rowSums(is.na(.)) != (ncol(.)-1 ))
+
+PolyBio1 <- poly(pars$bio1, 2)[,1]
+PolyBio2 <- poly(pars$bio1, 2)[,2]
+
+pars <- pars %>%
+  dplyr::mutate(polyBio1 = PolyBio1,
+                polyBio2 = PolyBio2) %>%
+  st_sf()%>%
+  st_transform(., newCrs)
+
+spPred <- rasterize(pars, baseRaster, names(pars)[-length(pars)])
+#parametersCropped
+parameters$polyBio1 <- spPred$polyBio1
+parameters$polyBio2 <- spPred$polyBio2
+parameters$polyBio1Mbio <- spPred$polyBio1 * parameters$mBio1
+parameters$polyBio2Mbio <- spPred$polyBio2 * parameters$mBio1
+ parameters$bio1sq <- (parameters$bio1)^2
+ parameters$bmInt <- parameters$bio1 * (parameters$mBio1)
+ parameters$bmIntsq <- (parameters$bio1)^2 * parameters$mBio1
+ parameters$sdmInt <-parameters$sdBio1 * parameters$mBio1
+ parameters$mlatInt <- parameters$Latitude * parameters$mLat
+
+
+environmentalCovariates <- parameters 
+
+# save the covariates
+writeRaster(environmentalCovariates, 
+            paste0(dataFolder, "/Rasters/environmentalCovariates.tiff"), 
+            overwrite=TRUE)
+
+
+# Calculate the quadratic for the randomized covariates
+parameters <- parametersCroppedRandomized
+#parametersCropped
+parameters$polyBio1 <- spPred$polyBio1
+parameters$polyBio2 <- spPred$polyBio2
+parameters$polyBio1Mbio <- spPred$polyBio1 * parameters$mBio1
+parameters$polyBio2Mbio <- spPred$polyBio2 * parameters$mBio1
+ parameters$bio1sq <- (parameters$bio1)^2
+ parameters$bmInt <- parameters$bio1 * (parameters$mBio1)
+ parameters$bmIntsq <- (parameters$bio1)^2 * parameters$mBio1
+ parameters$sdmInt <- parameters$sdBio1 * parameters$mBio1
+ parameters$mlatInt <- parameters$Latitude * parameters$mLat
+environmentalCovariatesRandomized <- parameters 
+# save the covariates
+writeRaster(environmentalCovariatesRandomized, 
+            paste0(dataFolder, "/Rasters/environmentalCovariatesRandomized.tiff"), 
+            overwrite=TRUE)
+
+} else {
+  environmentalCovariates   <- rast(paste0(dataFolder, "/Rasters/environmentalCovariates.tiff"))
+  environmentalCovariatesRandomized <- rast(paste0(dataFolder, "/Rasters/environmentalCovariatesRandomized.tiff"))
+}
+
+
+```
+
+
+We used several covariates to fit both the pollinator and plant ISDMs. The names of the covariates, their description and source are presented in @tbl-covariate. Additionally, we include the indication of whether the covariate is a habitat, trait or climatic variables as well as which of the ISDMs it was used to fit in @tbl-covariate. The rasters of the covariates are on $1$ km resolution. For the annual temperature, we create a raster of the orthogonal polynomial of degree $2$ (using the `poly` function in the `stats` R-package) and use them to fit the pollinator distribution instead of the original annual temperature values. The soil covariates were obtained from @poggio2021soilgrids.
 
 ```{r tbl-covariate}
 #| tbl-cap: 'Description of covariates used to fit the integrated species distribution models and the source the covariates were retrieved from. The table indicated what type of covariate (habitat, trait and climatic) and which of the distributions it was used for (pollinator and/or plant) ISDM'
@@ -561,40 +1860,46 @@ We present the distribution of the covariates described in @tbl-covariate here i
 
 ```{r fig-covariates}
 #| fig-cap: 'Covariates used to fit the ISDM. The resolution of the covariates are on a 1 km resolution.'
-#| fig-width: 100
+#| fig-width: 10
+#| fig-height: 11
 #| echo: false
 #| warning: false
-knitr::include_graphics("../img/environmentalCovariates.png")
+knitr::include_graphics("../img/environmentalCovariates1.png")
 ```
 
 To ascertain the trait effect on the pollinator distribution, we randomise the triat covariates in @tbl-covariate. These randomised covariates (displayed in @fig-covariatesRandomized) are used to fit ISDMs, and compared with the ISDMs fitted with covariates in @fig-covariates .
 
-![Randomised trait covariates used for the cross-validation to assess the trait effect on the distribution of pollinators in the study region. The resolution of the covariates are on a 1 km resolution.](../img/environmentalCovariatesRandomized.png){#fig-covariatesRandomized}
+![Randomised trait covariates used for the cross-validation to assess the trait effect on the distribution of pollinators in the study region. The resolution of the covariates are on a 1 km resolution.](../img/environmentalCovariatesRandomized1.png){#fig-covariatesRandomized}
 
 ## 8. Spatial units
 
-<!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpretted at. Potential spatial delineation data should eb introduced under 7.1. Datasets. We recomend using the SEEA EA terminology opf Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+<!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpretted at. Potential spatial delineation data should eb introduced under 7.1. Datasets. We recomend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+
+We describe the spatial units of our analysis based on the UN System of Environmental Accounting (SEEA EA; see @rahayu2024optimising and [structure of ecosystem accounting](https://www.cso.ie/en/releasesandpublications/in/ea/informationnoteonecosystemaccounting/structureofecosystemaccounting/#:~:text=EAs%20are%20distinct%20spatial%20areas,e.g.%20counties%20or%20national%20territory.)). The Norwegian territory defines our ecosystem accounting area (EEA) and the vegetation zones (described by [feltkurskompendium biologisk mangfold terrestrisk biologi](https://www.finse.uio.no/courses/biology/bio1200-biodiversity/ressurser/bio1200_terrestrisk_biologi_2014.pdf) and [store norske leksikon](https://snl.no/vegetasjonssone)) define the ecosystem types and our ecosystem assets (EA) are defined by the geo-climatic regions (described in @sec-refCondition). We also use a gridded EA (500 x 500 m) in describing our basic spatial units (BSU). 
 
 ## 9. Analyses
 
 <!--# Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. -->
-We fitted an ISDM using the point process framework [@illian2008statistical] to the merged pollinator presence-only (PO) and presence-absence (PA) datasets. ISDMs are various observation models that are linked together by a shared ecological process. 
+
+We fit an ISDM using the point process framework [@illian2008statistical] to our processed datasets described in @sec-datasetsProcessing. ISDMs are various observation models that are linked together by a shared ecological process [@isaac2020data; @Dorazio2014; @Fithian2015]. 
 
 ### 9.1. General overview of ISDMs {#sec-isdmOverview}
 
-In this subsection, we present an overview of the ISDMs for general understanding of this document. For further details on ISDM, refer to @isaac2020data, @Dorazio2014 and @Fithian2015. The models are described using the point process framework as described in @peprah2023point. Additionally, we present the description of these models under the assumption that we are fitting a multi-species ISDM using presence-only and presence-absence data.
+In this subsection, we present an overview of the ISDMs for general understanding of this document. For further details on ISDM, refer to @isaac2020data, @Dorazio2014 and @Fithian2015. The models are described using the point process framework as described in @peprah2023point. Additionally, we present the description of these models under the assumption that we are fitting a multi-species ISDM using presence-only and presence-absence data. 
 
-We model the presence-only data as a Poisson point process model [@illian2008statistical] with mean intensity $\lambda_i(s)$ for each species $i = 1, \ldots, S$, where $S$ is the number of species. This mean intensity modelled as:
+In this subsection, we describe the framework by defining a "`multi-group`" model, where the group can be on any taxonomic level such as species, genus, order, etc. In @sec-isdmPollinators and @sec-isdmPlants, we will define what the group represent in the ISDMs fitted there.
+
+We model the presence-only data as a Poisson point process model [@illian2008statistical] with mean intensity $\lambda_i(s)$ for each group $i = 1, \ldots, S$, where $S$ is the number of groups. This mean intensity modelled as:
 $$
 \ln(\lambda_i(s)) = \beta_{0i} + \beta_{ji} X_j(s) + \omega_i(s) + \eta(s), 
 $$ {#eq-int}
-where $\beta_{0i}$ is the species-specific intercept, $\beta_{ji}$ is the species-specific effect of covariate $j$, $X_j(s)$ is the $j^{th}$ covariate field, $\omega_i(s)$ is the species-specific spatial autocorrelation field and $\eta(s)$ is the bias field. $\omega_i(s)$  and $\eta(s)$ are modeled as zero mean Gaussian random field (i.e. $\omega_i(s) \sim N(0, \Sigma)$, where $\Sigma$ is a Mat'ern covariance matrix with variance $\sigma_{i}^2$ and range $\kappa_i$ and $\eta(s) \sim N(0, \Sigma_\eta)$, where $\Sigma_\eta$ is a Mat'ern covariance matrix with variance $\tau^2$ and range $\kappa_\eta$). Unless otherwise stated, we will assume that all the $S$ species share the same parameters in the covariance matrix ($\Sigma$).
+where $\beta_{0i}$ is the group-specific intercept, $\beta_{ji}$ is the group-specific effect of covariate $j$, $X_j(s)$ is the $j^{th}$ covariate field, $\omega_i(s)$ is the group-specific spatial autocorrelation field and $\eta(s)$ is the bias field. $\omega_i(s)$  and $\eta(s)$ are modeled as zero mean Gaussian random field (i.e. $\omega_i(s) \sim N(0, \Sigma)$, where $\Sigma$ is a Mat'ern covariance matrix with variance $\sigma_{i}^2$ and range $\kappa_i$ and $\eta(s) \sim N(0, \Sigma_\eta)$, where $\Sigma_\eta$ is a Mat'ern covariance matrix with variance $\tau^2$ and range $\kappa_\eta$). Unless otherwise stated, we will assume that all the $S$ groups share the same parameters in the covariance matrix ($\Sigma$).
 
-We model the presence-absence data with a logistic regression model. Let $y_i(s)$ be a binary value at location $s$ with $0$ indicating absence of species $i$ and $1$ indicating presence of species $i$. Then $y_i(s) \sim \text{Bernoulli}(\Psi_i(s))$ with:
+We model the presence-absence data with a logistic regression model. Let $y_i(s)$ be a binary value at location $s$ with $0$ indicating absence of group $i$ and $1$ indicating presence of group $i$. Then $y_i(s) \sim \text{Bernoulli}(\Psi_i(s))$ with:
 $$
 cloglog(\Psi_i(s)) = \beta_{0i} + \beta_{ji} X_j(s) + \omega_i(s) 
 $$ {#eq-occ}
-where the parameters $\beta_0$, $\beta_1$ and $\omega$ are defined in @eq-int. We are assumming in @eq-occ that the presence-absence data is not biased.
+where the parameters $\beta_0$, $\beta_1$ and $\omega$ are defined in @eq-int. We are assuming in @eq-occ that the presence-absence data is not biased.
 
 All the ISDMs were fitted using the R-package `PointedSDMs` [@mostert2023pointedsdms]. `PointedSDMs` is a wrapper around ``inlabru`` [@inlabru], which used the integrated nested Laplace approximation method (implemented in the R-package ``INLA``; @inla) to fit hierarchical models that can be expressed as linear Gaussian models. The reader is referred to @zuur2017beginner, @gomez2020bayesian, @blangiardo2015spatial for further reading.
 
@@ -610,9 +1915,9 @@ load("../data/mesh.RData")
 plot(meshForProject)
 ```
 
-### 9.2. ISDM for pollinators
+### 9.2. ISDM for pollinators {#sec-isdmPollinators}
 
-Using the model framework defined in @sec-isdmOverview, we fitted the ISDM to the pollinator dataset obtained from GBIF. 
+Using the model framework defined in @sec-isdmOverview, we fit an ISDM to the pollinator dataset obtained from GBIF using the order: `Bees`, `Butterflies` and `Hoverflies` (use their right name here) as the group. We use `latitude`, `annual mean temperature (bio1)`, `trait mean temperature (mBio1)`, `trait standard deviation temperature (sdBio1)`, `trait mean Latitude (mLat)`, ` traut standard deviation of latitude (sdLat)`, `annual mean temperature squared` and `interaction between annual temperature and trait mean temperature (bmInt)` as covariates.
 
 
 ```{r}
@@ -718,7 +2023,7 @@ for(covs in covariatesToAddEffects){
 
 #### 9.2.2 Fit model and make predictions
 
-We fit the model and make predictions of the pollinator intensity within the study region. We fit the model by using the gaussian strategy of the empirical bayes integration strategy in R-package `INLA` [@inla]. 
+ We fit the model by using the Gaussian strategy of the empirical Bayes integration strategy in R-package `INLA` [@inla]. Note that the model fit returns effect values for each pollinator taxon. 
 
 ```{r}
 #| echo: true
@@ -745,20 +2050,171 @@ modelRun <- PointedSDMs::fitISDM(data = model,
           n.samples = 100)
 ```
 
-#### 9.2.3 Pollinator ISDM validation
 
-We perform a five-fold spatial-block cross validation to assess the trait effect on the pollinator distribution across the study region [@mostert2023pointedsdms]. We randomly divided the study region into 5 groups (as displayed in Figure ...). For each cross validation run, we randomly select a block and fit the ISDM to the data in the remaining blocks using both the "true" trait covariates (@fig-covariates) and the randomised trait covariate (@fig-covariatesRandomized). For both covariates used, we calculate the DIC score.
+Next, we cluster all the over $8000$ pollinator species into groups using a clustering algorithm. We explored using `k-means` and `hierarchical` clustering method. K-means clustering provides a simple approach for partitioning a data set into $K$ distinct non-overlapping clusters such that the within-cluster-variation is small as possible [@hastie2009introduction]. We need to choose the number of cluster and the number of starts for the algorithm, which can have an impact on the results. The cluster is defined by the trait annual temperature (`mBio1`) and latitude (`mLat`) displayed in @fig-covariates. We assess what the optimal choice of the number of clusters is by varying the number of clusters from $1$ to $10$ and choosing the cluster with the smallest within-cluster- variation. The optimal choice of the number of clusters is $3$. Hence, we chose $K = 3$ and $n.start = 20$, after we checked the possible number of clusters that yields the smallest within-cluster-variation. 
+
+Alternatively, hierarchical clustering helps us explore the choice of $K$ clusters through a dendogram. We then cut the tree at $k = 3$. We present the three clusters from the two clustering algorithms in @fig-clustering.
+
+```{r fig-clustering}
+#| fig-cap: 'The three clusters from the A)k-means and B) hierarchical clustering algorithm based on the trait latitude (mLat) and temperature (mBio1) values. The mean values of each clister is represented by the black quare within each cluster. These mean values of mLat and mBio1 are used to make predictions for each for each cluster.'
+#| fig-width: 10
+#| fig-height: 11
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/zonalGroupingCluster.png")
+```
 
 
-The model with the lowest DIC score is deemed to be the best. 
+```{r}
+#| echo: true
+#| warning: false
+#| eval: false
+
+if(!file.exists(paste0(dataFolder, "/pollinatorDataFolder/bioTraits.csv"))){
+# Calculate the mean and SD of the bio1
+speciesDataImported <- readRDS(paste0(dataFolder, "/pollinatorDataFolder/speciesDataImported.RDS"))
+speciesData <- speciesDataImported[["species"]]%>%
+  do.call("rbind", .)%>%
+  sf::st_as_sf(., coords = c('X', 'Y'), crs = newCrs)%>%
+  dplyr::select(acceptedScientificName, Taxon)
+
+# Extract latitude and annual temperature
+climaticVarsExtracted <- terra::extract(environmentalCovariates,
+               speciesData)%>%
+  dplyr::select(Latitude, bio1, landCover)%>%
+  cbind(., st_coordinates(st_as_sf(speciesData)))%>%
+  st_as_sf(., coords = c('X', 'Y'), crs = newCrs)%>%
+  st_join(st_as_sf(speciesData), .,join = st_nearest_feature, left = TRUE)
+
+# Estimate trait values
+Bio1Traits <- aggregate(bio1~acceptedScientificName+Taxon,
+                        climaticVarsExtracted, 
+                        mean)
+names(Bio1Traits)[3] <- "mBio1"
+
+Bio1Traits$sdBio1 <- aggregate(bio1~acceptedScientificName+Taxon,
+                               climaticVarsExtracted,
+                               sd)[,3]
+
+Bio1Traits$mLat <- aggregate(Latitude ~ acceptedScientificName+Taxon,
+                             climaticVarsExtracted,
+                             mean)[,3]
+
+Bio1Traits$sdLat <- aggregate(Latitude ~ acceptedScientificName+Taxon,
+                              climaticVarsExtracted,
+                              sd)[,3]
+
+#######################
+# Cluster these data
+#####################
+
+n_clusters <- 10
+
+# Initialize total within sum of squares error: wss
+wss <- numeric(n_clusters)
+
+set.seed(123)
+
+n <- 10
+# Look over 1 to n possible clusters
+for (i in 1:n) {
+  print(i)
+  # Fit the model: km.out
+  km.out <- kmeans(Bio1Traits[, c("mLat", "mBio1")], centers = i, nstart = 20)
+  # Save the within cluster sum of squares
+  wss[i] <- km.out$tot.withinss
+}
+
+# Produce a scree plot
+wss_df <- tibble(clusters = 1:n, wss = wss)
+
+scree_plot <- ggplot(wss_df, aes(x = clusters, y = wss, group = 1)) +
+  geom_point(size = 4)+
+  geom_line() +
+  scale_x_continuous(breaks = c(2, 4, 6, 8, 10)) +
+  xlab('Number of clusters')+
+  geom_hline(
+    yintercept = wss, 
+    linetype = 'dashed', 
+    col = c(rep('#000000',2),'#FF0000', rep('#000000', 7))
+  )
+plot(scree_plot)
+
+# Fi the final model with 3 clusters
+km.out <- kmeans(Bio1Traits[, c("mLat", "mBio1")], centers = 3, nstart = 1)
+Bio1Traits$clusterID <- factor(km.out$cluster)
+
+# Set the values of whether the species is temperate, alpine or boreal
+Bio1Traits <- Bio1Traits %>%
+  dplyr::mutate(zone = ifelse(clusterID ==1 , "alpine",
+                              ifelse(clusterID == 2, "temperate", "boreal")))
+
+# Merge these estimates with the climatic variables extracted
+biotraits <- merge(climaticVarsExtracted,
+                                  Bio1Traits ,
+                                  by = c("acceptedScientificName", "Taxon"))%>%
+  na.omit()
+
+#save the results
+write.csv(biotraits, file = paste0(dataFolder, "/pollinatorDataFolder/bioTraits.csv"))
+
+#plot(biotraits$mBio1, biotraits$bio1)
+
+} else {
+  biotraits <- readr::read_csv("Data/pollinatorDataFolder/bioTraits.csv")
+}
+
+```
 
 
+The aim is to assign the same predicted intensity ($\lambda$) to each species within the cluster.  The means for each cluster is presented in @tbl-pollinatorClusters. We name these three clusters as: `1 - temperate`, `2 - boreal` and `3 - alpine` zones. 
 
-### 9.3. ISDM for plant species
+```{r}
+#| echo: false
+#| tbl-cap: "Cluster means for trait temperature and latitude from the k-means clustering algorithm. The zones are defined as alpine, boreal and temperate zones."
+#| label: tbl-pollinatorClusters
 
-There are $54$ plant species we aim to estimate their species distribution. Looking at the number of occurrence records in @tbl-plantMetaData, developing a multi-species ISDM will produce stable estimates for the species with fewer occurrence records like `Hieracium umbellatum`. However, we do not have the required memory allocations to fit all the $54$ species together, so we split the total number of species into $6$ groups, with $9$ species in each group. The splitting is done by sorting the total occurrence in each dataset and assigning the species to each group so that the highest occurrence is in the first group, the second is in the second group and the list continues. 
+traitCats <- data.frame(mLat = c(0.994, -1.04, -0.449),
+                        mBio1 = c(-0.359, 1.599, 0.7160),
+                        zone = c("Alpine", "Temperate", "Boreal"))%>%
+  dplyr::select(zone, mBio1, mLat)
 
-After splitting the data into the groups, we fit a multi-species ISDMs (described in @sec-isdmOverview) to each group. 
+traitCats  %>%
+  knitr::kable(., 
+               col.names = c("Zones",
+                             "Annual temperature",
+                             "Latitude"))%>%     
+kable_styling(bootstrap_options=c('striped','hover',
+  'condensed','responsive'),position='center',
+   font_size = 9,full_width=F)
+```
+
+We predict the intensity of pollinators within each zone, by assigning a fixed `mBio1` and `mLat` value (with the value from @tbl-pollinatorClusters and properly estimating the interaction values as well) whilst keeping the other covariate rasters (see @fig-covariates) the same. Thus, we obtain nine ($9$) predictions maps foe each combination of taxon and zone. Each pollinator species within the combination of taxon and zone (@tbl-pollinatorClustering) are assigned their respective predicted intensity .  
+
+```{r tbl-pollinatorClustering}
+#| tbl-cap: 'A sample of the pollinator species, pollinator taxon and the cluster zones.'
+#| echo: false
+#| warning: false
+dat <- readr::read_csv("../data/bioTraits.csv")%>%
+  dplyr::select(acceptedScientificName, Taxon, zone)
+
+samps <- sample(1:nrow(dat), 15, replace = FALSE)
+
+dat[samps, ]%>%
+  knitr::kable(.,
+               col.names = c("Pollinator species",
+                             "Taxon",
+                             "Cluster zones"))
+```
+
+
+#### 9.2.3 Pollinator ISDM validation {#sec-pollinatorValidation}
+
+Additionally, we perform validation to assess the trait effect on the pollinator distribution across the study region [@mostert2023pointedsdms]. We re-fit the ISDM in @sec-isdmPollinators using the randomised trait covariate (@fig-covariatesRandomized. We compare the deviance information criterion (DIC) of the two models (the one fitted with the true covariates in @sec-isdmPollinators and the re-fitted model described here). The model with the lowest DIC score is deemed to be the best. If the model with the randomised covariates is chosen as the best, we can conclude that the trait covariates are not significant. If the model fitted in @sec-isdmPollinators is deemed best, we can conclude that the trait covariates are significant.
+
+### 9.3. ISDM for plant species {#sec-isdmPlants}
+
+There are $54$ plant species we aim to estimate their species distribution. Looking at the number of occurrence records in @tbl-plantMetaData, developing a multi-species ISDM will produce stable estimates for the species with fewer occurrence records like `Hieracium umbellatum`. However, we do not have the required memory allocations to fit all the $54$ species together, so we split the total number of species into six groups, with nine species in each group. The splitting is done by sorting the total occurrence of each species in the ASO data and assigning the species to each group so that the highest occurrence is in the first group, the second is in the second group and the list continues. 
 
 ```{r}
 #| echo: true
@@ -785,7 +2241,11 @@ plantSpeciesGroup <- split(sortedSpecies$Var1,
 
 ```
 
-Similar to the model the pollinator ISDM, we fitted an ISDM to the $54$ plant species. The ISDM has species-specific intercept, covariate effect and spatial field (but all the species share the same hyperparameters). We also added a spatial bias field to the observation model for the presence-only dataset. 
+
+After splitting the data into the groups, we fit a multi-species ISDMs (described in @sec-isdmOverview) to each group. 
+
+
+Similar to the model the pollinator ISDM, we fitted an ISDM to the $54$ plant species. Here, we use species as groups and `soil ph`, `soil organic carbon`, `soil coarse fraction`, `land cover`, `soil moisture` and `annual temperature` as covariates. 
 
 ```{r}
 #| echo: true
@@ -813,15 +2273,15 @@ speciesModelShared$addBias(datasetNames = 'mergedPlantsPO')
 ```
 
 #### 9.3.1 Priors
-We assume the following priors for the pollinator ISDM:
+We assume the following priors for the plant species ISDM:
 
-* The probability that the standard deviation of the pollinator spatial field is greater than $0.1$ is $0.1$ (i.e. $P(\sigma_\omega > 0.1) = 0.1$).
+* The probability that the standard deviation of the plant species spatial field is greater than $0.1$ is $0.1$ (i.e. $P(\sigma_\omega > 0.1) = 0.1$).
 
 * The probability that the standard deviation of the bias field is greater than $0.1$ is $0.1$ (i.e. $P(\sigma_\eta > 0.1) = 0.1$)
 
-* The probability that the spatial range of the pollinator spatial field is greater than $50$ is $0.1$ (i.e $P(\kappa_\omega < 50) = 0.1$)
+* The probability that the spatial range of the plant species spatial field is greater than $50$ is $0.1$ (i.e $P(\kappa_\omega < 50) = 0.1$)
 
-* The probability that the spatial range of the pollinator spatial field is greater than $50$ is $0.1$ (i.e. $P(\kappa_\eta < 50) = 0.1$)
+* The probability that the spatial range of the plant species spatial field is greater than $50$ is $0.1$ (i.e. $P(\kappa_\eta < 50) = 0.1$)
 
 ```{r}
 #| echo: true
@@ -852,7 +2312,7 @@ speciesModelShared$specifyRandom(
 
 #### 9.3.2 Model fitting and predictions
 
-We fit the model by using the adaptive strategy of the composite design integration strategy in `INLA`. 
+We fit the model by using the adaptive strategy of the composite design integration strategy in `INLA`. We predict the occurrence probability for each plant species by transforming the plant species with the inverse logit function. 
 ```{r}
 #| echo: true
 #| warning: false
@@ -882,38 +2342,608 @@ individualDatasetPreds <- predict(speciesSharedEst,
 ```
 
 
-### 9.4 Species Interractions
+### 9.4 Species Interractions {#sec-speciesInterractions}
 
-We visualise the bipartite networks between the pollinator taxon and the plant species using data from **where?**. The networks were created using the `frame2webs` function in the R-package `bipartite` [@bipartite]. The web plot of the network is presented in @fig-webplot. 
-
-The data available for use in this project has interaction data on only 245 out of over 8000 pollinator species modelled here. So we derive an interraction between the pollinator taxon and the plant species and use it account for the interraction.
+We visualize the bipartite networks between the pollinator taxon and the plant species using data from @rasmussen2021evaluating for hoverflies, @butterfliesInterraction and @butterfliesInterractionSubset for butterflies and @beeHosts for bees.
 
 ```{r}
-#| fig-cap: 'Webplot of plant species and pollinator interractions.'
+#| echo: true
+#| warning: false
+#| eval: false
+
+
+# Interraction web
+# Import and format the pollinator datasets
+if(!file.exists(paste0(dataFolder, "/interractionsData/interractionMatrix.csv"))){
+FinalSelectionOfLepidopteraAndBeesAndHoverflies <- allPollinatorsDataset(dataFolder, 
+                                                                         print = FALSE)
+Bio1Traits <- read.csv(paste0(dataFolder,"/bioTraits.csv"))
+NiNIndicators <- read.csv(paste0(dataFolder, "/interractionsData/Indikatorarter NiN eng.csv"), sep = ";")
+NiNIndicatorsGenera <- do.call(rbind,lapply(unique(NiNIndicators$Genus),function(x)NiNIndicators[NiNIndicators$Genus %in% x,][1,]))
+FinalSelectionOfLepidopteraAndBeesAndHoverflies$PlantGenusPollinator <- with(FinalSelectionOfLepidopteraAndBeesAndHoverflies, paste(PlantGenus,ValidSpeciesName))
+OneInteractionPerPlantGenusPollinator <- do.call(rbind,lapply(unique(FinalSelectionOfLepidopteraAndBeesAndHoverflies$PlantGenusPollinator),function(x)FinalSelectionOfLepidopteraAndBeesAndHoverflies[FinalSelectionOfLepidopteraAndBeesAndHoverflies$PlantGenusPollinator%in% x,][1,]))
+InteractionsInIdealMeadow <- OneInteractionPerPlantGenusPollinator[OneInteractionPerPlantGenusPollinator$PlantGenus %in% NiNIndicatorsGenera$Genus,]
+InteractionsInIdealMeadowWithTraits <- merge(InteractionsInIdealMeadow,
+                                             Bio1Traits, 
+                                             by.x= "ValidSpeciesName",
+                                             by.y = "validScien")
+
+# FInd out the species in the aso data that match up to the specific genus
+if(!exists("asoDatasf")) asoDatasf <- readRDS(file = paste0(dataFolder, "/plantDataFolder/formattedData/asoData.RDS"))
+
+# Merge the asoData genus to the species data
+asoDatasf <- asoDatasf%>%
+  mutate(
+    simpleScientificName = coalesce(
+      #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+      str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    )
+  ) 
+
+interractionData <- merge(InteractionsInIdealMeadowWithTraits, 
+      as.data.frame(asoDatasf[, c("simpleScientificName", "genus")])[, 1:2],
+      by.x = "PlantGenus",
+      by.y = "genus")
+
+# save the interractions in ideal meadow
+write.csv(InteractionsInIdealMeadowWithTraits, 
+          paste0(dataFolder, "/interractionsData/InteractionsInIdealMeadowWithTraits.csv"))
+
+write.csv(interractionData, 
+          paste0(dataFolder, "/interractionsData/interractionData.csv"))
+
+# Create the plant pollinator for network
+#PlantPollinatorsForNetwork <- InteractionsInIdealMeadowWithTraits[c("ValidSpeciesName","PlantGenus")]
+PlantPollinatorsForNetwork <- interractionData[c("Taxon.x","simpleScientificName")]
+names(PlantPollinatorsForNetwork)[1:2] <- c("higher","lower")
+PlantPollinatorsForNetwork$freq <- 1
+PlantPollinatorsForNetwork$webID <- 1
+dfForWeb <- PlantPollinatorsForNetwork[c("lower","higher","webID","freq")]
+
+# Create webs from dataframe
+WebReady <- bipartite::frame2webs(dfForWeb, varnames = c("lower", "higher", "webID", "freq"))
+
+# save for later use
+save(WebReady,
+     file = paste0(dataFolder, "/interractionsData/webPlot.RData"))
+
+if(modelPlots){
+plotweb(WebReady[[1]])
+}
+
+
+# Calculte the interraction matrix
+interractionMatrix <- as.data.frame(WebReady[[1]]) 
+interractionMatrix$species <- rownames(interractionMatrix)
+rownames(interractionMatrix) <- NULL
+# save the results
+write.csv(interractionMatrix, 
+          paste0(dataFolder, "/interractionsData/interractionMatrix.csv"))
+
+} else {
+  load(paste0(dataFolder,"/interractionsData/webPlot.RData"))
+  interractionMatrix <- readr::read_csv(paste0(dataFolder,"/interractionsData/interractionMatrix.csv"))
+  
+  if(modelPlots){
+    plotweb(WebReady[[1]])
+  }
+}
+
+# Calculate the
+interractionProb <- interractionMatrix[, 2:4]%>%
+  proportions(.)%>%
+  dplyr::mutate(species = interractionMatrix$species)%>%
+  mutate(
+    simpleScientificName = coalesce(
+      #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+      str_extract(species, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    ),
+    # Replace space with underscore in simpleScientificName
+    species = gsub("-", "", gsub("C","", gsub(" ", "_", simpleScientificName)))
+  ) 
+
+colnames(interractionProb)[2] <- "Butterflies"
+
+```
+
+
+The data we got only had host plats for $240$ out of the $8000$ ($3\%$) pollinator species modeled here. To use information on the pollinator host in describing the ecosystem condition, we use aggregate the pollinator species to the order level as shown in @fig-webplot. Using that information, we create a network using the `frame2webs` function in the R-package `bipartite` [@bipartite].
+
+```{r}
+#| fig-cap: 'Plot of pollinator taxon and their plant host networks. The pollinators are resolved to their order taxon and the plant hosts are resolved to the species level.'
 #| echo: true
 #| warning: false
 #| label: fig-webplot
 
 
   load("../data/webPlot.RData")
-  #interractionMatrix <- readr::read_csv(paste0(dataFolder,"/interractionsData/interractionMatrix.csv"))
+  bipartite::plotweb(WebReady[[1]])
+```
+
+The values from the network for the interaction between the pollinator taxon and plant hosts are stored in a data frame such that each row represents the weight of each pollinator taxon for a given plant host. We then scale these values for each plant host such that their sum is $1$, and use these values as weights in describing the pollinator diversity in @sec-divIndices.
+
+
+### 9.5. Community diversity {#sec-divIndices}
+
+At the habitat level, diversity is the most widely used component in describing the characteristics of a community [@thukral2017review]. The alpha diverity has two components: species richness and equitability indices [@thukral2017review]. A community with equal number of different species within the community will have a higher eveness index; a community dominated by one or few species in terms of the number of individuals will have a lower eveness index [@thukral2017review]. [A simple explanation to the diversity indices are presented here.](https://stats.libretexts.org/Bookshelves/Applied_Statistics/Natural_Resources_Biometrics_(Kiernan)/10%3A_Quantitative_Measures_of_Diversity_Site_Similarity_and_Habitat_Suitability/10.01%3A_Introduction__Simpsons_Index_and_Shannon-Weiner_Index#:~:text=The%20value%20of%20Simpson%27s%20D,as%20the%20Gini%2DSimpson%20index.)
+
+We use the Hill numbers, such as species richness, Shannon entropy and Simpson index, to describe the community diversity [@jost2007partitioning; @thukral2017review; @jost2006entropy]. The Hill numbers are defined as [@hill1973diversity]:
+$$
+ {}^qD = \bigg(\sum_{i = 1}^S p_i^q \bigg)^{\frac{1}{1-q}},
+$$ {#eq-divIndex}
+where $p_i$ is the relative abundance of pollinator species $i$ with order $q$. The order of the diversity ($q$) indicates the sensitivity to common and rare species, with greater values of $q$ (specifically $q > 1$) indicates a disproportional favor to common species, and lower values of $q$ (specifically $q < 1$) indicates a disproportional favor to rare species. Hill numbers with order $0$ is the species richess, Hill numbers with order $1$ is the Shannon index and Hill numbers with order $2$ is the Simpson index [@thukral2017review]. 
+
+The relative abundance within each prediction grid cell $s$ ($p_i(s)$) for @eq-divIndex is estimated as:
+
+$$ 
+\begin{split}
+\text{Relative abundance of pollinator species} &\propto  \text{Estimated pollinator intensity} \\
+&\times \text{Interraction weight} \\
+& \times \text{plant species occurrence probability}\\
+\implies p_i(s) &= \frac{ \frac{1}{K} \sum_k \lambda_i(s) \times w_{ik} \times \Psi_k(s)}{\sum_i \frac{1}{K} \sum_k \lambda_i(s) \times w_{ik} \times \Psi_k(s)}, 
+\end{split}
+$$ {#eq-relProp}
+where $w_{ik}$ is the weight of the interaction between pollinator species $i$ and plant host $k$, $\Psi_k(s)$ is the occurrence probability of plant host $k$ and $\lambda_i(s)$ is the intensity of pollinator species $i$.
+
+We used the R-package `vegan` [@vegan] to estimate the species richness, Shannon diversity and inverse Simpson index by passing the relative proportion [@eq-relProp] into the function `specnumber` and `diversity` for species richness and both Shannon and Simpson index respectively.
+
+```{r}
+#| echo: true
+#| warning: false
+#| eval: false
+
+# Estimate diversity indices based on their taxon: either Bees, Butterflies or Hoverflies
+# The function also takes into consideration whether you want to return the diversity estimate of a particular pollinator species
+# If pollinatorSpeciesNames = NULL, then the function considers all the pollinator species within a zone or taxon.
+# speciesForTaxon is the dataframe that contains the plant species prediction results. This is formatted from the fitted ISDMS to the ASO plant species
+# zones is the zone we are interested in returning results for. It takes the values of either "all", "alpine", "boreal", "temperate" 
+# predRast is the prediction raster created in the masterScript
+# silent indicates whether we want to print the species names or not
+
+estimateZonalDiversity <- function(pollinatorSpeciesNames = NULL, #Names of the pollinator species (should be the simplescientific name)
+                              speciesForTaxon, # The data with the plant species results
+                              zones, 
+                              predRast, # The prediction raster
+                              silent = FALSE){
   
-    bipartite::plotweb(WebReady[[1]])
+  # Check if the zones specified  is what we expect
+  if(!zones %in% c("all", "alpine", "boreal", "temperate" )) stop("Taxa must either be 'all', 'alpine', 'boreal', 'temperate' ")
+  # Filter out the pollinator species we want
+  if(!zones %in% "all"){
+    dat <- speciesForTaxon%>%
+      dplyr::filter(zone %in% zones)%>%
+      na.omit()
+  } else if (zones == "all"){
+    
+    dat <- speciesForTaxon%>%
+      dplyr::filter(zone %in% c("alpine", "boreal", "temperate"))%>%
+      na.omit()  
+  }
+  
+  returnAllPrediction <- is.null(pollinatorSpeciesNames )
+  
+  if(is.null(pollinatorSpeciesNames )){
+    pollinatorSpeciesNames <- unique(dat$simpleScientificName)
+  } else {
+    dat <- dat %>%
+      dplyr::filter(simpleScientificName %in% pollinatorSpeciesNames)
+  }
+  
+  if(!silent) print(pollinatorSpeciesNames)
+  
+  
+  #indSpeciesDiversity <- lapply(seq_along(pollinatorSpeciesNames), function(x){
+  sp <- pollinatorSpeciesNames#[x]
+  
+  
+  #get unique taxa
+  focalTaxa <- unique(dat$Taxon)
+  allZones <- c("alpine", "boreal", "temperate")
+  
+  if(!zones %in% "all"){
+    #for now, we ensure that dat has only one pollinator group
+    if(length(unique(dat$zone))>1) stop("Select one zone only")
+    
+    # Load the intensity of the species from the zone
+    spPred <- list()
+    for(j in 1:length(focalTaxa)){
+      path <- paste(c(dataFolder, "modelOutputs", "pollinators", zones, focalTaxa[j]), collapse = "/")
+      results <- readRDS(file.path(path, paste0("predictions", ".rds")))
+      results$intensity <- exp(results$mean)
+      
+      # Transform the intensity to the original scale
+      diversity <-  lapply(plantSpecies, function(plantSp){
+        divs <-  results$intensity * speciesData[[plantSp]] * interractionProb[interractionProb$species %in% plantSp, dat$Taxon[j]]
+        #divs$overall <- app(divs, function(i) calculateRichness(i))
+      })|>  
+        rast() |>  # combine raster layers
+        #scale() |>  # scale raster layers
+        setNames(plantSpecies)
+      
+      
+      # define geometries to combine with prediction 
+      geometries <- xyFromCell(diversity, seq(ncell(diversity))) %>% 
+        as.data.frame() %>% 
+        st_as_sf(coords = c("x", "y"), crs = newCrs)
+      
+      # Create the prediction data 
+      PredictionData <- diversity %>% 
+        as.data.frame(na.rm = FALSE)%>%
+        mutate(richness = vegan::specnumber(across(plantSpecies)),
+               simpson = vegan::diversity(across(plantSpecies), "invsimpson"),
+               shannon= vegan::diversity(across(plantSpecies)))%>%
+        #mutate(averageIntensity = sum(across(plantSpecies), na.rm = TRUE)/length(plantSpecies))%>%
+        reduce(cbind) %>% 
+        bind_cols(geometries) %>% 
+        st_sf()%>%
+        st_transform(., newCrs)%>% # transform the prediction data to the units used in model runs
+        filter(rowSums(is.na(.)) != (ncol(.)-1)) # Now we take all the rows with sum of NAs equal to the number of columns of the dataframe minus the 
+      
+      names(PredictionData) <- c(plantSpecies, "speciesNumber", "simpson", "shannon", "geometry")
+      
+      PredictionData <- PredictionData%>%
+        mutate(averageIntensity = rowMeans(pick(all_of(plantSpecies))))%>%
+        select(plantSpecies, "speciesNumber", "simpson", "shannon","averageIntensity","geometry")
+      
+      spPred[[j]] <- rasterize(PredictionData, predRast, names(PredictionData)[-length(names(PredictionData))])
+      
+    }
+    
+    names(spPred) <- focalTaxa
+  } else if(zones == "all"){
+    # Load the intensity of the species from the zone
+    
+    spPred <- lapply(seq_along(allZones), function(x){
+      spPred <- list()
+      for(j in 1:length(focalTaxa)){
+        path <- paste(c(dataFolder, "modelOutputs", "pollinators", allZones[x], focalTaxa[j]), collapse = "/")
+        results <- readRDS(file.path(path, paste0("predictions", ".rds")))
+        results$intensity <- exp(results$mean)
+        
+        # Transform the intensity to the original scale
+        diversity <-  lapply(plantSpecies, function(plantSp){
+          divs <-  results$intensity * speciesData[[plantSp]] * interractionProb[interractionProb$species %in% plantSp, dat$Taxon[j]]
+          #divs$overall <- app(divs, function(i) calculateRichness(i))
+        })|>  
+          rast() |>  # combine raster layers
+          #scale() |>  # scale raster layers
+          setNames(plantSpecies)
+        
+        
+        # define geometries to combine with prediction 
+        geometries <- xyFromCell(diversity, seq(ncell(diversity))) %>% 
+          as.data.frame() %>% 
+          st_as_sf(coords = c("x", "y"), crs = newCrs)
+        
+        # Create the prediction data 
+        PredictionData <- diversity %>% 
+          as.data.frame(na.rm = FALSE)%>%
+          mutate(richness = vegan::specnumber(across(plantSpecies)),
+                 simpson = vegan::diversity(across(plantSpecies), "invsimpson"),
+                 shannon= vegan::diversity(across(plantSpecies)))%>%
+          #mutate(averageIntensity = sum(across(plantSpecies), na.rm = TRUE)/length(plantSpecies))%>%
+          reduce(cbind) %>% 
+          bind_cols(geometries) %>% 
+          st_sf()%>%
+          st_transform(., newCrs)%>% # transform the prediction data to the units used in model runs
+          filter(rowSums(is.na(.)) != (ncol(.)-1)) # Now we take all the rows with sum of NAs equal to the number of columns of the dataframe minus the 
+        
+        names(PredictionData) <- c(plantSpecies, "speciesNumber", "simpson", "shannon", "geometry")
+        
+        PredictionData <- PredictionData%>%
+          mutate(averageIntensity = rowMeans(pick(all_of(plantSpecies))))%>%
+          select(plantSpecies, "speciesNumber", "simpson", "shannon","averageIntensity","geometry")
+        
+        spPred[[j]] <- rasterize(PredictionData, predRast, names(PredictionData)[-length(names(PredictionData))])
+        
+      }  
+      names(spPred) <- focalTaxa
+      
+      return(spPred)
+    })
+    names(spPred) <- allZones
+    
+  }
+  
+  
+  
+  # If we are interested in any particular pollinator species
+  if(!returnAllPrediction ){
+    return(spPred)
+  } else if(!zones %in% "all"){
+    # Find our how many species are in each group
+    groupCounts <- dat %>%
+      group_by(Taxon, zone)%>%
+      summarise(groupCounts = n())
+    
+    # create a raster for the final results
+    #allSpPred <- spPred$Hoverflies$Ajuga_pyramidalis
+    # define geometries to combine with prediction 
+    geometries <- crds(spPred$Hoverflies$Ajuga_pyramidalis)%>%
+      as.data.frame()%>%
+      st_as_sf(., coords = c("x", "y"), crs = newCrs)
+    
+    allSpPred <- lapply(focalTaxa, function(x){
+      spPred[[x]]$averageIntensity * groupCounts[groupCounts$Taxon %in% x, 3]
+    })%>%
+      do.call("cbind", .)%>%
+      rowSums()
+    
+    indSpeciesPred <- lapply(focalTaxa, function(x){
+      ret <- spPred[[x]]$averageIntensity%>%
+        as.data.frame(na.rm = TRUE)%>%
+        dplyr::mutate(intensity = averageIntensity/allSpPred) %>%
+        dplyr::select(intensity)%>%
+        replicate((as.numeric(unlist(groupCounts[groupCounts$Taxon %in% x, 3]) )), ., simplify = FALSE)%>%
+        do.call("cbind", .)
+      
+      names(ret) <- dat$acceptedScientificName[dat$Taxon == x]
+      
+      return(ret)
+      
+    })%>%
+      do.call("cbind", .)%>%
+      as.data.frame()%>%
+      dplyr::mutate(richness = vegan::specnumber(across(dat$acceptedScientificName)),
+                    simpson = vegan::diversity(across(dat$acceptedScientificName), "invsimpson"),
+                    shannon= vegan::diversity(across(dat$acceptedScientificName)))%>%
+      dplyr::select(richness, shannon, simpson)%>% 
+      bind_cols(geometries) %>% 
+      st_sf()%>%
+      st_transform(., newCrs)%>% # transform the prediction data to the units used in model runs
+      filter(rowSums(is.na(.)) != (ncol(.)-1))
+    
+    names(indSpeciesPred) <- c("richness", "shannon", "simpson","geometry")
+    
+    
+    spPred <- rasterize(indSpeciesPred, predRast, c("richness", "shannon", "simpson"))
+    return(spPred)
+    
+    
+    
+  } else if(zones %in% "all"){
+    # Find our how many species are in each group
+    groupCounts <- dat %>%
+      group_by(Taxon, zone)%>%
+      summarise(groupCounts = n())
+    
+    # create a raster for the final results
+    #allSpPred <- spPred$Hoverflies$Ajuga_pyramidalis
+    # define geometries to combine with prediction 
+    geometries <- crds(spPred$alpine$Bees$Ajuga_pyramidalis)%>%
+      as.data.frame()%>%
+      st_as_sf(., coords = c("x", "y"), crs = newCrs)
+    
+    allSpPred <- list()
+    for(i in seq_along(allZones)){
+      allSpPred[[i]] <- lapply(focalTaxa, function(x){
+        spPred[[allZones[i]]][[x]]$averageIntensity * groupCounts[groupCounts$Taxon %in% x, 3]
+      })%>%
+        do.call("cbind", .)%>%
+        rowSums()
+    }
+    names(allSpPred) <- allZones
+    
+    indSpeciesPred <- list()
+    for(i in seq_along(allZones)){
+      indSpeciesPred[[i]] <- lapply(focalTaxa, function(x){
+        ret <- spPred[[i]][[x]]$averageIntensity%>%
+          as.data.frame(na.rm = TRUE)%>%
+          dplyr::mutate(intensity = averageIntensity/allSpPred[[i]]) %>%
+          dplyr::select(intensity)%>%
+          replicate((as.numeric(unlist(groupCounts[(groupCounts$Taxon %in% x) & (groupCounts$zone %in% allZones[i]), 3]) )), ., simplify = FALSE)%>%
+          do.call("cbind", .)
+        
+        names(ret) <- dat$acceptedScientificName[dat$Taxon == x & dat$zone == allZones[i]]
+        
+        return(ret)
+        
+        
+      })
+    }
+    names(indSpeciesPred) <- allZones
+    
+    indSpeciesPred <- indSpeciesPred%>%
+      purrr::flatten() %>%
+      do.call("cbind", .)%>%
+      as.data.frame()%>%
+      dplyr::mutate(richness = vegan::specnumber(across(dat$acceptedScientificName)),
+                    simpson = vegan::diversity(across(dat$acceptedScientificName), "invsimpson"),
+                    shannon= vegan::diversity(across(dat$acceptedScientificName)))%>%
+      dplyr::select(richness, shannon, simpson)%>% 
+      bind_cols(geometries) %>% 
+      st_sf()%>%
+      st_transform(., newCrs)%>% # transform the prediction data to the units used in model runs
+      filter(rowSums(is.na(.)) != (ncol(.)-1))
+    
+    names(indSpeciesPred) <- c("richness", "shannon", "simpson","geometry")
+    
+    
+    spPred <- rasterize(indSpeciesPred, predRast, c("richness", "shannon", "simpson"))
+    return(spPred)
+  }
+  
+  
+}  
+
+# Load the functions needed to estimate the diversity
+source("pipeline/richness/utils/estimateZonalDiversity.R")
+source("pipeline/richness/utils/estimateTaxonDiversity.R")
+
+# Getting diversity indices
+
+if(!exists("biotraits")) source("pipeline/predictions/pollinatorZoneGroupings.R")
+speciesForTaxon <- biotraits %>%
+  dplyr::select(acceptedScientificName, Taxon, zone)%>%
+  group_by(Taxon, zone)%>%
+  distinct()%>%
+  ungroup()%>%
+  mutate(
+    simpleScientificName = coalesce(
+      #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+      str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    ))%>%
+  na.omit()
+
+# Load all the plant predictions result
+if(!exists("interractionMatrix")) source("pipeline/webForInterractions/webPlotsForModels.R")
+
+asoDatasf <- readRDS(file = paste0(dataFolder, "/plantDataFolder/formattedData/asoData.RDS"))%>%
+  mutate(
+    simpleScientificName = coalesce(
+      #redList$species[match(acceptedScientificName, redList$GBIFName)],  # Match redList species
+      str_extract(acceptedScientificName, "^[A-Za-z]+\\s+[a-z]+")        # Extract binomial name
+    )) %>%
+  dplyr::filter(simpleScientificName %in% c(interractionMatrix$species)) #
+
+plantSpecies <- unique(asoDatasf$simpleScientificName)
+
+plantSpecies <- sapply(plantSpecies, function(x){
+  rt <- stringr::str_split(x, " ")[[1]]
+  taxon <- paste(rt[1], rt[2], sep = "_") 
+  return(taxon)
+}) %>%
+  c()
+
+plantSpecies <- as.character(plantSpecies)
+
+# for(sp in species){
+#   print(sp)
+#   spPred <-   allPlantPredictions[[sp]]%>%
+#     select("mean", "sd", "q0.025", "q0.5", "q0.975", "median", "Probabilities")#%>%
+#     #mutate(Probabilities = myinvcloglog(mean))
+#   #individualDatasetPreds[[which(species %in% sp)]] <- spPred
+#   spPred <- rasterize(spPred, predRast, c("mean", "sd", "q0.025", "q0.5", "q0.975", "median", "Probabilities"))
+#   path <- paste0(dataFolder, "/modelOutputs/plants/", sp)
+#   
+#   if(!file.exists(path)){
+#     dir.create(path)
+#   }
+#   saveRDS(spPred, file.path(path, paste0("predictions.rds")))
+# }
+
+##################################################
+# Plant Species results
+#########################################
+
+speciesData <- lapply(paste0(dataFolder, "/modelOutputs/plants/", plantSpecies), function(x){
+ # try(list.files(x, pattern = paste0("predictions.rds"), recursive = TRUE, full.names = TRUE))
+  preds <- readRDS(list.files(x, pattern = paste0("predictions.rds"), recursive = TRUE, full.names = TRUE))
+  return(preds$Probabilities)
+})|>  
+  rast() |>  # combine raster layers
+  #scale() |>  # scale raster layers
+  setNames(plantSpecies)
+
+#######################################################
+# PlantData
+#######################################################
+#pollinatorSpeciesNames <- unique(speciesForTaxon$simpleScientificName)
+
+# populate the species distributions
+
+
+###############################################
+# Diversity for alpine regions
+##############################################
+if(rerun){
+# pollinatorSpeciesNames <- speciesForTaxon%>%
+#   dplyr::filter(zone == "alpine")%>%
+#   na.omit()%>%
+#   dplyr::select(simpleScientificName)%>%
+#   unique()%>%
+#   c()
+  
+######################################
+# ZONAL DIVERSITY ESTIMATES
+#####################################
+zone <- c("alpine", "boreal", "temperate")
+
+for(sp in zone){
+spPred <- estimateZonalDiversity(pollinatorSpeciesNames = NULL,
+                  speciesForTaxon =  speciesForTaxon,
+                  zones = sp,
+                  predRast = predRast,
+                  silent = FALSE)   
+
+path <- paste0(dataFolder, "/modelOutputs/diversity/", sp)
+spPred <- rasterize(spPred, predRast, names(spPred))
+if(!file.exists(path)){
+  dir.create(path)
+}
+saveRDS(spPred, file.path(path, paste0("predictions.rds")))
+}  
+
+
+# Make predictions for all the zones
+sp <- "all"
+spPred <- estimateZonalDiversity(pollinatorSpeciesNames = NULL,
+                            speciesForTaxon =  speciesForTaxon,
+                            zones = sp,
+                            predRast = predRast,
+                            silent = FALSE)   
+
+path <- paste0(dataFolder, "/modelOutputs/diversity/", sp)
+spPred <- rasterize(spPred, predRast, names(spPred))
+if(!file.exists(path)){
+  dir.create(path)
+}
+saveRDS(spPred, file.path(path, paste0("predictions.rds")))
+rm("spPred")
+
+######################################
+# POLLINATOR TAXON DIVERSITY ESTIMATES
+#####################################
+taxa <- c("Butterflies", "Bees", "Hoverflies")
+
+for(sp in taxa){
+  spPred <- estimateTaxonDiversity(pollinatorSpeciesNames = NULL,
+                                   speciesForTaxon =  speciesForTaxon,
+                                   taxa = sp,
+                                   predRast = predRast,
+                                   silent = FALSE)   
+  
+  path <- paste0(dataFolder, "/modelOutputs/diversity/", sp)
+  spPred <- rasterize(spPred, predRast, names(spPred))
+  if(!file.exists(path)){
+    dir.create(path)
+  }
+  saveRDS(spPred, file.path(path, paste0("predictions.rds")))
+  rm("spPred")
+}  
+
+
+# Make predictions for all the zones
+sp <- "allTaxa"
+spPred <- estimateTaxonDiversity(pollinatorSpeciesNames = NULL,
+                                 speciesForTaxon =  speciesForTaxon,
+                                 taxa = sp,
+                                 predRast = predRast,
+                                 silent = FALSE)   
+
+path <- paste0(dataFolder, "/modelOutputs/diversity/", sp)
+#spPred <- rasterize(spPred, predRast, names(spPred))
+if(!file.exists(path)){
+  dir.create(path)
+}
+saveRDS(spPred, file.path(path, paste0("predictions.rds")))
+
+} else {
+  # load(paste0(dataFolder, "/modelOutputs/diversity/alpineDiversity.RData"))
+  # load(paste0(dataFolder, "/modelOutputs/diversity/borealDiversity.RData"))
+  
+  alpine <- readRDS("Data/modelOutputs/diversity/alpine/predictions.rds")
+  boreal <- readRDS("Data/modelOutputs/diversity/boreal/predictions.rds")
+  temperate <- readRDS("Data/modelOutputs/diversity/temperate/predictions.rds")
+  
+  bees <- readRDS("Data/modelOutputs/diversity/Bees/predictions.rds")
+  butterflies <- readRDS("Data/modelOutputs/diversity/Butterflies/predictions.rds")
+  hoverflies <- readRDS("Data/modelOutputs/diversity/Hoverflies/predictions.rds")
+}
+
 ```
 
 
-### 9.5. Diversity Indices {#sec-divIndices}
-
-To define the diversity of the pollinators, we estimate the pollinator intensity given their interaction with the plants species within the location $s$. This is estimated as:
-\begin{equation}
-\begin{split}
-\text{Intensity for intensity} &\propto \text{Estimated pollinator intensity} \times \text{Interraction weight} \times \text{plant species occurrence probability}\\
-\implies \lambda^{\star}_i(s) &= 1/K \times \sum_k \frac{\lambda_i(s) \times w_{ik} \times \Psi_k(s)}{\sum_k \lambda_i(s) \times w_k \times \Psi_k(s)}, 
-\end{split}
-\end{equation}
-where $w_k$ is the weight of the interaction between pollinator $i$ and plant species $k$, $\Psi_k(s)$ is the occurrence probability of plant species $k$ and $\lambda_i(s)$ is the intensity of pollinator $i$.
-
-We estimated the Hill's diversity indices for the pollinators. We estimated the species richness, Shannon diversity and inverse Simposon index using the R-package `vegan` [@vegan].
 
 ## 10. Results
 
@@ -921,30 +2951,147 @@ We estimated the Hill's diversity indices for the pollinators. We estimated the 
 
 ### 10.1. Distribution of pollinators accross Norway
 
-We present the predictions of log-intensity of the pollinators in @fig-pollPreds and its standard error in @fig-pollPredsSD. The log-intensity for the three pollinators: bees, butterflies and hoverflies are similar with standard error close to $0$. This result can be seen as a direct consequence of the estimates of climatic and trait variables on the pollinator distribution (@fig-pollinatorModelFixedEffects and @fig-pollinatorModelLandCover).
+#### 10.1.1. ISDM parameter estimates
 
-![Log intensity of pollinators (bees, butterfliesand hoverflies) across the study region from the fitted integrated species distribution model.](../img/PollinatorPredictions.png){#fig-pollPreds}
+We present the estimates of the climatic and trait variable covariates in @fig-pollinatorModelFixedEffects and @fig-pollinatorModelLandCover. The pollinator abundance increases with trait latitude (*mLat*) and temperature (*mBio1*) as well as annual temperature (*polyBio1* and *polyBio2*). However, the abundance decreases with an increasing latitude (*Latitude*). Keeping all other covariates contants, the results shows that we expect butterflies to be more abundant, followed by hoverflies and bees across Norway (see the intercept in @fig-pollinatorModelFixedEffects).
 
-![Standard error of the log-intensity of pollinators (bees, butterfliesand hoverflies) across the study region from the fitted integrated species distribution model.](../img/PollinatorPredictionsSD.png){#fig-pollPredsSD}
+```{r fig-pollinatorModelFixedEffects}
+#| fig-cap: 'Posterior mean of traits and climatic covariate effect on the distribution of pollinators (bees, butterflies and hoverflies) in Norway. The length of the error line represents the 95\% credible intervals.'
+#| fig-width: 8
+#| fig-height: 9
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/pollinatorCovariateFixedEffects.png")
+```
 
-The effects of traits and climatic variables on the pollinator distribution in @fig-pollinatorModelFixedEffects. There is a negative latitudinal effect on bees and butterflies, but a positive effect on hoverflies. However, there is a positive effect of annual temperature on butterflies and bees, but a negative effect on hoverflies. There is an insignificant trait effects on the hoverflies distribution as their credible interval of these covariates includes $0$. The contrast of this statement is true for the bees and butterflies distribution. 
-
-![Effects of traits and climatic variables on the pollinator distribution.](../img/plantsCovariateFixedEffects.png){#fig-pollinatorModelFixedEffects}
-
-In contrast to the trait and climatic variables, there seems to be ... (@fig-pollinatorModelLandCover).
-
-![Plant species land cover effects.](../img/plantsCovariateLandCoverEffects.png){#fig-pollinatorModelLandCover}
+The pollinators favor built-up areas with reference to agro-forestry (@fig-pollinatorModelLandCover. Conversely, the intensity of the pollinators are lower at the other land cover categories with reference to the agro-foresty regions. 
 
 
 
-![Plant species Predictions.](../img/plantSpeciesProbabilities.png){#fig-plantPreds}
+```{r fig-pollinatorModelLandCover}
+#| fig-cap: 'Posterior mean of land cover variables on the distribution of pollinators (bees, butterflies and hoverflies) with reference to the agro-forestry category in Norway. The length of the error line represents the 95\% credible intervals.'
+#| fig-width: 8
+#| fig-height: 5
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/pollinatorCovariateLandCoverEffects.png")
+```
 
-![Diversity of pollinators across Norway.](../img/pollinatorDiversity.png){#fig-pollDiversity}
 
-### 10.2. Pollinator indicators
+#### 10.1.2. Validation of trait effects
+
+The model selection shows that the ISDM fitted using the original traits is better than those with randomised trait covariates [@tbl-pollinatorTraitValidation]. This is because the Deviance Information criterion (DIC) and Watanabe-Akaike information criterion (waic) were smaller in the ISDM with original traits.
+
+```{r tbl-pollinatorTraitValidation}
+#| tbl-cap: 'Model selection metrics from the model fitted with the original (@fig-covariates) and randomised (@fig-covariatesRandomized) traits. Three metrics are available: log marginal likelood (mlik), Watanabe-Akaike information criterion (waic) and deviance information criterion (dic). We select the model with lower metrics (where the better column shows if the metric for the ISDM with original traits is smaller than the ISDM with the randomised traits.'
+#| echo: false
+#| warning: false
+
+readr::read_csv("../data/pollinatorValidation.csv")%>%
+  dplyr::select(c(3, 1, 2, 4))%>%
+knitr::kable(., 
+               col.names = c("Metric",
+                             "Original traits",
+                             "Randomised traits",
+                             "Original traits Better"))%>%     
+kable_styling(bootstrap_options=c('striped','hover',
+  'condensed','responsive'),position='center',
+   font_size = 9,full_width=F)
+```
+
+
+#### 10.1.3. Spatial bias
+
+We present the posterior mean of the bias field added to the presence-only data observation model (see $\eta(s)$ described in @sec-isdmOverview) from the pollinator ISDM in @fig-pollinatorSpatialBias. This bias field describes the sampling, detection, reporting and other biases that are present in the presence-only data. We see a smooth spatial field as we have a more even spread of the pollinators accross the study region (see  @fig-pollinatorPOandNSOS).
+
+```{r fig-pollinatorSpatialBias}
+#| fig-cap: 'Posterior mean of spatial bias field from the pollinator ISDM.'
+#| fig-width: 8
+#| fig-height: 5
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/pollinatorSamplingBias.png")
+```
+
+#### 10.1.4. Prediction of pollinator distribution
+
+
+We present the predictions of log-intensity of the pollinators in @fig-pollPreds. We see that the butterfliea are more abundant at Northern Norway, with the hoverflies and bees abundant at the southern region. This seems surprising as the abundance of all the pollinators decreases as the latitude increases and annual temperature increases [@fig-pollinatorModelFixedEffects]. Future iterations of this work will explore using a more finer mesh to fit the model and make thse predictions to ensure more stable and interpretable results.
+
+```{r fig-allPollPreds}
+#| fig-cap: 'Log intensity of pollinators (bees, butterfliesand hoverflies) across the study region from the fitted integrated species distribution model.'
+#| fig-width: 8
+#| fig-height: 9
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/allPollinatorZonalPredictions.png")
+```
+
+Finally, we present the log-intensity of the alpine, boreal and temperate pollinators across Norway in @fig-pollPreds. On this scale, we do not see a clear difference between the various zones. The effect of the `mBio1` and `mLat` are not large enough to cause a significant changes in the predicted zones (although on the original scale, we see some changes but not too significant). 
+```{r fig-pollPreds}
+#| fig-cap: 'Log intensity of pollinators (bees, butterflies and hoverflies) across the study region from the fitted integrated species distribution model.'
+#| fig-width: 8
+#| fig-height: 9
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/pollinatorZonalPredictions.png")
+```
+
+
+### 10.2. Distribution of plant hosts 
+
+#### 10.2.1 ISDM parameter estimates
+
+We present the estimates of the climatic and trait variable covariates in @fig-plantModelFixedEffects and @fig-plantModelLandCover. Generally, the plant host occurrence are higher at regions with hgh soil PH and annual mean temperature. 
+
+```{r fig-plantModelFixedEffects}
+#| fig-cap: 'Posterior mean of traits and climatic covariate effect on the distribution of the plant hosts in Norway. The length of the error line represents the 95\% credible intervals.'
+#| fig-width: 8
+#| fig-height: 9
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/plantsCovariateFixedEffects.png")
+```
+
+The pollinators favor built-up areas with reference to agro-forestry and other forest (@fig-plantModelLandCover). Conversely, the intensity of the pollinators are lower at the other land cover categories with reference to the agro-foresty regions. 
+
+
+
+```{r fig-plantModelLandCover}
+#| fig-cap: 'Posterior mean of land cover variables on the distribution of plant hosts with reference to the agro-forestry category in Norway. The length of the error line represents the 95\% credible intervals.'
+#| fig-width: 8
+#| fig-height: 5
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/plantsCovariateRandomEffects.png")
+```
+
+#### 10.2.2. Spatial bias
+
+We present the posterior mean of the bias field added to the presence-only data observation model (see $\eta(s)$ described in @sec-isdmOverview) from the plant hosts ISDM in @fig-plantSpatialBias. This bias field describes the sampling and/or reporting biases that are present in the presence-only data. We see that regions with presence-only records have higher intensity than regions with low presence occurrence records(see  @fig-plantSp1).
+
+```{r fig-plantSpatialBias}
+#| fig-cap: 'Posterior mean of spatial bias field from the pollinator ISDM.'
+#| fig-width: 8
+#| fig-height: 5
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/plantSamplingBias.png")
+```
+
+#### 10.2.3 Plant host occurrence probability
+We present the posterior mean of the plant host occurrence probability across Norway in @fig-plantPreds. Some species (such as *Veronica officinalis* and *Filipendula ulmaria*) have relatively higher occurrence probabilities across the region whilst others (such as *Hieracium murorum*) have relatively smaller occurrence probabilities. 
+
+![Posterior mean of plant host occurrence probability across the study region. ](../img/plantSpeciesProbabilities.png){#fig-plantPreds}
+
+### 10.3. Alpha diversity estimates
+
+#### 10.3.1 Diversity at ASO meadows
+
+Although we estimated species richness and Shannon inices, We present the inverse Simpson indices for the alpine [@fig-alpineDiversity], boreal [@fig-borealDiversity] and temperate [@fig-temperateDiversity] pollinators at the ASO meadows. We group these estimates based on the value of the annual mean temperature (`bio1`) and latitude (see @sec-maxValues and @sec-divIndices for details).
 
 ```{r}
-#| fig-cap: 'Simpson diversity estimates for the alpine pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
+#| fig-cap: 'Simpson diversity estimates for the alpine pollinators within the ASO data meadows. The diversity indices are colored based on their geoclimatic regions (clusters based on the annual mean temperature and latitude).'
 #| echo: false
 #| warning: false
 #| label: fig-alpineDiversity
@@ -962,24 +3109,25 @@ axz <- list(
   title = "Diversity"
 )
 
-fig <- plotly::plot_ly(x = c(asoDataMeadows$bio1), 
+plotly::plot_ly(x = c(asoDataMeadows$bio1), 
         y = c(asoDataMeadows$Latitude), 
         z = c(asoDataMeadows$alpine_simpson), 
         type = "scatter3d", # "scatter3d"
         mode = "markers", 
-        color = c(asoDataMeadows$cluster),
-        showlegend = F)%>%
-  layout(scene = list(xaxis = axx, yaxis = axy, zaxis = axz),
-         legend= list(itemsizing='constant', orientation = 'h'),
-         showlegend = FALSE, 
-         showscale = FALSE)
+        color = c(asoDataMeadows$cluster))%>%
+  plotly::layout(scene = list(xaxis = axx, yaxis = axy, zaxis = axz)#,
+        # legend= list(itemsizing='constant', orientation = 'h'),
+         #showlegend = FALSE, 
+         #showscale = FALSE
+         )
 
-plotly::hide_legend(fig)
+#plotly::hide_legend(fig)
 ```
 
+It can observed that there are no ASO meadow locations within negative annual temperature and positive latitude zones ([@fig-alpineDiversity; @fig-borealDiversity; @fig-temperateDiversity]). Regions with high temperature (positive regions) are more diverse than regions with low temperature. Additionally, meadows at lower latitudes with colder temperatures are the least diverse.
 
 ```{r}
-#| fig-cap: 'Simpson diversity estimates for the boreal pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
+#| fig-cap: 'Inverse Simpson diversity estimates for the boreal pollinators within the ASO data meadows. The diversity indices are colored based on their geoclimatic regions (clusters based on the annual mean temperature and latitude).'
 #| echo: false
 #| warning: false
 #| label: fig-borealDiversity
@@ -990,14 +3138,14 @@ plot_ly(x = c(asoDataMeadows$bio1),
         type = "scatter3d", # "scatter3d"
         mode = "markers", 
         color = c(asoDataMeadows$cluster))%>%
-  layout(scene = list(xaxis = axx, yaxis = axy, zaxis = axz))
+  plotly::layout(scene = list(xaxis = axx, yaxis = axy, zaxis = axz))
 
 ```
 
-
+It is obvious that diversity increases with the species richness and eveness. The species richness across all meadows for each pollinator group (alpine, boreal and temperate pollinators) were all the same, and so the diversity within a meadow reflects how evenly species are distributed within the meadow. 
 
 ```{r}
-#| fig-cap: 'Simpson diversity estimates for the temperate pollinators within the ASO data meadows. The diversity indices are colored based on their clustering by annual temperature and latitude values.'
+#| fig-cap: 'Inverse Simpson diversity estimates for the temperate pollinators within the ASO data meadows. The diversity indices are colored based on their geoclimatic regions (clusters based on the annual mean temperature and latitude).'
 #| echo: false
 #| warning: false
 #| label: fig-temperateDiversity
@@ -1008,9 +3156,28 @@ plot_ly(x = c(asoDataMeadows$bio1),
         type = "scatter3d", # "scatter3d"
         mode = "markers", 
         color = c(asoDataMeadows$cluster))%>%
-  layout(scene = list(xaxis = axx, yaxis = axy, zaxis = axz))
+  plotly::layout(scene = list(xaxis = axx, yaxis = axy, zaxis = axz))
 
 ```
+
+We also present the Shannon-Weiner and inverse Simpson diversity indices for the alpine, boreal and temperate pollinators in @fig-allIndices. Both indices tell the same story: there are more diverse temperate pollinators, than boreal pollinators and alpine pollinators. When we put all the zones together, we see that the diversity is higher at regions with low altitude and high latitude (last column in @fig-allIndices and compare with column called annual temperature in @fig-covariates). 
+
+#### 10.3.2. Diversity across Norway
+
+```{r fig-allIndices}
+#| fig-cap: 'The Shannon Weiner and inverse Simpson diversity indices for alpine, boreal, temperate and all zones estimated across Norway.'
+#| fig-width: 100
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/diversityEstimates.png")
+```
+
+Finally, the diversity of bees, butterflies and hoverflies across the study region are presented in the last row in @fig-allIndices. We see that bees and butterflies have similar diversity distribution, with hoverflies being more diverse than both of them. However, all the pollinators are more diverse at regions with low latitude and high mean temperatures (a result consistent within this chapter).
+
+
+### 10.4. Pollinator indicators
+
+The reader is referred to @sec-refConditionValues for the results.
 
 
 ## 11. Export file
