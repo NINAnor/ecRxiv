@@ -20,7 +20,7 @@ author:
   - name: Zander Venter 
     affiliations:
       - ref: myID    
-date: November 20, 2024 
+date: November 22, 2024 
 callout-icon: false
 bibliography: references.bib
 lightbox: true
@@ -163,13 +163,13 @@ This indicator is in review and is subject to change
 
 <hr />
 
-## 1. Introduction
+## 1 Introduction
 
 The Norwegian word "gjengroing" is directly translated to "regrowing" in English. The "gjengroing" indicator describes the regrowth of woody vegetation such as trees and bushes in open ecosystems (open wetlands, naturally open and open semi-natural meadows) across Norway. We will henceforth call the "gjengroing" indicator for woody encroachment or just encroachment. We will use a spatial reference approach where reference areas define good or optimal vegetation regrowth heights.
 
 The workflow spans two platforms including RStudio and Google Earth Engine (GEE). To reproduce this workflow you will need a GEE account and access to the NINA RStudio and R/GeoSpatialData servers.
 
-## 2. About the underlying data
+## 2 About the underlying data
 
 We rely on the following datasets:
 
@@ -200,33 +200,33 @@ The original units for the canopy model is meters. This is the height of the veg
 
 There is no plan yet to update the LiDAR dataset over the whole of Norway. Therefore there is a related encroachement indicator being developed that uses satellite or aerial images that are updated more frequently.
 
-## 3. Indicator properties
+## 3 Indicator properties
 
-### 3.1. ECT
+### 3.1 ECT
 
 ECT: Structural state characteristic (B2)
 
-### 3.2. Ecosystem condition characteristic
+### 3.2 Ecosystem condition characteristic
 
 In good condition, the three target ecosystems are characterized as being open, with little trees.
 
-### 3.3. Other standards
+### 3.3 Other standards
 
 The indicator is related to the *Funksjonell sammensetning innen trofiske nivåer* in the Norwegian standard fro ecosystem condition assessments.
 
-### 3.4. Collinearities with other indicators
+### 3.4 Collinearities with other indicators
 
 There is possibly a collinearity with a [preliminary indicator](https://ninanor.github.io/ecosystemCondition/NDVI-indicator-natopen.html) based on the normalized difference vegetation index (NDVI) as a proxy for vegetation production. NDVI can be correlated with vegetation height and consequently yield similar results to the LiDAR-based encroachment indicator.
 
 For wetlands especially, woody encroachment is associated with trenching, which is the topic of an indicator based on [field-recorded mire trenching](https://ecoevorxiv.org/repository/view/7221/), and another indicator based on the [amount of trenching](https://ninanor.github.io/mire-trenching/) as inferred from LiDAR.
 
-## 4. Reference condition and values
+## 4 Reference condition and values
 
-### 4. 1. Reference condition
+### 4.1 Reference condition
 
 The reference condition is defined as a minimally disturbed state, with a climate similar to the 1961-1990 period, and with a native species assemblage similar as today. See @nybo_fagsystem_2017. This reference condition translates to one where open ecosystems are indeed open, with little to no woody encroachment. For natural ecosystems this reflects a state where climate warming, wetland drainage, and alien species etc have not led to any net loss of these nature types and their internal functioning. For semi-natural ecosystems it reflects a state where traditional husbandry is keeping the ecosystems open due to grazing and hay making.
 
-### 4. 2. Reference values
+### 4.2 Reference values
 
 #### 4.2.1 Minimum and maximum values
 
@@ -255,35 +255,31 @@ Once we have the reference vegetation height for a given ecosystem type and regi
 
 The vegetation height percentiles are then scaled to be between 0 and 1 using a sigmoid transformation @oliver2021new. See also @sec-scaling.
 
-#### 4.2.2. Threshold value for defining *good ecological condition (if relevant)*
+#### 4.2.2 Threshold value for defining *good ecological condition (if relevant)*
 
 There are currently no other reference levels than X~0~ and X~100~ defined.
 
-#### 4.2.3. Spatial resolution and validity
+#### 4.2.3 Spatial resolution and validity
 
 The reference levels are unique to homogeneous ecosystem areas defined as cross sections of region (five regions in Norway) and bioclimatic zone. Note that some bioclimatic zones may have been merged due to low sample size within the strata.
 
 Indicators are normalized at the polygon level with reference levels that are defined for much bigger regions. This means that indicator values are not precise at the polygon level, and probably should not be presented at that scale. Indicator values aggregated to larger grid cells, such as a 50 km grid, is ok (@sec-grid).
 
-## 5. Uncertainties
+## 5 Uncertainties
 
 <!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
 
-The calculation of the indicator involves many small decisions which can have significant effects on the resulting conditions scores. **Therefore in the future it would be good to perform sensitivity analyses with each decision to test the effect on the outcome.** The decisions which would benefit from further exploration include:
+The calculation of the indicator involves many small decisions which can have significant effects on the resulting conditions scores. Therefore in the future it would be good to perform sensitivity analyses with each decision to test the effect on the outcome. The decisions which would benefit from further exploration include:
 
--   **Selection of the reference and population areas.** Here we were limited to using NiN MI polygons and Nasjonalt grunnkart because these are arguably the best datasets currently available for this exercise. However, both NiN MI polygons and Nasjonalt grunnkart are spatially and thematically biased in some ways. Therefore, it may be worth exploring alternative datasets in the future.
+-   **Selection of the reference and population areas.** Here we were limited to using NiN MI polygons and Nasjonalt grunnkart as references for the good condition because these are arguably the best datasets currently available for this exercise. However, both NiN MI polygons and Nasjonalt grunnkart are spatially and thematically biased in some ways. Therefore, it may be worth exploring alternative datasets in the future.
 
 -   **Definition of good condition states in NiN MI data.** Here we used the overall "Tilstand" score for each NiN MI reference polygon. However, the overall score is a combination of several sub-scores that may or may not be relevant for ecological condition. For instance, trenching or wheel marks in wetlands is a common condition sub-score in NiN MI, however it is debatable as to whether this should be considered a part of ecological condition. Therefore it may be beneficial to attempt repeating the indicator calculation using sub-categories of "Tilstand" in the NiN MI data.
 
-    -   **This will only make sense for semi-naturlig and naturlig åpen as encroachment is one of the "tilstand"-indicators.**
+-   **Definition of lower threshold value (X~0~)** **for naturally open areas.** For the naturally open areas, we sat a specific threshold (0.8 m) for when the population polygons (GRUK) for naturally open areas would have a poor condition. However, tests should be done to find a more proper threshold. This could for example be using the field-based assessments of ecological condition and compare these with the LiDAR-based vegetation heights to find a proper threshold.
 
-::: callout-warning
-The point below is subject to change. One review suggested quantifying uncertainty using the estimated polygon level indicator values instead.
-:::
+-   **Selection of scaling function and define threshold value for good ecological condition.** In the investigation part of how to calculate the encroachment index (not presented here), we tested three different scaling functions (Sigmoid (as presented in an earlier version), Exponential and Linear) where we ended up using the Linear scaling function. However, further testing of scaling functions should be done in the future, especially in regards to defining a threshold value for good ecological condition. Here we only define the upper and lower limits of ecological condition. However the results presented in section 10.4 suggests that it would be beneficial for the encroachment index to also have a threshold value for good ecological condition (X~60~). One way could be to calculate the 90th percentile for vegetation height in the reference polygons and set this as X~60~, but a proper threshold value should be investigated.
 
--   **Quantification of uncertainty around indicator scores.** Here we used the standard deviation in the vegetation heights for reference (NiN MI) polygons within each region to quantify the uncertainty around scaled indicator scores. We did this because the method used in `eaTools::ea_spread()` function is a bootstrapping approach which resulted in extremely small uncertainty estimates due to the large number of polygons included in our analysis. [In the future, a better method for quantifying uncertainty is needed.](https://github.com/NINAnor/eaTools/issues/17) Perhaps by running sensitivity analyses that test several variations of the points mentioned above can form the basis for quantifying an error margin around indicator values.
-
-## 6. References
+## 6 References
 
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
 
@@ -292,7 +288,7 @@ The point below is subject to change. One review suggested quantifying uncertain
 
 Links to data and resources are also provided with hyperlinks in-line.
 
-## 7. Datasets
+## 7 Datasets
 
 <!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
 
@@ -482,33 +478,71 @@ if (runFromScratch) {
     # Drop polygons with no condition score
     drop_na(tilstand) %>%
     # Make a column for the condition sub-score "Rask suksesjon"
-    mutate(rasksuks = as.numeric(str_extract(ninBeskrivelsesvariable, "(7RA-BH_|7RA-SJ_)\\d+") %>%
-           str_remove("7RA-BH_|7RA-SJ_")))  # Remove the prefix to keep only the number
+    mutate(rasksuks = as.numeric(str_extract(ninBeskrivelsesvariable, "(7RA-BH_|7RA-SJ_)\\d+") %>% str_remove("7RA-BH_|7RA-SJ_"))) %>%  # Remove the prefix to keep only the number
+    # Some wetland and naturally open also have rask suksesjon. However we only want to look at semi-natural land here as the sample size is smaller for the two other types
+    mutate(rasksuks = if_else(hovedøkosystem == "Semi-naturlig", rasksuks, NA_real_)) %>%
+    # Only include rows with good condition or where rasksuks is not na
+    filter(tilstand == "god" | !is.na(rasksuks))
 
-nrow(nin)
+nrow(nin) #49218
 
-# The NiN MI now consists of more than 50 000 polygons. It will be too time consuming to get LiDAR vegetation heights for all polygons. Therefore we will only extract LiDAR heights for polygons with a good condition, except for semi-natural lands where we will extract heights for all polygons as we will use this for validation of the index score later.
+# The NiN MI now consists of almost 50 000 polygons. It will be too time consuming to get LiDAR vegetation heights for all polygons. Therefore we will only extract LiDAR heights for polygons with a good condition, except for semi-natural lands where we will extract heights for a sample of polygons as we will use this for validation of the index score later. To do this, we will sample n polygons per condition score per region-bioclimatic zone strata.
   
-nin <- nin %>%
-  filter(tilstand == "god" | !is.na(rasksuks))
+# Make region-bioclimatic zone strata file
+bioClimReg <- bioclim %>%
+  st_transform(st_crs(regions)) %>%
+  st_intersection(regions) %>%
+    mutate(vegClimZoneLab = NAVN) %>%
+    dplyr::select(region, vegClimZoneLab) %>%
+  rowid_to_column("ID") # This will be the unique strata ID
 
-nrow(nin2)
+# Intersect region-bioclimatic zone strata file with NiN MI data for semi-natural
+nin2 <- nin %>%
+  filter(!is.na(rasksuks)) %>%
+  st_intersection(bioClimReg)
 
-# The dataset is still too big so will have to get LiDAR heights for only a sample. To do this, we will sample n polygons per condition score per region-bioclimatic zone strata.
+# Check number of polygons per strata for polygons with rask suksesjon
+nin2 %>%
+  st_drop_geometry() %>%
+  group_by(ID, rasksuks) %>%
+  summarise(n=n())
+# Some strata have few polygons but this is ok for now.
 
+# We have 21 strata. Will sample 50 polygons per strata per rask suksesjon score that is not good condition (as we want to keep all of those for the reference)
+nin_rasksuks <- nin2 %>%
+  group_by(ID, rasksuks) %>%
+  slice_sample(n = 50, replace = F) %>%
+  ungroup()
 
+# This looks better. 
+nin_rasksuks %>%
+  st_drop_geometry() %>%
+  group_by(ID) %>%
+  summarise(n=n())
+
+# Select the polygons from the sample
+nin3 <- nin %>%
+  filter(tilstand == "god" | id %in% nin_rasksuks$id)
+
+nrow(nin3) #19440
+
+nin3 %>%
+  st_drop_geometry() %>%
+  group_by(hovedøkosystem,rasksuks) %>%
+  summarise(n=n())
   
-# Export list of included nature types
+# Export list of included nature types when tilstand is god
 nin %>%
   as_tibble() %>%
+  filter(tilstand == "god") %>%
   group_by(hovedøkosystem) %>%
   distinct(naturtype) %>%
   arrange(hovedøkosystem) %>%
   write_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/NiN/includedNatureTypes.csv")
 
 
-  # Export the data
-  nin %>%
+# Export the data
+nin %>%
     # Only included specific columns
     #dplyr::select(id, hovedøkosystem, hovedtype, naturtypeKode, tilstand)
     dplyr::select(id, hovedøkosystem, tilstand) %>%
@@ -528,7 +562,7 @@ read_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/NiN/includedNa
 ### 7.6 Import data to Google Earth Engine, run GEE JavaScript code and download data
 
 -   **Import cleaned datasets (ASO and NiN MI data) to Google Earth Engine.**
--   **Run the following GEE JavaScript code by clicking on the hyperlink:** [GEE script](https://code.earthengine.google.com/08cdcffc0e9b8c1a89d240e0e207dceb). When you run the script, then click the Tasks tab in the GEE code editor and run the export tasks. The export files will appear in your Google Drive.
+-   **Run the following GEE JavaScript code by clicking on the hyperlink:** [GEE script](https://code.earthengine.google.com/e9178ddeb38dbe7a0c188fbda29bbd8b). When you run the script, then click the Tasks tab in the GEE code editor and run the export tasks. The export files will appear in your Google Drive.
 -   **Download the files from your Google Drive to the /data/gjengroing/From_GEE directory:**
     -   'area_cover_grid.csv' - this gives the area coverage of reference data, population data and LiDAR data for each 10x10 km SSB grid cell.
     -   'vegHeights_skog_climZoneRegion.csv' - this gives the 90th height percentile for each region-bioclimatic zone strata.
@@ -576,17 +610,24 @@ readVegHeightFiles <- function(dir, uniqueString){
 # Bioclimatic zone lookup
 vegLookup <- tibble(
   vegClimZone = c(1,2,3,4,5), 
-  vegClimZoneLab = c('Boreonemoral sone (BN)','Lavalpin sone (LA)','Mellomboreal sone (MB)','Nordboreal sone (NB)','Sørboreal sone (SB)')
+  vegClimZoneLab = c('Boreonemoral sone (BN)',
+                     'Lavalpin sone (LA)',
+                     'Mellomboreal sone (MB)',
+                     'Nordboreal sone (NB)',
+                     'Sørboreal sone (SB)')
   )
 
 # Bioclimatic zone and region cleaning function
 cleanRegClim <- function(data){
   
   dataOut <- data %>%
-    mutate(region=ifelse(region_id == 1, 'Nord-Norge',
-                         ifelse(region_id == 2, 'Midt-Norge',
-                                ifelse(region_id == 3, 'Østlandet',
-                                       ifelse(region_id == 4, 'Vestlandet', 'Sørlandet'))))) %>%
+    mutate(region = case_when(
+    region_id == 1 ~ 'Nord-Norge',
+    region_id == 2 ~ 'Midt-Norge',
+    region_id == 3 ~ 'Østlandet',
+    region_id == 4 ~ 'Vestlandet',
+    TRUE ~ 'Sørlandet'
+  )) %>%
 
     mutate(vegClimZone = round(vegClimZone)) %>%
     left_join(vegLookup, by = 'vegClimZone') %>%
@@ -623,15 +664,17 @@ areaCovers <- read_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Ida/F
 # Calculate percentage cover relative to the land area in each cell
 areaCoversPerc <- areaCovers %>%
   gather(key, val, vaatmark_pop, aapne_pop, semi_pop, vaatmark_nin, aapne_nin, semi_nin, lidarCover, skog) %>%
-  mutate(type = ifelse(str_detect(key, "pop"), "pop",
-    ifelse(str_detect(key, "nin"), "nin",
-      ifelse(key == "lidarCover", "lidar", NA)
-    )
+    mutate(type = case_when(
+      str_detect(key, "pop") ~ "pop",
+      str_detect(key, "nin") ~ "nin",
+      key == "lidarCover" ~ "lidar",
+      TRUE ~ NA_character_  # Default case NA
   )) %>%
-  mutate(ecosystem = ifelse(str_detect(key, "aapne"), "Naturlig åpne",
-    ifelse(str_detect(key, "vaatmark"), "Våtmark",
-      ifelse(str_detect(key, "semi"), "Semi-naturlig", NA)
-    )
+  mutate(ecosystem = case_when(
+    str_detect(key, "aapne") ~ "Naturlig åpne",
+    str_detect(key, "vaatmark") ~ "Våtmark",
+    str_detect(key, "semi") ~ "Semi-naturlig",
+    TRUE ~ NA_character_  # Default case for NA
   )) %>%
   mutate(
     areaPerc = val / land * 100,
@@ -719,7 +762,7 @@ skog_region_bioclim$vegClimZoneLab <- factor(skog_region_bioclim$vegClimZoneLab,
 
 ```
 
-```{r fig-coverage-map-forestheight, fig.height=5, fig.width=10, fig.cap="Map of Norway showing 90th percentile forest heights per region-bioclimatic zone strata."}
+```{r fig-coverage-barplot-forestheight, fig.height=5, fig.width=10, fig.cap="Barplots showing 90th percentile forest heights per region-bioclimatic zone strata."}
 #| message: false
 bioClimReg %>%
   left_join(skog_region_bioclim) %>% 
@@ -743,6 +786,10 @@ Import the reference vegetation heights generated in GEE and define the upper li
 
 ecosysttypes <- c("vaatmark", "aapne", "semi")
 
+# Need to filter out the ones where data is also on semi-natural types that are not in a good condition
+nin_good_condition <- st_read("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/NiN/nin_cleaned_condition.shp") %>%
+  filter(tilstnd == "god")
+
 for(i in 1:length(ecosysttypes)){
     
     ecosysttype <- ecosysttypes[i]
@@ -750,10 +797,15 @@ for(i in 1:length(ecosysttypes)){
     # Import median LiDAR heights for NiN MI polygons (references)
     dir <- '/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Ida/From_GEE/vegHeights/'
     refecosysttypeRaw <- readVegHeightFiles(dir, paste0(ecosysttype,'_ref')) %>%
-    mutate(ref = chm) %>%
-    dplyr::select(-'.geo', -'system:index', -chm)
+      mutate(ref = chm) %>%
+      dplyr::select(-'.geo', -'system:index', -chm)
     
-    refecosysttypeRaw_tab <- cleanRegClim(refecosysttypeRaw) %>%
+    assign(paste0(ecosysttype,"raw"),refecosysttypeRaw)
+    
+    refecosysttypeRawg <- refecosysttypeRaw %>%
+        filter(id %in% nin_good_condition$id)
+    
+    refecosysttypeRaw_tab <- cleanRegClim(refecosysttypeRawg) %>%
       group_by(region, vegClimZoneLab) %>%
       summarise(n = n())
     
@@ -766,7 +818,7 @@ for(i in 1:length(ecosysttypes)){
   
   
     # Export to file for reference
-    refecosysttype %>% write.csv(paste0('../data/ref',ecosysttype,'.csv'), row.names =FALSE)
+        refecosysttype %>% write.csv(paste0('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/ref',ecosysttype,'.csv'), row.names =FALSE)
     
     assign(paste0('ref',ecosysttype), refecosysttype)
 
@@ -777,7 +829,7 @@ for(i in 1:length(ecosysttypes)){
 #| fig-cap: "Reference vegetation height in wetland ecosystems in Norway. Numbers indicate the sample size."
 #| message: false
 
-refvaatmark <- read_csv("../data/refvaatmark.csv")
+refvaatmark <- read_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refvaatmark.csv")
 
 refvaatmarknr <- refvaatmark %>%
   left_join(vaatmarkrawtab)
@@ -805,7 +857,7 @@ refvaatmarknr %>%
 ```{r fig-ref-open-enc, fig.cap="Reference vegetation height in naturally open ecosystems under the forest line in Norway."}
 #| message: false
 
-refaapne <- read_csv('../data/refaapne.csv')
+refaapne <- read_csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refaapne.csv')
 
 
 refaapnenr <- refaapne %>%
@@ -832,7 +884,7 @@ refaapnenr %>%
 
 ```{r fig-ref-semi-enc, fig.cap="Reference vegetation height in semi-natural ecosystems in Norway."}
 #| message: false
-refsemi <- read_csv('../data/refsemi.csv')
+refsemi <- read_csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refsemi.csv')
 
 refseminr <- refsemi %>%
   left_join(semirawtab)
@@ -853,6 +905,33 @@ refseminr %>%
   facet_wrap(.~region)+
   labs(y = "Reference vegetation height (m)",
        x = " ")
+
+```
+
+From the three figures above, we can see that some of the bioclimatic zones have few reference polygons. To avoid a low sample size that might affect the resulting encroachment indicator score, we remove strata with less than 10 polygons.
+
+```{r filterRefHeights}
+
+refvaatmark <- read_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refvaatmark.csv")
+refaapne <- read_csv("/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refaapne.csv")
+refsemi <- read_csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refsemi.csv')
+
+# Filter out polygons in groups with less than 10 polygons
+refvaatmark %>%
+  anti_join(vaatmarkrawtab %>% filter(n < 10),
+            by=c("region", "vegClimZoneLab")) %>%
+  write.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refvaatmark.csv', row.names =FALSE)
+
+refaapne %>%
+  anti_join(aapnerawtab %>% filter(n < 10),
+            by=c("region", "vegClimZoneLab")) %>%
+  write.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refaapne.csv', row.names =FALSE)
+
+refsemi %>%
+  anti_join(semirawtab %>% filter(n < 10),
+            by=c("region", "vegClimZoneLab")) %>%
+  write.csv('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refsemi.csv', row.names =FALSE)
+
 
 ```
 
@@ -920,7 +999,7 @@ for(i in 1:length(ecosysttypes)){
   
   assign(paste0('pop',ecosysttype), popecosysttype)
 
-  
+
 }
 ```
 
@@ -956,7 +1035,7 @@ for(i in 1:length(ecosysttypes)){
         
   }
   
-  refecosysttype <- read_csv(paste0('../data/ref',ecosysttype,'.csv'))
+  refecosysttype <- read_csv(paste0('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/ref',ecosysttype,'.csv'))
 
   
   # Combine the reference heights, forest heights and population heights into one dataset
@@ -988,21 +1067,27 @@ The indicator values are estimated at the level of population polygons, but the 
 
 ## 9. Analyses
 
-We will calculate the encroachment indicator for each population polygon over Norway using a Sigmoid scaling function.
+We will calculate the encroachment indicator for each population polygon over Norway using a Linear scaling function.
 
-```{r sigmoidFunction}
+```{r linearFunction}
 
-# Define Sigmoid scaling function
-scaleSigmoid <- function(variable){
-  refLow <- min(variable)
-  refHigh <- max(variable)
-  thr <- (refHigh-refLow)/2
-  indicator_LowHigh <- (variable - refLow)/(refHigh - refLow)
-  indicator_LowHigh[indicator_LowHigh[] < 0] <- 0
-  indicator_LowHigh[indicator_LowHigh[] > 1] <- 1
-  indicator_sigmoid <- 100.68*(1-exp(-5*(indicator_LowHigh)^2.5))/100
-  return (round(indicator_sigmoid, 4))
+# Define Linear scaling function
+scaleLinear <- function(variable) {
+  refLow <- min(variable, na.rm = TRUE)
+  refHigh <- max(variable, na.rm = TRUE)
+  
+  # Linear scaling formula
+  indicator_LowHigh <- (variable - refLow) / (refHigh - refLow)
+  
+  # Clamp values between 0 and 1
+  indicator_LowHigh[indicator_LowHigh < 0] <- 0
+  indicator_LowHigh[indicator_LowHigh > 1] <- 1
+  
+  indicator_linear <- indicator_LowHigh
+  
+  return(round(indicator_linear, 4))
 }
+
 
 ```
 
@@ -1025,10 +1110,10 @@ for(i in 1:length(ecosysttypes)){
     
   # Calculate encroachment index values
   ecosysttypeIndexPoly <- ecosysttypeHts  %>%
-    # Gather into long format so that we can mutate the scaleSigmoid() function
+    # Gather into long format so that we can mutate the scaleLinear() function
     gather(type, height, ref, pop, skog) %>%
     group_by(`system:index`) %>%
-    mutate(index = scaleSigmoid(height)) %>%
+    mutate(index = scaleLinear(height)) %>%
     # Because short vegetation is good condition, we must invert the scaled indicator
     mutate(index = 1-index) %>%
     # Get the indicator values for the population polygons only (ref and skog will be 1 and 0)
@@ -1059,45 +1144,48 @@ myColour <- "black"
 mySize <- 8
 myAlpha <- 0.7
 myShape <- 21
-low <- "red"
-high <- "green"
+low <- "#C01212"
+high <- "#006400"
 
 aapneIndexPolySpat %>%
   add_column(Ecosystem = "Naturally open") %>%
   bind_rows(semiIndexPolySpat %>% add_column(Ecosystem = "Semi-natural")) %>%
-  bind_rows(vaatmarkIndexPolySpat%>% add_column(Ecosystem = "Wetlands")) %>%
+  bind_rows(vaatmarkIndexPolySpat%>% add_column(Ecosystem = "Wetland")) %>%
+  mutate(Ecosystem = factor(Ecosystem, levels=c("Wetland", "Naturally open", "Semi-natural"))) %>%
   as_tibble() %>%
-  ggplot(aes(x = pop, y = index, 
-      fill = index)) + geom_point(colour = myColour, 
-      size = mySize, alpha = myAlpha, shape = myShape) + 
+  ggplot(aes(x = pop, y = index, fill = index)) + 
+  geom_point(colour = myColour, size = mySize, alpha = myAlpha, shape = myShape) + 
       ylab("Indicator values") + xlab("Median LiDAR height (m)") + 
-      scale_fill_gradient("Indicator values", low = low, 
-        high = high) + scale_x_continuous(expand = expansion(mult = 0.2)) + 
-      scale_y_continuous(expand = expansion(mult = 0.2)) + 
-      guides(fill = "none") +
+      scale_fill_gradient("Indicator values", low = low, high = high) + 
+  scale_x_continuous(expand = expansion(mult = 0.1)) + 
+  scale_y_continuous(expand = expansion(mult = 0.1), lim=c(0,1), breaks=seq(0,1,0.2)) + 
+  guides(fill = "none") +
   facet_wrap(.~Ecosystem,
-             scales = "free_x")
+             scales = "free_x") +
+  theme_bw()
 
 ```
 
 ```{r fig-normalisationPlotNaturallyOpen}
 #| fig-cap: |
 #|   "Same figure as above, but looking only at naturally open areas with LiDAR height 
-#|   between zero and the upper reference value (0.8). This show that there is some, but
-#|   very little, variation due to differences in the upper reference value (i.e., the 
-#|   X100)."
+#|   between zero and the upper reference value (0.8 m). This show that there is some, 
+#|   but very little, variation due to differences in the upper reference value (i.e., 
+#|   the X100)."
 #| message: false
 #| warning: false
 aapneIndexPolySpat %>%
   as_tibble() %>%
-  ggplot(aes(x = pop, y = index, 
-      fill = index)) + geom_point(colour = myColour, 
-      size = mySize, alpha = myAlpha, shape = myShape) + 
-      ylab("Indicator values") + xlab("Median LiDAR height (m)") + 
-      scale_fill_gradient("Indicator values", low = low, 
-        high = high) + scale_x_continuous(expand = expansion(mult = 0.2)) + 
-      scale_x_continuous(limits = c(0,0.8)) + 
-      guides(fill = "none") 
+  ggplot(aes(x = pop, y = index, fill = index)) +
+  geom_point(colour = myColour, size = mySize, alpha = myAlpha, shape = myShape) + 
+  ylab("Indicator values") + 
+  xlab("Median LiDAR height (m)") + 
+  scale_fill_gradient("Indicator values", low = low, high = high) + 
+  scale_x_continuous(expand = expansion(mult = 0.1), lim=c(0,3)) + 
+  scale_y_continuous(expand = expansion(mult = 0.1), lim=c(0,1), breaks=seq(0,1,0.2)) + 
+  guides(fill = "none") +
+  theme_bw()
+
 
 ```
 
@@ -1170,11 +1258,7 @@ for(i in 1:length(ecosysttypes)){
 
 ### 9.4 Scaled indicator values at regional level
 
-::: callout-warning
-This part is subject to change. One reviewer suggested using the SD from the indicator estimates across population polygons instead, to be consistent with the ecosystem condition framework.
-:::
-
-Now we will aggregate up to the regional level for final reporting. We will use the same method as in the section above, except here we will use a different method to calculate the uncertainty value around the indicator values. The ea_spread function in eaTools uses a bootstrapping method to calculate the standard error in indicator values when aggregating from the polygon to regional level. Because the dataset consists of many polygons per region, the resulting standard errors are extremely small. Therefore we will use the standard deviation in reference values per region. The standard deviation, as a percentage of the average reference value is used to calculate the uncertainty in the scaled indicator value.
+Now we will aggregate up to the regional level for final reporting. We will use the same method as in the section above, except here we will use a different method to calculate the uncertainty value around the indicator values. The ea_spread function in eaTools uses a bootstrapping method to calculate the standard error in indicator values when aggregating from the polygon to regional level. Because the dataset consists of many polygons per region, the resulting standard errors are extremely small. Therefore we will use the standard deviation of the indicator values per region.
 
 ```{r awm-reg}
 #| message: false
@@ -1199,8 +1283,7 @@ for(i in 1:length(ecosysttypes)) {
         summarise(pop_mean = mean(pop),
                   skog_mean = mean(skog),
                   ref_mean = mean(ref),
-                  sd_ref = sd(ref),
-                  sd_pop = sd(pop))
+                  sd_index = sd(index))
   
      # Aggregate polygon index scores to regional level using eaTools
       ecosysttypeIndexRegion <- eaTools::ea_spread(indicator_data = ecosysttypeIndexPolySpat,
@@ -1224,132 +1307,95 @@ for(i in 1:length(ecosysttypes)) {
 
 ### 9.5 Validation of index score
 
-::: callout-warning
-This part is subject to change- One reviewer suggested validating the indicator by calculating indicator values for all NiN polygins in the reference area dataset, regardless of the recorded *tilstand*, and the plotting the indicator against the variable *rask suksesjon* (essentially a measure of encroachment done in the field). This will show if the indicator is able to separate areas based on some measure of ground truth.
-:::
-
 In the NiN MI data, the overall score for "Tilstand" consists of several sub-scores. In semi-natural ecosystems, a variation of encroachment is recorded as a sub-score (Rask suksesjon). However, for wetlands and naturally open areas, there are no consistent sub-score for encroachment.
 
-To see how comparable the field-based condition scores from the NiN MI data are with the LiDAR-based height condition index score, we will repeat the encroachment index calculation using reference heights from where the sub-category "Rask suksesjon" has a good condition.
+To see how comparable the field-based condition scores from the NiN MI data are with the LiDAR-based height condition index score, we will repeat the encroachment index calculation using vegetation heights for semi-natural polygons with values for the sub-category "Rask suksesjon" as the population values. In this way we can see if the indicator is able to separate areas based on some measure of ground truth.
 
 ```{r validation}
 #| message: false
 #| warning: false
 
-nin <- st_read('/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper - Miljødirektoratets instruks/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb', layer="naturtyper_nin_omr",
-               quiet = T) %>%
+# Import nin dataset with semi-natural types and non-NA values for Rask suksesjon
+nin_rasksuks <- st_read("/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper - Miljødirektoratets instruks/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
+    layer = "naturtyper_nin_omr",
+    quiet = T
+  ) %>%
     # Fix any invalid geometries
     mutate(validGeo = st_is_valid(SHAPE)) %>%
     filter(validGeo) %>%
     # Simplify ecosystem names
-    mutate(hovedøkosystem = recode(hovedøkosystem, 
-                                   "våtmark" = 'Vaatmark',
-                                   "skog" = "Skog",
-                                   "fjell" = "Fjell",
-                                   "semi-naturligMark" = 'Semi-naturlig',
-                                   "naturligÅpneOmråderILavlandet" = 'Naturlig aapne',
-                                   "naturligÅpneOmråderUnderSkoggrensa" = 'Naturlig aapne'))
+    mutate(hovedøkosystem = recode(hovedøkosystem,
+      "våtmark" = "Vaatmark",
+      "skog" = "Skog",
+      "fjell" = "Fjell",
+      "semi-naturligMark" = "Semi-naturlig",
+      "naturligÅpneOmråderILavlandet" = "Naturlig aapne",
+      "naturligÅpneOmråderUnderSkoggrensa" = "Naturlig aapne"
+    )) %>%
+    # Make a column for the condition sub-score "Rask suksesjon"
+    mutate(rasksuks = as.numeric(str_extract(ninBeskrivelsesvariable, "(7RA-BH_|7RA-SJ_)\\d+") %>% str_remove("7RA-BH_|7RA-SJ_"))) %>% # Remove the prefix to keep only the number
+    mutate(rasksuks = if_else(hovedøkosystem == "Semi-naturlig", rasksuks, NA_real_)) %>%
+    # Only include rows where rasksuks is not na
+    filter(!is.na(rasksuks)) %>%
+    select(identifikasjon_lokalId, tilstand, rasksuks) %>%
+    rename(id = "identifikasjon_lokalId")
 
-# Only select polygons where the sub-variable "Rask suksesjon" (7RA-BH or 7RA-SJ) have a score of 1 (Good) and get the IDs of those polygons. Also remove tree-covered semi-natural types.
-nin <- nin %>%
-  filter(grepl("7RA-BH_1|7RA-SJ_1",ninBeskrivelsesvariable),
-         !(naturtype %in% c(
-                              #Trees (oaks) or are tree covered
-                              'Hule eiker', 
-                              'Hagemark',
-                              'Lauveng')
-         ))
+# Get heights from the raw data heights object and population
+semiraw
+popsemi
 
-# Import median LiDAR heights for the polygons
-    dir <- '/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Ida/From_GEE/NiNvegHeights/'
-nin_heights <- readVegHeightFiles(dir, "NiNveg") %>%
-    mutate(ref = chm) %>%
-    dplyr::select(-'.geo', -'system:index', -chm)
+# Combine 
+nin_heights <- semiraw %>%
+  full_join(nin_rasksuks) %>%
+  filter(!is.na(ref))
 
-# Only semi-natural with good condition for Rask suksesjon
-nin_heights <- nin_heights %>%
-  filter(id %in% nin$identifikasjon_lokalId)
-    
-# Add region and bioclim zones and calculate the median per strata. This will form the upper limit of the ecological condition score (i.e., good condition)
-refsemisub <- cleanRegClim(nin_heights) %>%
-    group_by(region, vegClimZoneLab) %>%
-    summarise(refsub = median(ref, na.rm=T))
+rasksuks_heights <- cleanRegClim(nin_heights)
 
-# Compare with refsemi
-refsemis <- refsemi %>%
-  left_join(refsemisub)
+popRS <- popsemi %>%
+    left_join(rasksuks_heights, by = c('vegClimZoneLab','region', 'ssbid')) %>%
+    # Remove the pop column with ASO heights
+  select(-pop) %>%
+  # Rename the ref column from the semi-natural rask suksesjon polygons to pop
+  rename(pop="ref") %>%
+  filter(!is.na(pop))
 
-refsemis$region <- factor(refsemis$region, levels=regionlvl)
-refsemis$vegClimZoneLab <- factor(refsemis$vegClimZoneLab, levels=vegclimzonelvl)
-
-# Combine with population heights and calculate new index scores
-
-# Combine median LiDAR heights for forest per region and bioclimatic zone combination with population heights.This will form the lower limit of the ecological condition score (ie. poor condition)
-  popskogsemi <- popsemi %>%
+rasksuks_heightss <- popRS %>%
     left_join(skog_region_bioclim, by = c('vegClimZoneLab','region'))
-  
+
+refsemi <- read_csv(paste0('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Data/Enchroachment_tempfiles/refsemi.csv'))
+
   # Combine the reference heights, forest heights and population heights into one dataset
-  semisHts <- popskogsemi %>%
+rasksukspolyHts <- rasksuks_heightss %>%
     as_tibble() %>% 
     dplyr::select(-geometry) %>%
-    left_join(refsemis, by=c('vegClimZoneLab', 'region')) %>%
-    gather(type, height, refsub, pop, skog) %>%
-    group_by(`system:index`, region, vegClimZoneLab, type) %>%
-    summarise(height = mean(height)) %>%
-    pivot_wider(values_from = height, names_from = type) %>%
-    
-    # If population height is less than the reference value, then it is automatically "good" condition - ie. it inherits the reference height so that the rescaled value will be 1
-    mutate(pop = ifelse(pop < refsub, refsub, pop)) %>%
-    drop_na(pop, refsub)
+    left_join(refsemi, by=c('vegClimZoneLab', 'region'))
   
-  semisHts$region <- factor(semisHts$region, levels=regionlvl)
-  semisHts$vegClimZoneLab <- factor(semisHts$vegClimZoneLab, levels=vegclimzonelvl)
+rasksukspolyHts$region <- factor(rasksukspolyHts$region, levels=regionlvl)
+rasksukspolyHts$vegClimZoneLab <- factor(rasksukspolyHts$vegClimZoneLab, levels=vegclimzonelvl)
 
-   # Calcualte encroachment index values
-  semisIndexPoly <- semisHts  %>%
-    # Gather into long format so that we can mutate the scaleSigmoid() function
-    gather(type, height, refsub, pop, skog) %>%
-    group_by(`system:index`) %>%
-    mutate(index = scaleSigmoid(height)) %>%
+ 
+# Calculate encroachment index values
+rasksuksIndexPoly <- rasksukspolyHts  %>%
+  # Only keep polygon data
+  select(-ssbid, -`system:index`, -`.geo`, -SHAPE) %>%
+    # Gather into long format so that we can mutate the scaleLinear() function
+    gather(type, height, ref, pop, skog) %>%
+    #group_by(`system:index`) %>%
+    mutate(index = scaleLinear(height)) %>%
     # Because short vegetation is good condition, we must invert the scaled indicator
     mutate(index = 1-index) %>%
     # Get the indicator values for the population polygons only (ref and skog will be 1 and 0)
     filter(type == 'pop') %>%
     dplyr::select(-type, -height) %>%
     # Join with original data to get the actual median vegetation heights for each indicator score
-    left_join(semisHts %>% dplyr::select("system:index", pop, refsub, skog)) %>%
-    left_join(popsemi %>% dplyr::select("system:index", ssbid))
-    
-  # Make into spatial objects
-  semisIndexPolySpat <- popsemi %>%
-    dplyr::select("system:index") %>%
-    left_join(semisIndexPoly) %>%
-    filter(!is.na(index)) %>%
-    # Transform to correct projection
-    st_transform(st_crs(regions))
+    left_join(rasksukspolyHts %>% dplyr::select("id",ref,pop, skog) %>% unique())# %>%
+    #left_join(popRS %>% dplyr::select("system:index", ssbid))
 
-      # Get area-weighted mean for reference, forest and population vegetation heights for each unique bioclimatic zone-region combination
-      semisIndexStrata <- bioClimReg %>% 
-        #sample_n(10000) %>%
-        st_join(semisIndexPolySpat %>% 
-                    mutate(area = as.numeric(st_area(geometry))), st_intersects, largest=T) %>%
-        group_by(ID) %>%
-        summarise_at(vars(pop, refsub, skog, index), funs(weighted.mean(., w=area, na.rm=TRUE)))%>% 
-        as_tibble() %>% 
-        dplyr::select(-geometry) %>%
-        rename(index_sub=index)
-      
-# Compare
-semisIndexStrata <- semisIndexStrata %>%
-  left_join(semiIndexStrata, by="ID") %>%
-  left_join(bioClimReg)
-  
-  
 ```
 
 ## 10. Results
 
-The encroachment indicator is visualized at three different spatial scales below, per region-bioclimatic sone (@fig-multiple-maps-enc), per 50 km grid cell (@fig-grid-level-enc) and per region (@fig-regional-level-enc). @fig-multiple-maps-enc show what can be considered the most correct visualisation of the indicator values across Norway. Wetlands and GRUK areas are generally in good condition, according to @fig-grid-level-enc. However, @fig-grid-level-enc show that the GRUK areas are on a worse condition, so perhaps the colors in @fig-multiple-maps-enc are misleading in some way? Semi-natural areas are more varied, with lower condition found in the central boreal zone in south and western Norway and south boreal zone in Central Norway (@fig-multiple-maps-enc).
+The encroachment indicator is visualized at three different spatial scales below, per region-bioclimatic zone strata (@fig-multiple-maps-enc), per 50 km grid cell (@fig-grid-level-enc) and per region (@fig-regional-level-enc). @fig-multiple-maps-enc show what can be considered the most correct visualization of the indicator values across Norway. Wetlands and GRUK areas are generally in good condition, according to @fig-grid-level-enc. However, @fig-grid-level-enc show that the GRUK areas are on a worse condition, so perhaps the colors in @fig-multiple-maps-enc are misleading. Semi-natural areas are more varied, with lower condition found in the central boreal zone in south and western Norway and south boreal zone in Central Norway (@fig-multiple-maps-enc).
 
 The encroachment condition indicator scores are on average above 0.8 and therefore indicate a good overall condition in Norway (@fig-regional-level-enc-forest). Østlandet comes out best for wetland and semi-natural ecosystems. Nord-Norge has poorest condition for semi-natural ecosystems, while Vestlandet has the poorest scores for wetland.
 
@@ -1406,7 +1452,7 @@ makeStrataIndicatorMap <- function(data, title){
     geom_sf(aes(fill = index), color=NA)+
       scale_fill_gradientn(colors=brewer.pal(10, 'Spectral'),
                            limits = c(0,1),
-                           name = 'Index')+
+                           name = 'Indicator')+
       ggtitle(title) +
       theme_void()+
     theme(plot.title = element_text(size=9)) +
@@ -1415,17 +1461,17 @@ makeStrataIndicatorMap <- function(data, title){
   return (p)
 }
 
-v1 <- makeStrataIndicatorMap(vaatmarkIndexStrata, 'A) Våtmark scaled indicator')
-v2 <- makeStrataHeightMap(vaatmarkIndexStrata, "ref", 'B) Våtmark reference height', c(0,5))
-v3 <- makeStrataHeightMap(vaatmarkIndexStrata, "pop", 'C) Våtmark vegetation height', c(0,5))
+v1 <- makeStrataIndicatorMap(vaatmarkIndexStrata, 'A) Wetland scaled indicator')
+v2 <- makeStrataHeightMap(vaatmarkIndexStrata, "ref", 'B) Wetland reference height', c(0,5))
+v3 <- makeStrataHeightMap(vaatmarkIndexStrata, "pop", 'C) Wetland vegetation height', c(0,5))
 
-a1 <- makeStrataIndicatorMap(aapneIndexStrata,  'E) Naturlig åpne scaled indicator')
-a2 <- makeStrataHeightMap(aapneIndexStrata, "ref", 'F) Naturlig åpne reference height', c(0,5))
-a3 <- makeStrataHeightMap(aapneIndexStrata, "pop", 'G) Naturlig åpne vegetation height', c(0,5))
+a1 <- makeStrataIndicatorMap(aapneIndexStrata,  'E) Naturally open scaled indicator')
+a2 <- makeStrataHeightMap(aapneIndexStrata, "ref", 'F) Naturally open reference height', c(0,5))
+a3 <- makeStrataHeightMap(aapneIndexStrata, "pop", 'G) Naturally open vegetation height', c(0,5))
 
-s1 <- makeStrataIndicatorMap(semiIndexStrata,  'I) Semi-naturlig scaled indicator')
-s2 <- makeStrataHeightMap(semiIndexStrata, "ref", 'J) Semi-naturlig reference height', c(0,5))
-s3 <- makeStrataHeightMap(semiIndexStrata, "pop", 'K) Semi-naturlig vegetation height', c(0,5))
+s1 <- makeStrataIndicatorMap(semiIndexStrata,  'I) Semi-natural scaled indicator')
+s2 <- makeStrataHeightMap(semiIndexStrata, "ref", 'J) Semi-natural reference height', c(0,5))
+s3 <- makeStrataHeightMap(semiIndexStrata, "pop", 'K) Semi-natural vegetation height', c(0,5))
 
 
 strataHeightPlot <- grid.arrange(v1,v2,v3,
@@ -1459,11 +1505,10 @@ vGrid1 <- vaatmarkIndexGrid %>%
   geom_sf(data=regions, fill=NA, size=0.5) +
   scale_fill_gradientn(colors=brewer.pal(10, 'Spectral'),
                        limits = c(0,1),
-                       name = 'Index') +
+                       name = 'Tilstandsverdi') +
   theme_void() +
-  theme(legend.position = c(0.7, 0.4),
-        plot.title = element_text(size=10)) +
-  ggtitle('A) Wetland encroachment condition')
+  theme(legend.position = c(0.8, 0.4)) +
+  ggtitle('A) Våtmark')
 
 vGrid2 <- aapneIndexGrid %>%
   ggplot() +
@@ -1471,11 +1516,10 @@ vGrid2 <- aapneIndexGrid %>%
   geom_sf(data=regions, fill=NA, size=0.5) +
   scale_fill_gradientn(colors=brewer.pal(10, 'Spectral'),
                        limits = c(0,1),
-                       name = 'Index') +
+                       name = 'Tilstandsverdi') +
   theme_void() +
-  theme(legend.position = c(0.7, 0.4),
-        plot.title = element_text(size=10)) +
-  ggtitle('B) naturally open condition')
+  theme(legend.position = c(0.8, 0.4)) +
+  ggtitle('B) Naturlig åpen')
 
 vGrid3 <- semiIndexGrid %>%
   ggplot() +
@@ -1483,11 +1527,10 @@ vGrid3 <- semiIndexGrid %>%
   geom_sf(data=regions, fill=NA, size=0.5) +
   scale_fill_gradientn(colors=brewer.pal(10, 'Spectral'),
                        limits = c(0,1),
-                       name = 'Index') +
+                       name = 'Tilstandsverdi') +
   theme_void() +
-  theme(legend.position = c(0.7, 0.4),
-        plot.title = element_text(size=10)) +
-  ggtitle('C) Semi-natural condition')
+  theme(legend.position = c(0.8, 0.4)) +
+  ggtitle('C) Semi-naturlig')
 
 
 
@@ -1522,7 +1565,9 @@ indicatorTable <- vaatmarkTable %>% mutate(Ecosystem = 'Våtmark') %>%
   bind_rows(aapneTable %>% mutate(Ecosystem = 'Naturlig åpne')) %>%
   bind_rows(semiTable %>% mutate(Ecosystem = 'Semi-naturlig')) %>%
   # Calculate the error based on the standard deviation in population polygon heights as a percentage of the population height, and multiply by index score
-  mutate(sd = (sd_pop/pop_mean)*index)
+  #mutate(sd = (sd_pop/pop_mean)*index)
+  mutate(sd = sd_index)
+
 
 # Format the table for presentation
 indicatorTable_formatted <- regions %>%
@@ -1538,11 +1583,15 @@ names(indicatorTable_formatted) <- c( "Region", "Ecosystem",
 # Use knitr to visualize
 knitr::kable(indicatorTable_formatted)
 
+regionlvl <- c("Nord-Norge", "Midt-Norge", "Vestlandet", "Østlandet", "Sørlandet")
+
+indicatorTable$region <- factor(indicatorTable$region, levels=regionlvl)
+
 # Make plots of regional index values
-getIndicatorPlot <- function(label){
+getIndicatorPlot <- function(ecosyst, label){
   regions %>%
     left_join(indicatorTable %>%
-                filter(Ecosystem == label)) %>%
+                filter(Ecosystem == ecosyst)) %>%
     mutate(lowError = index-sd, 
            upError = index+sd,
            upError = ifelse(upError > 1, 1, upError)) %>%
@@ -1552,15 +1601,16 @@ getIndicatorPlot <- function(label){
     coord_cartesian(xlim=c(0,1)) +
     geom_vline(xintercept = 1) +
     geom_vline(xintercept = 0) +
-    labs(x = 'Tilstandsverdi') +
+    labs(x = 'Tilstandsverdi')  +
+    theme_bw() +
     theme(legend.position = c(0.7, 0.4),
           axis.title.y=element_blank()) +
-    ggtitle(label) 
+    ggtitle(label)
 }
 
-i1 <- getIndicatorPlot('Våtmark')
-i2 <- getIndicatorPlot('Naturlig åpne')
-i3 <- getIndicatorPlot('Semi-naturlig')
+i1 <- getIndicatorPlot("Våtmark",'A) Våtmark')
+i2 <- getIndicatorPlot("Naturlig åpne",'B) Naturlig åpne')
+i3 <- getIndicatorPlot("Semi-naturlig",'C) Semi-naturlig')
 
 grid.arrange(i1, i2, i3, ncol=3, widths=c(1,1,1), padding = unit(0, "line"), newpage = T) 
 ```
@@ -1574,11 +1624,12 @@ getIndicatorMap <- function(data, label){
     left_join(data) %>%
     ggplot() +
     geom_sf(aes(fill=index)) +
-    scale_fill_gradientn(colors=brewer.pal(10, 'Spectral'),
+    scale_fill_gradientn(name="Tilstandsverdi",
+                         colors=brewer.pal(10, 'Spectral'),
                          limits = c(0,1))+
     ggtitle(label)+
     theme_void()+
-    theme(legend.position = c(0.7, 0.4))
+    theme(legend.position = c(0.8, 0.4))
 }
 
 m1 <- getIndicatorMap(vaatmarkTable, 'A) Våtmark')
@@ -1590,47 +1641,24 @@ grid.arrange(m1, m2, m3, ncol=3, widths=c(1,1,1), padding = unit(0, "line"), new
 
 ### 10.4 Validation of index score
 
-```{r fig-validation-enc, fig.cap="Scatter plot displaying reference heights for good condition according to NiN MI field-mapping ecological condition overall score and sub-score for Rask suksesjon in semi-natural ecosystems"}
+```{r fig-validation-enc, fig.cap="Box plot displaying encroachment indicator values against the field-based ecological condition sub-score Rask suksesjon in semi-natural ecosystems"}
 
-refsemis %>%
-  ggplot(aes(x = ref, y = refsub, color = vegClimZoneLab, shape = region)) +
-  geom_point(size = 3) + 
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray") +
-  scale_color_viridis_d() +  # Color palette for vegClimZoneLab
-  labs(x = "Vegetation height (m) overall good condition",
-       y = "Vegetation height (m) sub-score good condition",
-       color="Bioclimatic zone",
-       shape="Region")+
-  scale_x_continuous(lim=c(0,1.1))+
-  scale_y_continuous(lim=c(0,1.1))
+str(rasksuksIndexPoly)
+
+rasksuksIndexPoly %>%
+  ggplot(aes(x = rasksuks, y = index, color=pop, group=rasksuks)) +
+  geom_boxplot() + 
+  labs(x = "Rask suksesjon",
+       y = "Encroachment indicator")+
+  theme_bw()
+
 ```
 
-The scatter plot shows that in general, there is a good agreement between the overall good condition reference heights and the ones with good condition in the sub-category "Rask suksesjon". For the strata Sørlandet-Mellomboreal sone and Sørlandet-Sørboreal sone, the reference vegetation heights are 50-70 cm higher when using the overall condition score than when using only the sub-score that should be the field-based estimate of encroachment. This means that for these two strata, calculated index scores for encroachment in semi-natural ecosystems will in general have better condition scores when using heights from polygons with overall good condition as reference. However, when averaged across strata, this score is not apparent (see next figure).
-
-These results suggest that, at least for semi-natural ecosystems, using polygons with an overall good condition score will still give reference heights that are suitable for calculating the encroachment index.
-
-```{r validation-enc-index, fig.cap="Scatter plot displaying reference heights for good condition according to NiN MI field-mapping ecological condition overall score and sub-score for Rask suksesjon in semi-natural ecosystems"}
-
-semisIndexStrata %>%
-  ggplot(aes(x = index, y = index_sub, color = vegClimZoneLab, shape = region)) +
-  geom_point(size = 3) + 
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray") +
-  scale_color_viridis_d() +  # Color palette for vegClimZoneLab
-  labs(x = "Index overall good condition",
-       y = "Index sub-score good condition",
-       color="Bioclimatic zone",
-       shape="Region")
-```
+fig-validation-enc shows that encroachment indicator has higher values (good condition) with the better condition scores for Rask suksesjon (1=good) and that the condition does indeed get poorer when Rask suksesjon has a poorer condition score (3 and 4). However, all Rask suksesjon values have relatively high encroachment indicator scores (mean \> 0.8), suggesting that the encroachment indicator is giving better condition scores than what is actually measured in the field. A reason for this can be that the scaling function does not fit well with the data or that the indicator also needs a threshold value for when the condition is good or not (X~60~).
 
 ## 12. Export file
 
-::: callout-warning
-This part is subject to change.
-:::
-
-<!--# For the sake of the current project I think we can just export the regional estimates. We can also export the HEA level indicator map, but the polyggon level (occurence level) data I think is best left as a temporary calulcation file -->
-
-We will export encroachment indicator values at three levels: - polygon level - 50 km grid level - regional level
+We will export encroachment indicator values at the regional level
 
 ```{r export}
 #| eval: false
@@ -1640,22 +1668,6 @@ ecosysttypes <- c("vaatmark", "aapne","semi")
 for(i in 1:length(ecosysttypes)) {
     
     ecosysttype <- ecosysttypes[i]
-      
-    # Polygon level
-    ecosysttypeIndexPolySpat <- get(paste0(ecosysttype,"IndexPolySpat"))
-    ecosysttypeIndexPolySpat  %>%
-    #mutate(area = as.numeric(st_area(geometry)))%>% 
-    #filter(area > 7500) %>%
-    mutate(id = `system:index`,
-           region = region, 
-           vegZn = vegClimZoneLab) %>%
-    dplyr::select(-"system:index", -vegClimZoneLab, -elevation) %>%
-    st_write(paste0('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Ida/Export/', ecosysttype,"_index.shp"), append=FALSE)
-      
-    # Grid level
-    ecosysttypeIndexGrid <- get(paste0(ecosysttype,"IndexGrid"))
-    ecosysttypeIndexGrid %>%
-    st_write(paste0('/data/P-Prosjekter2/412421_okologisk_tilstand_2024/Ida/Export/', ecosysttype,"_index_grid.shp"), append=FALSE)
       
     # Region level
     ecosysttypeIndexRegion <- get(paste0(ecosysttype,"IndexRegion"))
