@@ -7,40 +7,48 @@ source("global.R")
 
 data <- App_data
 
-ui <- shiny::fluidPage(
-  shiny::tags$head(
-    shiny::tags$style(
+ui <- fluidPage(
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "style.css"), # Include your CSS file here
+    tags$style(
       shiny::HTML("
-        /* CSS for setting background color */
-        body {
-          background-color: #f2f2f2; /* Set your desired background color */
+        .navbar {
+          display: flex !important;
+          flex-wrap: nowrap !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          background-color: #517699;
+        }
+        .navbar-nav {
+          display: flex !important;
+          flex-direction: row !important;
+          padding-left: 0 !important;
+          color: white !important;
+        }
+        .navbar-nav > li {
+          margin-right: 15px !important;
+        }
+        .navbar-nav > li > a {
+          display: block !important;
+          padding: 10px 15px !important;
+        }
+        .navbar-header {
+          flex: 0 0 auto !important;
+        }
+        .navbar-collapse {
+          flex-grow: 1 !important;
         }
       ")
     )
   ),
-  shiny::navbarPage(
+  navbarPage(
     title = "Ecosystem Condition Indicators",
-    shiny::tabPanel(
-      "Overview",
-      includeMarkdown("overview.md")
-    ),
-    shiny::tabPanel(
-      "Find indicator",
-      p("Select an indicator from the list and then move to the Documentation page to see the associated documentation"),
-      DT::DTOutput("indicatorTable")
-    ),
-    shiny::tabPanel(
-      "Documentation",
-      uiOutput("documentation")
-    ),
-    shiny::tabPanel(
-      "Contribute",
-      includeMarkdown("contribute.md")
-    ),
-    shiny::tabPanel(
-      "Contact",
-      includeMarkdown("contact.md")
-    ),
+    position = "static-top", # Ensures it stays at the top
+    shiny::tabPanel("Overview", includeMarkdown("overview.md")),
+    shiny::tabPanel("Find indicator", DT::DTOutput("indicatorTable")),
+    shiny::tabPanel("Documentation", uiOutput("documentation")),
+    shiny::tabPanel("Contribute", includeMarkdown("contribute.md")),
+    shiny::tabPanel("Contact", includeMarkdown("contact.md"))
   )
 )
 
@@ -65,10 +73,27 @@ server <- function(input, output) {
       if (!file.exists(html_file_path)) {
         return(shiny::tags$p("No documentation available for the selected ecosystem."))
       } else {
-        shiny::includeHTML(html_file_path)
+        div(class="documentation-content",shiny::includeHTML(html_file_path))
       }
     }
   })
+  
+  output$documentation <- renderUI({
+    selected_row <- input$indicatorTable_rows_selected
+    if (length(selected_row) == 0) {
+      return(NULL)
+    } else {
+      selected_ecosystem <- data$ID[selected_row]
+      html_file_path <- data$HTML_File[data$ID == selected_ecosystem]
+      if (!file.exists(html_file_path)) {
+        return(shiny::tags$p("No documentation available for the selected ecosystem."))
+      } else {
+      tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+      )
+      div(class = "documentation-content", shiny::includeHTML(html_file_path))
+    }
+  }})
 }
 
 
