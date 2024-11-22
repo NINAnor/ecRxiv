@@ -1,11 +1,11 @@
 library(shiny)
 library(DT)
 # here::here()
-# source create_metadata functions
-source(here::here("R/Create_metadata.R"))
+# source global
+source("global.R")
 # data
 
-data <- readRDS(here::here("data/App_data.RDS"))
+data <- App_data
 
 ui <- shiny::fluidPage(
   shiny::tags$head(
