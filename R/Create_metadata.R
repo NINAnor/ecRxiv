@@ -17,9 +17,10 @@ create_metadata_table <- function(path) {
   html_files <- html_files[
     !grepl("Sandbox", html_files)&
       grepl("/R/", html_files) & 
-      !grepl("/data/", html_files)&
-      !grepl("/template/R/", html_files)&
-      !grepl("version", html_files, ignore.case = TRUE)]
+      #!grepl("/data/", html_files)&
+      !grepl("/template/R/", html_files) &
+      !grepl("version", html_files, ignore.case = TRUE)
+        ]
   
   # Read each Excel file and assign corresponding HTML file
   metadata <- map2(excel_files, html_files, ~{
