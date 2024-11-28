@@ -17,7 +17,7 @@ ui <- fluidPage(
           flex-wrap: nowrap !important;
           justify-content: space-between !important;
           align-items: center !important;
-          background-color: #517699;
+          background-color: #;
         }
         .navbar-nav {
           display: flex !important;
@@ -44,12 +44,13 @@ ui <- fluidPage(
   navbarPage(
     title = "Ecosystem Condition Indicators",
     position = "static-top", # Ensures it stays at the top
+    tabsetPanel(
     shiny::tabPanel("Overview", includeMarkdown("overview.md")),
     shiny::tabPanel("Find indicator", DT::DTOutput("indicatorTable")),
     shiny::tabPanel("Documentation", uiOutput("documentation")),
     shiny::tabPanel("Contribute", includeMarkdown("contribute.md")),
     shiny::tabPanel("Contact", includeMarkdown("contact.md"))
-  )
+  ))
 )
 
 server <- function(input, output) {
@@ -78,22 +79,22 @@ server <- function(input, output) {
     }
   })
   
-  output$documentation <- renderUI({
-    selected_row <- input$indicatorTable_rows_selected
-    if (length(selected_row) == 0) {
-      return(NULL)
-    } else {
-      selected_ecosystem <- data$ID[selected_row]
-      html_file_path <- data$HTML_File[data$ID == selected_ecosystem]
-      if (!file.exists(html_file_path)) {
-        return(shiny::tags$p("No documentation available for the selected ecosystem."))
-      } else {
-      tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
-      )
-      div(class = "documentation-content", shiny::includeHTML(html_file_path))
-    }
-  }})
+#  output$documentation <- renderUI({
+#    selected_row <- input$indicatorTable_rows_selected
+#    if (length(selected_row) == 0) {
+#      return(NULL)
+#    } else {
+#      selected_ecosystem <- data$ID[selected_row]
+#      html_file_path <- data$HTML_File[data$ID == selected_ecosystem]
+#      if (!file.exists(html_file_path)) {
+#        return(shiny::tags$p("No documentation available for the selected #ecosystem."))
+#      } else {
+#      tags$head(
+#        tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+#      )
+#      div(class = "documentation-content", shiny::includeHTML(html_file_path))
+#    }
+#  }})
 }
 
 
