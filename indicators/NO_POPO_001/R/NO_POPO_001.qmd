@@ -4,10 +4,12 @@ format:
   html:
     embed-resources: true
     code-fold: true
-    code-tools: true
-    code-summary: "Show the code"
     code-line-numbers: true
     code-link: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
 author:
   - name: Kwaku Peprah Adjei              # Enter name
     email: kwaku.adjei@nina.no  # Enter email
@@ -28,6 +30,13 @@ editor_options:
 execute: 
   cache: true
 lightbox: true
+css: ../../../style.css
+title-block-banner: "#27445C"
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+
 ---
 
 
@@ -243,7 +252,7 @@ if(!file.exists(paste0(pollinatorFolder, "/formatData/formattedPollinatorData.RD
                   "View the download status at https://www.gbif.org/occurrence/download/", 
                   downloadKey)
           downloadKey <- occ_download_wait(downloadKey, curlopts = list(), quiet = FALSE)
-          attr(downloadKey,'doi') <- downloadKey$doi
+          base::attr(downloadKey,'doi') <- downloadKey$doi
           saveRDS(downloadKey, file = paste0(pollinatorFolder, "/",taxaIndex, "DownloadKey.RDS"))
         } else {
           downloadKey <- occ_download_meta(downloadKey) 
@@ -348,8 +357,8 @@ if(!file.exists(paste0(pollinatorFolder, "/formatData/formattedPollinatorData.RD
     dataList <- list(species = GBIFLists, 
                      metadata = metadataList, 
                      projcrs = newCrs)
-    attr(dataList, "level") <- attr(regionGeometry, "level")
-    attr(dataList, "region") <- attr(regionGeometry, "region")
+    base::attr(dataList, "level") <- base::attr(regionGeometry, "level")
+    base::attr(dataList, "region") <- base::attr(regionGeometry, "region")
     saveRDS(dataList, 
             paste0(pollinatorFolder, "/speciesDataImported.RDS"))
     
@@ -532,7 +541,7 @@ taxonKey <- 7707728
               "View the download status at https://www.gbif.org/occurrence/download/", 
               downloadKey)
       downloadKey <- occ_download_wait(downloadKey, curlopts = list(), quiet = FALSE)
-      attr(downloadKey,'doi') <- downloadKey$doi
+      base::attr(downloadKey,'doi') <- downloadKey$doi
       saveRDS(downloadKey, file = paste0(dataFolder, "/downloadKey.RDS"))
     } else {
       downloadKey <- occ_download_meta(downloadKey) 
@@ -638,8 +647,8 @@ names(GBIFLists) <- unique(GBIFImportCompiled$name)
 dataList <- list(species = GBIFLists, 
                  metadata = metadataList, 
                  projcrs = newCrs)
-attr(dataList, "level") <- attr(regionGeometry, "level")
-attr(dataList, "region") <- attr(regionGeometry, "region")
+base::attr(dataList, "level") <- base::attr(regionGeometry, "level")
+base::attr(dataList, "region") <- base::attr(regionGeometry, "region")
 saveRDS(dataList, 
         paste0(dataFolder, "/plantDataFolder/formattedData/speciesDataImported.RDS"))
 
@@ -889,24 +898,25 @@ The original unit of the each dataset obtained from GBIF for the pollinators and
 <!--# Text here -->
 
 ## 3. Indicator properties
-Anders will help with this
 
 ### 3.1. ECT
 
-<!--# Describe the rationale for assigning the indicator to the ECT class -->
+B1 - Compositional state characteristics
 
+The indicator describes the diversity in biological communities.
 
 ### 3.2. Ecosystem condition characteristic
 
-<!--# Describe the ecosystem condition characteristic represneted in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be. -->
+High indicator values represents meadows with intact plant communities that can facilitate the life cycles of many pollinators. 
+
 
 ### 3.3. Other standards
 
-<!--# Add text about other spesific standards, e.g. natinoal standards, and how the indicator relates to these -->
+In the Norwegian typology, yhe indicator is classed as *biologisk mangfold*.
 
 ### 3.4. Collinearities with other indicators
 
-<!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
+The indicator may be correlated with other indicators of plant or insect diversity, such as those using data from the Norwegian national insect monitoring.
 
 ## 4. Reference condition and values {#sec-refConditionValues}
 
