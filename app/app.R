@@ -1,51 +1,26 @@
 library(shiny)
 library(DT)
-# here::here()
-# source create_metadata functions
-source(here::here("R/Create_metadata.R"))
-# data
+source("global.R")
 
-data <- readRDS(here::here("data/App_data.RDS"))
 
-ui <- shiny::fluidPage(
-  shiny::tags$head(
-    shiny::tags$style(
-      shiny::HTML("
-        /* CSS for setting background color */
-        body {
-          background-color: #f2f2f2; /* Set your desired background color */
-        }
-      ")
-    )
-  ),
-  shiny::navbarPage(
+data <- App_data
+
+ui <- fluidPage(
+ 
+  navbarPage(
     title = "Ecosystem Condition Indicators",
-    shiny::tabPanel(
-      "Overview",
-      includeMarkdown("overview.md")
-    ),
-    shiny::tabPanel(
-      "Find indicator",
-      p("Select an indicator from the list and then move to the Documentation page to see the associated documentation"),
-      DT::DTOutput("indicatorTable")
-    ),
-    shiny::tabPanel(
-      "Documentation",
-      uiOutput("documentation")
-    ),
-    shiny::tabPanel(
-      "Contribute",
-      includeMarkdown("contribute.md")
-    ),
-    shiny::tabPanel(
-      "Contact",
-      includeMarkdown("contact.md")
-    ),
-  )
+    position = "static-top", # Ensures it stays at the top
+    tabsetPanel(
+    shiny::tabPanel("Overview", includeMarkdown("overview.md")),
+    shiny::tabPanel("Find indicator", DT::DTOutput("indicatorTable")),
+    shiny::tabPanel("Documentation", htmlOutput("documentation")),
+    shiny::tabPanel("Contribute", includeMarkdown("contribute.md")),
+    shiny::tabPanel("Contact", includeMarkdown("contact.md"))
+  ))
 )
 
 server <- function(input, output) {
-  shiny::addResourcePath("html_files", here::here("indicators"))
+  shiny::addResourcePath("indicators", here::here("indicators"))
 
   output$indicatorTable <- DT::renderDT(
     data |>
@@ -59,13 +34,16 @@ server <- function(input, output) {
     if (length(selected_row) == 0) {
       return(NULL)
     } else {
-      selected_ecosystem <- data$ID[selected_row]
-      html_file_path <- data$HTML_File[data$ID == selected_ecosystem]
+      selected_ID <- data$ID[selected_row]
+      html_file_path <- data$HTML_File[data$ID == selected_ID]
+      html_file_path2 <- paste0("indicators/", selected_ID, "/R/", selected_ID, ".html")
       # print(html_file_path)
       if (!file.exists(html_file_path)) {
         return(shiny::tags$p("No documentation available for the selected ecosystem."))
       } else {
-        shiny::includeHTML(html_file_path)
+        div(#class="documentation-content",
+            tags$iframe(src= html_file_path2, width=1200, height=800)
+            )
       }
     }
   })

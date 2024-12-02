@@ -9,12 +9,19 @@
 
 create_metadata_table <- function(path) {
    # Get list of all Excel files
-  excel_files <- list.files(here::here(path), pattern = "\\.xlsx$", recursive = TRUE, full.names = TRUE)
+  excel_files <- list.files(here::here(path), pattern = "metadata.xlsx$", recursive = TRUE, full.names = TRUE)
   excel_files <- excel_files[!grepl("template", excel_files)]
   
-  # Get list of all HTML files
   html_files <- list.files(here::here(path), pattern = "\\.html$", recursive = TRUE, full.names = TRUE)
-  html_files <- html_files[!grepl("Sandbox", html_files)]
+  
+  html_files <- html_files[
+    !grepl("Sandbox", html_files)&
+      grepl("/R/", html_files) & 
+      #!grepl("/data/", html_files)&
+      !grepl("/template/R/", html_files) &
+      !grepl("version", html_files, ignore.case = TRUE)
+        ]
+  
   # Read each Excel file and assign corresponding HTML file
   metadata <- map2(excel_files, html_files, ~{
     df <- read_excel(.x)
@@ -64,7 +71,7 @@ process_and_bind_dfs <- function(df_list) {
 create_data<-function(combined_metadata){
     App_data<-combined_metadata |> 
     dplyr::mutate(HTML_File=combined_metadata$HTML_File)
-    App_data<-write_rds(App_data, here::here("data/App_data.RDS"))
+    App_data<-assign("App_data", App_data)
 
 }
 
