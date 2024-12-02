@@ -1,46 +1,12 @@
 library(shiny)
 library(DT)
-# here::here()
-# source global
 source("global.R")
-# data
+
 
 data <- App_data
 
 ui <- fluidPage(
-  #tags$head(
-  #  tags$link(rel = "stylesheet", type = "text/css", href = "style.css"), # Include your CSS file here
-  #  tags$style(
-  #    shiny::HTML("
-  #      .navbar {
-  #        display: flex !important;
-  #        flex-wrap: nowrap !important;
-  #        justify-content: space-between !important;
-  #        align-items: center !important;
-  #        background-color: #;
-  #      }
-  #      .navbar-nav {
-  #        display: flex !important;
-  #        flex-direction: row !important;
-  #        padding-left: 0 !important;
-  #        color: white !important;
-  #      }
-  #      .navbar-nav > li {
-  #        margin-right: 15px !important;
-  #      }
-  #      .navbar-nav > li > a {
-  #        display: block !important;
-  #        padding: 10px 15px !important;
-  #      }
-  #      .navbar-header {
-  #        flex: 0 0 auto !important;
-  #      }
-  #      .navbar-collapse {
-  #        flex-grow: 1 !important;
-  #      }
-  #    ")
-  #  )
-  #),
+ 
   navbarPage(
     title = "Ecosystem Condition Indicators",
     position = "static-top", # Ensures it stays at the top
