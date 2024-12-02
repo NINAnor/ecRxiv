@@ -9,7 +9,7 @@
 
 create_metadata_table <- function(path) {
    # Get list of all Excel files
-  excel_files <- list.files(here::here(path), pattern = "\\.xlsx$", recursive = TRUE, full.names = TRUE)
+  excel_files <- list.files(here::here(path), pattern = "metadata.xlsx$", recursive = TRUE, full.names = TRUE)
   excel_files <- excel_files[!grepl("template", excel_files)]
   
   html_files <- list.files(here::here(path), pattern = "\\.html$", recursive = TRUE, full.names = TRUE)
