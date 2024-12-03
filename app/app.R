@@ -49,8 +49,9 @@ server <- function(input, output) {
 
   output$indicatorTable <- DT::renderDT(
     data |>
-      dplyr::select(!HTML_File) ,
-    selection = "single"
+      dplyr::select(!c(HTML_File, Variable, url)) ,
+    selection = "single",
+    filter = "top"
   )
 
 
