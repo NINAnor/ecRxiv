@@ -1,5 +1,14 @@
-## A quick overview of the project
 
-Ecosystem condition indicators are used in ecosystem condition assessments and accounts to monitor the quality and integrity of nature. These assessments and accounts can be important policy instruments that guide nature governance. When presented in reports aimed for managers and policy makers, indicators are often described just enough for them to be interpretable. However, indicator calculations/designs are often quite technical and includes many steps that cannot be described fully in a rapport that may include several indicators and indices. There is a need to document these workflows in order to validate and review their soundness and relevance for describing ecosystem condition. This documentation will also be a benefit to the ecosystem condition indicator community of practice because it makes it easier to learn from each other and develop the field quicker.
+## About ecRxiv
 
-This ShinyApp allows documentation to be viewed. It will be updated when new indicator documentation is added to the repository. 
+This app provides a view into the ecosystem condition indicators that are
+published on [ecRxiv](https://github.com/NINAnor/ecRxiv).
+On the GitHub page for ecRxiv you can find even more details for the indicators, 
+such as previous indicator versions, and version controlled workflows, data files,
+and indicator reviews.
+
+## How to use this app
+
+Select the indicator that you want to read about from the *Find indicator* tab. 
+Then go to the *Documentation* tab to view the fact sheet for that indicator. 
+
