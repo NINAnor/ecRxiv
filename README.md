@@ -31,7 +31,16 @@ On this site (this GitHub repository) you can submit technical documentation and
 
 As a minimum requirement, the documentation must be renderable as an html, and you must submit a separate metadata file (excel template is provided). However, we encourage, and facilitate, the publication of fully reproducible workflows in the form of quarto files and associated data files.
 
-### Workflow
+### How to review an indicator
+Indicator reviews are handles though GitHub Issues. Got to the issues tab and select *New Issue*. 
+If you are adding a complete review, similar to peer reviewing a scientific article, use the *Indicator review - checklist* template.
+If you just want to add a comment and a more simple review, use the *Indicator feedback* template.
+
+### How to review a PR and update the shiny app (for admins)
+This is for ecRxiv administrators who first come incontact with a new PR. 
+Open a new issue on GitHub and chose the *PR review - checklist* template. Follow the instructions there.
+
+### How to submitt indicator documentation to ecRxiv
 
 [![Tutorial video](https://img.youtube.com/vi/wLYnORKZ1ZQ/0.jpg)](https://www.youtube.com/watch?v=wLYnORKZ1ZQ)
 
