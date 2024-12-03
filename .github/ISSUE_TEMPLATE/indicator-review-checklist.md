@@ -1,5 +1,5 @@
 ---
-name: Community review - full version
+name: Indicator review - checklist
 about: A checklist for complete reviews of indicator pages found on ecRxiv
 title: '[REVIEW]: "indicatorID"'
 labels: REVIEW
@@ -16,7 +16,7 @@ The reviewes may add any additional comments, besides these general checks, as c
 Before you start:
 
 Please add the indicator ID to the title of this issue (replacing the placeholder text that reads "indicatorID"), or check that it is not already there. 
-Also, under **lables** in the right column, locate and choose the correct indicatorID from the list (if not already chosen).   
+Also, under **labels** in the right column, locate and choose the correct indicatorID from the list (if not already chosen).   
 
 ### Conflict of interest
 
@@ -29,7 +29,8 @@ Also, under **lables** in the right column, locate and choose the correct indica
 ### General checks
 
 - [ ] **Contribution and authorship:** Does the author list seem appropriate and complete?
-- [ ] **Meta data:** Does the metadata entered for the indicator seem correct, including ECT class and ecosystem type? 
+- [ ] **Meta data:** Does the metadata entered for the indicator seem correct, including ECT class and ecosystem type?
+- [ ] **Common language summary:** The common language summary is consise and clear.
 - [ ] **Introduction and concusion:** Is the introduction written so that it sums up the general method and usabillity of the indicator?  
 - [ ] **Legibility and structure:** Is the documentation written so that is is easy, or at least possible, to follow the arguments? Is each header and sub-header populated with the appropriate text?
 - [ ] **Images, tables and figures:** Does the documentation contain the appropriate amount of tables, figures and images, and do these have high enough quality?
