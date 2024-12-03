@@ -48,7 +48,7 @@ server <- function(input, output) {
         return(shiny::tags$p("No documentation available for the selected ecosystem."))
       } else {
         div(#class="documentation-content",
-            tags$iframe(src= html_file_path2, 'width:100vw;height:100vh;')
+            tags$iframe(src= html_file_path2, style='width:100vw;height:100vh;')
             )
       }
     }
