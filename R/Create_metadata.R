@@ -43,7 +43,7 @@ process_and_bind_dfs <- function(df_list) {
     # Pivot the dataframe so that Variable values become column names
     wide_df <- .x |> 
       # Filter only relevant variables
-      filter(Variable %in% c("indicatorID", "indicatorName", "country", "continent", "ECT", "yearAdded", "yearLastUpdate")) |> 
+      filter(!Variable %in% c("Ecosystem", "Biome")) |> 
       select(Variable, Value, HTML_File) |> 
       pivot_wider(names_from = Variable, values_from = Value, values_fn = list(Value = ~ first(na.omit(.)))) |> 
       # Group by HTML_File and fill missing values within each group
@@ -51,7 +51,7 @@ process_and_bind_dfs <- function(df_list) {
       fill(everything(), .direction = "downup")  |> 
       ungroup() |> 
       # Select only the columns you care about
-      select(HTML_File, indicatorName, country, continent, ECT, yearAdded, yearLastUpdate, indicatorID)  |> 
+      #select(HTML_File, indicatorName, country, continent, ECT, yearAdded, yearLastUpdate, indicatorID)  |> 
       # Remove duplicates if any
       distinct() |> 
       rename(ID=indicatorID)
