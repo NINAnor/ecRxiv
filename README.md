@@ -8,6 +8,8 @@ Code reviews are typically found under old/closed pull requests, whilst other re
 
 We plan to publish and make the documentation (the fact sheets) available through an online web application. This app is under active development and will be made available soon.
 
+The internal (to NINA) sandbox version can be viewed [here](https://internal-shiny.nina.no/ecRxiv/)
+
 There are currently three indicators documented on ecRxiv
 
 - Woody encroachment, LiDRA-based [[NO_GJEN_001](http://htmlpreview.github.io/?https://github.com/NINAnor/ecRxiv/blob/main/indicators/NO_GJEN_001/R/NO_GJEN_001.html)]
