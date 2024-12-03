@@ -1,5 +1,5 @@
 ---
-name: PR checklist
+name: PR review checklist
 about: A checklist for processing new PRs with indicator documentation
 title: '[New PR]: "indicatorID"'
 labels: PR-checklist
@@ -7,7 +7,7 @@ assignees: anders-kolstad
 
 ---
 
-## PR checklist
+## PR review checklist
 
 This is a checklist for ecRxiv administrators that will have first contact with new PRs.
 The list explains how to ensure the PR si following the standards for ecRxiv submissions,
@@ -101,7 +101,10 @@ Option 1 is the preferred option.
 
 ### When the file renders and the app don't break
 
-Then we can merge the PR to main. 
+Add as many coomments and suggestions as you feel relevent in the PR.
+You can also use the *community review* issue template for this.
+When alle your comments are resolved by the author, then we can merge the PR to main. 
+
 Immediately afterwards we create a stable copy of the HTML with the version number 
 included in the name (INDICATORID_XXX_version_VVV_vvv; where XXX is the indicator ID number, and VVV and vv is the version number, before and after the perions, respectively).
 
