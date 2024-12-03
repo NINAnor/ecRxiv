@@ -6,17 +6,23 @@ source("global.R")
 data <- App_data
 
 ui <- fluidPage(
- 
+  tags$head(tags$link(rel="shortcut icon", href="www/favicon.png")),
   navbarPage(
-    title = "Ecosystem Condition Indicators",
+    title = div(img(src='_ecrxiv_logo_hovedlogo.png',
+                    style="margin-top: -14px;
+                               padding-right:10px;
+                               padding-bottom:10px",
+                    height = 60)),
     position = "static-top", # Ensures it stays at the top
-    tabsetPanel(
+    
     shiny::tabPanel("Overview", includeMarkdown("overview.md")),
     shiny::tabPanel("Find indicator", DT::DTOutput("indicatorTable")),
     shiny::tabPanel("Documentation", htmlOutput("documentation")),
-    shiny::tabPanel("Contribute", includeMarkdown("contribute.md")),
-    shiny::tabPanel("Contact", includeMarkdown("contact.md"))
-  ))
+    navbarMenu('More',
+      shiny::tabPanel("Contribute", includeMarkdown("contribute.md")),
+      shiny::tabPanel("Contact", includeMarkdown("contact.md"))
+    )
+  )
 )
 
 server <- function(input, output) {
