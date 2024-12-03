@@ -49,7 +49,7 @@ server <- function(input, output) {
 
   output$indicatorTable <- DT::renderDT(
     data |>
-      dplyr::select(!HTML_File),
+      dplyr::select(!HTML_File) ,
     selection = "single"
   )
 
