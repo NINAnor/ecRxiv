@@ -32,13 +32,30 @@ Also, under **labels** in the right column, locate and choose the correct indica
 ### General checks
 Open the PR and check the following: 
 
-- [ ] **Modified files:** the number of new files is correct; there are no unreasonably big files or too many files (e.g. html_files or cashed files folders). Are any non-relevant files modified?
+- [ ] **Modified files:** the number of new files is correct; there are no unreasonably big files or too many files (e.g. html_files, old drafts or cashed files folders). Are any non-relevant files modified? For help with removing files from PR, see below.
 - [ ] **File structure**: The folders and files are names correctly and have the right structure (they are not moved around compared to `indicators/template/`)
 - [ ] **Meta data:** the metadata file (metadata.xlsx) filled out
 - [ ] **Document structure:** look at the quarto file and check that the document structure is reasonably according to the template, including headers and the yaml header.
 - [ ] **References:** is there a bibliography file? If not, should there be? (note: hyperlinks break over time)
 - [ ] **HTML included:** the HTML is included and looks good. To view it, 
 open the html from the PR and view it online by pasting this string to the start of the URL: `http://htmlpreview.github.io/?`
+
+### Too many modified files
+
+It’s common that a PR contain more files than what we actually want to update in the main.
+This can be draft documents, old rendered pdf or html outputs, or large data files that should
+be handled outside of GitHub.
+
+First, create a backup branch of the original PR branch.
+
+Then, in the PR branch, revert the files you don't want to to include in the PR. 
+- https://stackoverflow.com/questions/38743912/remove-a-file-from-a-git-pull-request
+- https://stackoverflow.com/questions/2733873/how-can-i-revert-a-single-file-to-a-previous-version?noredirect=1&lq=1
+
+If the author is not comfortable with git, you can ask to be given access to commit to his or her branch. 
+- https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork
+
+Alternatively, create a brand new PR from you locally checkout version of the PR (se directly below)
 
 
 ### Test PR locally
