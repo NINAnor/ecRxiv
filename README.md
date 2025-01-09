@@ -72,8 +72,8 @@ BRANCH NAME is likely to be `main` in the above. Now, specify additional folders
 If you are starting to work on a new indicator (not updating an existing indicator), dir1 should be `indicators` and dir2 should be `template`
 
 
-3.  Copy the `template` folder and name the new folder, and files and folders inside it, according to our [naming convention](#naming-convention). Make sure not to simply rename the `template` folder - make a real copy.
-4.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` (don't rename this file as it is automatically read and used to populate tables in the quarto file). Keep your forked repo up to date with your work by routinely pushig your changes.
+3.  Copy the `template` folder and name the new folder, and files and folders inside it, according to our [naming convention](https://github.com/NINAnor/ecRxiv/wiki#naming-convention). Make sure not to simply rename the `template` folder - make a real copy.
+4.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` (don't rename this file as it is automatically read and used to populate tables in the quarto file). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recomended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
 5.  Render the quarto file to html
 6.  Do a pull request (PR) from your forked repo to the `main` branch in this repo.
 7.  Administrators of this repo will check that the submission (the PR) is done properly and that all files have been named in the correct way. If you have submitted data and code, this review will also include checking that the code is able to locate the data and run, and that proper code annotation is provided. Revise the PR until it reached the requirements set by the administrators.
@@ -81,24 +81,5 @@ If you are starting to work on a new indicator (not updating an existing indicat
 9.  The publicly available documentation is now subject to voluntary review, for which there are separate guidelines.
 10.  The PR authors can revise their documentation as many time as needed, and in response to review by peers. Major revisions may result in the creation of a new version number for the original indicator.
 
-### Naming convention
-
-All indicators are given a unique code:
-
-`CO_NAME_XXX`
-
-where
-
--   `CO` = two letter country code (ISO 3166-1 alpha-2) indicator the country that the indicator applies to, or if it applies to multiple countries, the country of the main affiliation for the main author.
-
--   `NAME` = four letter code for the indicator name (usually the first four letters of the full name, e.g. ALIE for the the indicator Alien Species)
-
--   `XXX` = three digit **major version number**. Major versions include substantial updates to the methodology or data origins behind the indicator. If the same indicator is used more-or-less in the same way for two ecosystem types, version number can also refer to ecosystem type. 
-
-
-Each indicator (each unique indicator ID) will also have its own **version number**,
-where 000.001 denotes a dirst draft not ready for wide use, 
-and 001.000 is used for the first operational version.
-The version number is not part of the indicator ID, and subsequent versions overwrite each other.
 
 
