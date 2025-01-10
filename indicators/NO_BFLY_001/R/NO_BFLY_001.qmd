@@ -42,6 +42,7 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 library(bombLepiSurv)
+library(tmap)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -128,7 +129,8 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 
--   00 Jan. 2025 - Started work (Kolstad)
+-   14. Dec. 2023 - [First version published](https://ninanor.github.io/ecosystemCondition/insect-indicators.html)
+-   06. Jan. 2025 - Started work in ecRxive version (Kolstad)
 :::
 
 <hr />
@@ -303,15 +305,38 @@ The uncertainties for indicator values are constituted by a distribution of disc
 
 ## 7. Datasets
 
+### 7.1 Dataset A - NMBB
 <!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
+The `bombLepiSurv` package has convenience functions to fetch data from the internal NINA database. 
+This database is currently not available outside NINA, but we will implement a solution for this in the future. Either we will make the database externally available, or we will provide an alternative route to the data from the GBIF export. For now, we will fetch the data through the `bombLepiSurv` functions.
 
-### 7.1 Dataset A
 
 <!--# Describe the main dataset, typicaly the one containing the variable of (most) interest. Change the header from Dataset A to the name of the actuall dataset. -->
 
-### 7.2. Dataset B
+
+### 7.2. Dataset B - Regions
 
 <!--# Describe additional datasets in a similar was as above. Deleteor add ned subheaders as needed. -->
+We here import a shape file with the regional delineation. The indicators associated with the NorIns project can be attributed to the 5 country regions of Norway. Currently however, the data program only covers 4 of the 5 regions.
+
+```{r fig-regions}
+#| warning: false
+#| fig-cap: 'Regions in Norway'
+# Import regions
+regions <- sf::read_sf(here::here("indicators/NO_BFLY_001/data/regions.shp"),
+  options = "ENCODING=UTF8",
+  quiet = TRUE)
+# import outline of Norway
+nor <- sf::st_read(here::here("indicators/NO_BFLY_001/data/outlineOfNorway_EPSG25833.shp"),
+  quiet = TRUE)
+# remove marine areas
+regions <- sf::st_intersection(regions, nor)
+
+tm_shape(regions) + 
+  tm_polygons(col = "region") 
+
+```	
+
 
 ## 8. Spatial units
 
@@ -339,9 +364,10 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
 
-Install bombLepiSurv-package like this
+Install the bombLepiSurv-package like this
 ```{r}
 #| eval: false
+#| code-fold: show
 remotes::install_github("NINAnor/bombLepiSurv")
 library(bombLepiSurv)
 ```
