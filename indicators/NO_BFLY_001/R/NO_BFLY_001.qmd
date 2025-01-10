@@ -1,5 +1,5 @@
 ---
-title: "Butterflies"
+title: "Butterflies in semi-natural grasslands"
 subtitle: "[NO_BFLY_001]"
 format: 
   html:
@@ -28,6 +28,7 @@ code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
+bibliography: references.bib
 ---
 
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -40,6 +41,7 @@ library(knitr)
 library(tidyverse)
 library(kableExtra)
 library(here)
+library(bombLepiSurv)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -98,13 +100,9 @@ status(st)
 ```
 
 ::: {layout-ncol="2"}
-
-
-
 > **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 > **Version**: `r version`
-
 :::
 
 ```{=html}
@@ -123,16 +121,15 @@ meta |>
 
 ```
 
-```{=html}
 </details>
-```
 
-::: {.callout-note collapse="true"}
-<!--# Update this logg with short messages for each update -->
+::: {.callout-tip collapse="true"}
 ## Logg
-- 01 Jan. 1901 - Original PR
-:::
 
+<!--# Update this logg with short messages for each update -->
+
+-   00 Jan. 2025 - Started work (Kolstad)
+:::
 
 <hr />
 
@@ -140,6 +137,7 @@ meta |>
 
 ## 1. Summary
 
+```{=html}
 <!--# 
 
 With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of commmon language summary. It is a good idea to include a bullet point list of the spesific steps in the workflow. Include a mention of the following aspects:
@@ -152,50 +150,89 @@ What is the current status of  the metric (can it be used or is it still in deve
 How should the metric be used and interpretted, and how should it not be used/interpretted?
 
  -->
+```
+
+Butterflies are important pollinators in semi-natural grasslands, 
+and are as a community dependent on a varied herbaceous flora. 
+They represent a very visible aspect of biodiveristy, as well as a key functionality and indicators of habitat quality.
+Butterfly community structure can become disturbed by human activities, such as intensive agriculture and land-use change, 
+and is therefore a key indicator of ecosystem condition.
+
+The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB).
+This is a transect based survey using a representive grassland localities in the four regions of Norway 
+(northern Norway is not included, but is expected to become included in the near future). 
+The indicator is based on the number of butterflies in each locality, which is then compared to expcert elicited reference communities that show the expected number of each butterfly species.
+
+The workflow for calculating indicator values, and for storing data, is integrated into an R-package called [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
+The indicator is fully operational and used in several national reporting settings.
 
 ## 2. About the underlying data
 
 <!--# Describe the data you have used in more detail, it's origin, biases, availabilit ect.-->
 
+The Norwegian monitoring of bumblebees and butterflies (NMBB) is initiated and financed by the Environmental agency, with the aim to produce continuous area representative time-series of insect community data. The NMBB program use sweep netting along transect walks where the species are identified manually in the field. <!-- More information is available in the links above. -->
+
+NMBB is designed to be area representative, within the respective habitat types and regions. It uses stratified randomized selection of localities. Localities are slected from a predefined continuous network of survey squares, within which individual transects are then manually placed. Some subjective decisions are made in the definition of habitat criteria and in discarding unpractical survey locations.
+
 ### 2.1 Spatial and temporal resolution
 
 <!--# Describe the temporal and spatial resolution of the data used-->
+
+The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag) in 2010, south-western Norway in 2013, and to western Norway (Vestland and Møre og Romsdal fylke) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region. Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
+
+Data covers 2009 up to the present.
 
 ### 2.2 Original units
 
 <!--# What are the original units for the most relevant  variables in the data-->
 
+Original units are number of individuals of each species within a transect, although only presences in transects (as presence frequencies) are used for the indicator calculations.
+
 ### 2.3 Additional comments about the dataset
 
 <!--# Text here -->
+
+This indicator was developed for the Nature Index of Norway back in 2010 [@öberg2011], and is calculated routinely on a yearly basis (see @åström2024 for the latest report).
 
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
+```{=html}
 <!--# 
 
 Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
 This doesnt need to be very long. Maybe just a single sentence. 
 
 -->
+```
+
+B1 - Compositional state characteristics. This indicator fits here as it describes biotic communities.
 
 ### 3.2 Ecosystem condition characteristic
 
+```{=html}
 <!--# 
 
 Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
 For example, and indicator called 'Trenching in mires' could be made to represent an ecosystem characteristic 'Intact hydrology'. The term 'characteristic' is used similar to the term 'criteria' in Multiple Criteria Decition Making.  
 
 -->
+```
+
+Intakt biotic communitites.
 
 ### 3.3 Other standards
 
 <!--# Optional: Add text about other spesific standards, e.g. national standards, and how the indicator relates to these -->
 
+In the Norwegian *fagsystem*, the indicator fits with the *Biologisk mangfold* characteristic.
+
 ### 3.4 Collinearities with other indicators
 
 <!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
+
+None that are very obvious.
 
 ## 4. Reference condition and levels
 
@@ -203,8 +240,11 @@ For example, and indicator called 'Trenching in mires' could be made to represen
 
 <!--# Define the reference condition (or refer to where it is defined). Note the destinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
 
+The reference condition is meant to be one with minimal negative human impact, but this has a special interpretation for semi-natural land. These habitats are formed and maintained through human activities. Thus, “minimal negative human impact” is replaced by a state of “good maintenance”, here understood as resembling the traditional agricultural maintenance regime, existing for several hundred years up until the late 1800s. This is characterized by extensive grazing, meadows and lays, crop rotation with legumes to bind nitrogen in addition to fertilization from manure, relatively small field sizes and abundant field margins, and a lack of artificial fertilization and mechanized tilling.
+
 ### 4.2 Reference levels
 
+```{=html}
 <!--# 
 
 If relevant (i.e. if you have normalised a variable), describe the reference levels used to normalise the variable. 
@@ -214,19 +254,48 @@ Use the terminology where X~0~ referes to the referece level (the variable value
 Why was the current option chosen and how were the reference levels quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here.
 
  -->
+```
+
+Assessing the current state of insect communities is a complicated task, due to their taxonomic and functional breadth and high temporal and spatial variability. Still, even more challenging is establishing reference levels, when the reference states are extinct or prohibitively difficult to measure empirically.
+
+For the butterfly indicator, the communities are small enough and well-known enough to identify reference communities by expert opinion. These reference communities specify the expected rate of observing each species. The current rates of observation are then compared to the expected rates. The calculations are further explained below.
+
+We have not specified a value for good ecological condition (X~0~) as of yet, since we lack a straightforward empirical basis to do so. By default then, the values is set to 0.6 , following the general framework.
+
+The indicator summarize the state of a butterfly community by estimating the difference from a reference community. 
+Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC). 
+
+
+$$CI = \frac{SR-SC}{SR}$$
+The state of reference (SR) represents a community of species which can be expected to be observed in a given habitat type and region. It is calculated by assigning each species to class of expected commonality: common (C), sporadic (S) and rare (R) species. This classification is done by expert opinion, informed by known present and past species distributions. Note that this state of reference only contains a subset of highlighted species, making up a historical reference community. Potential observations of "new" species therefore don't inform the indicator value at all. Common species are expected to be observed in at least 5 % of the surveyed transects in a habitat type and region. Sporadic species similarly are defined as having a presence below 5 % but above 1 %. Rare species are seen in no more than 1 % of the transects, and lastly, species not seen in any transect are assumed as lost (L) for the purpose of this calculation. 
+  
+Each commonality class gets its own weight, so that common species inform the reference state more than sporadic species, followed by rare species. The state of reference (SR) is thus a value where each species adds to the state according to its commonality. Formally, it is defined as:
+
+$$SR = n_C * w_{C, SR} + n_S * w_{S, SR} + n_R * w_{R, SR} = \sum_{i = (C, S, R)} n_i * w_{i, SR}, $$
+where $n_i$ is the number of species in a commonality class (C, S, R), and the weights $[w_{C, SR}, w_{S, SR}, w_{R, SR}]$ specify their respective contribution to the reference state (SR). The weights used are $[w_{C, SR}, w_{S, SR}, w_{R, SR}] = [1.0, 0.75, 0.50]$, i.e. a sporadic species has 75 % the weight of a common species, and a rare species has 50 % the weight of a common species. 
+
+
+The state of change (SC) is calculated as
+ $$SC = n_{CS} * w_{CS} + n_{CR} * w_{CR} + n_{CL} * w_{CL} + n_{SR} * w_{SR} + n_{SL} * w_{SL} + n_{RL} * w_{RL}, $$ 
+where $n_{CS}$ is the number of expected common species (C) that is observed sporadically (S), and $w_{CS}$ is the weight of this change. Similarly, $n_{CR}$ is the number of expected common species that is observed rarely, $n_{RL}$ is the number of rare species that is lost, and so on. Potential increases in observation rates do not inform the indicator. Changes for common species are weighted more heavily than changes for less common species, and larger decreases are weighted more heavily than smaller decreases, such that $[w_{CS}, w_{CR}, w_{CL}, w_{SR}, w_{SL}, w_{RL}]= [0.50, 0.75, 1.00, 0.50, 0.75, 0.50]$.
 
 
 #### 4.2.1 Spatial resolution and validity
 
+```{=html}
 <!--# 
 
 Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
 
  -->
+```
 
 ## 5. Uncertainties
 
 <!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
+
+The indicator values are estimated with uncertainty, by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples.
+The uncertainties for indicator values are constituted by a distribution of discrete values, and therefore we only provide confidence intervals and not a standard deviation.
 
 ## 6. References
 
@@ -246,14 +315,17 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
 ## 8. Spatial units
 
+```{=html}
 <!--# 
 
 Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpretted at. Potential spatial delineation data should eb introduced under 7.1. Datasets. We recomend using the SEEA EA terminology opf Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). 
 
 -->
+```
 
 ## 9. Analyses
 
+```{=html}
 <!--# 
 
 Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
@@ -263,9 +335,22 @@ Code folding is activated, meaning the code will be hidden by default in the htm
 Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
 
 -->
+```
+
+These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
+
+Install bombLepiSurv-package like this
+```{r}
+#| eval: false
+remotes::install_github("NINAnor/bombLepiSurv")
+library(bombLepiSurv)
+```
+
+
 
 ## 10. Results
 
+```{=html}
 <!--# 
 
 Repeat the final results here. Typically this is a map or table of indicator values.
@@ -273,14 +358,17 @@ Repeat the final results here. Typically this is a map or table of indicator val
 This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
 
 -->
+```
 
 ## 11. Export file
 
+```{=html}
 <!--# 
 
 Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
 
 -->
+```
 
 ```{r export}
 #| eval: false
