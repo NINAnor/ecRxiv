@@ -44,6 +44,7 @@ library(here)
 library(bombLepiSurv)
 library(tmap)
 library(sf)
+library(NinaR)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -382,7 +383,7 @@ library(bombLepiSurv)
 ```
 
 Connect to the database, download maps and plot
-```{r}
+```{r connect}
 # get secret username and password
 source(here::here("_pw.R"))
 # connect
@@ -407,6 +408,22 @@ norway_reg_NBBM2 <- nbbm_norway_regions |>
 tm_shape(norway_reg_NBBM2) + 
   tm_polygons(col = "region") 
 ```
+
+Download data
+```{r}
+allBombusGressmark2022 <- 
+  getAllData(type = "bumblebees", 
+    habitat = "gressmark",
+    year = 2022,
+    language = "norsk") |>
+  mutate_if(bit64::is.integer64, as.numeric)
+
+surveyBarplot(allBombusGressmark2022)
+
+```
+
+
+
 
 ## 10. Results
 
