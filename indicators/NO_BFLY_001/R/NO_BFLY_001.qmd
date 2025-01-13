@@ -45,6 +45,7 @@ library(bombLepiSurv)
 library(tmap)
 library(sf)
 library(NinaR)
+library(CursoRopen)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -409,20 +410,48 @@ tm_shape(norway_reg_NBBM2) +
   tm_polygons(col = "region") 
 ```
 
-Download data
-```{r}
-allBombusGressmark2022 <- 
-  getAllData(type = "bumblebees", 
+Download data from 2022 as an example
+```{r fig-allLepiGressmark2022}
+#| fig-cap: 'Butterflies in grasslands 2022.'
+allLepiGressmark2022 <- 
+  getAllData(type = "butterflies", 
     habitat = "gressmark",
     year = 2022,
     language = "norsk") |>
   mutate_if(bit64::is.integer64, as.numeric)
 
-surveyBarplot(allBombusGressmark2022)
+surveyBarplot(allLepiGressmark2022)
+```
+
+Get indicator values from all years
+```{r}
+# List datasets
+dat <- CursoRopen::list_github_files("bombLepiSurv", path = "data/", regexp = "Gress", owner = "NINAnor")
+
+# remove the first part of the path
+dat <- str_remove(dat, "data/")
+# and the second part
+dat <- str_remove(dat, ".rda")
+
+# read in all the data (as promise)
+data(package = "bombLepiSurv", list = dat)
 
 ```
 
+```{r}
 
+bGressIndVals <- collectIndData(taxa = "butterflies", 
+                                habitat = "gressmark",
+                                years = 2009:2022)
+
+indPlot(input = bGressIndVals,
+        confLevel = "95%",
+        lineWidth = 1,
+        dodge = 0.5,
+        pointSize = 4) +
+  ggtitle("Indicator values for butterflies in semi-natural landscapes") +
+  scale_x_continuous(breaks = 2009:2022)
+```
 
 
 ## 10. Results
