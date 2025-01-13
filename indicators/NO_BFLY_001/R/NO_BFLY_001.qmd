@@ -43,6 +43,7 @@ library(kableExtra)
 library(here)
 library(bombLepiSurv)
 library(tmap)
+library(sf)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -316,7 +317,7 @@ This database is currently not available outside NINA, but we will implement a s
 
 ### 7.2. Dataset B - Regions
 
-<!--# Describe additional datasets in a similar was as above. Deleteor add ned subheaders as needed. -->
+<!--# Describe additional datasets in a similar was as above. Delete or add new subheaders as needed. -->
 We here import a shape file with the regional delineation. The indicators associated with the NorIns project can be attributed to the 5 country regions of Norway. Currently however, the data program only covers 4 of the 5 regions.
 
 ```{r fig-regions}
@@ -348,6 +349,14 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 -->
 ```
 
+Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold. 
+
+Ecosystem accounting area: Norway (althogh N-Norway is missing).
+
+Data needs to be aggregated to EA level before interprettation. 
+In addition, only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases. 
+
+
 ## 9. Analyses
 
 ```{=html}
@@ -372,7 +381,32 @@ remotes::install_github("NINAnor/bombLepiSurv")
 library(bombLepiSurv)
 ```
 
+Connect to the database, download maps and plot
+```{r}
+# get secret username and password
+source(here::here("_pw.R"))
+# connect
+bombLepiSurv::humlesommerfConnect(
+  username = BOMB_USER,
+  password = BOMB_PASSWORD
+)
+```
 
+```{r fig-butterfly-regions}	
+#| fig-cap: 'Map of regions in Norway coverede by the NMBB program. Østlandet is only covered by two fylker, and northern Norway is not covered at all'
+# Get maps
+nbbm_norway_regions <- bombLepiSurv::get_map()
+
+# Filer and plot
+norway_reg_NBBM2 <- nbbm_norway_regions |> 
+  filter(region %in% c("Sør", "Øst", "Vestlandet", "Trøndelag")) |>
+  select(region) %>% 
+  group_by(region) %>% 
+  summarize(geom = st_union(geom))
+
+tm_shape(norway_reg_NBBM2) + 
+  tm_polygons(col = "region") 
+```
 
 ## 10. Results
 
