@@ -294,6 +294,11 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
  -->
 ```
+The reference levels are the unique to each region. 
+They reflect the assumed *mean* community assemlage of butterflies in that region,
+and therefore indicator values should not be presented at a spatial scale that is smaller than region. 
+Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning and before any spatial aggregation.
+
 
 ## 5. Uncertainties
 
@@ -390,7 +395,8 @@ source(here::here("_pw.R"))
 # connect
 bombLepiSurv::humlesommerfConnect(
   username = BOMB_USER,
-  password = BOMB_PASSWORD
+  password = BOMB_PASSWORD,
+  host = "ninradardata01.nina.no"
 )
 ```
 
@@ -410,20 +416,20 @@ tm_shape(norway_reg_NBBM2) +
   tm_polygons(col = "region") 
 ```
 
-Download data from 2022 as an example
-```{r fig-allLepiGressmark2022}
-#| fig-cap: 'Butterflies in grasslands 2022.'
-allLepiGressmark2022 <- 
+Download data from 2023 as an example. 2024 data is not yet published.
+```{r fig-allLepiGressmark2023}
+#| fig-cap: 'Butterflies in grasslands 2023.'
+allLepiGressmark2023 <- 
   getAllData(type = "butterflies", 
     habitat = "gressmark",
-    year = 2022,
+    year = 2023,
     language = "norsk") |>
   mutate_if(bit64::is.integer64, as.numeric)
 
-surveyBarplot(allLepiGressmark2022)
+surveyBarplot(allLepiGressmark2023)
 ```
 
-Get indicator values from all years
+Indicator data is already processed for the years 2009 to 2022 and we can get them from the R package like this: 
 ```{r}
 # List datasets
 dat <- CursoRopen::list_github_files("bombLepiSurv", path = "data/", regexp = "Gress", owner = "NINAnor")
@@ -438,21 +444,147 @@ data(package = "bombLepiSurv", list = dat)
 
 ```
 
-```{r}
+The indicator data is stores in the environment as one dataframe per year/region/habitat. We only look at the grassland habitat here, and not the forest habitat. 
 
+We need to calculate the indicator values for the years 2023 (and later also 2024) and store them in the same way.
+
+```{r calculateIndicatorValues}
+#| eval: false
+nIter = 999
+
+sInd2023TrondGress <- calcInd(
+  type = "Sommerfugl",    # butterflies
+  region_short = "Trond", # Trøndelag region
+  habitat = "Gressmark",  # Grasslands
+  year = 2023,
+  nIter = nIter,
+  save.draws = T)
+
+sInd2023SorGress <- calcInd(
+  type = "Sommerfugl",    # butterflies
+  region_short = "Sor", # South region
+  habitat = "Gressmark",  # Grasslands
+  year = 2023,
+  nIter = nIter,
+  save.draws = T)
+
+sInd2023OstGress <- calcInd(
+  type = "Sommerfugl",    # butterflies
+  region_short = "Ost", # East region
+  habitat = "Gressmark",  # Grasslands
+  year = 2023,
+  nIter = nIter,
+  save.draws = T)
+
+sInd2023VestGress <- calcInd(
+  type = "Sommerfugl",    # butterflies
+  region_short = "Vest", # West region
+  habitat = "Gressmark",  # Grasslands
+  year = 2023,
+  nIter = nIter,
+  save.draws = T)
+
+save(sInd2023TrondGress, 
+     sInd2023SorGress, 
+     sInd2023OstGress, 
+     sInd2023VestGress, 
+     file = here::here("indicators", "NO_BFLY_001", "data", "sInd2023.RData"))
+```
+
+```{r}	
+#| echo: false
+load(here::here("indicators", "NO_BFLY_001", "data", "sInd2023.RData"))
+
+
+```
+
+
+Then we complie the indicator values for the years 2009 to 2023.
+```{r fig-linegraph}
+#| fig-cap: 'Indicator values for butterflies in grasslands from 2009 to 2022'
 bGressIndVals <- collectIndData(taxa = "butterflies", 
                                 habitat = "gressmark",
-                                years = 2009:2022)
+                                years = 2009:2023)
 
 indPlot(input = bGressIndVals,
         confLevel = "95%",
         lineWidth = 1,
         dodge = 0.5,
         pointSize = 4) +
-  ggtitle("Indicator values for butterflies in semi-natural landscapes") +
-  scale_x_continuous(breaks = 2009:2022)
+  scale_x_continuous(breaks = 2009:2023)
 ```
 
+The data objects contain point estimates and some percentiles. 
+However, in certain ecosystem accounting contexts, we may want the SD.
+I belive we can get the SD from the vector of randomized draws of community indecies, like this:
+
+```{r}
+sInd2023OstGress$`Randomization draws, community` |>
+  sd()
+```
+
+However, the errors or extremely skewed, and perhasp we should just use the 95% confidence interval for now.
+
+I can get the correct 2.5 and 97.5 persentiles by using the quantile function, but I can't recreate the point estimate.
+```{r}
+sInd2023OstGress$`Randomization draws, community` |>
+  quantile(probs = c(0.025, 0.5, 0.975))
+```
+
+This particular version of the indicator is developed for the norwegian pilot for national ecosystem condition accounting. 
+In this context we need to adhere to some guidelines.
+The accounting year (closing year) is 2024, and the accounting period is 3 years. 
+We dont have data from 2024, but I will aggregate the data from year 2022 and 2023 to produce the value for the year 2024.
+I am only concerned with the national estimate for now.
+I also need to carry the errors through every calcualtion and to use an area weighted mean when aggregation spatially over regions.
+
+First we get the area weights
+
+```{r}
+regTable <- regions |>
+  filter(region != "Nord-Norge") |>
+  mutate(area = st_area(geometry),
+  areaWgt = area/max(area)) |>
+  st_drop_geometry()
+regTable
+# the norwegian letters look weird in the console, but not in the environment
+```
+
+We then combine the data from 2022 and 2023
+
+```{r}
+east <- c(sInd2022OstGress$`Randomization draws, community`,
+  sInd2023OstGress$`Randomization draws, community`)
+vest <- c(sInd2022VestGress$`Randomization draws, community`,
+  sInd2023VestGress$`Randomization draws, community`)
+south <- c(sInd2022SorGress$`Randomization draws, community`,
+  sInd2023SorGress$`Randomization draws, community`)
+mid <- c(sInd2022TrondGress$`Randomization draws, community`,
+  sInd2023TrondGress$`Randomization draws, community`)
+```
+
+And we sample from these with *n* corresponding to the area weights
+
+```{r}
+east2 <- sample(east, size = regTable |> filter(region == "Østlandet") |> pull(areaWgt)*10000, replace = T)
+west2 <- sample(vest, size = regTable |> filter(region == "Vestlandet") |> pull(areaWgt)*10000, replace = T)
+south2 <- sample(south, size = regTable |> filter(region == "Sørlandet") |> pull(areaWgt)*10000, replace = T)
+mid2 <- sample(mid, size = regTable |> filter(region == "Midt-Norge") |> pull(areaWgt)*10000, replace = T)
+```
+
+Then we combine these into one big string and draw from it
+
+```{r}
+all <- c(east2, west2, south2, mid2)
+nationalDist <- sample(all, size = 10000, replace = T)
+```
+
+The value for 2024 is then the medain of this distribution
+
+```{r}
+nationalDist |>
+  quantile(probs = c(0.025, 0.5, 0.975))
+```
 
 ## 10. Results
 
@@ -466,16 +598,7 @@ This is typically where people will harvest data from, so make sure to include a
 -->
 ```
 
-## 11. Export file
+|ECT|Indicator|ID|Accounting area|Closing year|Value|Error (95% CI)|
+|---|---|---|---|---|---|---|
+|B1|Butterflies|NO_BFLY_001|Norway|2024|0.329| (0.187 - 0.434)|
 
-```{=html}
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
-```
-
-```{r export}
-#| eval: false
-```
