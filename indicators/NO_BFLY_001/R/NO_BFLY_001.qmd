@@ -20,7 +20,7 @@ author:
   - name: Anders L. Kolstad
     affiliations:
       - ref: myID     
-date: January 10, 2025 # Enter date 
+date: January 14, 2025 # Enter date 
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -132,8 +132,13 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 
--   14. Dec. 2023 - [First version published](https://ninanor.github.io/ecosystemCondition/insect-indicators.html)
--   06. Jan. 2025 - Started work in ecRxive version (Kolstad)
+-   
+
+    14. Dec. 2023 - [First version published](https://ninanor.github.io/ecosystemCondition/insect-indicators.html)
+
+-   
+
+    6.  Jan. 2025 - Started work in ecRxive version (Kolstad)
 :::
 
 <hr />
@@ -157,19 +162,11 @@ How should the metric be used and interpretted, and how should it not be used/in
  -->
 ```
 
-Butterflies are important pollinators in semi-natural grasslands, 
-and are as a community dependent on a varied herbaceous flora. 
-They represent a very visible aspect of biodiveristy, as well as a key functionality and indicators of habitat quality.
-Butterfly community structure can become disturbed by human activities, such as intensive agriculture and land-use change, 
-and is therefore a key indicator of ecosystem condition.
+Butterflies are important pollinators in semi-natural grasslands, and are as a community dependent on a varied herbaceous flora. They represent a conspicuous aspect of biodiversity, as well as indicators of habitat quality and important ecosystem functions, such as pollination. Butterfly community structure can become disturbed by human activities, such as intensive agriculture and land-use change, and is therefore a key indicator of ecosystem condition.
 
-The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB).
-This is a transect based survey using a representive grassland localities in the four regions of Norway 
-(northern Norway is not included, but is expected to become included in the near future). 
-The indicator is based on the number of butterflies in each locality, which is then compared to expcert elicited reference communities that show the expected number of each butterfly species.
+The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB) [@åström2024]. This is a transect based survey using a representative sample of grassland localities in four regions of Norway (northern Norway is not included, but is expected to become included in the near future). The indicator is based on the number of butterflies in each locality, which is then compared to expert elicited reference communities that show the expected number of each butterfly species.
 
-The workflow for calculating indicator values, and for storing data, is integrated into an R-package called [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
-The indicator is fully operational and used in several national reporting settings.
+The workflow for calculating indicator values, and for storing data, is integrated into an R-package called [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv). The indicator is fully operational and used in several national reporting settings.
 
 ## 2. About the underlying data
 
@@ -177,7 +174,7 @@ The indicator is fully operational and used in several national reporting settin
 
 The Norwegian monitoring of bumblebees and butterflies (NMBB) is initiated and financed by the Environmental agency, with the aim to produce continuous area representative time-series of insect community data. The NMBB program use sweep netting along transect walks where the species are identified manually in the field. <!-- More information is available in the links above. -->
 
-NMBB is designed to be area representative, within the respective habitat types and regions. It uses stratified randomized selection of localities. Localities are slected from a predefined continuous network of survey squares, within which individual transects are then manually placed. Some subjective decisions are made in the definition of habitat criteria and in discarding unpractical survey locations.
+NMBB is designed to be area representative, within the respective habitat types and regions. It uses stratified randomized selection of localities. Localities are selected from a predefined continuous network of survey squares, within which individual transects are then manually placed. Some subjective decisions are made in the definition of habitat criteria and in discarding unpractical survey locations.
 
 ### 2.1 Spatial and temporal resolution
 
@@ -197,7 +194,7 @@ Original units are number of individuals of each species within a transect, alth
 
 <!--# Text here -->
 
-This indicator was developed for the Nature Index of Norway back in 2010 [@öberg2011], and is calculated routinely on a yearly basis (see @åström2024 for the latest report).
+This indicator was developed for the Nature Index of Norway back in 2010 [@öberg2011], and is calculated routinely on a yearly basis (see @åström2024 for the latest report). The indicator is also described in detail [here](https://ninanor.github.io/ecosystemCondition/insect-indicators.html), from where most of the text and code in the current document is taken (often directly).
 
 ## 3. Indicator properties
 
@@ -231,7 +228,7 @@ Intakt biotic communitites.
 
 <!--# Optional: Add text about other spesific standards, e.g. national standards, and how the indicator relates to these -->
 
-In the Norwegian *fagsystem*, the indicator fits with the *Biologisk mangfold* characteristic.
+In the Norwegian *fagsystem [@nybø2017]*, the indicator fits with the *Biologisk mangfold* characteristic.
 
 ### 3.4 Collinearities with other indicators
 
@@ -267,23 +264,15 @@ For the butterfly indicator, the communities are small enough and well-known eno
 
 We have not specified a value for good ecological condition (X~0~) as of yet, since we lack a straightforward empirical basis to do so. By default then, the values is set to 0.6 , following the general framework.
 
-The indicator summarize the state of a butterfly community by estimating the difference from a reference community. 
-Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC). 
+The indicator summarize the state of a butterfly community by estimating the difference from a reference community. Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC).
 
+$$CI = \frac{SR-SC}{SR}$$ The state of reference (SR) represents a community of species which can be expected to be observed in a given habitat type and region. It is calculated by assigning each species to class of expected commonality: common (C), sporadic (S) and rare (R) species. This classification is done by expert opinion, informed by known present and past species distributions. Note that this state of reference only contains a subset of highlighted species, making up a historical reference community. Potential observations of "new" species therefore don't inform the indicator value at all. Common species are expected to be observed in at least 5 % of the surveyed transects in a habitat type and region. Sporadic species similarly are defined as having a presence below 5 % but above 1 %. Rare species are seen in no more than 1 % of the transects, and lastly, species not seen in any transect are assumed as lost (L) for the purpose of this calculation.
 
-$$CI = \frac{SR-SC}{SR}$$
-The state of reference (SR) represents a community of species which can be expected to be observed in a given habitat type and region. It is calculated by assigning each species to class of expected commonality: common (C), sporadic (S) and rare (R) species. This classification is done by expert opinion, informed by known present and past species distributions. Note that this state of reference only contains a subset of highlighted species, making up a historical reference community. Potential observations of "new" species therefore don't inform the indicator value at all. Common species are expected to be observed in at least 5 % of the surveyed transects in a habitat type and region. Sporadic species similarly are defined as having a presence below 5 % but above 1 %. Rare species are seen in no more than 1 % of the transects, and lastly, species not seen in any transect are assumed as lost (L) for the purpose of this calculation. 
-  
 Each commonality class gets its own weight, so that common species inform the reference state more than sporadic species, followed by rare species. The state of reference (SR) is thus a value where each species adds to the state according to its commonality. Formally, it is defined as:
 
-$$SR = n_C * w_{C, SR} + n_S * w_{S, SR} + n_R * w_{R, SR} = \sum_{i = (C, S, R)} n_i * w_{i, SR}, $$
-where $n_i$ is the number of species in a commonality class (C, S, R), and the weights $[w_{C, SR}, w_{S, SR}, w_{R, SR}]$ specify their respective contribution to the reference state (SR). The weights used are $[w_{C, SR}, w_{S, SR}, w_{R, SR}] = [1.0, 0.75, 0.50]$, i.e. a sporadic species has 75 % the weight of a common species, and a rare species has 50 % the weight of a common species. 
+$$SR = n_C * w_{C, SR} + n_S * w_{S, SR} + n_R * w_{R, SR} = \sum_{i = (C, S, R)} n_i * w_{i, SR}, $$ where $n_i$ is the number of species in a commonality class (C, S, R), and the weights $[w_{C, SR}, w_{S, SR}, w_{R, SR}]$ specify their respective contribution to the reference state (SR). The weights used are $[w_{C, SR}, w_{S, SR}, w_{R, SR}] = [1.0, 0.75, 0.50]$, i.e. a sporadic species has 75 % the weight of a common species, and a rare species has 50 % the weight of a common species.
 
-
-The state of change (SC) is calculated as
- $$SC = n_{CS} * w_{CS} + n_{CR} * w_{CR} + n_{CL} * w_{CL} + n_{SR} * w_{SR} + n_{SL} * w_{SL} + n_{RL} * w_{RL}, $$ 
-where $n_{CS}$ is the number of expected common species (C) that is observed sporadically (S), and $w_{CS}$ is the weight of this change. Similarly, $n_{CR}$ is the number of expected common species that is observed rarely, $n_{RL}$ is the number of rare species that is lost, and so on. Potential increases in observation rates do not inform the indicator. Changes for common species are weighted more heavily than changes for less common species, and larger decreases are weighted more heavily than smaller decreases, such that $[w_{CS}, w_{CR}, w_{CL}, w_{SR}, w_{SL}, w_{RL}]= [0.50, 0.75, 1.00, 0.50, 0.75, 0.50]$.
-
+The state of change (SC) is calculated as $$SC = n_{CS} * w_{CS} + n_{CR} * w_{CR} + n_{CL} * w_{CL} + n_{SR} * w_{SR} + n_{SL} * w_{SL} + n_{RL} * w_{RL}, $$ where $n_{CS}$ is the number of expected common species (C) that is observed sporadically (S), and $w_{CS}$ is the weight of this change. Similarly, $n_{CR}$ is the number of expected common species that is observed rarely, $n_{RL}$ is the number of rare species that is lost, and so on. Potential increases in observation rates do not inform the indicator. Changes for common species are weighted more heavily than changes for less common species, and larger decreases are weighted more heavily than smaller decreases, such that $[w_{CS}, w_{CR}, w_{CL}, w_{SR}, w_{SL}, w_{RL}]= [0.50, 0.75, 1.00, 0.50, 0.75, 0.50]$.
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -294,37 +283,35 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
  -->
 ```
-The reference levels are the unique to each region. 
-They reflect the assumed *mean* community assemlage of butterflies in that region,
-and therefore indicator values should not be presented at a spatial scale that is smaller than region. 
-Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning and before any spatial aggregation.
 
+The reference levels are the unique to each region. They reflect the assumed *mean* community assemlage of butterflies in that region, and therefore indicator values should not be presented at a spatial scale that is smaller than region. Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning and before any spatial aggregation.
 
 ## 5. Uncertainties
 
 <!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
 
-The indicator values are estimated with uncertainty, by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples.
-The uncertainties for indicator values are constituted by a distribution of discrete values, and therefore we only provide confidence intervals and not a standard deviation.
+The indicator values are estimated with uncertainty, by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples. The uncertainties for indicator values are constituted by a distribution of discrete values, and therefore we only provide confidence intervals and not a standard deviation.
 
 ## 6. References
 
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
+::: {#refs}
+:::
 
 ## 7. Datasets
 
 ### 7.1 Dataset A - NMBB
-<!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
-The `bombLepiSurv` package has convenience functions to fetch data from the internal NINA database. 
-This database is currently not available outside NINA, but we will implement a solution for this in the future. Either we will make the database externally available, or we will provide an alternative route to the data from the GBIF export. For now, we will fetch the data through the `bombLepiSurv` functions.
 
+<!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
+
+The `bombLepiSurv` package has convenience functions to fetch data from the internal NINA database. This database is currently not available outside NINA, but we will implement a solution for this in the future. Either we will make the database externally available, or we will provide an alternative route to the data from the GBIF export. For now, we will fetch the data through the `bombLepiSurv` functions.
 
 <!--# Describe the main dataset, typicaly the one containing the variable of (most) interest. Change the header from Dataset A to the name of the actuall dataset. -->
-
 
 ### 7.2. Dataset B - Regions
 
 <!--# Describe additional datasets in a similar was as above. Delete or add new subheaders as needed. -->
+
 We here import a shape file with the regional delineation. The indicators associated with the NorIns project can be attributed to the 5 country regions of Norway. Currently however, the data program only covers 4 of the 5 regions.
 
 ```{r fig-regions}
@@ -343,8 +330,7 @@ regions <- sf::st_intersection(regions, nor)
 tm_shape(regions) + 
   tm_polygons(col = "region") 
 
-```	
-
+```
 
 ## 8. Spatial units
 
@@ -356,13 +342,11 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 -->
 ```
 
-Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold. 
+Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold.
 
-Ecosystem accounting area: Norway (althogh N-Norway is missing).
+Ecosystem accounting area: Norway (although N-Norway is missing).
 
-Data needs to be aggregated to EA level before interprettation. 
-In addition, only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases. 
-
+Data needs to be aggregated to EA level before interpretation. In addition, only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases.
 
 ## 9. Analyses
 
@@ -381,6 +365,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
 
 Install the bombLepiSurv-package like this
+
 ```{r}
 #| eval: false
 #| code-fold: show
@@ -389,6 +374,7 @@ library(bombLepiSurv)
 ```
 
 Connect to the database, download maps and plot
+
 ```{r connect}
 # get secret username and password
 source(here::here("_pw.R"))
@@ -400,7 +386,7 @@ bombLepiSurv::humlesommerfConnect(
 )
 ```
 
-```{r fig-butterfly-regions}	
+```{r fig-butterfly-regions}
 #| fig-cap: 'Map of regions in Norway coverede by the NMBB program. Østlandet is only covered by two fylker, and northern Norway is not covered at all'
 # Get maps
 nbbm_norway_regions <- bombLepiSurv::get_map()
@@ -417,6 +403,7 @@ tm_shape(norway_reg_NBBM2) +
 ```
 
 Download data from 2023 as an example. 2024 data is not yet published.
+
 ```{r fig-allLepiGressmark2023}
 #| fig-cap: 'Butterflies in grasslands 2023.'
 allLepiGressmark2023 <- 
@@ -429,7 +416,8 @@ allLepiGressmark2023 <-
 surveyBarplot(allLepiGressmark2023)
 ```
 
-Indicator data is already processed for the years 2009 to 2022 and we can get them from the R package like this: 
+Indicator data is already processed for the years 2009 to 2022 and we can get them from the R package like this:
+
 ```{r}
 # List datasets
 dat <- CursoRopen::list_github_files("bombLepiSurv", path = "data/", regexp = "Gress", owner = "NINAnor")
@@ -444,7 +432,7 @@ data(package = "bombLepiSurv", list = dat)
 
 ```
 
-The indicator data is stores in the environment as one dataframe per year/region/habitat. We only look at the grassland habitat here, and not the forest habitat. 
+The indicator data is stored in the environment as one dataframe per year/region/habitat. We only look at the grassland habitat here, and not the forest habitat.
 
 We need to calculate the indicator values for the years 2023 (and later also 2024) and store them in the same way.
 
@@ -491,15 +479,13 @@ save(sInd2023TrondGress,
      file = here::here("indicators", "NO_BFLY_001", "data", "sInd2023.RData"))
 ```
 
-```{r}	
+```{r}
 #| echo: false
 load(here::here("indicators", "NO_BFLY_001", "data", "sInd2023.RData"))
-
-
 ```
 
+Then we compile the indicator values for the years 2009 to 2023.
 
-Then we complie the indicator values for the years 2009 to 2023.
 ```{r fig-linegraph}
 #| fig-cap: 'Indicator values for butterflies in grasslands from 2009 to 2022'
 bGressIndVals <- collectIndData(taxa = "butterflies", 
@@ -514,31 +500,33 @@ indPlot(input = bGressIndVals,
   scale_x_continuous(breaks = 2009:2023)
 ```
 
-The data objects contain point estimates and some percentiles. 
-However, in certain ecosystem accounting contexts, we may want the SD.
-I belive we can get the SD from the vector of randomized draws of community indecies, like this:
+The data objects contain point estimates and some percentiles. However, in certain ecosystem accounting contexts, we may want the SD. We can get the symmetrical SD from the vector of randomized draws of community indices, like this:
 
 ```{r}
 sInd2023OstGress$`Randomization draws, community` |>
   sd()
 ```
 
-However, the errors or extremely skewed, and perhasp we should just use the 95% confidence interval for now.
+However, the errors or extremely skewed, and we shall therefore just use the 95% confidence interval for now.
 
-I can get the correct 2.5 and 97.5 persentiles by using the quantile function, but I can't recreate the point estimate.
+Here is the summary data for one region and one year, for illustration:
+
+```{r}
+sInd2023OstGress
+```
+
+I can get the correct 2.5 and 97.5 percentiles by using the `quantile` function.
+
 ```{r}
 sInd2023OstGress$`Randomization draws, community` |>
   quantile(probs = c(0.025, 0.5, 0.975))
 ```
 
-This particular version of the indicator is developed for the norwegian pilot for national ecosystem condition accounting. 
-In this context we need to adhere to some guidelines.
-The accounting year (closing year) is 2024, and the accounting period is 3 years. 
-We dont have data from 2024, but I will aggregate the data from year 2022 and 2023 to produce the value for the year 2024.
-I am only concerned with the national estimate for now.
-I also need to carry the errors through every calcualtion and to use an area weighted mean when aggregation spatially over regions.
+But notice that the point estimate is not the median of the distribution. Nor is it the mean. The point estimate is rather taken from the actual sample (not a random draw) of sampling locations.
 
-First we get the area weights
+This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. We don't have data from 2024, but I will aggregate the data from year 2022 and 2023 to produce the value for the year 2024. We am only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregation spatially over regions.
+
+First we get the area weights.
 
 ```{r}
 regTable <- regions |>
@@ -550,7 +538,76 @@ regTable
 # the norwegian letters look weird in the console, but not in the environment
 ```
 
-We then combine the data from 2022 and 2023
+We use bootstrapping for getting the errors, but we use area-weighted arithmetic mean to get the point estimate.
+
+First the point estimate.
+
+```{r}
+ost22 <- sInd2022OstGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>
+  filter(name == "Point estimate") |>
+  pull("value")
+
+
+ost23 <- sInd2023OstGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>
+  filter(name == "Point estimate") |>
+  pull("value")
+
+west22 <- sInd2022VestGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>
+  filter(name == "Point estimate") |>
+  pull("value")
+
+
+west23 <- sInd2023VestGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>  
+  filter(name == "Point estimate") |>
+  pull("value")
+
+south22 <- sInd2022SorGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>
+  filter(name == "Point estimate") |>
+  pull("value")
+
+
+south23 <- sInd2023SorGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>
+  filter(name == "Point estimate") |>
+  pull("value")
+
+mid22 <- sInd2022TrondGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>
+  filter(name == "Point estimate") |>
+  pull("value")
+
+
+mid23 <- sInd2023TrondGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>  
+  filter(name == "Point estimate") |>
+  pull("value")
+
+# aggregate by first taking the mean of the two years, then the area weighted mean of the four regions
+
+ost <- (ost22 + ost23)/2
+west <- (west22 + west23)/2
+south <- (south22 + south23)/2
+mid <- (mid22 + mid23)/2
+
+# area weighted mean
+pointEstimateNorway <- mean(
+  c(
+    mid,
+    ost, 
+    west, 
+    south 
+  ), 
+  weights = regTable$areaWgt)
+
+pointEstimateNorway
+```
+
+Then the errors. We first combine the data from 2022 and 2023 and sample from these with *n* corresponding to the area weights
 
 ```{r}
 east <- c(sInd2022OstGress$`Randomization draws, community`,
@@ -561,11 +618,8 @@ south <- c(sInd2022SorGress$`Randomization draws, community`,
   sInd2023SorGress$`Randomization draws, community`)
 mid <- c(sInd2022TrondGress$`Randomization draws, community`,
   sInd2023TrondGress$`Randomization draws, community`)
-```
 
-And we sample from these with *n* corresponding to the area weights
-
-```{r}
+# sample
 east2 <- sample(east, size = regTable |> filter(region == "Østlandet") |> pull(areaWgt)*10000, replace = T)
 west2 <- sample(vest, size = regTable |> filter(region == "Vestlandet") |> pull(areaWgt)*10000, replace = T)
 south2 <- sample(south, size = regTable |> filter(region == "Sørlandet") |> pull(areaWgt)*10000, replace = T)
@@ -576,15 +630,10 @@ Then we combine these into one big string and draw from it
 
 ```{r}
 all <- c(east2, west2, south2, mid2)
-nationalDist <- sample(all, size = 10000, replace = T)
+nationalDist <- sample(all, size = 10000, replace = T) |>
+  quantile(probs = c(0.025, 0.975))
 ```
 
-The value for 2024 is then the medain of this distribution
-
-```{r}
-nationalDist |>
-  quantile(probs = c(0.025, 0.5, 0.975))
-```
 
 ## 10. Results
 
@@ -598,7 +647,6 @@ This is typically where people will harvest data from, so make sure to include a
 -->
 ```
 
-|ECT|Indicator|ID|Accounting area|Closing year|Value|Error (95% CI)|
-|---|---|---|---|---|---|---|
-|B1|Butterflies|NO_BFLY_001|Norway|2024|0.329| (0.187 - 0.434)|
-
+| ECT | Indicator   | ID          | Accounting area | Closing year | Value | Error (95% CI)  |
+|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
+| B1  | Butterflies | NO_BFLY_001 | Norway          | 2024         | 0.358 | (0.187 - 0.434) |
