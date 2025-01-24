@@ -3,24 +3,8 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
 ## NEWS
-ecRciv is now receiving indicator documentation. These are being subjected to both code reviews and other more general reviews.
-Code reviews are typically found under old/closed pull requests, whilst other reviews are found under _issues_ by filtering for the tag _REVIEW_.
 
-We plan to publish and make the documentation (the fact sheets) available through an online web application. This app is under active development and will be made available soon.
-
-The internal (to NINA) sandbox version can be viewed [here](https://internal-shiny.nina.no/ecRxiv/)
-
-There are currently three indicators documented on ecRxiv
-
-- Woody encroachment, LiDRA-based [[NO_GJEN_001](http://htmlpreview.github.io/?https://github.com/NINAnor/ecRxiv/blob/main/indicators/NO_GJEN_001/R/NO_GJEN_001.html)]
-- Woody encroachemnt, aerial images based [[NO_GJEN_002](http://htmlpreview.github.io/?https://github.com/NINAnor/ecRxiv/blob/main/indicators/NO_GJEN_002/R/NO_GJEN_002.html)]
-- Pollinator potential [[NO_POPO_001](http://htmlpreview.github.io/?https://github.com/NINAnor/ecRxiv/blob/main/indicators/NO_POPO_001/R/NO_POPO_001.html)]
-
-All are beta versions (v. 000.001), and under active review and developement. 
-
-All versions of the indicators get their own stable url, so you can always cite and view any version.
-
-
+The [ecRxiv web app](https://view.nina.no/ecRxiv/) is now available.
 
 
 ## Rationale
