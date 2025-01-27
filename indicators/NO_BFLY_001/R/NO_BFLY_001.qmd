@@ -1,5 +1,5 @@
 ---
-title: "Butterflies in semi-natural grasslands"
+title: "Butterflies"
 subtitle: "[NO_BFLY_001]"
 format: 
   html:
@@ -125,6 +125,7 @@ meta |>
 
 ```
 
+
 </details>
 
 ::: {.callout-tip collapse="true"}
@@ -139,6 +140,10 @@ meta |>
 -   
 
     6.  Jan. 2025 - Started work in ecRxive version (Kolstad)
+
+-   
+
+    27. Jan. 2025 - Updated PR to ecRxive (Kolstad)
 :::
 
 <hr />
@@ -162,9 +167,9 @@ How should the metric be used and interpretted, and how should it not be used/in
  -->
 ```
 
-Butterflies are important pollinators in semi-natural grasslands, and are as a community dependent on a varied herbaceous flora. They represent a conspicuous aspect of biodiversity, as well as indicators of habitat quality and important ecosystem functions, such as pollination. Butterfly community structure can become disturbed by human activities, such as intensive agriculture and land-use change, and is therefore a key indicator of ecosystem condition.
+Butterflies represent a conspicuous aspect of biodiversity, as well as indicators of habitat quality and important ecosystem functions, such as pollination. As a community they are dependent on a varied herbaceous flora. Butterfly community structure can become disturbed by human activities, such as intensive agriculture and land-use change, and is therefore a key indicator of ecosystem condition.
 
-The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB) [@åström2024]. This is a transect based survey using a representative sample of grassland localities in four regions of Norway (northern Norway is not included, but is expected to become included in the near future). The indicator is based on the number of butterflies in each locality, which is then compared to expert elicited reference communities that show the expected number of each butterfly species.
+Here we calculate nationally aggregated indicator estimates for all of Norway, for both the forest and the semi-natural meadow ecosystems. The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB) [@åström2024]. This is a transect based survey using a representative sample of grassland localities in four regions of Norway (northern Norway is not included, but is expected to become included in the near future). The indicator is based on the number of butterflies in each locality, which is then compared to expert elicited reference communities that show the expected number of each butterfly species.
 
 The workflow for calculating indicator values, and for storing data, is integrated into an R-package called [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv). The indicator is fully operational and used in several national reporting settings.
 
@@ -174,15 +179,17 @@ The workflow for calculating indicator values, and for storing data, is integrat
 
 The Norwegian monitoring of bumblebees and butterflies (NMBB) is initiated and financed by the Environmental agency, with the aim to produce continuous area representative time-series of insect community data. The NMBB program use sweep netting along transect walks where the species are identified manually in the field. <!-- More information is available in the links above. -->
 
-NMBB is designed to be area representative, within the respective habitat types and regions. It uses stratified randomized selection of localities. Localities are selected from a predefined continuous network of survey squares, within which individual transects are then manually placed. Some subjective decisions are made in the definition of habitat criteria and in discarding unpractical survey locations.
+NMBB is designed to be area representative, within the respective habitat types (forest and grasslands) and regions. It uses stratified randomized selection of localities. Localities are selected from a predefined continuous network of survey squares, within which individual transects are then manually placed. Some subjective decisions are made in the definition of habitat criteria and in discarding unpractical survey locations.
 
 ### 2.1 Spatial and temporal resolution
 
 <!--# Describe the temporal and spatial resolution of the data used-->
 
-The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag) in 2010, south-western Norway in 2013, and to western Norway (Vestland and Møre og Romsdal fylke) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region. Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
+The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), and to western Norway (Vestland) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region. There are in total 71 sampling locations as of 2024, divided between the foresta and the grassland ecosystem. The program will be expanded to Northern Norway in 2025.
 
-Data covers 2009 up to the present.
+Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
+
+Data covers 2009 (for part of Norway) up to the present.
 
 ### 2.2 Original units
 
@@ -242,7 +249,7 @@ None that are very obvious.
 
 <!--# Define the reference condition (or refer to where it is defined). Note the destinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
 
-The reference condition is meant to be one with minimal negative human impact, but this has a special interpretation for semi-natural land. These habitats are formed and maintained through human activities. Thus, “minimal negative human impact” is replaced by a state of “good maintenance”, here understood as resembling the traditional agricultural maintenance regime, existing for several hundred years up until the late 1800s. This is characterized by extensive grazing, meadows and lays, crop rotation with legumes to bind nitrogen in addition to fertilization from manure, relatively small field sizes and abundant field margins, and a lack of artificial fertilization and mechanized tilling.
+The reference condition for forests is one with minimal negative human impact (pre modern forestry and accelerated climate change for example), but there is a special interpretation for semi-natural land. These habitats are formed and maintained through human activities. Thus, “minimal negative human impact” is replaced by a state of “good maintenance”, here understood as resembling the traditional agricultural maintenance regime, existing for several hundred years up until the late 1800s. This is characterized by extensive grazing, meadows and lays, crop rotation with legumes to bind nitrogen in addition to fertilization from manure, relatively small field sizes and abundant field margins, and a lack of artificial fertilization and mechanized tilling.
 
 ### 4.2 Reference levels
 
@@ -266,13 +273,21 @@ We have not specified a value for good ecological condition (X~0~) as of yet, si
 
 The indicator summarize the state of a butterfly community by estimating the difference from a reference community. Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC).
 
-$$CI = \frac{SR-SC}{SR}$$ The state of reference (SR) represents a community of species which can be expected to be observed in a given habitat type and region. It is calculated by assigning each species to class of expected commonality: common (C), sporadic (S) and rare (R) species. This classification is done by expert opinion, informed by known present and past species distributions. Note that this state of reference only contains a subset of highlighted species, making up a historical reference community. Potential observations of "new" species therefore don't inform the indicator value at all. Common species are expected to be observed in at least 5 % of the surveyed transects in a habitat type and region. Sporadic species similarly are defined as having a presence below 5 % but above 1 %. Rare species are seen in no more than 1 % of the transects, and lastly, species not seen in any transect are assumed as lost (L) for the purpose of this calculation.
+$$CI = \frac{SR-SC}{SR}$$ 
+
+The state of reference (SR) represents a community of species which can be expected to be observed in a given habitat type and region. It is calculated by assigning each species to class of expected commonality: common (C), sporadic (S) and rare (R) species. This classification is done by expert opinion, informed by known present and past species distributions. Note that this state of reference only contains a subset of highlighted species, making up a historical reference community. Potential observations of "new" species therefore don't inform the indicator value at all. Common species are expected to be observed in at least 5 % of the surveyed transects in a habitat type and region. Sporadic species similarly are defined as having a presence below 5 % but above 1 %. Rare species are seen in no more than 1 % of the transects, and lastly, species not seen in any transect are assumed as lost (L) for the purpose of this calculation.
 
 Each commonality class gets its own weight, so that common species inform the reference state more than sporadic species, followed by rare species. The state of reference (SR) is thus a value where each species adds to the state according to its commonality. Formally, it is defined as:
 
-$$SR = n_C * w_{C, SR} + n_S * w_{S, SR} + n_R * w_{R, SR} = \sum_{i = (C, S, R)} n_i * w_{i, SR}, $$ where $n_i$ is the number of species in a commonality class (C, S, R), and the weights $[w_{C, SR}, w_{S, SR}, w_{R, SR}]$ specify their respective contribution to the reference state (SR). The weights used are $[w_{C, SR}, w_{S, SR}, w_{R, SR}] = [1.0, 0.75, 0.50]$, i.e. a sporadic species has 75 % the weight of a common species, and a rare species has 50 % the weight of a common species.
+$$SR = n_C * w_{C, SR} + n_S * w_{S, SR} + n_R * w_{R, SR} = \sum_{i = (C, S, R)} n_i * w_{i, SR}, $$ 
 
-The state of change (SC) is calculated as $$SC = n_{CS} * w_{CS} + n_{CR} * w_{CR} + n_{CL} * w_{CL} + n_{SR} * w_{SR} + n_{SL} * w_{SL} + n_{RL} * w_{RL}, $$ where $n_{CS}$ is the number of expected common species (C) that is observed sporadically (S), and $w_{CS}$ is the weight of this change. Similarly, $n_{CR}$ is the number of expected common species that is observed rarely, $n_{RL}$ is the number of rare species that is lost, and so on. Potential increases in observation rates do not inform the indicator. Changes for common species are weighted more heavily than changes for less common species, and larger decreases are weighted more heavily than smaller decreases, such that $[w_{CS}, w_{CR}, w_{CL}, w_{SR}, w_{SL}, w_{RL}]= [0.50, 0.75, 1.00, 0.50, 0.75, 0.50]$.
+where $n_i$ is the number of species in a commonality class (C, S, R), and the weights $[w_{C, SR}, w_{S, SR}, w_{R, SR}]$ specify their respective contribution to the reference state (SR). The weights used are $[w_{C, SR}, w_{S, SR}, w_{R, SR}] = [1.0, 0.75, 0.50]$, i.e. a sporadic species has 75 % the weight of a common species, and a rare species has 50 % the weight of a common species.
+
+The state of change (SC) is calculated as 
+
+$$SC = n_{CS} * w_{CS} + n_{CR} * w_{CR} + n_{CL} * w_{CL} + n_{SR} * w_{SR} + n_{SL} * w_{SL} + n_{RL} * w_{RL} $$ 
+
+where $n_{CS}$ is the number of expected common species (C) that is observed sporadically (S), and $w_{CS}$ is the weight of this change. Similarly, $n_{CR}$ is the number of expected common species that is observed rarely, $n_{RL}$ is the number of rare species that is lost, and so on. Potential increases in observation rates do not inform the indicator. Changes for common species are weighted more heavily than changes for less common species, and larger decreases are weighted more heavily than smaller decreases, such that $[w_{CS}, w_{CR}, w_{CL}, w_{SR}, w_{SL}, w_{RL}]= [0.50, 0.75, 1.00, 0.50, 0.75, 0.50]$.
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -284,17 +299,18 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
  -->
 ```
 
-The reference levels are the unique to each region. They reflect the assumed *mean* community assemlage of butterflies in that region, and therefore indicator values should not be presented at a spatial scale that is smaller than region. Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning and before any spatial aggregation.
+The reference levels are the unique to each region. They reflect the assumed *mean* community assemlage of butterflies in that region, and therefore indicator values should not be presented at a spatial scale that is smaller than region. Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning, and before any spatial aggregation.
 
 ## 5. Uncertainties
 
 <!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
 
-The indicator values are estimated with uncertainty, by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples. The uncertainties for indicator values are constituted by a distribution of discrete values, and therefore we only provide confidence intervals and not a standard deviation.
+The indicator values are estimated with uncertainty in the sense of spatial variation, by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples. The uncertainties for indicator values are constituted by a distribution of discrete values, and therefore we only provide confidence intervals and not a standard deviation.
 
 ## 6. References
 
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
+
 ::: {#refs}
 :::
 
@@ -312,7 +328,108 @@ The `bombLepiSurv` package has convenience functions to fetch data from the inte
 
 <!--# Describe additional datasets in a similar was as above. Delete or add new subheaders as needed. -->
 
-We here import a shape file with the regional delineation. The indicators associated with the NorIns project can be attributed to the 5 country regions of Norway. Currently however, the data program only covers 4 of the 5 regions.
+We here import a shape file with the regional delineations used in this monitoring program. Note that this delineation differens from the more standard definitions used in ecosystem accounting Norway.
+
+
+
+```{r}
+#| eval: false
+
+# Path to counties pre 2020 merge
+path <- here("indicators/NO_BFLY_001/data/Basisdata_0000_Norge_25833_Fylker2019_FGDB.gdb")
+
+# print layer names
+#st_layers(path)
+
+# Get the names to the codes
+# temp <- read_sf(path, layer = "administrativenhetnavn")
+
+# read data and group counties
+counties <- sf::read_sf(path,
+    layer = "fylke") 
+
+# The file is a combination of multipolygons and multisurfaces.
+# I used this post to fix the problem: https://gis.stackexchange.com/questions/389814/r-st-centroid-geos-error-unknown-wkb-type-12
+
+library(gdalUtilities)
+
+ensure_multipolygons <- function(X) {
+    tmp1 <- tempfile(fileext = ".gpkg")
+    tmp2 <- tempfile(fileext = ".gpkg")
+    st_write(X, tmp1)
+    ogr2ogr(tmp1, tmp2, f = "GPKG", nlt = "MULTIPOLYGON")
+    Y <- st_read(tmp2)
+    st_sf(st_drop_geometry(X), geom = st_geometry(Y))
+}
+
+counties2 <- ensure_multipolygons(counties)
+sf::st_geometry_type(counties2) #OK
+
+# Plot in interactive mode to get correct county numbers
+tmap::tmap_mode("view")
+tm_shape(counties2) + 
+  tm_polygons()
+
+# Classify
+
+counties3 <- counties2 |>
+  mutate(Region = case_when(
+    fylkesnummer %in% c("50", "15") ~ "Midt",
+        fylkesnummer %in% c("12", "14") ~ "Vest",
+        fylkesnummer %in% c("10", "11") ~ "Sør",
+        fylkesnummer %in% c("01","07") ~ "Øst",
+        .default = NA_character_
+      ))
+tmap::tmap_mode("plot")
+tm_shape(counties3) + 
+  tm_polygons(col = "Region") 
+
+# Merge counties from same region
+
+counties4 <- counties3 |>
+  group_by(Region) |>
+  summarize(geom = st_union(geom))
+
+# Take out the marine areas
+# import outline of Norway
+nor <- sf::st_read(here::here("indicators/NO_BFLY_001/data/outlineOfNorway_EPSG25833.shp"),
+  quiet = TRUE)
+# remove marine areas
+counties <- sf::st_intersection(counties4, nor)
+
+tm_shape(counties) + 
+  tm_polygons(col = "Region") 
+
+# Save
+saveRDS(counties, here::here("indicators/NO_BFLY_001/data/regions.rds"))
+```
+
+```{r}
+tm_shape(counties3) + 
+  tm_polygons(col = "Region") 
+```
+
+The maps are kept inside the `bombLepiSurv` package. Install the package like this
+
+```{r}
+#| eval: false
+#| code-fold: show
+remotes::install_github("NINAnor/bombLepiSurv")
+library(bombLepiSurv)
+```
+
+Connect to the database, download maps and plot
+
+```{r connect}
+# get secret username and password
+source(here::here("_pw.R"))
+# connect
+bombLepiSurv::humlesommerfConnect(
+  username = BOMB_USER,
+  password = BOMB_PASSWORD,
+  host = "ninradardata01.nina.no"
+)
+```
 
 ```{r fig-regions}
 #| warning: false
@@ -321,11 +438,6 @@ We here import a shape file with the regional delineation. The indicators associ
 regions <- sf::read_sf(here::here("indicators/NO_BFLY_001/data/regions.shp"),
   options = "ENCODING=UTF8",
   quiet = TRUE)
-# import outline of Norway
-nor <- sf::st_read(here::here("indicators/NO_BFLY_001/data/outlineOfNorway_EPSG25833.shp"),
-  quiet = TRUE)
-# remove marine areas
-regions <- sf::st_intersection(regions, nor)
 
 tm_shape(regions) + 
   tm_polygons(col = "region") 
@@ -363,28 +475,6 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 ```
 
 These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
-
-Install the bombLepiSurv-package like this
-
-```{r}
-#| eval: false
-#| code-fold: show
-remotes::install_github("NINAnor/bombLepiSurv")
-library(bombLepiSurv)
-```
-
-Connect to the database, download maps and plot
-
-```{r connect}
-# get secret username and password
-source(here::here("_pw.R"))
-# connect
-bombLepiSurv::humlesommerfConnect(
-  username = BOMB_USER,
-  password = BOMB_PASSWORD,
-  host = "ninradardata01.nina.no"
-)
-```
 
 ```{r fig-butterfly-regions}
 #| fig-cap: 'Map of regions in Norway coverede by the NMBB program. Østlandet is only covered by two fylker, and northern Norway is not covered at all'
@@ -633,7 +723,6 @@ all <- c(east2, west2, south2, mid2)
 nationalDist <- sample(all, size = 10000, replace = T) |>
   quantile(probs = c(0.025, 0.975))
 ```
-
 
 ## 10. Results
 
