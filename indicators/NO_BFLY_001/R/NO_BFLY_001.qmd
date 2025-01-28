@@ -127,7 +127,6 @@ meta |>
 
 ```
 
-
 </details>
 
 ::: {.callout-tip collapse="true"}
@@ -187,11 +186,15 @@ NMBB is designed to be area representative, within the respective habitat types 
 
 <!--# Describe the temporal and spatial resolution of the data used-->
 
-The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), and to western Norway (Vestland) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region. There are in total 71 sampling locations as of 2024, divided between the foresta and the grassland ecosystem. The program will be expanded to Northern Norway in 2025.
+The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), and to western Norway (Vestland) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region.
+
+There are in total 71 sampling locations as of 2024, divided between the forests and the grassland ecosystem. The four regions have approx. the same sample size, yet they cover quite different extents (@fig-regions). Therefore, the values from the central regions contributes a lot more in the area weighted national estimate (about 10 times as much weight as the values from the east region; @tbl-wgt). In this sense, the dataset is perhaps more suited, or at least more better designed, to analysing regional difference, rather than to look at national means.
+
+The program will be expanded to Northern Norway in 2025.
 
 Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
 
-Data covers 2009 (for part of Norway) up to the present.
+Data covers 2009 (for part of Norway) up to the present, but the database currently only has data up until 2023. The 2024 is available on GitHub, but is not accessible via the same workflow using the bombLepiSurv-package.
 
 ### 2.2 Original units
 
@@ -275,19 +278,19 @@ We have not specified a value for good ecological condition (X~0~) as of yet, si
 
 The indicator summarize the state of a butterfly community by estimating the difference from a reference community. Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC).
 
-$$CI = \frac{SR-SC}{SR}$$ 
+$$CI = \frac{SR-SC}{SR}$$
 
 The state of reference (SR) represents a community of species which can be expected to be observed in a given habitat type and region. It is calculated by assigning each species to class of expected commonality: common (C), sporadic (S) and rare (R) species. This classification is done by expert opinion, informed by known present and past species distributions. Note that this state of reference only contains a subset of highlighted species, making up a historical reference community. Potential observations of "new" species therefore don't inform the indicator value at all. Common species are expected to be observed in at least 5 % of the surveyed transects in a habitat type and region. Sporadic species similarly are defined as having a presence below 5 % but above 1 %. Rare species are seen in no more than 1 % of the transects, and lastly, species not seen in any transect are assumed as lost (L) for the purpose of this calculation.
 
 Each commonality class gets its own weight, so that common species inform the reference state more than sporadic species, followed by rare species. The state of reference (SR) is thus a value where each species adds to the state according to its commonality. Formally, it is defined as:
 
-$$SR = n_C * w_{C, SR} + n_S * w_{S, SR} + n_R * w_{R, SR} = \sum_{i = (C, S, R)} n_i * w_{i, SR}, $$ 
+$$SR = n_C * w_{C, SR} + n_S * w_{S, SR} + n_R * w_{R, SR} = \sum_{i = (C, S, R)} n_i * w_{i, SR}, $$
 
 where $n_i$ is the number of species in a commonality class (C, S, R), and the weights $[w_{C, SR}, w_{S, SR}, w_{R, SR}]$ specify their respective contribution to the reference state (SR). The weights used are $[w_{C, SR}, w_{S, SR}, w_{R, SR}] = [1.0, 0.75, 0.50]$, i.e. a sporadic species has 75 % the weight of a common species, and a rare species has 50 % the weight of a common species.
 
-The state of change (SC) is calculated as 
+The state of change (SC) is calculated as
 
-$$SC = n_{CS} * w_{CS} + n_{CR} * w_{CR} + n_{CL} * w_{CL} + n_{SR} * w_{SR} + n_{SL} * w_{SL} + n_{RL} * w_{RL} $$ 
+$$SC = n_{CS} * w_{CS} + n_{CR} * w_{CR} + n_{CL} * w_{CL} + n_{SR} * w_{SR} + n_{SL} * w_{SL} + n_{RL} * w_{RL} $$
 
 where $n_{CS}$ is the number of expected common species (C) that is observed sporadically (S), and $w_{CS}$ is the weight of this change. Similarly, $n_{CR}$ is the number of expected common species that is observed rarely, $n_{RL}$ is the number of rare species that is lost, and so on. Potential increases in observation rates do not inform the indicator. Changes for common species are weighted more heavily than changes for less common species, and larger decreases are weighted more heavily than smaller decreases, such that $[w_{CS}, w_{CR}, w_{CL}, w_{SR}, w_{SL}, w_{RL}]= [0.50, 0.75, 1.00, 0.50, 0.75, 0.50]$.
 
@@ -330,9 +333,7 @@ The `bombLepiSurv` package has convenience functions to fetch data from the inte
 
 <!--# Describe additional datasets in a similar was as above. Delete or add new subheaders as needed. -->
 
-We here import a shape file with the regional delineations used in this monitoring program. Note that this delineation differens from the more standard definitions used in ecosystem accounting Norway.
-
-
+We here import a shape file with the regional delineations used in this monitoring program. Note that this delineation different from the more standard definitions used in ecosystem accounting Norway.
 
 ```{r}
 #| eval: false
@@ -415,9 +416,6 @@ tm_shape(counties) +
   tm_layout(legend.position = c("right", "bottom"))
 ```
 
-
-
-
 ## 8. Spatial units
 
 ```{=html}
@@ -428,9 +426,9 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 -->
 ```
 
-Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold.
+Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold, and the south region contain Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal.
 
-Ecosystem accounting area: Norway (although N-Norway is missing).
+Ecosystem accounting area: Norway (although N-Norway and several sub-regions are missing).
 
 Data needs to be aggregated to EA level before interpretation. In addition, only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases.
 
@@ -451,6 +449,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
 
 Install package like this.
+
 ```{r}
 #| eval: false
 #| code-fold: show
@@ -459,6 +458,7 @@ library(bombLepiSurv)
 ```
 
 Connect to the database
+
 ```{r connect}
 # get secret username and password
 source(here::here("_pw.R"))
@@ -469,7 +469,6 @@ bombLepiSurv::humlesommerfConnect(
   host = "ninradardata01.nina.no"
 )
 ```
-
 
 Download data from 2023 as an example. 2024 data is not yet published (although it is made availble in a developement branch on GitHub).
 
@@ -595,7 +594,6 @@ sInd2023TrondSkog <- calcInd(
 #| echo: false
 load(here::here("indicators", "NO_BFLY_001", "data", "sInd2023.RData"))
 load(here::here("indicators", "NO_BFLY_001", "data", "sInd2023Skog.RData"))
-
 ```
 
 Then we compile the indicator values for the years 2009 to 2023.
@@ -635,7 +633,7 @@ sInd2023OstGress$`Randomization draws, community` |>
   sd()
 ```
 
-However, the errors or extremely skewed, and we shall therefore just use the 95% confidence interval for now.
+However, the errors or extremely skewed. We shall therefore use the 50% confidence interval (IQR).
 
 Here is the summary data for one region and one year, for illustration:
 
@@ -656,20 +654,23 @@ This particular version of the indicator is developed for the Norwegian pilot fo
 
 First we get the area weights. The localities are stratified to four regions of very different sizes.
 
-```{r}
+```{r tbl-wgt}
+#| fig-cap: 'Area weights'
 regTable <- counties |>
   filter(!is.na(Region)) |>
-  mutate(area = st_area(geom),
-  areaWgt = area/max(area)) |>
-  st_drop_geometry()
-regTable
-# the norwegian letters look weird in the console, but not in the environment
+  mutate(area_km2 = round(units::drop_units(st_area(geom))/1e6),
+  area_weight = round(area_km2/max(area_km2), 3)) |>
+  st_drop_geometry() |>
+  select(Region, area_km2, area_weight)
+
+regTable |>
+  kbl() |>
+  kable_paper() 
 ```
 
 We use bootstrapping for getting the errors, but we use area-weighted arithmetic mean to get the point estimate.
 
 First the point estimate for grasslands.
-
 
 ```{r}
 ost22 <- sInd2022OstGress$`Community indicator estimates, with percentiles` |>
@@ -730,12 +731,13 @@ pointEstimateNorway <- mean(
     west, 
     ost
   ), 
-  weights = regTable$areaWgt)
+  weights = regTable$area_weight)
 
 pointEstimateNorway
 ```
 
 And then for forests:
+
 ```{r}
 ost22s <- sInd2022OstSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>
@@ -792,11 +794,10 @@ pointEstimateNorway_s <- mean(
     west_s, 
     ost_s
   ), 
-  weights = regTable$areaWgt)
+  weights = regTable$area_weight)
 
 pointEstimateNorway_s
 ```
-
 
 Then the errors. We first combine the data from 2022 and 2023 and sample from these with *n* corresponding to the area weights
 
@@ -811,10 +812,10 @@ mid <- c(sInd2022TrondGress$`Randomization draws, community`,
   sInd2023TrondGress$`Randomization draws, community`)
 
 # sample
-east2 <- sample(east, size = regTable |> filter(Region == "Øst") |> pull(areaWgt)*10000, replace = T)
-west2 <- sample(vest, size = regTable |> filter(Region == "Vest") |> pull(areaWgt)*10000, replace = T)
-south2 <- sample(south, size = regTable |> filter(Region == "Sør") |> pull(areaWgt)*10000, replace = T)
-mid2 <- sample(mid, size = regTable |> filter(Region == "Midt") |> pull(areaWgt)*10000, replace = T)
+east2 <- sample(east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
+west2 <- sample(vest, size = regTable |> filter(Region == "Vest") |> pull(area_weight)*10000, replace = T)
+south2 <- sample(south, size = regTable |> filter(Region == "Sør") |> pull(area_weight)*10000, replace = T)
+mid2 <- sample(mid, size = regTable |> filter(Region == "Midt") |> pull(area_weight)*10000, replace = T)
 
 # repeat for forests (skog)
 s_east <- c(sInd2022OstSkog$`Randomization draws, community`,
@@ -827,10 +828,10 @@ s_mid <- c(sInd2022TrondSkog$`Randomization draws, community`,
   sInd2023TrondSkog$`Randomization draws, community`)
 
 # sample
-s_east2 <- sample(s_east, size = regTable |> filter(Region == "Øst") |> pull(areaWgt)*10000, replace = T)
-s_west2 <- sample(s_vest, size = regTable |> filter(Region == "Vest") |> pull(areaWgt)*10000, replace = T)
-s_south2 <- sample(s_south, size = regTable |> filter(Region == "Sør") |> pull(areaWgt)*10000, replace = T)
-s_mid2 <- sample(s_mid, size = regTable |> filter(Region == "Midt") |> pull(areaWgt)*10000, replace = T)
+s_east2 <- sample(s_east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
+s_west2 <- sample(s_vest, size = regTable |> filter(Region == "Vest") |> pull(area_weight)*10000, replace = T)
+s_south2 <- sample(s_south, size = regTable |> filter(Region == "Sør") |> pull(area_weight)*10000, replace = T)
+s_mid2 <- sample(s_mid, size = regTable |> filter(Region == "Midt") |> pull(area_weight)*10000, replace = T)
 
 
 ```
@@ -860,7 +861,7 @@ This is typically where people will harvest data from, so make sure to include a
 -->
 ```
 
-| ECT | Indicator   | ID          | Accounting area | Ecosystem | Closing year | Value | Error (IQR) |
-|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
-| B1  | Butterflies | NO_BFLY_001 | Norway          | Grasslands |2024         | 0.358 | (0.253 - 0.345) |
-| B1  | Butterflies | NO_BFLY_002 | Norway          | Forest |2024         | 0.506 | (0.400 - 0.494) |
+| ECT | Indicator | ID | Accounting area | Ecosystem | Closing year | Value | Error (IQR) |
+|---------|---------|---------|---------|---------|---------|---------|---------|
+| B1 | Butterflies | NO_BFLY_001 | Norway | Grasslands | 2024 | 0.358 | (0.253 - 0.345) |
+| B1 | Butterflies | NO_BFLY_002 | Norway | Forest | 2024 | 0.506 | (0.400 - 0.494) |

@@ -3774,9 +3774,11 @@ How should the metric be used and interpretted, and how should it not be used/in
 <section id="spatial-and-temporal-resolution" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-and-temporal-resolution">2.1 Spatial and temporal resolution</h3>
 <!--# Describe the temporal and spatial resolution of the data used-->
-<p>The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), and to western Norway (Vestland) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region. There are in total 71 sampling locations as of 2024, divided between the foresta and the grassland ecosystem. The program will be expanded to Northern Norway in 2025.</p>
+<p>The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), and to western Norway (Vestland) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region.</p>
+<p>There are in total 71 sampling locations as of 2024, divided between the forests and the grassland ecosystem. The four regions have approx. the same sample size, yet they cover quite different extents (<a href="#fig-regions" class="quarto-xref">Figure 1</a>). Therefore, the values from the central regions contributes a lot more in the area weighted national estimate (about 10 times as much weight as the values from the east region; <a href="#tbl-wgt" class="quarto-xref">Table 2</a>). In this sense, the dataset is perhaps more suited, or at least more better designed, to analysing regional difference, rather than to look at national means.</p>
+<p>The program will be expanded to Northern Norway in 2025.</p>
 <p>Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.</p>
-<p>Data covers 2009 (for part of Norway) up to the present.</p>
+<p>Data covers 2009 (for part of Norway) up to the present, but the database currently only has data up until 2023. The 2024 is available on GitHub, but is not accessible via the same workflow using the bombLepiSurv-package.</p>
 </section>
 <section id="original-units" class="level3">
 <h3 class="anchored" data-anchor-id="original-units">2.2 Original units</h3>
@@ -3894,7 +3896,7 @@ Nybø, Signe, and Marianne Evju (red). 2017. <em>Fagsystem for Fastsetting Av Go
 <section id="dataset-b---regions" class="level3">
 <h3 class="anchored" data-anchor-id="dataset-b---regions">7.2. Dataset B - Regions</h3>
 <!--# Describe additional datasets in a similar was as above. Delete or add new subheaders as needed. -->
-<p>We here import a shape file with the regional delineations used in this monitoring program. Note that this delineation differens from the more standard definitions used in ecosystem accounting Norway.</p>
+<p>We here import a shape file with the regional delineations used in this monitoring program. Note that this delineation different from the more standard definitions used in ecosystem accounting Norway.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -3997,8 +3999,8 @@ Figure 1: Regions in Norway
 Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpretted at. Potential spatial delineation data should eb introduced under 7.1. Datasets. We recomend using the SEEA EA terminology opf Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). 
 
 -->
-<p>Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold.</p>
-<p>Ecosystem accounting area: Norway (although N-Norway is missing).</p>
+<p>Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold, and the south region contain Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal.</p>
+<p>Ecosystem accounting area: Norway (although N-Norway and several sub-regions are missing).</p>
 <p>Data needs to be aggregated to EA level before interpretation. In addition, only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases.</p>
 </section>
 <section id="analyses" class="level2">
@@ -4232,7 +4234,7 @@ Figure 4: Indicator values for butterflies in forests from 2009 to 2022
 <pre><code>[1] 0.04588019</code></pre>
 </div>
 </div>
-<p>However, the errors or extremely skewed, and we shall therefore just use the 95% confidence interval for now.</p>
+<p>However, the errors or extremely skewed. We shall therefore use the 50% confidence interval (IQR).</p>
 <p>Here is the summary data for one region and one year, for illustration:</p>
 <div class="cell">
 <details class="code-fold">
@@ -4265,91 +4267,155 @@ Figure 4: Indicator values for butterflies in forests from 2009 to 2022
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>regTable <span class="ot">&lt;-</span> counties <span class="sc">|&gt;</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Region)) <span class="sc">|&gt;</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">area =</span> <span class="fu">st_area</span>(geom),</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">areaWgt =</span> area<span class="sc">/</span><span class="fu">max</span>(area)) <span class="sc">|&gt;</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>()</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>regTable</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">area_km2 =</span> <span class="fu">round</span>(units<span class="sc">::</span><span class="fu">drop_units</span>(<span class="fu">st_area</span>(geom))<span class="sc">/</span><span class="fl">1e6</span>),</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">area_weight =</span> <span class="fu">round</span>(area_km2<span class="sc">/</span><span class="fu">max</span>(area_km2), <span class="dv">3</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">|&gt;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Region, area_km2, area_weight)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>regTable <span class="sc">|&gt;</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>() <span class="sc">|&gt;</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_paper</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 4 × 5
-  Region     GID_0 NAME_0         area areaWgt
-* &lt;chr&gt;      &lt;chr&gt; &lt;chr&gt;         [m^2]     [1]
-1 &quot;Midt&quot;     NOR   Norway 56894339911.   1    
-2 &quot;S\u00f8r&quot; NOR   Norway 16953942814.   0.298
-3 &quot;Vest&quot;     NOR   Norway 34211280703.   0.601
-4 &quot;\u00d8st&quot; NOR   Norway  6444485104.   0.113</code></pre>
+<div id="tbl-wgt" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl quarto-uncaptioned" id="tbl-wgt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table 2
+</figcaption>
+<div aria-describedby="tbl-wgt-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class=" lightable-paper" style="font-family: &quot;Arial Narrow&quot;, arial, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Region
+</th>
+<th style="text-align:right;">
+area_km2
+</th>
+<th style="text-align:right;">
+area_weight
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Midt
+</td>
+<td style="text-align:right;">
+56894
+</td>
+<td style="text-align:right;">
+1.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Sør
+</td>
+<td style="text-align:right;">
+16954
+</td>
+<td style="text-align:right;">
+0.298
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Vest
+</td>
+<td style="text-align:right;">
+34211
+</td>
+<td style="text-align:right;">
+0.601
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Øst
+</td>
+<td style="text-align:right;">
+6444
+</td>
+<td style="text-align:right;">
+0.113
+</td>
+</tr>
+</tbody>
+</table>
+<p>Area weights</p>
 </div>
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the norwegian letters look weird in the console, but not in the environment</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+</div>
+</figure>
+</div>
 </div>
 <p>We use bootstrapping for getting the errors, but we use area-weighted arithmetic mean to get the point estimate.</p>
 <p>First the point estimate for grasslands.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>ost22 <span class="ot">&lt;-</span> sInd2022OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>ost23 <span class="ot">&lt;-</span> sInd2023OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>west22 <span class="ot">&lt;-</span> sInd2022VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>west23 <span class="ot">&lt;-</span> sInd2023VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>south22 <span class="ot">&lt;-</span> sInd2022SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>south23 <span class="ot">&lt;-</span> sInd2023SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>mid22 <span class="ot">&lt;-</span> sInd2022TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>mid23 <span class="ot">&lt;-</span> sInd2023TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
-<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate by first taking the mean of the two years, then the area weighted mean of the four regions</span></span>
-<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>ost <span class="ot">&lt;-</span> (ost22 <span class="sc">+</span> ost23)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a>west <span class="ot">&lt;-</span> (west22 <span class="sc">+</span> west23)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a>south <span class="ot">&lt;-</span> (south22 <span class="sc">+</span> south23)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>mid <span class="ot">&lt;-</span> (mid22 <span class="sc">+</span> mid23)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a><span class="co"># area weighted mean</span></span>
-<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
-<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
-<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>    mid,</span>
-<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a>    south,</span>
-<span id="cb19-56"><a href="#cb19-56" aria-hidden="true" tabindex="-1"></a>    west, </span>
-<span id="cb19-57"><a href="#cb19-57" aria-hidden="true" tabindex="-1"></a>    ost</span>
-<span id="cb19-58"><a href="#cb19-58" aria-hidden="true" tabindex="-1"></a>  ), </span>
-<span id="cb19-59"><a href="#cb19-59" aria-hidden="true" tabindex="-1"></a>  <span class="at">weights =</span> regTable<span class="sc">$</span>areaWgt)</span>
-<span id="cb19-60"><a href="#cb19-60" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-61"><a href="#cb19-61" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ost22 <span class="ot">&lt;-</span> sInd2022OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>ost23 <span class="ot">&lt;-</span> sInd2023OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>west22 <span class="ot">&lt;-</span> sInd2022VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>west23 <span class="ot">&lt;-</span> sInd2023VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>south22 <span class="ot">&lt;-</span> sInd2022SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>south23 <span class="ot">&lt;-</span> sInd2023SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>mid22 <span class="ot">&lt;-</span> sInd2022TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>mid23 <span class="ot">&lt;-</span> sInd2023TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate by first taking the mean of the two years, then the area weighted mean of the four regions</span></span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a>ost <span class="ot">&lt;-</span> (ost22 <span class="sc">+</span> ost23)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a>west <span class="ot">&lt;-</span> (west22 <span class="sc">+</span> west23)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a>south <span class="ot">&lt;-</span> (south22 <span class="sc">+</span> south23)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a>mid <span class="ot">&lt;-</span> (mid22 <span class="sc">+</span> mid23)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a><span class="co"># area weighted mean</span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>    mid,</span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>    south,</span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>    west, </span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>    ost</span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>  ), </span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>  <span class="at">weights =</span> regTable<span class="sc">$</span>area_weight)</span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.3576943</code></pre>
@@ -4359,64 +4425,64 @@ Figure 4: Indicator values for butterflies in forests from 2009 to 2022
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>ost22s <span class="ot">&lt;-</span> sInd2022OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>ost23s <span class="ot">&lt;-</span> sInd2023OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>west22s <span class="ot">&lt;-</span> sInd2022VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>west23s <span class="ot">&lt;-</span> sInd2023VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>south22s <span class="ot">&lt;-</span> sInd2022SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>south23s <span class="ot">&lt;-</span> sInd2023SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>mid22s <span class="ot">&lt;-</span> sInd2022TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
-<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>mid23s <span class="ot">&lt;-</span> sInd2023TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
-<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
-<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
-<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate by first taking the mean of the two years, then the area weighted mean of the four regions</span></span>
-<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>ost_s <span class="ot">&lt;-</span> (ost22s <span class="sc">+</span> ost23s)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>west_s <span class="ot">&lt;-</span> (west22s <span class="sc">+</span> west23s)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>south_s <span class="ot">&lt;-</span> (south22s <span class="sc">+</span> south23s)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a>mid_s <span class="ot">&lt;-</span> (mid22s <span class="sc">+</span> mid23s)<span class="sc">/</span><span class="dv">2</span></span>
-<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a><span class="co"># area weighted mean</span></span>
-<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway_s <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
-<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
-<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a>    mid_s,</span>
-<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a>    south_s,</span>
-<span id="cb21-53"><a href="#cb21-53" aria-hidden="true" tabindex="-1"></a>    west_s, </span>
-<span id="cb21-54"><a href="#cb21-54" aria-hidden="true" tabindex="-1"></a>    ost_s</span>
-<span id="cb21-55"><a href="#cb21-55" aria-hidden="true" tabindex="-1"></a>  ), </span>
-<span id="cb21-56"><a href="#cb21-56" aria-hidden="true" tabindex="-1"></a>  <span class="at">weights =</span> regTable<span class="sc">$</span>areaWgt)</span>
-<span id="cb21-57"><a href="#cb21-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-58"><a href="#cb21-58" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway_s</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>ost22s <span class="ot">&lt;-</span> sInd2022OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>ost23s <span class="ot">&lt;-</span> sInd2023OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>west22s <span class="ot">&lt;-</span> sInd2022VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>west23s <span class="ot">&lt;-</span> sInd2023VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>south22s <span class="ot">&lt;-</span> sInd2022SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>south23s <span class="ot">&lt;-</span> sInd2023SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>mid22s <span class="ot">&lt;-</span> sInd2022TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span></span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>mid23s <span class="ot">&lt;-</span> sInd2023TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Community indicator estimates, with percentiles</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">enframe</span>() <span class="sc">|&gt;</span>  </span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Point estimate&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(<span class="st">&quot;value&quot;</span>)</span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate by first taking the mean of the two years, then the area weighted mean of the four regions</span></span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>ost_s <span class="ot">&lt;-</span> (ost22s <span class="sc">+</span> ost23s)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>west_s <span class="ot">&lt;-</span> (west22s <span class="sc">+</span> west23s)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>south_s <span class="ot">&lt;-</span> (south22s <span class="sc">+</span> south23s)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>mid_s <span class="ot">&lt;-</span> (mid22s <span class="sc">+</span> mid23s)<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a><span class="co"># area weighted mean</span></span>
+<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway_s <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
+<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>    mid_s,</span>
+<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a>    south_s,</span>
+<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a>    west_s, </span>
+<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>    ost_s</span>
+<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a>  ), </span>
+<span id="cb19-56"><a href="#cb19-56" aria-hidden="true" tabindex="-1"></a>  <span class="at">weights =</span> regTable<span class="sc">$</span>area_weight)</span>
+<span id="cb19-57"><a href="#cb19-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-58"><a href="#cb19-58" aria-hidden="true" tabindex="-1"></a>pointEstimateNorway_s</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.5064942</code></pre>
@@ -4426,47 +4492,47 @@ Figure 4: Indicator values for butterflies in forests from 2009 to 2022
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>east <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  sInd2023OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>vest <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  sInd2023VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>south <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  sInd2023SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>mid <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  sInd2023TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="co"># sample</span></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>east2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(east, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Øst&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>west2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(vest, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Vest&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>south2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(south, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Sør&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>mid2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(mid, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Midt&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="co"># repeat for forests (skog)</span></span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>s_east <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  sInd2023OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>s_vest <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>  sInd2023VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>s_south <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>  sInd2023SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>s_mid <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
-<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>  sInd2023TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
-<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a><span class="co"># sample</span></span>
-<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>s_east2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_east, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Øst&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
-<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>s_west2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_vest, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Vest&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
-<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>s_south2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_south, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Sør&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
-<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>s_mid2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_mid, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Midt&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(areaWgt)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>east <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  sInd2023OstGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>vest <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  sInd2023VestGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>south <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  sInd2023SorGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>mid <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  sInd2023TrondGress<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a><span class="co"># sample</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>east2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(east, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Øst&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>west2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(vest, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Vest&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>south2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(south, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Sør&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>mid2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(mid, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Midt&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a><span class="co"># repeat for forests (skog)</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>s_east <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  sInd2023OstSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>s_vest <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>  sInd2023VestSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>s_south <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  sInd2023SorSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>s_mid <span class="ot">&lt;-</span> <span class="fu">c</span>(sInd2022TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>,</span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>  sInd2023TrondSkog<span class="sc">$</span><span class="st">`</span><span class="at">Randomization draws, community</span><span class="st">`</span>)</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a><span class="co"># sample</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>s_east2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_east, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Øst&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>s_west2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_vest, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Vest&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>s_south2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_south, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Sør&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>s_mid2 <span class="ot">&lt;-</span> <span class="fu">sample</span>(s_mid, <span class="at">size =</span> regTable <span class="sc">|&gt;</span> <span class="fu">filter</span>(Region <span class="sc">==</span> <span class="st">&quot;Midt&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(area_weight)<span class="sc">*</span><span class="dv">10000</span>, <span class="at">replace =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>Then we combine these into one big string and draw from it</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>all <span class="ot">&lt;-</span> <span class="fu">c</span>(east2, west2, south2, mid2)</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>all_s <span class="ot">&lt;-</span> <span class="fu">c</span>(s_east2, s_west2, s_south2, s_mid2)</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>(nationalDist <span class="ot">&lt;-</span> <span class="fu">sample</span>(all, <span class="at">size =</span> <span class="dv">10000</span>, <span class="at">replace =</span> T) <span class="sc">|&gt;</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">quantile</span>(<span class="at">probs =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.75</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>all <span class="ot">&lt;-</span> <span class="fu">c</span>(east2, west2, south2, mid2)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>all_s <span class="ot">&lt;-</span> <span class="fu">c</span>(s_east2, s_west2, s_south2, s_mid2)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>(nationalDist <span class="ot">&lt;-</span> <span class="fu">sample</span>(all, <span class="at">size =</span> <span class="dv">10000</span>, <span class="at">replace =</span> T) <span class="sc">|&gt;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">quantile</span>(<span class="at">probs =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.75</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>      25%       75% 
@@ -4474,8 +4540,8 @@ Figure 4: Indicator values for butterflies in forests from 2009 to 2022
 </div>
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>(nationalDist_s <span class="ot">&lt;-</span> <span class="fu">sample</span>(all_s, <span class="at">size =</span> <span class="dv">10000</span>, <span class="at">replace =</span> T) <span class="sc">|&gt;</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">quantile</span>(<span class="at">probs =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.75</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>(nationalDist_s <span class="ot">&lt;-</span> <span class="fu">sample</span>(all_s, <span class="at">size =</span> <span class="dv">10000</span>, <span class="at">replace =</span> T) <span class="sc">|&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">quantile</span>(<span class="at">probs =</span> <span class="fu">c</span>(<span class="fl">0.25</span>, <span class="fl">0.75</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>      25%       75% 
