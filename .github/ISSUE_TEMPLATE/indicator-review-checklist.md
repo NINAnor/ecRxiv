@@ -1,6 +1,6 @@
 ---
 name: Indicator review - checklist
-about: A checklist for complete reviews of indicator pages found on ecRxiv
+about: Start comprehensive review of an indicator found on ecRxiv
 title: '[REVIEW]: "indicatorID"'
 labels: REVIEW
 assignees: anders-kolstad
