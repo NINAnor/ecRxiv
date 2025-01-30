@@ -105,7 +105,6 @@ meta <- meta |>
 status(st)
 ```
 
-
 > **Recomended citation, indicator 1**: `r paste("\n", auth, " ", year, ". ", name, " (ID: ", id[1], ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 > **Recomended citation, indicator 2**: `r paste("\n", auth, " ", year, ". ", name, " (ID: ", id[2], ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
@@ -458,10 +457,11 @@ remotes::install_github("NINAnor/bombLepiSurv")
 library(bombLepiSurv)
 ```
 
-Connect to the database
+Here I illustrate how to connect to the database. Since the database is only accessible from NINA, I will not run this part of the analyses, but instead cache the output files so that others can reproduce the general workflow, even if they cannot access the database.
 
 ```{r connect}
-# get secret username and password
+#| eval: false
+# get secret username and password. I just keep mine in a local .R file that I also put in the gitignore file.
 source(here::here("_pw.R"))
 # connect
 bombLepiSurv::humlesommerfConnect(
@@ -473,16 +473,22 @@ bombLepiSurv::humlesommerfConnect(
 
 Download data from 2023 as an example. 2024 data is not yet published (although it is made availble in a developement branch on GitHub).
 
-```{r fig-allLepiGressmark2023}
-#| fig-cap: 'Butterflies in grasslands 2023.'
+```{r}
+#| eval: false
 allLepiGressmark2023 <- 
   getAllData(type = "butterflies", 
-    habitat = "gressmark",
+habitat = "gressmark",
     year = 2023,
     language = "norsk") |>
-  mutate_if(bit64::is.integer64, as.numeric)
+      mutate_if(bit64::is.integer64, as.numeric)
+    
+fig_allLepiGressmark2023 <- surveyBarplot(allLepiGressmark2023)
+saveRDS(fig_allLepiGressmark2023, here::here("indicators/NO_BFLY_001_002/img/fig_allLepiGressmark2023.rds"))
+```
 
-surveyBarplot(allLepiGressmark2023)
+```{r fig-allLepiGressmark2023}
+#| fig-cap: 'Butterflies in grasslands 2023.'
+readRDS(here::here("indicators/NO_BFLY_001_002/img/fig_allLepiGressmark2023.rds"))
 ```
 
 Indicator data is already processed for the years 2009 to 2022 and we can get them from the R package like this:
@@ -502,7 +508,6 @@ dat <- str_remove(dat, ".rda")
 
 # read in all the data (as promise)
 data(package = "bombLepiSurv", list = dat)
-
 ```
 
 The indicator data is stored in the environment as one dataframe per year/region/habitat.
