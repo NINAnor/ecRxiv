@@ -53,7 +53,7 @@ BRANCH NAME is likely to be `main` in the above. Now, specify additional folders
 
 `git sparse-checkout set <dir1>/<dir2>`
 
-If you are starting to work on a new indicator (not updating an existing indicator), dir1 should be `indicators` and dir2 should be `template`
+If you are starting to work on a new indicator (not updating an existing indicator), dir1 should be `indicators` and dir2 should be `template_copy_folder_then_rename`
 
 
 3.  Copy the `template` folder and name the new folder, and files and folders inside it, according to our [naming convention](https://github.com/NINAnor/ecRxiv/wiki#naming-convention). Make sure not to simply rename the `template` folder - make a real copy.
