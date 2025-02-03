@@ -272,15 +272,99 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 
 ## 9. Analyses
 
-<!--# 
+### Workflow setup
+The code for the following analyses has been developed in a separate GitHub repository: https://github.com/NINAnor/birdIndicators As a first step, we therefore need to read in all the functions from that repository. The repository has not been converted into a package yet, so we need to download the entire repository and source all function files in the “R” folder manually:
+```{r}
+#| resuls: hide
+temppath <- here::here("indicators/NO_BIRD_001-004/temp")
+destpath <- paste0(temppath, "/birdIndicators_Repo.zip")
 
-Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+download.file(url = "https://github.com/NINAnor/birdIndicators/archive/refs/heads/main.zip",
+              destfile = destpath)
+unzip(zipfile = destpath,
+      exdir = temppath)
 
-Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
+sourceDir <- function(path, trace = TRUE, ...) {
+  for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
+    if(trace) cat(nm,":")
+    source(file.path(path, nm), ...)
+    if(trace) cat("\n")
+  }
+}
+sourceDir(paste0(temppath, "/birdIndicators-main/R"))
+```
 
-Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
+Next, we need to define a range of relative and absolute directories / file paths. The main reason for that is that many of the scripts delivered by PECBMS function by iteratively writing and reading files in a specific folder structure. Whenever possible, I have written wrapper functions around the PECBMS code that work with relative paths, but absolute paths are still necessary for the scripts involved in the RSWAN routine as that workflow toggles between different working directories using setwd() repeatedly. Additionally, the RSWAN workflow also uses some helper functions that include changing working directories that are not provided as function arguments but instead need to be globally defined.
 
--->
+While all code would ideally be rewritten to work with relative paths and without toggling working directories, PECBMS tends to distribute new versions of their scripts periodically and with no formal version control in place. This means that it is imperative to leave their core code as untouched as possible to facilitate including new versions (by copy paste) as they come.
+
+Hence we set up both relative and absolute file paths (note that I construct the latter relative to the project working directory to ensure a minimum of portability):
+
+```{r}
+## Relative directory/file paths
+wd <- here::here("indicators/NO_BIRD_001-004")
+
+# Storage of raw PECBMS Trim outputs
+folder <- paste0(wd, "/PECBMS_Files")
+
+# Storage of processed PECBMS Trim outputs
+subFolderName <- "Species_files"
+
+# Relative general and working folders for RSWAN
+general_folder_rel <- paste0(wd, "/data")
+working_folder_rel <- paste0(folder, "/", subFolderName)
+
+# Storage of MSI results
+MSI_results_folder <- paste0(wd, "MSI_Results")
+
+
+## Absolute directory/file paths
+
+# NINAs local storage of legacy Trim output files
+legacyFile_folder <- "P:/41201612_naturindeks_2021_2023_database_og_innsynslosning/Hekkefugl_Dataflyt/LegacyFiles_PECBMS_Trim"
+
+# Absolute data and output paths for RSWAN 
+general_folder <- general_folder_rel
+working_folder <- working_folder_rel
+
+output_folder <- paste0(working_folder, "/output/") 
+output_folder2 <- paste0(working_folder, "/output") 
+
+
+## Create directories if they are not available
+dir.list <- c(
+  folder, 
+  general_folder_rel, 
+  working_folder_rel, 
+  output_folder2
+  )
+
+for(i in 1:length(dir.list)){
+  if(!file.exists(dir.list[i])){ 
+  dir.create(dir.list[i])
+  }
+}
+
+```
+
+### Data sets
+The workflow relies on two major sources of data: the up-to-date raw data from “hekkefuglovervåking” and the calculated abundance indices from the predecessor monitoring scheme. Additionally, we also use a couple of lists holding information on which species (and years) are to be included in which parts of the analytical workflow as the different outcomes require different information.
+
+### Monitoring data from “Hekkefuglovervåking”
+The route-based raw data from “hekkefuglovervåking” are compiled after each breeding season and curated and stored in NINA’s database. Before storing new data in the database, a thorough quality-check is performed. From that database we download the data relevant for the PECBMS Trim analyses and for the specified range of years (here from 2006 up to and including 2023). The function downloadData_TRIM does that for a specified year range (from minYear up to and including maxYear), and requires specifying which driver is used for accessing the database (via argument DriverName). When running from the NINA RStudio server, we need to use “FreeTDS”. When running locally from NINA computers, we need to select “SQL Server”. Note that downloading these data requires user-specific access privileges which can be requested from NINA IT department (‘datahjelp’).
+
+```{r}	
+minYear <- 2006
+maxYear <- 2023
+# library(obdc)
+Trim_data <- downloadData_TRIM(
+  minYear = minYear, 
+  maxYear = maxYear,
+  drop_negativeSpp = TRUE, 
+  # DriverName = "FreeTDS"
+  DriverName = "SQL Server"
+  )
+```
 
 ## 10. Results
 
