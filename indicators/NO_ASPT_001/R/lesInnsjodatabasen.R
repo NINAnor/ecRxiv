@@ -1,14 +1,13 @@
 ### lesInnsjodatabasen
-# Funksjoner til NI_vannf
+# Funksjoner til WFD2ECA
 # ved Hanno Sandvik
-# juni 2024
-# se https://github.com/NINAnor/NI_vannf
+# januar 2025
 ###
 
 
 
 lesInnsjodatabasen <- function(filnavn = "Innsjo_Innsjo.dbf",
-                               filsti = "data",
+                               filsti = "../data",
                                kolonnenavn = "navnNVEl.csv",
                                CACHE = NULL) {
   

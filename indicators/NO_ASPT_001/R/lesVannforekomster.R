@@ -1,14 +1,14 @@
 ### lesVannforekomster
-# Funksjoner til NI_vannf
+# Funksjoner til WFD2ECA
 # ved Hanno Sandvik
-# juni 2024
-# se https://github.com/NINAnor/NI_vannf
+# februar 2025
+# se https://github.com/NINAnor/NI_vannf #¤
 ###
 
 
 
 lesVannforekomster <- function(vannkategori = c("L", "R", "C"),
-                               filsti = "data",
+                               filsti = "../data",
                                kolonnenavn = "navnVN.csv",
                                turbid = TRUE,
                                NVEnavn = c("SHAPE",
@@ -194,18 +194,18 @@ lesVannforekomster <- function(vannkategori = c("L", "R", "C"),
   
   # Innlesing av formfila som har blitt lasta ned fra NVE
   if (!is.null(CACHE)) {
-    if (file.exists(filsti %+% CACHE)) {
-      load(filsti %+% CACHE)
+    #if (file.exists(filsti %+% CACHE)) { #¤ må tilpasses til lenke (prøv try)!
+      load(file(filsti %+% CACHE))
       if (!exists("vf")) {
         OK <- FALSE
         skriv("Filen \"", filsti, CACHE, "\" inneholdt ikke variabelen \"vf\".",
               pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
       }
-    } else {
-      OK <- FALSE
-      skriv("Filen \"", filsti, CACHE, "\" ble ikke funnet.",
-            pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
-    }
+    #} else {
+    #  OK <- FALSE
+    #  skriv("Filen \"", filsti, CACHE, "\" ble ikke funnet.",
+    #        pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+    #}
   }
   if (OK & is.null(CACHE)) {
     vf <- NULL

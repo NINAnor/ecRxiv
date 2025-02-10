@@ -1,8 +1,7 @@
 ### Klassegrenser
-# Funksjon til NI_vannf
+# Funksjon til WFD2ECA
 # ved Hanno Sandvik
 # februar 2024
-# se https://github.com/NINAnor/NI_vannf
 ###
 
 

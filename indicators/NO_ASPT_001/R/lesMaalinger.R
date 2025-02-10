@@ -64,9 +64,9 @@ lesMaalinger <- function(parameter,
           "navn på den, og at den er formatert som semikolondelt tabell.",
           pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
   }
+  
+  # Innlesing av vannmiljø-registreringer: 
   if (OK) {
-    
-    # Innlesing av vannmiljø-registreringer: 
     URL <- baseURL %+% ENDpoint
     headers = c("Content-Type" = "application/json; charset=UTF-8",
                 "vannmiljoWebAPIKey" = APIkey)
@@ -79,13 +79,13 @@ lesMaalinger <- function(parameter,
             pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
     } else {
       JSONdata <- fromJSON(content(respons, "text"), flatten = TRUE)
-      DATA <- as.data.frame(JSONdata)
-      DATA <- lapply(DATA, as.character)
+      DATA   <- as.data.frame(JSONdata)
+      DATA[] <- lapply(DATA, as.character)
     }
   }
+  
+  # Så "oversettes" kolonnenavnene
   if (OK) {
-    
-    # Så "oversettes" kolonnenavnene
     if (colnames(DATA) %=% navnVM$vm) {
       colnames(DATA) <- navnVM$nytt
       if (all(nyeKolonner %in% navnVM$nytt)) {

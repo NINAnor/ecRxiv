@@ -1,22 +1,24 @@
 ### lesVannlokaliteter
-# Funksjoner til NI_vannf
+# Funksjoner til WFD2ECA
 # ved Hanno Sandvik
-# juni 2024
-# se https://github.com/NINAnor/NI_vannf
+# februar 2025
+# se https://github.com/NINAnor/NI_vannf #¤
 ###
 
 
 
 lesVannlokaliteter <- function(vannkategori = c("L", "R", "C"),
-                               filsti = "data",
+                               filsti = "../data",
                                kolonnenavn = "navnVL.csv") {
+  
+  # Funksjonen leser inn vannlokaliteter fra vannmiljø-databasen
   
   # Kolonner som datarammen VL trenger for å fungere:
   nyeKolonner <- c(
     "lokid",
     "lokkod",
     "loknam",
-    "sjønr",
+    #"sjønr",
     "id",
     "kat",
     "X",
@@ -25,15 +27,19 @@ lesVannlokaliteter <- function(vannkategori = c("L", "R", "C"),
   
   OK <- TRUE
   VL <- list()
+  baseURL  <- "https://vannmiljowebapi.miljodirektoratet.no/api/Public"
+  ENDpoint <- "/GetWaterLocations"
+  APIkey   <- "4!_55ddgfde905+_!24!;vv"
   vannkategori <- toupper(vannkategori) %A% c("L", "R", "C")
   if (length(vannkategori) %=% 0) {
     OK <- FALSE
     skriv("Parameteren \"vannkategori\" må være minst én av bokstavene \"L\", ",
           "\"R\" og \"C\"!", pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
   }
+  
+  # Innlesing av "tolkningstabellen": Hvilke kolonner i vannlokalitetstabellen
+  # svarer til hvilke kolonner i VL
   if (OK) {
-    # Innlesing av "tolkningstabellen": Hvilke kolonner i vannlokalitetstabellen
-    # svarer til hvilke kolonner i VL
     if (nchar(filsti)) {
       if (substr(filsti, nchar(filsti), nchar(filsti)) %!=% "/" &
           substr(filsti, nchar(filsti), nchar(filsti)) %!=% "\\") {
@@ -52,50 +58,53 @@ lesVannlokaliteter <- function(vannkategori = c("L", "R", "C"),
             pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
     }
   }
+  
+  # Innlesing av vannlokalitetene fra vannmiljø
   if (OK) {
-    # Innlesing av vannlokalitetsfilene som har blitt lasta ned fra vannmiljø
-    VL <- list()
-    for (i in vannkategori) {
-      VL[[i]] <- try(as.data.frame(read_xlsx(filsti %+% "VL-" %+% i %+% ".xlsx", 
-                                             col_types = "text")))
-      if (inherits(VL[[i]], "try-error")) {
+    URL <- baseURL %+% ENDpoint
+    headers = c("Content-Type" = "application/json; charset=UTF-8",
+                "vannmiljoWebAPIKey" = APIkey)
+    body <- 
+      '{"BoundingBox":{"xmin":-120000,"ymin":6000000,"xmax":1200000,"ymax":8000000}}'
+    respons <- POST(URL, add_headers(.headers = headers), body = body)
+    if (status_code(respons) != 200) {
+      OK <- FALSE
+      skriv("Det lyktes ikke å hente data fra vannmiljø-databasen. ",
+            "Statuskoden var ", status_code(respons), ".",
+            pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+    } else {
+      JSONdata <- fromJSON(content(respons, "text"), flatten = TRUE)
+      VL   <- as.data.frame(JSONdata)
+      VL[] <- lapply(VL, as.character)
+      VL   <- VL[VL$Result.WaterCategory %in% vannkategori, ]
+      if (nrow(VL) < 1) {
         OK <- FALSE
-        skriv("Dette skjedde en feil under innlesing av fila \"", filsti,
-              "VL-", i, ".xlsx", ". Sjekk om fila fins, og at det er oppgitt ",
-              "korrekt navn på den.",
+        skriv("Datasettet var tomt, uvisst av hvilken grunn.",
               pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
       }
-      if (OK) {
-        if (colnames(VL[[i]]) %=% navnVL$VL) {
-          colnames(VL[[i]]) <- navnVL$nytt
-          if (all(nyeKolonner %in% navnVL$nytt)) {
-            VL[[i]] <- VL[[i]][, nyeKolonner]
-          } else {
-            OK <- FALSE
-            skriv("Kolonnenavnene i \"", kolonnenavn, "\" er ikke som forventa!",
-                  pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
-          }
-        } else {
-          OK <- FALSE
-          skriv("Kolonnenavnene i den innleste fila \"VL-" %+% i %+%
-                  ".csv\" er ikke som forventa!",
-                pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
-        }
-      }
     }
-    if (OK) {
-      VL. <- VL[[1]]
-      if (length(vannkategori) > 1) {
-        for (k in 2:length(vannkategori)) {
-          VL. <- rbind(VL., VL[[k]])
-        }
+  }
+  
+  # Så "oversettes" kolonnenavnene
+  if (OK) {
+    if (colnames(VL) %=% navnVL$VL) {
+      colnames(VL) <- navnVL$nytt
+      if (all(nyeKolonner %in% navnVL$nytt)) {
+        VL <- VL[, nyeKolonner]
+      } else {
+        OK <- FALSE
+        skriv("Kolonnenavnene i \"", kolonnenavn, "\" er ikke som forventa!",
+              pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
       }
-      VL <- VL.
+    } else {
+      OK <- FALSE
+      skriv("Kolonnenavnene i den innleste datafila fra \"vannmiljø\" er ikke " %+%
+              "som forventa!", pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
     }
   }
   if (OK) {
     VL$lokid <- as.numeric(VL$lokid)
-    VL$sjønr <- as.numeric(VL$sjønr)
+    #VL$sjønr <- as.numeric(VL$sjønr)
     VL$X     <- as.numeric(VL$X)
     VL$Y     <- as.numeric(VL$Y)
   }

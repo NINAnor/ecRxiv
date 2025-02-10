@@ -17,10 +17,10 @@ WFD2ECA <- function(
   rapportaar = c(2012, 2015, 2018, 2021, 2024), #¤
   rapportenhet = c("norge", "landsdel"),
   adminAar = 2010,
-  kommHist = "data/knr.xlsx",
-  fylkHist = "data/fnr.xlsx",
-  paramFil = "data/VM-param.xlsx",
-  aktivFil = "data/VM-aktiv.xlsx",
+  kommHist = "../data/knr.xlsx",
+  fylkHist = "../data/fnr.xlsx",
+  #paramFil = "data/VM-param.xlsx",
+  #aktivFil = "data/VM-aktiv.xlsx",
   rapportperiode = 3,
   vedMaalefeil = "dato",
   maksSkjevhet = 3,
@@ -54,7 +54,7 @@ WFD2ECA <- function(
   # = fra vannforskrift til økologisk tilstandsregnskap]
   # ved Hanno Sandvik
   # januar 2025
-  # se https://github.com/NINAnor/NI_vannf
+  # se https://github.com/NINAnor/NI_vannf #¤
   ###
   
   
@@ -65,7 +65,7 @@ WFD2ECA <- function(
   # parameter: vannmiljøs forkortelse på vannforskriftsparameteren
   # vannkategori: "L", "R" eller "C" for innsjø, elv eller kyst
   # filKlasser: filnavn på excel-regnearket med parameterens klassegrenser
-  # NI.aar: rapporteringsår for naturindeksen 
+  # rapportaar: rapporteringsår for tilstandsregnskapet 
   # rapportenhet: romlig enhet til skal skaleres opp til. Kan være én eller flere
   #   av "kommune", "fylke", "landsdel" og "Norge"
   # adminAar: årstallet for kommune- og fylkesinndelinga som skal legges til grunn 
@@ -117,8 +117,8 @@ WFD2ECA <- function(
   
   if (vis) {
     cat("\n\n")
-    cat("****** Fra vannforskrift til naturindeks ******\n")
-    cat("***************   versjon 1.4   ***************\n")
+    cat("*** Fra vannforskrift til økologisk tilstandsregnskap ***\n")
+    cat("*******************   versjon  0.15   *******************\n")
   }
   
   OK <- TRUE
@@ -281,15 +281,16 @@ WFD2ECA <- function(
       }
     }
     
-    if (file.exists(paramFil)) {
-      Parametere <- try(as.data.frame(read_xlsx(paramFil, na = "NA", col_types =
-                                        c("text", "text", "numeric", "numeric"))))
-      if (inherits(Parametere, "try-error")) {
-        OK <- FALSE
-        skriv("Dette skjedde en feil under innlesing av fila \"", paramFil,
-              ". Sjekk om den har korrekt format (xlsx-regneark).",
-              pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
-      } else {
+    if (exists("Parametere")) {
+#    if (file.exists(paramFil)) {
+#      Parametere <- try(as.data.frame(read_xlsx(paramFil, na = "NA", col_types =
+#                                        c("text", "text", "numeric", "numeric"))))
+#      if (inherits(Parametere, "try-error")) {
+#        OK <- FALSE
+#        skriv("Dette skjedde en feil under innlesing av fila \"", paramFil,
+#              ". Sjekk om den har korrekt format (xlsx-regneark).",
+#              pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+#      } else {
         if (is.data.frame(Parametere) && 
             names(Parametere) %=% c("id", "navn", "min", "max")) {
           Parametere <<- Parametere
@@ -312,42 +313,47 @@ WFD2ECA <- function(
           skriv("Kolonnenavnene i regnearket \"", paramFil, "\" er ikke som ",
                 "forventa!", pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
         }
-      }
+#      }
     } else {
       OK <- FALSE
-      skriv("Dette skjedde en feil under innlesing av fila \"", paramFil,
-            ". Sjekk om fila fins, og at det er oppgitt korrekt navn på den.",
+      skriv("Fila \"Parametere\" ble ikke funnet.",
             pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+#      skriv("Dette skjedde en feil under innlesing av fila \"", paramFil,
+#            ". Sjekk om fila fins, og at det er oppgitt korrekt navn på den.",
+#            pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
     }
-    
-    if (file.exists(aktivFil)) {
-      Aktiviteter <- try(as.data.frame(read_xlsx(aktivFil, na = "NA", col_types =
-                                                   c("text", "text", "numeric"))))
-      if (inherits(Aktiviteter, "try-error")) {
-        OK <- FALSE
-        skriv("Dette skjedde en feil under innlesing av fila \"", aktivFil,
-              ". Sjekk om den har korrekt format (xlsx-regneark).",
-              pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
-      } else {
+
+    if (exists("Aktiviteter")) {
+#    if (file.exists(aktivFil)) {
+#      Aktiviteter <- try(as.data.frame(read_xlsx(aktivFil, na = "NA", col_types =
+#                                                   c("text", "text", "numeric"))))
+#      if (inherits(Aktiviteter, "try-error")) {
+#        OK <- FALSE
+#        skriv("Dette skjedde en feil under innlesing av fila \"", aktivFil,
+#              ". Sjekk om den har korrekt format (xlsx-regneark).",
+#              pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+#      } else {
         if (!is.data.frame(Aktiviteter) || 
             names(Aktiviteter) %!=% c("id", "navn", "skaar")) {
           OK <- FALSE
           skriv("Kolonnenavnene i regnearket \"", aktivFil, "\" er ikke som ",
                 "forventa!", pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
         }
-      }
+#      }
     } else {
       OK <- FALSE
-      skriv("Dette skjedde en feil under innlesing av fila \"", aktivFil,
-            ". Sjekk om fila fins, og at det er oppgitt korrekt navn på den.",
+      skriv("Fila \"Aktiviteter\" ble ikke funnet.",
             pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+#      skriv("Dette skjedde en feil under innlesing av fila \"", aktivFil,
+#            ". Sjekk om fila fins, og at det er oppgitt korrekt navn på den.",
+#            pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
     }
   }
 
   if (OK) {
     # Lese inn klassegrenser for den angitte parameteren
     if (is.null(filKlasser)) {
-      filKlasser <- "klassegr/klassegrenser_" %+% parameter %+% ".xlsx"
+      filKlasser <- "../data/klassegrenser_" %+% parameter %+% ".xlsx" #¤
     }
     KlasseGrenser <- hentKlassegrenser(filKlasser)
     if (is.null(KlasseGrenser)) {
@@ -533,12 +539,12 @@ WFD2ECA <- function(
 
     # Sjekk av år mot rapporteringsperioden
     aar <- rappAar <- as.numeric(substr(DATA$tidpkt, 1, 4))
-    NI.aar <- sort(NI.aar)
-    startaar <- min(NI.aar) - rapportperiode + 1
-    sluttaar <- max(NI.aar)
+    rapportaar <- sort(rapportaar)
+    startaar <- min(rapportaar) - rapportperiode + 1
+    sluttaar <- max(rapportaar)
     er.med <- which(DATA$parid == parameter & !is.na(DATA$verdi) &
                     aar >= startaar & aar <= sluttaar)
-    for (i in rev(NI.aar)) {
+    for (i in rev(rapportaar)) {
       rappAar[which(aar <= i)] <- i 
     } # frem til v. 1.1 sto det "<":
       # rappAar[which(aar < i)] <- i
@@ -707,19 +713,21 @@ WFD2ECA <- function(
       lok <- c(which(VL$lokkod == DATA$lokid[i]), which(VL$lokid == DATA$lokid[i]))
       if (length(lok) %=% 1) {
         vfk <- VL$id[lok]
-        if (substr(vfk, nchar(vfk), nchar(vfk)) %=% "L") {
-          vfk <- which(Vf$id == (substr(vfk, 1, 4) %+% VL$sjønr[lok] %+% "-L"))
-          if (!length(vfk)) {
-            vfk <- which(Vf$id == VL$id[lok])
-          }
-        } else {
+        # fjernes fordi innsjønumre ikke lenger er inkludert i vannlokasjonsdataene
+        # (men effekten av dette er uvisst!):
+        #if (substr(vfk, nchar(vfk), nchar(vfk)) %=% "L") {
+        #  vfk <- which(Vf$id == (substr(vfk, 1, 4) %+% VL$sjønr[lok] %+% "-L"))
+        #  if (!length(vfk)) {
+        #    vfk <- which(Vf$id == VL$id[lok])
+        #  }
+        #} else {
           vfk <- which(Vf$id == vfk)
-        }
+        #}
         if (length(vfk) %=% 1) {
           maaling <- rbind(maaling, maaling[1, ])
           L <- nrow(maaling)
           maaling$vfo[L]   <- Vf$id  [vfk]  # vannforekomst-id
-          maaling$inn[L]   <- VL$sjøn[lok]  # innsjønummer
+#          maaling$inn[L]   <- VL$sjøn[lok]  # innsjønummer
           maaling$lok[L]   <- VL$loki[lok]  # vannlokalitets-id
           maaling$aar[L]   <- aar    [i]    # år, måned og dag
           maaling$mnd[L]   <- as.numeric(     substr(DATA$tidpkt[i], 6,  7))
@@ -905,7 +913,7 @@ WFD2ECA <- function(
     # Sjekk av antall målinger per rapporteringsperiode
     if (nrow(maaling)) {
       fjernAar <- c()
-      for (i in NI.aar) {
+      for (i in rapportaar) {
         w <- length(unique(maaling$vfo[which(maaling$per == i)]))
         if (w < maalingPer) {
           if (w > 0) {
@@ -919,7 +927,7 @@ WFD2ECA <- function(
         }
       }
       rappAar <- rappAar %-% fjernAar
-      NI.aar  <- NI.aar  %-% fjernAar
+      rapportaar  <- rapportaar  %-% fjernAar
     }
     maaling$per <- as.factor(maaling$per)
     
@@ -2289,7 +2297,7 @@ WFD2ECA <- function(
       nydata$akt <- sample(alist, nrow(nydata), TRUE, avekt)
     }
     if ("per" %in% names(nydata)) {
-      nydata$per <- factor(NI.aar[1], levels=levels(maaling$per))
+      nydata$per <- factor(rapportaar[1], levels=levels(maaling$per))
     }
     if ("rar" %in% names(nydata)) {
       nydata$rar <- 0
@@ -2304,13 +2312,13 @@ WFD2ECA <- function(
     }
     konfident <- which(rownames(nydata) %in% maaling$vfo)
     #BLAA
-    #  konfident <- matrix(FALSE, nrow(nydata), length(NI.aar))
-    #  maalt.gs <- maalt.sd <- matrix(NA, nrow(nydata), length(NI.aar))
-    #  colnames(konfident) <- colnames(maalt.gs) <- colnames(maalt.sd) <- NI.aar
+    #  konfident <- matrix(FALSE, nrow(nydata), length(rapportaar))
+    #  maalt.gs <- maalt.sd <- matrix(NA, nrow(nydata), length(rapportaar))
+    #  colnames(konfident) <- colnames(maalt.gs) <- colnames(maalt.sd) <- rapportaar
     #  rownames(konfident) <- rownames(maalt.gs) <- rownames(maalt.sd) <- 
     #                         rownames(nydata)
     #  for (i in rownames(nydata)) {
-    #    for (j in as.character(NI.aar)) {
+    #    for (j in as.character(rapportaar)) {
     #      hvilke <- which(maaling$vfo == i & as.character(maaling$per) == j)
     #      if (length(hvilke)) {
     #        konfident[i,j] <- TRUE
@@ -2355,27 +2363,27 @@ WFD2ECA <- function(
       UT[e] <- NA
       if ("fylker" %begynner% e) {
         names(UT)[length(UT)] <- "fylke"
-        UT$fylke <- array(0, c(length(FYL), length(NI.aar), nsim + 1),
-                          list(fylke=FNR, aar=NI.aar, 
+        UT$fylke <- array(0, c(length(FYL), length(rapportaar), nsim + 1),
+                          list(fylke=FNR, aar=rapportaar, 
                                simuleringer=c("pred", 1:nsim)))
       }
       if ("kommuner" %begynner% e) {
         names(UT)[length(UT)] <- "kommune"
-        UT$kommune <- array(0, c(length(KOM), length(NI.aar), nsim + 1),
-                            list(kommune=KOM, aar=NI.aar, 
+        UT$kommune <- array(0, c(length(KOM), length(rapportaar), nsim + 1),
+                            list(kommune=KOM, aar=rapportaar, 
                                  simuleringer=c("pred", 1:nsim)))
       }
       if ("landsdeler" %begynner% e) {
         names(UT)[length(UT)] <- "landsdel"
-        UT$landsdel <- array(0, c(5, length(NI.aar), nsim + 1),
+        UT$landsdel <- array(0, c(5, length(rapportaar), nsim + 1),
                              list(landsdel=c("Østlandet", "Sørlandet", "Vestlandet", 
                                              "Midt-Norge", "Nord-Norge"),
-                                  aar=NI.aar, simuleringer=c("pred", 1:nsim)))
+                                  aar=rapportaar, simuleringer=c("pred", 1:nsim)))
       }
       if ("norge" %begynner% e) {
         names(UT)[length(UT)] <- "Norge"
-        UT$Norge <- array(0, c(1, length(NI.aar), nsim + 1),
-                          list(rike="Norge", aar=NI.aar, 
+        UT$Norge <- array(0, c(1, length(rapportaar), nsim + 1),
+                          list(rike="Norge", aar=rapportaar, 
                                simuleringer=c("pred", 1:nsim)))
       }
     }
@@ -2400,15 +2408,15 @@ WFD2ECA <- function(
       Areal <- Areal^(arealvekt / 2)
       
       # BLAA
-      # alle.maalt <- matrix(TRUE, length(KOM), length(NI.aar), 
-      #                      dimnames=list(KOM, NI.aar))
+      # alle.maalt <- matrix(TRUE, length(KOM), length(rapportaar), 
+      #                      dimnames=list(KOM, rapportaar))
       if (nsim < 1) {
-        simdata   <- array(0, c(nrow(nydata), length(NI.aar), 1),
-                           list(vannforekomst=rownames(nydata), aar=NI.aar, 
+        simdata   <- array(0, c(nrow(nydata), length(rapportaar), 1),
+                           list(vannforekomst=rownames(nydata), aar=rapportaar, 
                                 simuleringer="pred"))
-        for (j in 1:length(NI.aar)) {
+        for (j in 1:length(rapportaar)) {
           if ("per" %in% names(nydata)) {
-            nydata$per <- factor(NI.aar[i], levels=levels(maaling$per))
+            nydata$per <- factor(rapportaar[i], levels=levels(maaling$per))
           }
           pred <- predict(modell, nydata, TRUE, interval = "pred", level = 0.5,
                           weights = 1)
@@ -2421,8 +2429,8 @@ WFD2ECA <- function(
         s <- 0
         while (s < nsim) {
           SIM <- min(1000, nsim - s)
-          simdata   <- array(0, c(nrow(nydata), length(NI.aar), SIM),
-                             list(vannforekomst = rownames(nydata), aar = NI.aar, 
+          simdata   <- array(0, c(nrow(nydata), length(rapportaar), SIM),
+                             list(vannforekomst = rownames(nydata), aar = rapportaar, 
                                   simuleringer = 1:SIM))
           for (i in (1:SIM + s)) {
             slumptall <- rt(nrow(nydata), df)
@@ -2435,9 +2443,9 @@ WFD2ECA <- function(
               #     rownames(nydata)[j])]), 1)
               # }
             }
-            for (j in 1:length(NI.aar)) {
+            for (j in 1:length(rapportaar)) {
               if ("per" %in% names(nydata)) {
-                nydata$per <- factor(NI.aar[j], levels=levels(maaling$per))
+                nydata$per <- factor(rapportaar[j], levels=levels(maaling$per))
               }
               pred <- predict(modell, nydata, TRUE, 
                               interval = "pred", level = 0.5, weights = 1)
@@ -2467,7 +2475,7 @@ WFD2ECA <- function(
           
           for (e in rapportenhet) {
             if ("fylker" %begynner% e) {
-              for (j in as.character(NI.aar)) {
+              for (j in as.character(rapportaar)) {
                 for (f in FNR) {
                   w <- which(Vf$fylke %inneholder% f)
                   w <- which(rownames(nydata) %in% Vf$id[w])
@@ -2492,7 +2500,7 @@ WFD2ECA <- function(
                   w <- which(rownames(nydata) %in% Vf$id[w])
                   if (length(w)) {
                     if (length(w) > 1) {
-                      for (j in as.character(NI.aar)) {
+                      for (j in as.character(rapportaar)) {
                         UT$kommune[k, j, 1:SIM + s + 1] <-
                           apply(simdata[w, j, ], 2, weighted.mean, 
                                 Areal[w], na.rm = TRUE)
@@ -2521,7 +2529,7 @@ WFD2ECA <- function(
               }
             }
             if ("landsdeler" %begynner% e) {
-              for (j in as.character(NI.aar)) {
+              for (j in as.character(rapportaar)) {
                 for (f in 1:5) {
                   w <- c()
                   for (k in 1:length(WF[[f]])) {
@@ -2543,7 +2551,7 @@ WFD2ECA <- function(
               }
             }
             if ("norge" %begynner% e) {
-              for (j in as.character(NI.aar)) {
+              for (j in as.character(rapportaar)) {
                 UT$Norge[1, j, 1:SIM + s + 1] <- 
                   apply(simdata[, j, ], 2, weighted.mean, Areal, na.rm = TRUE)
               }
@@ -2558,7 +2566,7 @@ WFD2ECA <- function(
         if (logit) {
           UT[[i]] <- reskaler(UT[[i]], minV, maxV)
         }
-        for (j in 1:length(NI.aar)) {
+        for (j in 1:length(rapportaar)) {
           for (k in 1:dim(UT[[i]])[1]) {
             UT[[i]][k, j, 1] <- median(UT[[i]][k, j, -1], na.rm = TRUE)
           }

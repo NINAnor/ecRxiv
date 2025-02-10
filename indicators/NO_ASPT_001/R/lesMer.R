@@ -62,8 +62,8 @@ lesMer <- function() {
           pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
   } else {
     JSONdata <- fromJSON(content(respons, "text"), flatten = TRUE)
-    enh <- as.data.frame(JSONdata)
-    enh <- lapply(enh, as.character)
+    enh   <- as.data.frame(JSONdata)
+    enh[] <- lapply(enh, as.character)
     if (exists("Enheter")) {
       skriv("Variabelen \"Enheter\" eksisterte fra før og har blitt erstatta!", 
             pre = "OBS: ", linjer.over = 1)
