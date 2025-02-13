@@ -1,7 +1,7 @@
 ---
 title: "Breeding bird indicators"
 subtitle: |
-  [NO_BIRD_001] (farmland) \
+  [NO_BIRD_001] (farmland and open lowland) \
   [NO_BIRD_002] (mountains) \
   [NO_BIRD_003] (wetlands) \
   [NO_BIRD_004] (forests)
@@ -49,6 +49,7 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 library(odbc)
+library(rtrim)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -327,11 +328,11 @@ folder <- paste0(wd, "/PECBMS_Files")
 subFolderName <- "Species_files"
 
 # Relative general and working folders for RSWAN
-general_folder_rel <- paste0(wd, "/data")
+general_folder_rel <- paste0(wd, "/temp/birdIndicators-main/data")
 working_folder_rel <- paste0(folder, "/", subFolderName)
 
 # Storage of MSI results
-MSI_results_folder <- paste0(wd, "MSI_Results")
+MSI_results_folder <- paste0(wd, "/MSI_Results")
 
 
 ## Absolute directory/file paths
@@ -388,6 +389,12 @@ Trim_data <- downloadData_TRIM(
   # DriverName = "FreeTDS"
   DriverName = "SQL Server"
   )
+
+saveRDS(Trim_data, file = paste0(wd, "/temp/Trim_data.rds"))
+```
+
+```{r}
+Trim_data <- readRDS(paste0(wd, "/temp/Trim_data.rds"))
 ```
 
 ### PECBMS Trim results from predecessor monitoring programme
@@ -402,6 +409,8 @@ Hence, we copy the files from their location in NINA’s local file storage into
 
 ```{r}
 #| eval : false	
+# copy files from NINA server to working directory
+# Requires access, but we bypass this operation here to make a reproducable example 
 collectSpeciesFiles_Legacy(
   origin_folder = legacyFile_folder,
   target_folder = paste0(folder, "/", subFolderName))
@@ -432,39 +441,50 @@ The table `Spp_selection` contains information for each species on which reporti
 
 Farmland MSI species:
 
-```{r, echo = F, results='asis'}
+```{r}
+#| echo: false
+#| results: asis
 temp <- sort(Spp_selection$Species[which(Spp_selection$EURINGCode %in% sppLists$sppLists$MSI_farmland)])
 cat(paste0("- ", temp), sep = "\n")
 ``` 
 
 Forest MSI species:
 
-```{r, echo = F, results='asis'}
+```{r}
+#| echo: false
+#| results: asis
 temp <- sort(Spp_selection$Species[which(Spp_selection$EURINGCode %in% sppLists$sppLists$MSI_forest)])
 cat(paste0("- ", temp), sep = "\n")
 ``` 
 
 Mountain MSI species:
 
-```{r, echo = F, results='asis'}
+```{r}
+#| echo: false
+#| results: asis
 temp <- sort(Spp_selection$Species[which(Spp_selection$EURINGCode %in% sppLists$sppLists$MSI_mountain)])
 cat(paste0("- ", temp), sep = "\n")
 ``` 
 
 Wetlands MSI species:
 
-```{r, echo = F, results='asis'}
+```{r}
+#| echo: false
+#| results: asis
 temp <- sort(Spp_selection$Species[which(Spp_selection$EURINGCode %in% sppLists$sppLists$MSI_wetlands)])
 cat(paste0("- ", temp), sep = "\n")
 ``` 
 
 ### PECBMS RTRIM analyses 
 
-In the next step, the downloaded raw data is analysed and converted into species-specific abundance indices using the RTRIM approach ("**TR**ends and **I**ndices for **M**onitoring data", @R-rtrim2020). The RTRIM analyses are run for a subset of 85 species which have sufficient data for it using the standardized scripts provided by PECBMS (more information on https://pecbms.info/methods/software/trim/). 
+In the next step, the downloaded raw data is analysed and converted into species-specific abundance indices using the RTRIM approach ("**TR**ends and **I**ndices for **M**onitoring data", @R-rtrim2020). 
+The RTRIM analyses are run for a subset of 85 species which have sufficient data for it using the standardized scripts provided by PECBMS (more information on https://pecbms.info/methods/software/trim/). 
 For the application here, we have written wrapper function around the PECBMS code for each step of the RTRIM workflow.
 
-```{r, eval = FALSE}
+```{r}
+#| eval: false
 ## Write PECBMS arguments input files for each species
+# These are called *_arg_input_stratum under PECBMS_Files
 argument_file <- 
   setupInputFiles_PECBMS_trimShell(
     Spp_selection = Spp_selection,
@@ -484,15 +504,18 @@ PECBMS_data <-
 runRtrimShell_PECBMS(folder = folder)
 
 ## Process results
+# Returns file called all_Indices_All_Trends in PECBMS_Files
 trimResults_PECBMS <- processRtrimOutput_PECBMS(folder = folder)
 ``` 
 
 The results of the the RTRIM workflow are a series of .csv and .txt files. These are delivered directly to PECBMS each year after the analyses have been run. Prior to delivery, they are copied into a designated folder: 
 
-```{r, eval = FALSE}
+```{r}
+#| eval: false
 ## Collect (and rename) species and summary files
-collectSpeciesFiles_PECBMS(folder = folder, 
-                           subFolderName = subFolderName)
+collectSpeciesFiles_PECBMS(
+  folder = folder, 
+  subFolderName = subFolderName)
 ``` 
 
 ### Combining data series using RSWAN
@@ -502,7 +525,8 @@ From there, they enter into the next step of the workflow: PECBMS' RSWAN routine
 
 Again, we have written wrapper functions around the scripts from PECBMS to make for a more streamlined and automated workflow:
 
-```{r, eval = FALSE}
+```{r}
+#| eval: false
 ## Write/load schedule table
 writeSchedule_SWAN(working_folder = working_folder_rel, 
                    general_folder = general_folder_rel,
