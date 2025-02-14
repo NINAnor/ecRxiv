@@ -270,6 +270,9 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
 
+::: {#refs}
+:::
+
 ## 7. Datasets
 
 <!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
@@ -294,12 +297,13 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 
 ## 9. Analyses
 
-### Workflow setup
+### Workflow setup {#sec-workflow}
 
 The code for the following analyses has been developed in a separate GitHub repository: https://github.com/NINAnor/birdIndicators As a first step, we therefore need to read in all the functions from that repository. The repository has not been converted into a package yet, so we need to download the entire repository and source all function files in the “R” folder manually:
 
 ```{r}
-#| resuls: hide
+#| eval: false
+#| code-summary: "Download functions from GitHub repository"
 temppath <- here::here("indicators/NO_BIRD_001-004/temp")
 destpath <- paste0(temppath, "/birdIndicators_Repo.zip")
 
@@ -314,18 +318,16 @@ sourceDir <- function(path, trace = TRUE, ...) {
     source(file.path(path, nm), ...)
     if(trace) cat("\n")
   }
+  invisible()
 }
 sourceDir(paste0(temppath, "/birdIndicators-main/R"))
 ```
 
-Next, we need to define a range of relative and absolute directories / file paths. The main reason for that is that many of the scripts delivered by PECBMS function by iteratively writing and reading files in a specific folder structure. Whenever possible, I have written wrapper functions around the PECBMS code that work with relative paths, but absolute paths are still necessary for the scripts involved in the RSWAN routine as that workflow toggles between different working directories using setwd() repeatedly. Additionally, the RSWAN workflow also uses some helper functions that include changing working directories that are not provided as function arguments but instead need to be globally defined.
-
-While all code would ideally be rewritten to work with relative paths and without toggling working directories, PECBMS tends to distribute new versions of their scripts periodically and with no formal version control in place. This means that it is imperative to leave their core code as untouched as possible to facilitate including new versions (by copy paste) as they come.
-
-Hence we set up both relative and absolute file paths (note that I construct the latter relative to the project working directory to ensure a minimum of portability):
+Next, we need to define a range of relative and absolute directories. The main reason for that is that many of the scripts delivered by PECBMS function by iteratively writing and reading files in a specific folder structure. We use `here::here()` to go from relative to absolute paths. While all code would ideally be rewritten to work with relative paths and without toggling working directories, PECBMS tends to distribute new versions of their scripts periodically and with no formal version control in place. This means that it is imperative to leave their core code as untouched as possible to facilitate including new versions (by copy paste) as they come.
 
 ```{r}
-## Relative directory/file paths
+#| code-summary: "Create local directories"
+## Absolute path for root folder:
 wd <- here::here("indicators/NO_BIRD_001-004")
 
 # Storage of raw PECBMS Trim outputs
@@ -334,32 +336,28 @@ folder <- paste0(wd, "/PECBMS_Files")
 # Storage of processed PECBMS Trim outputs
 subFolderName <- "Species_files"
 
-# Relative general and working folders for RSWAN
+# general and working folders
  general_folder_rel <- paste0(wd, "/temp/birdIndicators-main/data")
  working_folder_rel <- paste0(folder, "/", subFolderName)
 
 # Storage of MSI results
 MSI_results_folder <- paste0(wd, "/MSI_Results")
 
-
-## Absolute directory/file paths
-
 # NINAs local storage of legacy Trim output files
 legacyFile_folder <- "P:/41201612_naturindeks_2021_2023_database_og_innsynslosning/Hekkefugl_Dataflyt/LegacyFiles_PECBMS_Trim"
 
-# Absolute data and output paths for RSWAN 
- general_folder <- general_folder_rel
- working_folder <- working_folder_rel
- output_folder <- paste0(working_folder, "/output/") 
- output_folder2 <- paste0(working_folder, "/output") 
+# Absolute data and output paths for RSWAN (not needed)
+# general_folder <- general_folder_rel
+# working_folder <- working_folder_rel
+# output_folder <- paste0(working_folder, "/output/") 
+# output_folder2 <- paste0(working_folder, "/output") 
 
 
 ## Create directories if they are not available
 dir.list <- c(
   folder, 
   general_folder_rel, 
-  working_folder_rel, 
-  output_folder2
+  working_folder_rel
   )
 
 for(i in 1:length(dir.list)){
@@ -372,15 +370,16 @@ for(i in 1:length(dir.list)){
 
 ### Data sets
 
-The workflow relies on two major sources of data: the up-to-date raw data from “hekkefuglovervåking” and the calculated abundance indices from the predecessor monitoring scheme. Additionally, we also use a couple of lists holding information on which species (and years) are to be included in which parts of the analytical workflow as the different outcomes require different information.
+The workflow uses the up-to-date raw data from “hekkefuglovervåking”. One can also combine this with the calculated abundance indices from the predecessor monitoring scheme in Norway, and that way get a longer time series, but we will not do that here. Additionally, we also use a couple of lists holding information on which species (and years) are to be included in which parts of the analytical workflow as the different outcomes require different information.
 
-### Monitoring data from “Hekkefuglovervåking”
+### Monitoring data from “Hekkefuglovervåking” {#sec-download}
 
-The route-based raw data from “hekkefuglovervåking” are compiled after each breeding season and curated and stored in NINA’s database. Before storing new data in the database, a thorough quality-check is performed. From that database we download the data relevant for the PECBMS Trim analyses and for the specified range of years (here from 2008 up to and including 2024). The function `downloadData_TRIM` does that for a specified year range (from minYear up to and including maxYear), and requires specifying which driver is used for accessing the database (via argument DriverName). When running from the NINA RStudio server, we need to use “FreeTDS”. When running locally from NINA computers, we need to select “SQL Server”. Note that downloading these data requires user-specific access privileges which can be requested from NINA IT department (‘datahjelp’).
+The route-based raw data from “hekkefuglovervåking” are compiled after each breeding season and curated and stored in NINA’s database. Before storing new data in the database, a thorough quality-check is performed. From that database we download the data relevant for the [PECBMS Trim analyses](https://pecbms.info/methods/software/trim/)and for the specified range of years (here from 2008 up to and including 2024). The function `downloadData_TRIM` does that for a specified year range (from minYear up to and including maxYear), and requires specifying which driver is used for accessing the database (via argument DriverName). When running from the NINA RStudio server, we need to use “FreeTDS”. When running locally from NINA computers, we need to select “SQL Server”. Note that downloading these data requires user-specific access privileges which can be requested from NINA IT department (‘datahjelp’).
 
 ```{r}
-#| eval : false	
-minYear <- 2006
+#| eval: false
+#| code-summary: "Download Trim data from NINA database"
+minYear <- 2008
 maxYear <- 2024
 
 Trim_data <- downloadData_TRIM(
@@ -390,38 +389,28 @@ Trim_data <- downloadData_TRIM(
   # DriverName = "FreeTDS"
   DriverName = "SQL Server"
   )
-
+# save temp file
 saveRDS(Trim_data, file = paste0(wd, "/temp/Trim_data.rds"))
 ```
 
 ```{r}
+#| include: false
 Trim_data <- readRDS(paste0(wd, "/temp/Trim_data.rds"))
-```
-
-### PECBMS Trim results from predecessor monitoring programme
-
-The abundance indices generated by the PECBMS RTRIM workflow using data from the predecessor scheme are stored in NINA’s local file repositories. Unlike the Trim analyses for the data from “hekkefuglovervåking”, which are re-run every year after new data has been added, the old abundance indices remain unchanged as no new data are being collected. These data are needed for the RSWAN workflow, and they need to be present in the respective “working_folder”. Hence, we copy the files from their location in NINA’s local file storage into the correct folder for analyses.
-
-```{r}
-#| eval : false	
-# copy files from NINA server to working directory
-# Requires access, but we bypass this operation here to make a reproducable example 
-collectSpeciesFiles_Legacy(
-  origin_folder = legacyFile_folder,
-  target_folder = paste0(folder, "/", subFolderName))
 ```
 
 ### Lists of species information
 
-The species list files should have been downloaded together with the rest of the birdIndicators repository and we can use makeSpeciesLists() to assemble the information.
+The species list files should have been downloaded together with the rest of the birdIndicators repository (@sec-workflow) and we can use `makeSpeciesLists()` to assemble the information.
 
 ```{r}
-#| eval : false	
+#| eval: false	
+#| code-summary: "Assemble species lists"
 sppLists <- makeSpeciesLists(
   Trim_data = Trim_data, 
   spp_DataPath = paste0(wd, "/temp/birdIndicators-main/data"))
 Spp_selection <- sppLists$sppData
 
+# save data
 saveRDS(sppLists, file = paste0(wd, "/data/sppLists.rds"))
 saveRDS(Spp_selection, file = paste0(wd, "/data/Spp_selection.rds"))
 ```
@@ -432,7 +421,9 @@ sppLists <- readRDS(paste0(wd, "/data/sppLists.rds"))
 Spp_selection <- readRDS(paste0(wd, "/data/Spp_selection.rds"))
 ```
 
-The table `Spp_selection` contains information for each species on which reporting routes should be included in. The multispecies indices are grouped into a single category (“MSI”) here, but we can extract the species that go into the MSI for each ecosystem via the additionally provided lists.
+The table `Spp_selection` contains information for each species on which reporting routes should be included in. The multi-species indices are grouped into a single category (“MSI”) here, but we can extract the species that go into the MSI for each ecosystem via the additionally provided lists.
+
+::: {layout-ncol="2"}
 
 Farmland MSI species:
 
@@ -470,13 +461,17 @@ temp <- sort(Spp_selection$Species[which(Spp_selection$EURINGCode %in% sppLists$
 cat(paste0("- ", temp), sep = "\n")
 ```
 
+:::
+
 ### PECBMS RTRIM analyses
 
-In the next step, the downloaded raw data is analysed and converted into species-specific abundance indices using the RTRIM approach ("**TR**ends and **I**ndices for **M**onitoring data", @R-rtrim2020). The RTRIM analyses are run for a subset of 85 species which have sufficient data for it using the standardized scripts provided by PECBMS (more information on https://pecbms.info/methods/software/trim/). For the application here, we have written wrapper function around the PECBMS code for each step of the RTRIM workflow.
+In the next step, the downloaded raw data (see @sec-download) is analysed and converted into species-specific abundance indices using the RTRIM approach ("**TR**ends and **I**ndices for **M**onitoring data" [@R-rtrim2020]). The RTRIM analyses are run for a subset of 85 species which have sufficient data for it using the standardized scripts provided by PECBMS (more information on https://pecbms.info/methods/software/trim/). For the application here, we have written wrapper function around the PECBMS code for each step of the RTRIM workflow.
 
 ```{r}
 #| eval: false
-## Write PECBMS arguments input files for each species
+#| code-summary: "TRIM analyses"
+
+# Write PECBMS arguments input files for each species
 # These are called *_arg_input_stratum under PECBMS_Files
 argument_file <- 
   setupInputFiles_PECBMS_trimShell(
@@ -501,54 +496,31 @@ runRtrimShell_PECBMS(folder = folder)
 trimResults_PECBMS <- processRtrimOutput_PECBMS(folder = folder)
 ```
 
-The results of the the RTRIM workflow are a series of .csv and .txt files. These are delivered directly to PECBMS each year after the analyses have been run. Prior to delivery, they are copied into a designated folder:
+The results of the the RTRIM workflow are a series of .csv and .txt files. Here we copied hem into a designated folder:
 
 ```{r}
 #| eval: false
+#| code-summary: "Copy and rename files files"
 ## Collect (and rename) species and summary files
 collectSpeciesFiles_PECBMS(
   folder = folder, 
   subFolderName = subFolderName)
 ```
 
-### Combining data series using RSWAN
-
-For 55 of the 85 species with sufficient data, RTRIM analyses have also been run using data from the predecessor monitoring scheme. The RTRIM output files from both old and new analyses should now be present in the same folder. From there, they enter into the next step of the workflow: PECBMS' RSWAN routine. This is based on another set of scripts distributed through PECBMS which combine RTRIM outputs from different monitoring schemes / time periods.
-
-Again, we have written wrapper functions around the scripts from PECBMS to make for a more streamlined and automated workflow:
-
-```{r}
-#| eval: false
-## Write/load schedule table
-writeSchedule_SWAN(working_folder = working_folder_rel, 
-                   general_folder = general_folder_rel,
-                   MSI_speciesList = sppLists$sppLists$MSI,
-                   loadSchedule = FALSE)
-
-## Truncate first survey year where neccessary
-correctFirstSurveyYear_SWAN(general_folder = general_folder_rel, 
-                            working_folder = working_folder_rel,
-                            maxYear = 2022)
-
-## Run RSWAN
-combineTimeSeries_SWAN(general_folder_abs = general_folder,
-                       working_folder_abs = working_folder)
-
-```
-
-Running RSWAN requires some additional files that are provided by PECBMS, currently: "Swan_schedules.csv", "Swan_schedules_comb.csv", "Species_Countries.csv", and "New_notorics_2022.xlsx".
-
-(Once we turn `birdIndicators` into a package, we may add the content of these as integrated data. Although we would then need a function to write them to files as the core scripts from PECBMS need them to be files).
-
-The RSWAN routine produces output files for the selected 55 species that are equivalent to those produced by the RTRIM workflow, but have a prefix "COMB" to indicate that they are based on combined time series.
-
 ### Aggregation to multi-species indices (MSIs)
 
-The breeding bird indicators for ecosystem condition assessments are mutlispecies indices (MSIs) calculated following the guidelines from PECBMS (https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--/msi-tool) and using the algorithm of @soldaat2017.
+The breeding bird indicators for ecosystem condition accounts / assessments are multi-species indices (MSIs) calculated following the guidelines from PECBMS (https://www.cbs.nl/en-gb/society/nature-and-environment/indices-and-trends--trim--/msi-tool) and using the algorithm of @soldaat2017.
 
-The function for calculating MSIs requires specifying whether or not to make use of combined time series generated by RSWAN (argument `useCombTS`), which year to use as a base/reference (argument `baseYear`), and which year to use as a changepoint (argument `changepointYear`). The choice of change point year does not affect index values, but specifies until and from which year additional, shorter term trends should be calculated (i.e. if `changepointYear = 2008`, the procedure will additionally provide trend estimates from starting year to 2008, and from 2008 to the last year in the data).
+The function for calculating MSIs requires specifying whether or not to make use of combined time series generated by RSWAN (argument `useCombTS`), which year to use as a base/reference (argument `baseYear`), and which year to use as a changepoint (argument `changepointYear`).
 
-```{r, eval = FALSE}
+We are not including data from the bird monitoring that was in effect before the current *Hekkefulgovervåkinga*, and therefore we do not need to use the RSWAM method to combine time series.
+
+We set the base year to be 2015 to coincide with the time when the bird monitoring became truly national in coverage. The baseline year only works to center the time series around a fixed time. The relative change in the time series remains unchanged. The use of arbitrary baseline years (arbitrary in the sense that they do not represent a reference state in the SEEA EA use of the term, or any other necessarily desirable value) means that point estimates should really be interpreted with caution when seen in isolation. It is the development of the trends in the time series that is important to understand and convey. But having a spatially representative baseline means there is less chance of a spatial bias in the sampling to affect the absolute level of the time time series, but as we have explained, the temporal trends are unaffected.
+
+The choice of change point year does not affect index values, but specifies until and from which year additional, shorter term trends should be calculated (i.e. if `changepointYear = 2008`, the procedure will additionally provide trend estimates from starting year to 2008, and from 2008 to the last year in the data). We set this to 2022 below because we have to set something, but we will not investigate this part of the analyses any further.
+
+```{r}
+#| code-fold: false
 useCombTS <- FALSE
 baseYear <- 2015
 changepointYear <- 2022
@@ -564,9 +536,11 @@ Index_sppLists <- list(sppLists$sppLists$MSI_farmland,
                        sppLists$sppLists$MSI_wetlands)
 ```
 
-We will calculate all four indices starting from whenever the data starts and using 2015 as the reference year.
+We will calculate all four indices starting from whenever the data starts (2008) and using 2015 as the reference year.
 
-```{r, eval = FALSE}
+```{r}
+#| eval: false
+#| code-summary: "Calculate MSI values"
 MSI_longTerm <- data.frame()
 
 for(i in 1:4){
@@ -581,6 +555,7 @@ for(i in 1:4){
   MSI_longTerm <- rbind(MSI_longTerm, results)
   message("")
 }
+# save output
 saveRDS(MSI_longTerm, file = paste0(wd, "/data/MSI_results.rds"))
 ```
 
@@ -592,20 +567,85 @@ The MSI is provided both as point estimates (`MSI`) with associated standard err
 
 Additionally, the results are saved as a standardized set of files used for reporting to PECBMS.
 
-We can then visualize the results both as point MSI only and as point MSI + trend fit:
+We can now visualize the results both as point estimates and trend fit:
 
 ```{r fig-MSI2015}
 #| fig-cap: 'Time series of the multispecies indices (MSIs) for the all ecosystems. The trend is centered to equal 100% in year 2015.'
-plotTimeSeries_MSI(MSI = MSI_results,
-                   results_folder = MSI_results_folder,
-                   plot_name = "MSI_base2015_AllEcosystems", 
-                   displayPlots = TRUE,
-                   savePDF = FALSE)
+
+myplotTimeSeries_MSI <- function(MSI, results_folder){
+  
+  ## Define custom colors
+  plotCols <- colorspace::divergingx_hcl(palette = "Temps", n = length(unique(MSI$IndexName)))
+  
+  p2 <- ggplot(MSI, aes(x = year, y = MSI)) + 
+    geom_point(aes(colour = IndexName), size = 3) + 
+    geom_pointrange(aes(ymin = MSI - sd_MSI, ymax = MSI + sd_MSI, colour = IndexName)) + 
+    geom_line(aes(y = Trend, colour = IndexName), linetype = "dashed") +
+    geom_ribbon(aes(ymin = lower_CL_trend, ymax = upper_CL_trend, fill = IndexName), alpha = 0.2) + 
+    scale_x_continuous(name = "Year", breaks = min(MSI$year):max(MSI$year)) + 
+    scale_color_manual(name = "Index", values = plotCols) +
+    scale_fill_manual(name = "Index", values = plotCols) + 
+    ylab("MSI Value (% of baseline)") + 
+    theme_bw() + 
+    theme(panel.grid.minor = element_blank(),
+          axis.text.x = element_text(angle = 45, hjust = 1)) 
+  
+    print(p2)
+  }
+  
+
+
+myplotTimeSeries_MSI(
+  MSI = MSI_results,
+  results_folder = MSI_results_folder
+                   )
 ```
 
-The MSI bird indicators/indices should idealy be interpretted as time series (e.g. from looking at @fig-MSI2015). However, ecosystem accounting tables are ilmited in how they can convey temporal trends. Usually this is limited to a starting and closing value. The value for a give year can fluctuate due to change (e.g. weather) and may not reflect any long or medium term trend in ecosystem condition. The MSI trend is better at smoothing out these interannual trends.
+### Choise of metric to represent accounting period
 
-Our solution is to use the MSI trend for the median year in each accounting period and the closing value for that period, and to always include a start value (the previous accounting period usually) to reduce the change of end users interpretting too much into the actuall variabel value, since this number is highly affected by the choise of baseline year. These bird indices are variables in the SEEA EA terminology and should be reported in the variable account.
+The MSI should ideally be interpreted as time series (e.g. from looking at @fig-MSI2015). However, ecosystem accounting tables are limited in how they can convey temporal trends. Usually this is limited to a starting and closing value. The value for a gives year (point estimates) can fluctuate due to natural variation (e.g. weather events) and may not reflect any long or medium term trend in ecosystem condition. The MSI trend is better at smoothing out these interannual trends. However, it may be too good at smoothing out these trends, and we want to avoid data from previous accounting periods to affect subsequent periods. Our solution is to use the mean of the MSI point estimates from the years inside each accounting period (three year periods). Errors are aggregated by simulating values for each time step. assuming a normal distribution, and sampling equally from each. We must stress that the absolute variable value for an accounting period is only interprettable as a short term trend in the data, and to not indicate whether this value is especial high or low compared to historical values or any desirable state.
+
+> We must stress that the absolute variable value for an accounting period is only interprettable as a short term trend in the data, and to not indicate whether this value is especial high or low compared to historical values or any desirable state.
+
+These bird indices are variables in the SEEA EA terminology and should be reported in the variable account.
+
+### Calculating accounting values
+
+
+
+```{r}
+#| message: false
+output <- MSI_results |>
+  filter(year > 2015) |> # errors are 0 in 2015 so we will not use that year, or any year before, at least not for this excercise
+  mutate(accounting_period_final_year = case_when(
+    year <= 2018 ~ 2018,
+    year <= 2021 ~ 2021,
+    year <= 2024 ~ 2024,
+    .default = NA
+  ),
+  dist = list(rnorm(10000, MSI, sd_MSI))) |>
+    group_by(IndexName, accounting_period_final_year) |>
+    summarise(
+      variableValue = mean(MSI),
+      dist = list(dist)) |>
+  mutate(
+    Q1 = quantile(unlist(dist), 0.25),
+    Q3 = quantile(unlist(dist), 0.75),
+    ID = case_when(
+      IndexName == "FarmlandBirds" ~ "NO_BIRD_001",
+      IndexName == "ForestBirds" ~ "NO_BIRD_004",
+      IndexName == "MountainBirds" ~ "NO_BIRD_002",
+      IndexName == "WetlandBirds" ~ "NO_BIRD_003"
+    )
+  ) |>
+    select(-dist) 
+    
+output |>
+    kbl()
+
+```
+
+
 
 ## 10. Results
 
