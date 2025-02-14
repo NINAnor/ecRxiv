@@ -139,7 +139,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 
 -   Oct. 2023 - Complete workflow [described](https://ninanor.github.io/ecosystemCondition/breeding-birds.html)
--   3 Feb. 2025 - Started restructuring documentatoin for ecRxov and updating indicator values
+-   3 Feb. 2025 - Started restructuring documentatoin for ecRxiv and updating indicator values
 :::
 
 <hr />
@@ -163,6 +163,8 @@ How should the metric be used and interpretted, and how should it not be used/in
 
  -->
 ```
+
+Birds are a conspicuous part of biodiversity and well known to both laymen and to science. Birds also perform important ecosystem functions, and respond to natural and anthropogenic pressures, such as land-use change, climate change, and changes in food supply (esp. insects, but also seeds). This makes bird population sizes a very good metric for monitoring ecosystem condition. The Norwegian bird monitoring program *Hekkefulgovervåkingen* (previously named TOV-E) has been running since 2008 and since about 2015 it covers the entire country with about 500 sampling locations á 500 × 500 m., spread randomly across the area, and thus covering all ecosystem. We use this data to create four thematic bird indices, all using the same methodological approach. Using set criteria, bird species are categorised as belonging to one and only one main ecosystem. For each of our target ecosystem we extract monitoring data for these habitat specific species, and as long as there is sufficient data for that species we estimate a temporal trend for the change is population size. This means we are excluding rare and geographically restricted species, and focus on relatively common species. The trends are centered on a baseline year and all results are reported as percentage change relative to this year. We use 2015 as the reference year because at that time the bird monitoring had good national coverage in Norway, and the baseline estimate is therefore relatively robust. After we combine all the species for the same ecosystem into a muli-species index (MSI). The MSI should idealy be interpretted as time series, i.e. by looking at line graphs, but for reporting in standardised ecosystem accounting tables we have chosen to represent each three year accounting period by taking the mean of the MSI for those three years. The value represents a change relative to year 2015.
 
 ## 2. About the underlying data
 
@@ -552,7 +554,7 @@ baseYear <- 2015
 changepointYear <- 2022
 ```
 
-The function also requires us to provide a name (argument) and a list of EURING codes of species to include (argument). We list these for all four ecosystem indices: 
+The function also requires us to provide a name (argument) and a list of EURING codes of species to include (argument). We list these for all four ecosystem indices:
 
 ```{r, eval = FALSE}
 IndexNames <- c("FarmlandBirds", "ForestBirds", "MountainBirds", "WetlandBirds")
@@ -562,7 +564,7 @@ Index_sppLists <- list(sppLists$sppLists$MSI_farmland,
                        sppLists$sppLists$MSI_wetlands)
 ```
 
-We will calculate all four indices starting from whenever the data starts and using 2015 as the reference year. 
+We will calculate all four indices starting from whenever the data starts and using 2015 as the reference year.
 
 ```{r, eval = FALSE}
 MSI_longTerm <- data.frame()
@@ -582,21 +584,15 @@ for(i in 1:4){
 saveRDS(MSI_longTerm, file = paste0(wd, "/data/MSI_results.rds"))
 ```
 
-
 ```{r, echo = FALSE}
 MSI_results <- readRDS(paste0(wd,"/data/MSI_results.rds"))
 ```
 
-The MSI is provided both as point estimates (``MSI``) 
-with associated standard error (``sd_MSI``) 
-and confidence interval (``lower_CL_MSI`` and ``upper_CL_MSI``), 
-and as a smoothed trend model fit (characterised by an average trend, 
-``Trend``, and an associated confidence interval, 
-``lower_CL_trend`` and ``upper_CL_trend``):
+The MSI is provided both as point estimates (`MSI`) with associated standard error (`sd_MSI`) and confidence interval (`lower_CL_MSI` and `upper_CL_MSI`), and as a smoothed trend model fit (characterised by an average trend, `Trend`, and an associated confidence interval, `lower_CL_trend` and `upper_CL_trend`):
 
-Additionally, the results are saved as a standardized set of files used for reporting to PECBMS. 
+Additionally, the results are saved as a standardized set of files used for reporting to PECBMS.
 
-We can then visualize the results both as point MSI only and as point MSI + trend fit: 
+We can then visualize the results both as point MSI only and as point MSI + trend fit:
 
 ```{r fig-MSI2015}
 #| fig-cap: 'Time series of the multispecies indices (MSIs) for the all ecosystems. The trend is centered to equal 100% in year 2015.'
@@ -607,6 +603,9 @@ plotTimeSeries_MSI(MSI = MSI_results,
                    savePDF = FALSE)
 ```
 
+The MSI bird indicators/indices should idealy be interpretted as time series (e.g. from looking at @fig-MSI2015). However, ecosystem accounting tables are ilmited in how they can convey temporal trends. Usually this is limited to a starting and closing value. The value for a give year can fluctuate due to change (e.g. weather) and may not reflect any long or medium term trend in ecosystem condition. The MSI trend is better at smoothing out these interannual trends.
+
+Our solution is to use the MSI trend for the median year in each accounting period and the closing value for that period, and to always include a start value (the previous accounting period usually) to reduce the change of end users interpretting too much into the actuall variabel value, since this number is highly affected by the choise of baseline year. These bird indices are variables in the SEEA EA terminology and should be reported in the variable account.
 
 ## 10. Results
 
