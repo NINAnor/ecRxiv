@@ -622,23 +622,38 @@ output <- MSI_results |>
     year <= 2021 ~ 2021,
     year <= 2024 ~ 2024,
     .default = NA
-  ),
-  dist = list(rnorm(10000, MSI, sd_MSI))) |>
-    group_by(IndexName, accounting_period_final_year) |>
-    summarise(
-      variableValue = mean(MSI),
-      dist = list(dist)) |>
+      ),
+    dist = list(rnorm(10000, MSI, sd_MSI))) |>
+  group_by(IndexName, accounting_period_final_year) |>
+  summarise(
+    variableValue = mean(MSI),
+    dist = list(dist)) |>
   mutate(
-    Q1 = quantile(unlist(dist), 0.25),
-    Q3 = quantile(unlist(dist), 0.75),
+    "75th percentile" = quantile(unlist(dist), 0.75),    # ERROR 
+    "25th percentile" = quantile(unlist(dist), 0.25), 
     ID = case_when(
       IndexName == "FarmlandBirds" ~ "NO_BIRD_001",
       IndexName == "ForestBirds" ~ "NO_BIRD_004",
       IndexName == "MountainBirds" ~ "NO_BIRD_002",
       IndexName == "WetlandBirds" ~ "NO_BIRD_003"
-    )
-  ) |>
-    select(-dist) 
+    ),
+    ecosystem = case_when(
+      IndexName == "FarmlandBirds" ~ "Farmland & Open lowland",
+      IndexName == "ForestBirds" ~ "Forests",
+      IndexName == "MountainBirds" ~ "Alpine",
+      IndexName == "WetlandBirds" ~ "Wetlands"
+    )) |>
+  add_column(
+    ECT = "B1",
+    "Accounting area" = "Norway") |>
+  select(
+    ECT, 
+    Indicator = IndexName, 
+    ID, 
+    "Accounting area", 
+    "Variable value" = variableValue,  
+    "25th percentile",  
+    "75th percentile")
     
 output |>
     kbl()
