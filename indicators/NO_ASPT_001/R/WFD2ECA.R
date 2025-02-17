@@ -26,10 +26,10 @@ WFD2ECA <- function(
   maksSkjevhet = 3,
   bareInkluder = NULL,
   ikkeInkluder = NULL,
-  maalingPer = 25,
-  maalingTot = 100,
-  maalingTyp = 25,
-  maalingInt = 25,
+  maalingPer = 100, #¤
+  maalingTot = 1000, #¤
+  maalingTyp = 50, #¤
+  maalingInt = 50, #¤
   EQR = "asymptotisk",
   ignorerVariabel = NULL,
   fastVariabel = NULL,
@@ -2580,7 +2580,7 @@ WFD2ECA <- function(
     attr(UT, "parameter")     <- parameter
     attr(UT, "vannkategori")  <- vannkategori
     attr(UT, "tidspunkt")     <- Sys.time()
-    attr(UT, "versjon")       <- "fraVFtilNI v. 1.4"
+    attr(UT, "versjon")       <- "WFD2ECA v. 0.15"
     innstillinger <- list(
       adminAar        =        adminAar,
       rapportperiode  =  rapportperiode,

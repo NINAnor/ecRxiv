@@ -194,18 +194,18 @@ lesVannforekomster <- function(vannkategori = c("L", "R", "C"),
   
   # Innlesing av formfila som har blitt lasta ned fra NVE
   if (!is.null(CACHE)) {
-    #if (file.exists(filsti %+% CACHE)) { #¤ må tilpasses til lenke (prøv try)!
-      load(file(filsti %+% CACHE))
+    if (file.exists(filsti %+% CACHE)) {
+      load(filsti %+% CACHE)
       if (!exists("vf")) {
         OK <- FALSE
         skriv("Filen \"", filsti, CACHE, "\" inneholdt ikke variabelen \"vf\".",
               pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
       }
-    #} else {
-    #  OK <- FALSE
-    #  skriv("Filen \"", filsti, CACHE, "\" ble ikke funnet.",
-    #        pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
-    #}
+    } else {
+      OK <- FALSE
+      skriv("Filen \"", filsti, CACHE, "\" ble ikke funnet.",
+            pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+    }
   }
   if (OK & is.null(CACHE)) {
     vf <- NULL
