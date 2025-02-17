@@ -609,28 +609,54 @@ The MSI should ideally be interpreted as time series (e.g. from looking at @fig-
 
 These bird indices are variables in the SEEA EA terminology and should be reported in the variable account.
 
-### Calculating accounting values
-
+## 10. Results
 
 
 ```{r}
 #| message: false
 output <- MSI_results |>
-  filter(year > 2015) |> # errors are 0 in 2015 so we will not use that year, or any year before, at least not for this excercise
+  
+# errors are 0 in 2015 so we will not use that year, or any year before, at least not for this excercise
+  filter(year > 2015) |> 
+
+# creating three accounting periods
   mutate(accounting_period_final_year = case_when(
     year <= 2018 ~ 2018,
     year <= 2021 ~ 2021,
     year <= 2024 ~ 2024,
     .default = NA
-      ),
+      )) |>
+  mutate(accounting_period = case_when(
+    year <= 2018 ~ "2016-2018",
+    year <= 2021 ~ "2019-2021",
+    year <= 2024 ~ "2022-2024",
+    .default = NA
+      )) |>
+
+# create probability distributions for each point estimate, 
+# assuming a normal distribution
+  rowwise() |>
+  mutate(
     dist = list(rnorm(10000, MSI, sd_MSI))) |>
-  group_by(IndexName, accounting_period_final_year) |>
-  summarise(
-    variableValue = mean(MSI),
-    dist = list(dist)) |>
+
+# sample 9000 observations randomly across the three years 
+# inside each accountin period to get a shared distribution
+  group_by(IndexName, accounting_period_final_year, accounting_period) |>
+    reframe(
+      variableValue = mean(MSI),
+      dist = list(sample(
+        unlist(dist),
+        size = 9000,
+        replace = TRUE))) |>
+
+# get the 25th and 75th percentile from this shared distribution
+  ungroup() |>
+  rowwise() |>
   mutate(
     "75th percentile" = quantile(unlist(dist), 0.75),    # ERROR 
     "25th percentile" = quantile(unlist(dist), 0.25), 
+  
+ # Add some variables for the final table 
     ID = case_when(
       IndexName == "FarmlandBirds" ~ "NO_BIRD_001",
       IndexName == "ForestBirds" ~ "NO_BIRD_004",
@@ -646,44 +672,20 @@ output <- MSI_results |>
   add_column(
     ECT = "B1",
     "Accounting area" = "Norway") |>
+
+# Select which columns to show, and set their order
   select(
-    ECT, 
     Indicator = IndexName, 
     ID, 
-    "Accounting area", 
+    ECT, 
+    "Accounting area",
+    "Accounting period" = accounting_period,
     "Variable value" = variableValue,  
     "25th percentile",  
     "75th percentile")
-    
+
+# print table
 output |>
     kbl()
 
-```
-
-
-
-## 10. Results
-
-```{=html}
-<!--# 
-
-Repeat the final results here. Typically this is a map or table of indicator values.
-
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
-
--->
-```
-
-## 11. Export file
-
-```{=html}
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
-```
-
-```{r export}
-#| eval: false
 ```
