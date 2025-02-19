@@ -2618,10 +2618,12 @@ WFD2ECA <- function(
     attr(UT, "innstillinger") <- innstillinger
     attr(UT, "beskjeder") <- u
     sisteTekst <- parameter %+% "s " %+% E %+% "verdier har medianen " %+% 
-      komma(signif(median(unlist(UT), na.rm = TRUE), 3)) %+% 
-                                               " og strekker seg fra " %+%
-      komma(signif(   min(unlist(UT), na.rm = TRUE), 3)) %+%   " til " %+%
-      komma(signif(   max(unlist(UT), na.rm = TRUE), 3)) %+%   "."
+      komma(format(round(median(unlist(UT), na.rm=TRUE), 3), nsm=3, sci=FALSE)) %+% 
+      " og strekker seg fra " %+%
+      komma(format(round(   min(unlist(UT), na.rm=TRUE), 3), nsm=3, sci=FALSE)) %+%
+      " til " %+%
+      komma(format(round(   max(unlist(UT), na.rm=TRUE), 3), nsm=3, sci=FALSE)) %+%
+      "."
     skriv("Sånn. Da har vi omsider kommet i mål.", linjer.over = 1)
     skriv(sisteTekst, linjer.under = 1)
   } else {
