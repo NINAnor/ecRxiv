@@ -142,11 +142,11 @@ meta |>
 
 ## 1. Summary
 
-Birds are an important component of biodiversity and are well known to both the general public and to scientists. Birds also perform important ecosystem functions and respond to natural and anthropogenic pressures, such as land-use change, climate change, and changes in food supply (esp. insects and seeds). This makes bird population sizes a useful metric for monitoring ecosystem condition. The Norwegian bird monitoring program *Norsk Hekkefulgovervåking* (previously named TOV-E) has been running since 2007 (with broad national coverage since about 2010) and covers the entire country with about 500 sampling locations and covering all ecosystem. We use this data to create four thematic multi-species bird indices, all using the same methodological approach. Using set criteria, bird species are categorised as belonging to one and only one main ecosystem. For each of our four ecosystem we extract monitoring data for these habitat specific species, and as long as there is sufficient data for that species we estimate a temporal trend for the change is population size. This means we are excluding rare and geographically restricted species, and focus on relatively common species. The trends are centered on a baseline year and all results are reported as percentage change relative to this year. We use 2010 as the reference year because at that time the bird monitoring had good national coverage in Norway. After we combine all the species for the same ecosystem into a muli-species index (MSI). The MSI should idealy be interpretted as time series, i.e. by looking at line graphs, but for reporting in standardised ecosystem accounting tables we have chosen to represent each three year accounting period by taking the mean of the MSI for those three years. The value represents a change relative to year 2010.
+Birds are an important component of biodiversity and are well known to both the general public and to scientists. Birds also perform important ecosystem functions and respond to natural and anthropogenic pressures, such as land-use change, climate change, and changes in food supply (esp. insects and seeds). This makes bird population sizes a useful metric for monitoring ecosystem condition. The Norwegian bird monitoring program *Norsk Hekkefulgovervåking* (previously named TOV-E) has been running since 2007 (with broad national coverage since about 2010) and covers the entire country with about 500 sampling locations and covering all ecosystem. We use this data to create four thematic multi-species bird indices, all using the same methodological approach. Using set criteria, bird species are categorised as belonging to one and only one main ecosystem. For each of our four ecosystem we extract monitoring data for these habitat specific species, and as long as there is sufficient data for that species we estimate a temporal trend for the change is population size. This means we are excluding rare and geographically restricted species, and focus on relatively common species. The trends are centered on a baseline year and all results are reported as percentage change relative to this year. We use 2010 as the reference year because at that time the bird monitoring had good national coverage in Norway. After we combine all the species for the same ecosystem into a multi-species index (MSI). The MSI should ideally be interpreted as time series, i.e. by looking at line graphs, but for reporting in standardised ecosystem accounting tables we have chosen to represent each three year accounting period by taking the mean of the MSI for those three years. The value represents a change relative to year 2010.
 
 ## 2. About the underlying data {#sec-aboutdata}
 
-These indicators are based on a shared data set originating from the Norwegian Breeding Birds Monitoring Program ([*Hekkefulgovervåkingen*](https://hekkefuglovervakingen.nina.no/), previously TOV-E) [@kålås2022]. This is a national bird census monitoring program, origination gradually from 2005 to about 2011, with 492 sampling locations thought the country, each with 12 - 20 sampling points. About 80% of the sampling locations are visited yearly. The data are gathered mostly by experienced volunteer bird-watchers following a [standardized sampling protocol](https://hekkefuglovervakingen.nina.no/Fugl/public/papirskjema/MethodologyEng.pdf). Observers will visit each route once a year between 20. May and 10. June (depending on latitude) and carry out the census in good weather conditions. The sampling locations are selected randomly withing each of five regions: east, south, west, cnetral, and northern Norway. Note that becaus eof the standardised way that the R scripts for the TRIM analyses are made, we have not been able to account for this spatial structure in the data, for example by doing some post-stratification.
+These indicators are based on a shared data set originating from the Norwegian Breeding Birds Monitoring Program ([*Hekkefulgovervåkingen*](https://hekkefuglovervakingen.nina.no/), previously TOV-E) [@kålås2022]. This is a national bird census monitoring program, origination gradually from 2005 to about 2011, with 492 sampling locations thought the country, each with 12 - 20 sampling points. About 80% of the sampling locations are visited yearly. The data are gathered mostly by experienced volunteer bird-watchers following a [standardized sampling protocol](https://hekkefuglovervakingen.nina.no/Fugl/public/papirskjema/MethodologyEng.pdf). Observers will visit each route once a year between 20. May and 10. June (depending on latitude) and carry out the census in good weather conditions. The sampling locations are selected randomly within each of five regions: east, south, west, central, and northern Norway. Note that because of the standardised way that the R scripts for the TRIM analyses are made, we have not been able to account for this spatial structure in the data, for example by doing some post-stratification.
 
 The observers record any bird seen or heard during 5 minutes at each of the pre-selected counting points in the route (see below for further information on the sampling design). A total of 229 species are typically recorded during this census. After 5 minutes, the observer walks to the next point in a straight line (when possible). During this 'transect' the observer is requested to record also a subset of species that are considered rare or difficult to capture during the 5-minute point counts (n = 121).
 
@@ -196,7 +196,7 @@ The metric is categorised under *biologisk mangfold* in the Norwegian classifica
 
 ### 3.4 Collinearities with other indicators
 
-None that we consider very obvious or problematic, excep if one chose to produce a parallel bird index based on individual bird indicators from the Norwegian Nature Index (see @sec-rl).
+None that we consider very obvious or problematic, except if one chose to produce a parallel bird index based on individual bird indicators from the Norwegian Nature Index (see @sec-rl).
 
 ### 3.5 Impact factors
 
@@ -263,6 +263,7 @@ Next, we need to define a range of relative and absolute directories. The main r
 
 ```{r}
 #| code-summary: "Create local directories"
+#| eval: false
 ## Absolute path for root folder:
 wd <- here::here("indicators/NO_BIRD_001-004")
 
@@ -331,6 +332,7 @@ saveRDS(Trim_data, file = paste0(wd, "/temp/Trim_data.rds"))
 
 ```{r}
 #| include: false
+#| eval: false
 Trim_data <- readRDS(paste0(wd, "/temp/Trim_data.rds"))
 ```
 
@@ -537,7 +539,7 @@ myplotTimeSeries_MSI(
 
 ### Choise of metric to represent accounting period
 
-The MSI should ideally be interpreted as time series (e.g. from looking at @fig-MSI2015). However, ecosystem accounting tables are limited in how they can convey temporal trends. Usually this is limited to a starting and closing value. The value for a gives year (point estimates) can fluctuate due to natural variation (e.g. weather events) and may not reflect any long or medium term trend in ecosystem condition. The MSI trend is better at smoothing out these interannual trends. However, it may be too good at smoothing out these trends, and we want to avoid data from previous accounting periods to affect subsequent periods. Our solution is to use the mean of the MSI point estimates from the years inside each accounting period (three year periods). Errors are aggregated by simulating values for each time step. assuming a normal distribution, and sampling equally from each. We must stress that the absolute variable value for an accounting period is only interprettable as a short term trend in the data, and to not indicate whether this value is especial high or low compared to historical values or any desirable state.
+The MSI should ideally be interpreted as time series (e.g. from looking at @fig-MSI2015). However, ecosystem accounting tables are limited in how they can convey temporal trends. Usually this is limited to a starting and closing value. The value for a gives year (point estimates) can fluctuate due to natural variation (e.g. weather events) and may not reflect any long or medium term trend in ecosystem condition. The MSI trend is better at smoothing out these interannual trends. However, it may be too good at smoothing out these trends, and we want to avoid data from previous accounting periods to affect subsequent periods. Our solution is to use the mean of the MSI point estimates from the years inside each accounting period (three year periods). Errors are aggregated by simulating values for each time step. assuming a normal distribution, and sampling equally from each. We must stress that the absolute variable value for an accounting period is only interpretable as a short term trend in the data, and to not indicate whether this value is especial high or low compared to historical values or any desirable state.
 
 > We must stress that the absolute variable value for an accounting period is only interprettable as a short term trend in the data, and to not indicate whether this value is especial high or low compared to historical values or any desirable state.
 
@@ -549,7 +551,7 @@ These bird indices are variables in the SEEA EA terminology and should be report
 #| message: false
 output <- MSI_results |>
   
-# errors are 0 in 2015 so we will not use that year, or any year before, at least not for this excercise
+# errors are 0 in 2015 so we will not use that year, or any year before, at least not for this exercise
   filter(year > 2015) |> 
 
 # creating three accounting periods
