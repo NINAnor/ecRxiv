@@ -238,15 +238,17 @@ The sampling locations are selected with a regional stratification, but we do no
 The code for the following analyses has been developed in a separate GitHub repository: https://github.com/NINAnor/birdIndicators As a first step, we therefore need to read in all the functions from that repository. The repository has not been converted into a package yet, so we need to download the entire repository and source all function files in the “R” folder manually:
 
 ```{r}
-#| eval: false
 #| code-summary: "Download functions from GitHub repository"
+#| output: false
 temppath <- here::here("indicators/NO_BIRD_001-004/temp")
 destpath <- paste0(temppath, "/birdIndicators_Repo.zip")
 
-# download.file(url = "https://github.com/NINAnor/birdIndicators/archive/refs/heads/main.zip",
-#              destfile = destpath)
-# unzip(zipfile = destpath,
-#      exdir = temppath)
+if(!file.exists(destpath)) {
+  download.file(url = "https://github.com/NINAnor/birdIndicators/archive/refs/heads/main.zip",
+               destfile = destpath)
+  unzip(zipfile = destpath,
+       exdir = temppath)
+}
 
 sourceDir <- function(path, trace = TRUE, ...) {
   for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
