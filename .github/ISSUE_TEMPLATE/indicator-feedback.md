@@ -20,7 +20,7 @@ Before you start:
 
 ### Conflict of interest
 
-- [ ] I confirm that I have conflict of interest that makes me unsuited to review this indiator. If not, I will convert this checkbox into an issue and declare my conflict there.
+- [ ] I confirm that I have **no** conflict of interest that makes me unsuited to review this indiator. If not, I will declare my conflict of interest below.
 
 ### Code of Conduct
 
