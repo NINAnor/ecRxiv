@@ -32,7 +32,7 @@ Open a new issue on GitHub and chose the *PR review - checklist* template. Follo
 
 The submission and publication of indicator documentation is also described in the numbered workflow below.
 
-1.  **Fork the main branch of this repository (repo)**. The main branch contains a lot of data files, but creating a fork does not cause create copies of the files themselves, and does not lead to higher data storage requirements.
+1.  **Fork the main branch of this repository (repo)**. The main branch contains a lot of data files, but creating a fork does not cause create copies of the files themselves, and does not lead to higher data storage requirements. Note that personal users can only fork a repo once (at a time). Organisational users can fork as many times they want, so you can for example have one fork per indicator. An alternative is to have one fork on your personal user, where you ruitinely syncronise the main branch, and use other branched for individual indicators.  
 2.  **Make a partial clone your forked repo**. Although it is possible to edit the files in your fork directly through GitHub in the web browser, most users will prefer to make a local copy of the repo and edit files in a separate software, such as RStudio. To avoid copying all the data files and git history for all the other indicators on ecRxiv, we highly recommend making a partial clone, and not a full (normal) clone. To do this you need to talk to git via the command line (don't be scared!). As a general solution, open the folder where you want to clone the repo into, right click, and open Git Bash. Alternatively, if working in RStudio, you can write directly in the terminal window:
   
   `git clone --filter=blob:none --no-checkout https://github.com/<USER>/<REPO>`
