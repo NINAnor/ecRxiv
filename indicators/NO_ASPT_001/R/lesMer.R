@@ -22,14 +22,15 @@ lesMer <- function() {
 
   # Parametere
   par <- as.data.frame(read_xlsx("../data/VM-param.xlsx", na = "NA",
-                                 col_types = c("text", "text", 
-                                               "numeric", "numeric")))
+                                 col_types = "text"))
   if (inherits(par, "try-error")) {
     OK <- FALSE
     skriv("Dette skjedde en feil under innlesing av fila \"VM-param.xlsx\".",
           "Sjekk om fila fins, og at den er formatert som excel-regneark.",
           pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
   } else {
+    par$min <- as.numeric(par$min)
+    par$max <- as.numeric(par$max)
     if (exists("Parametere")) {
       skriv("Variabelen \"Parametere\" eksisterte fra før og har blitt erstatta!", 
             pre = "OBS: ", linjer.over = 1)
@@ -77,4 +78,6 @@ lesMer <- function() {
   }
   invisible(OK)
 }
+
+
 
