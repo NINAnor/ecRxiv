@@ -1201,8 +1201,10 @@ WFD2ECA <- function(
       runde <- runde + 1
       endring <- FALSE
       RF12 <- list(RF1, RF2)
-      u <- c(u, skriv("Modelltilpasning, runde ", runde, ":", 
-                      linjer.over = 1, linjer.under = 1, ut = TRUE))
+      if (vis) {
+        u <- c(u, skriv("Modelltilpasning, runde ", runde, ":", 
+                        linjer.over = 1, linjer.under = 1, ut = TRUE))
+      }
       
       # tomme variabler ----------------------------------------------
       REKKEF <- RF1
@@ -1408,8 +1410,10 @@ WFD2ECA <- function(
                   AIC(lm(f(formel.),   data=maaling, weights=vkt)) + DeltaAIC) {
                 formel. <- formel...
                 endra <- TRUE
-                u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
-                                "har blitt droppa igjen.", pre = "* ", ut = TRUE))
+                if (vis) {
+                  u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
+                                  "har blitt droppa igjen.", pre = "* ", ut = TRUE))
+                }
               }
             } else {
               assign(vrb %+% ".", vrb.)
@@ -1421,8 +1425,10 @@ WFD2ECA <- function(
                     AIC(lm(f(formel.),   data=maaling, weights=vkt)) - DeltaAIC) {
                   formel. <- formel...
                   endra <- TRUE
-                  u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
-                                  "periode.", pre = "* ", ut = TRUE))
+                  if (vis) {
+                    u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
+                                    "periode.", pre = "* ", ut = TRUE))
+                  }
                 }
               }
             }
@@ -1620,8 +1626,10 @@ WFD2ECA <- function(
                   AIC(lm(f(formel.),   data=maaling, weights=vkt)) + DeltaAIC) {
                 formel. <- formel...
                 endra <- TRUE
-                u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
-                                "har blitt droppa igjen.", pre = "* ", ut = TRUE))
+                if (vis) {
+                  u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
+                                  "har blitt droppa igjen.", pre = "* ", ut = TRUE))
+                }
               }
             } else {
               assign(vrb %+% ".", vrb.)
@@ -1633,8 +1641,10 @@ WFD2ECA <- function(
                     AIC(lm(f(formel.),   data=maaling, weights=vkt)) - DeltaAIC) {
                   formel. <- formel...
                   endra <- TRUE
-                  u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
-                                  "periode.", pre = "* ", ut = TRUE))
+                  if (vis) {
+                    u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
+                                    "periode.", pre = "* ", ut = TRUE))
+                  }
                 }
               }
             }
@@ -1753,8 +1763,10 @@ WFD2ECA <- function(
                   AIC(lm(f(formel.),   data=maaling, weights=vkt)) + DeltaAIC) {
                 formel. <- formel...
                 endra <- TRUE
-                u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
-                                "har blitt droppa igjen.", pre = "* ", ut = TRUE))
+                if (vis) {
+                  u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
+                                  "har blitt droppa igjen.", pre = "* ", ut = TRUE))
+                }
               }
             } else {
               formel... <- erstatt(formel., vrb, vrb %+% " * per")
@@ -1762,8 +1774,10 @@ WFD2ECA <- function(
                   AIC(lm(f(formel.),   data=maaling, weights=vkt)) - DeltaAIC) {
                 formel. <- formel...
                 endra <- TRUE
-                u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
-                                "periode.", pre = "* ", ut = TRUE))
+                if (vis) {
+                  u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
+                                  "periode.", pre = "* ", ut = TRUE))
+                }
               }
             }
           }
@@ -2631,5 +2645,3 @@ WFD2ECA <- function(
   }
   return(UT)
 }
-
-
