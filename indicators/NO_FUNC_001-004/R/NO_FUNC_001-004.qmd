@@ -1154,12 +1154,21 @@ unique(NiN.sp.ind[is.na(NiN.sp.ind$Moisture) & NiN.sp.ind$spgr %in% list("a1a","
 
 ## matching with NiN ecosystem types - for wetlands, mountains, and forests
 # NB! beware of rogue spaces in the 'Nature_type' & 'Sub_Type' variables, e.g. "Spring_Forest " & "Mountain "
-NiN.wet_mount_forest <- NiN.sp.ind[,c("sp",paste(NiN.env[NiN.env$Nature_Type %in% c("Mire", "Forest", "Mountain "),"ID"]),colnames(ind.dat)[c(11,15:18)])]   # Heat_requirement, Light, Moisture, Soil_reaction_pH, Nitrogen, 
-NiN.wet_mount_forest[1,]
-names(NiN.wet_mount_forest)
+NiN.wet_mount_forest_seminat <- NiN.sp.ind[,c("sp",paste(NiN.env[NiN.env$Nature_Type %in% c("Mire", "Forest", "Mountain ", "Semi_Natural ","Coastal_Heath"),"ID"]),colnames(ind.dat)[c(3:5,16,20:24,26:27)])]   # Grime's C, Grime's S, Grime's R, Heat_requirement, Light, Moisture, Soil_reaction_pH, Nitrogen, Phosphorus, Grazing_mowing, Soil_disturbance
+NiN.wet_mount_forest_seminat[1,]
+names(NiN.wet_mount_forest_seminat)
 
-cbind(colnames(NiN.wet_mount_forest),
+cbind(colnames(NiN.wet_mount_forest_seminat),
       c("",
+        
+        'T34-C1',
+        'T34-C2a','T34-C2b','T34-C2c',
+        '',
+        'T34-C3',
+        'T34-C4a','T34-C4b','T34-C4c','T34-C4d',
+        'T34-C5a','T34-C5b','T34-C5c',
+        'T34-C6a','T34-C6b','T34-C6c',
+        '',
         
         'T4-C1','T4-C5','T4-C9','T4-C13',
         rep("",4),
@@ -1202,48 +1211,89 @@ cbind(colnames(NiN.wet_mount_forest),
         'V8-C1','V8-C2','V8-C3',
         rep("",10),
         
-        rep("",5)
+        rep('',7),
+        'T32-C1C2','T32-C3C4',
+        'T32-C5C20a',
+        'T32-C7C8',
+        'T32-C5C20b',
+        'T32-C9a',
+        'T32-C9b',
+        'T32-C15',
+        'T32-C21C6a',
+        'T32-C21C6b',
+        'T32-C10a',
+        'T32-C10b',
+        'T32-C16',
+        'T41a','T41b',
+        'T45-C1C2','T45-C3',
+        'V10-C1C2','V10-C3',
+        
+        rep("",11) # indicators
       )
 )
 
-NiN.wet_mount_forest <- NiN.wet_mount_forest[,c(1:5,10:27,44:46,50,
-                                                59:76,78:83,92,94,96,
-                                                97:138,141:143,
-                                                154:158)]
-colnames(NiN.wet_mount_forest)[2:99] <- c('T4-C1','T4-C5','T4-C9','T4-C13',
-                                'T4-C2','T4-C6','T4-C10','T4-C14',
-                                'T4-C3','T4-C7','T4-C11','T4-C15',
-                                'T4-C4','T4-C8','T4-C12','T4-C16',
-                                'T4-C17','T4-C18','T4-C19','T4-C18',
-                                'T4-C19','T4-C20',
-                                'T30-C1','T30-C2','T30-C3',
-                                'T30-C4',
-                        
-                                'T14-C1','T14-C2','T3-C3C6','T3-C9C12',
-                                'T3-C2C5','T3-C8C11','T3-C1a','T3-C1b',
-                                'T3-C4','T3-C7','T3-C10','T3-C13',
-                                'T3-C14','T7-C1','T7-C2','T7-C3',
-                                'T7-C6','T7-C8',
-                                'T7-C12','T7-C13C14','T7-C4','T7-C7C9','T7-C5','T7-C10',
-                                'T22-C1C3a','T22-C1C3b','T22-C2C4',
-                                
-                                'V3-C1a','V3-C1b','V3-C1c','V3-C1d','V3-C1e',
-                                'V1-C1a','V1-C1b','V1-C1c','V1-C1d','V1-C1e',
-                                'V1-C2a','V1-C2b','V1-C2c','V1-C2d',
-                                'V1-C3a','V1-C3b','V1-C3c','V1-C3d',
-                                'V1-C4a','V1-C4b','V1-C4c','V1-C4d',
-                                'V1-C4e','V1-C4f','V1-C4g','V1-C4h',
-                                'V3-C2','V1-C5',
-                                'V1-C6a','V1-C6b',
-                                'V1-C7a','V1-C7b',
-                                'V1-C8a','V1-C8b',
-                                'V2-C1a','V2-C1b',
-                                'V2-C2a','V2-C2b',
-                                'V2-C3a','V2-C3b',
-                                "V4-C2","V4-C3",
-                                'V8-C1','V8-C2','V8-C3'
+NiN.wet_mount_forest_seminat <- NiN.wet_mount_forest_seminat[,c(1,2:5,7:17,19:22,27:44,61:63,67,
+                                                                76:93,95:100,109,111,113,
+                                                                114:155,158:160,
+                                                                178:196,197:207)]
+colnames(NiN.wet_mount_forest_seminat)[2:133] <- c(
+                                                  'T34-C1',
+                                                  'T34-C2a','T34-C2b','T34-C2c',
+                                                  'T34-C3',
+                                                  'T34-C4a','T34-C4b','T34-C4c','T34-C4d',
+                                                  'T34-C5a','T34-C5b','T34-C5c',
+                                                  'T34-C6a','T34-C6b','T34-C6c',
+                                            
+                                                  'T4-C1','T4-C5','T4-C9','T4-C13',
+                                                  'T4-C2','T4-C6','T4-C10','T4-C14',
+                                                  'T4-C3','T4-C7','T4-C11','T4-C15',
+                                                  'T4-C4','T4-C8','T4-C12','T4-C16',
+                                                  'T4-C17','T4-C18','T4-C19','T4-C18',
+                                                  'T4-C19','T4-C20',
+                                                  'T30-C1','T30-C2','T30-C3',
+                                                  'T30-C4',
+                                          
+                                                  'T14-C1','T14-C2','T3-C3C6','T3-C9C12',
+                                                  'T3-C2C5','T3-C8C11','T3-C1a','T3-C1b',
+                                                  'T3-C4','T3-C7','T3-C10','T3-C13',
+                                                  'T3-C14','T7-C1','T7-C2','T7-C3',
+                                                  'T7-C6','T7-C8',
+                                                  'T7-C12','T7-C13C14','T7-C4','T7-C7C9','T7-C5','T7-C10',
+                                                  'T22-C1C3a','T22-C1C3b','T22-C2C4',
+                                                  
+                                                  'V3-C1a','V3-C1b','V3-C1c','V3-C1d','V3-C1e',
+                                                  'V1-C1a','V1-C1b','V1-C1c','V1-C1d','V1-C1e',
+                                                  'V1-C2a','V1-C2b','V1-C2c','V1-C2d',
+                                                  'V1-C3a','V1-C3b','V1-C3c','V1-C3d',
+                                                  'V1-C4a','V1-C4b','V1-C4c','V1-C4d',
+                                                  'V1-C4e','V1-C4f','V1-C4g','V1-C4h',
+                                                  'V3-C2','V1-C5',
+                                                  'V1-C6a','V1-C6b',
+                                                  'V1-C7a','V1-C7b',
+                                                  'V1-C8a','V1-C8b',
+                                                  'V2-C1a','V2-C1b',
+                                                  'V2-C2a','V2-C2b',
+                                                  'V2-C3a','V2-C3b',
+                                                  "V4-C2","V4-C3",
+                                                  'V8-C1','V8-C2','V8-C3',
+                                                  'T32-C1C2','T32-C3C4',
+                                                  
+                                                  'T32-C5C20a',
+                                                  'T32-C7C8',
+                                                  'T32-C5C20b',
+                                                  'T32-C9a',
+                                                  'T32-C9b',
+                                                  'T32-C15',
+                                                  'T32-C21C6a',
+                                                  'T32-C21C6b',
+                                                  'T32-C10a',
+                                                  'T32-C10b',
+                                                  'T32-C16',
+                                                  'T41a','T41b',
+                                                  'T45-C1C2','T45-C3',
+                                                  'V10-C1C2','V10-C3'
 )
-head(NiN.wet_mount_forest)
+head(NiN.wet_mount_forest_seminat)
 
 
 # translating the abundance classes into %-cover
@@ -1251,16 +1301,16 @@ coverscale <- data.frame(orig=0:6,
                          cov=c(0,1/32,1/8,3/8,0.6,4/5,1)
 )
 
-NiN.wet_mount_forest.cov <- NiN.wet_mount_forest
-colnames(NiN.wet_mount_forest.cov)
-for (i in 2:99) {
-  NiN.wet_mount_forest.cov[,i] <- coverscale[,2][ match(NiN.wet_mount_forest[,i], 0:6 ) ]
+NiN.wet_mount_forest_seminat.cov <- NiN.wet_mount_forest_seminat
+colnames(NiN.wet_mount_forest_seminat.cov)
+for (i in 2:133) {
+  NiN.wet_mount_forest_seminat.cov[,i] <- coverscale[,2][ match(NiN.wet_mount_forest_seminat[,i], 0:6 ) ]
 }
 
-NiN.wet_mount_forest.cov$sp <- as.factor(NiN.wet_mount_forest.cov$sp)
+NiN.wet_mount_forest_seminat.cov$sp <- as.factor(NiN.wet_mount_forest_seminat.cov$sp)
 
 
-### natopen ref data
+### generalized species lists for naturally open systems below the tree line
 head(natopen_NiN_ref)
 head(natopen_NiN_ref_spInfo)
 
@@ -1330,7 +1380,7 @@ summary(NiN.natopen.cov)
 ```
 
 
-This leaves us with the monitoring data including plant indicators (ANO.sp.ind) and the reference data including plant indicators (NiN.wetland.cov):
+This leaves us with the monitoring data including plant indicators (ANO.sp.ind, GRUK.species.ind, ASO.sp.ind) and the reference data including plant indicators (NiN.wet_mount_forest_seminat.cov, NiN.natopen.cov):
 
 <!-- Print head of data set with horizontal scrolling -->
 ```{r ano-sp-tab, echo=F}
@@ -1339,18 +1389,39 @@ head(ANO.sp.ind) %>%
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
-
-
-```{r wetland-ref-data-tab, echo=FALSE}
-head(NiN.wetland.cov) %>% 
-  kable("html", caption = "Reference data set") %>% 
+```{r ano-sp-tab, echo=F}
+head(GRUK.species.ind) %>%
+  kable("html",caption = "GRUK species occurence data set with attached plant trait data.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
+
+
+```{r aso-sp-tab, echo=F}
+head(ASO.sp.ind) %>%
+  kable("html",caption = "ASO species occurence data set with attached plant trait data.") %>% 
+  kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+
+
+
+```{r wetland_mountain_forest_seminatural-ref-data-tab, echo=FALSE}
+head(NiN.wet_mount_forest_seminat.cov) %>% 
+  kable("html", caption = "Reference data set for wetland, mountain, forest, and semi-natural ecosystems") %>% 
+  kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+```{r naturally open-ref-data-tab, echo=FALSE}
+head(NiN.natopen.cov) %>% 
+  kable("html", caption = "Reference data set for naturally open ecosystems below the treeline") %>% 
+  kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
 
 <br />
 
 For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators.
-For wetland ecosystem we are testing "Light", "Moisture", "Soil_reaction_pH", and "Nitrogen". In order to get distributions of CWMs rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped.
+In order to get distributions of CWMs rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped.
 
 <br />
 
