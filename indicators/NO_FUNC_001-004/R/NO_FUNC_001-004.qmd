@@ -332,6 +332,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 Import testing data:
 ```{r}
+#Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
 # ANO data
 ANO.sp <- st_read("C:/Users/joachim.topper/OneDrive - NINA/work/projects/oekologisk tilstand/Naturovervaking_eksport.gdb",
                     layer="ANO_Art")
@@ -1420,8 +1421,8 @@ head(NiN.natopen.cov) %>%
 
 <br />
 
-For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators.
-In order to get distributions of CWMs rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped.
+For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators, or metric based on a cumulative density curve (Heat requirement indicator in mountain ecosystems).
+In order to get distributions of the metrics rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped.
 
 <br />
 
@@ -1494,27 +1495,27 @@ indBoot.freq <- function(sp,abun,ind,iter,obl,rat=2/3,var.abun=F) {
 ```
 
 ```{r}
-colnames(NiN.wetland)
+colnames(NiN.wet_mount_forest_seminat.cov)
 # 1st column is the species
-# 2nd-46th column is the abundances of sp in different ecosystem types
-# 47th-50th column is the indicator values of the respective species
+# 2nd-133rd column is the abundances of sp in different ecosystem types
+# 134th-144th column is the indicator values of the respective species
 # we choose 1000 iterations
-# species with abundance 1 (i.e. a max of 100%, must be included in each sample)
+# species with abundance 1 (i.e. a max of 100%) must be included in each sample
 # each sample re-samples 2/3 of the number of species
 # the abundance of the re-sampled species may vary (see bootstrap function for details)
 ```
 
 Running the bootstraps:
 ```{r, eval = F}
-wetland.ref.cov <- indBoot.freq(sp=NiN.wetland.cov[,1],abun=NiN.wetland.cov[,2:46],ind=NiN.wetland.cov[,47:50],
+wet_mount_forest_seminat.ref.cov <- indBoot.freq(sp=NiN.wet_mount_forest_seminat.cov[,1],abun=NiN.wet_mount_forest_seminat.cov[,2:133],ind=NiN.wet_mount_forest_seminat.cov[,134:144],
                           iter=1000,obl=1,rat=2/3,var.abun=T)
 
 # fixing NaNs
-for (i in 1:length(wetland.ref.cov) ) {
-  for (j in 1:ncol(wetland.ref.cov[[i]]) ) {
-    v <- wetland.ref.cov[[i]][,j]
+for (i in 1:length(wet_mount_forest_seminat.ref.cov) ) {
+  for (j in 1:ncol(wet_mount_forest_seminat.ref.cov[[i]]) ) {
+    v <- wet_mount_forest_seminat.ref.cov[[i]][,j]
     v[is.nan(v)] <- NA
-    wetland.ref.cov[[i]][,j] <- v
+    wet_mount_forest_seminat.ref.cov[[i]][,j] <- v
   }
 }
 ```
