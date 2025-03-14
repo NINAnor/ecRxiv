@@ -77,8 +77,8 @@ indBoot.HeatOverhang <- function(sp,abun,ind, iter,obl,rat) {
   return(heat.ind.b)
 }
 
-sp=,abun=,ind=NiN.wet_mount_forest_seminat.cov[,134:144],
-iter=1000,obl=1,rat=2/3,var.abun=T
+#sp=,abun=,ind=NiN.wet_mount_forest_seminat.cov[,134:144],
+#iter=1000,obl=1,rat=2/3,var.abun=T
 
 heat.ind.b <- indBoot.HeatOverhang(sp=NiN.wet_mount_forest_seminat.cov[,1],
                                    abun=NiN.wet_mount_forest_seminat.cov[,43:69],
