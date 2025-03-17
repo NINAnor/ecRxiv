@@ -21,11 +21,12 @@ indBoot.HeatOverhang <- function(sp,abun,ind, iter,obl,rat) {
       df <- dat[,c(2,3)]
       df[,2] <- df[,2]/sum(df[,2]) # scaling to total cover of 100%
 
-      abun.cumsums <- abun.sums <- data.frame(ind=rev(1:9),cumsum=NA)
+      abun.cumsums <- abun.sums <- data.frame(ind=rev(1:13),cumsum=NA)
       
-      df <- df %>% add_row(ind=1:9, abun=rep(0,9))
+      df <- df %>% add_row(ind=1:13, abun=rep(0,13))
       abun.sums[,2] <- rev(with(df,tapply(abun,ind,sum)))
       abun.cumsums[,2] <- cumsum(abun.sums[,2])
+
       
     # bootstrapping, can specify to always keep certain abundance classes (obl) and how many species to sample (rat)
     for (i in 1:iter) {
@@ -43,14 +44,40 @@ indBoot.HeatOverhang <- function(sp,abun,ind, iter,obl,rat) {
         df <- dat.b[,c(2,3)]
         df[,2] <- df[,2]/sum(df[,2]) # scaling to total cover of 100%
         
-        abun.cumsums.b <- abun.sums.b <- data.frame(ind=rev(1:9),cumsum=NA)
+        abun.cumsums.b <- abun.sums.b <- data.frame(ind=rev(1:13),cumsum=NA)
 
-        df <- df %>% add_row(ind=1:9, abun=rep(0,9))
+        df <- df %>% add_row(ind=1:13, abun=rep(0,13))
         abun.sums.b[,2] <- rev(with(df,tapply(abun,ind,sum)))
         abun.cumsums.b[,2] <- cumsum(abun.sums.b[,2])
-        
-        
-        
+        heat.ind.b[i,j] <- sum(abun.cumsums.b[1:11,2] - abun.cumsums[1:11,2])
+
+      } else {heat.ind.b[i,j] <- NA}
+      
+      print(paste(i,"",j)) 
+    }
+   
+    }
+     
+  }
+  return(heat.ind.b)
+}
+
+#sp=,abun=,ind=NiN.wet_mount_forest_seminat.cov[,134:144],
+#iter=1000,obl=1,rat=2/3,var.abun=T
+
+indBoot.HeatOverhang(sp=NiN.wet_mount_forest_seminat.cov[,1],
+                     abun=NiN.wet_mount_forest_seminat.cov[,43:69],
+                     ind=NiN.wet_mount_forest_seminat.cov[,137],
+                     iter=3,obl=4/5,rat=1/2)
+
+heat.ind.b <- indBoot.HeatOverhang(sp=NiN.wet_mount_forest_seminat.cov[,1],
+                                   abun=NiN.wet_mount_forest_seminat.cov[,43:69],
+                                   ind=NiN.wet_mount_forest_seminat.cov[,137],
+                                   iter=1000,obl=4/5,rat=1/2)
+
+
+
+
 #        plot(abun.cumsums[,1],abun.cumsums[,2],
 #             type='b',
 #             xlab="Heat_requirement",
@@ -60,27 +87,6 @@ indBoot.HeatOverhang <- function(sp,abun,ind, iter,obl,rat) {
 #             xlab="Heat_requirement",
 #             ylab="Cumulative relative abundance",
 #             co='red')
-        
-        
-        heat.ind.b[i,j] <- sum(abun.cumsums.b[,2] - abun.cumsums[,2])
-        
 
-        
-      } else {heat.ind.b[i,j] <- NA}
-      
-      #print(paste(i,"",j)) 
-    }
-   
-  }  
-     
-  }
-  return(heat.ind.b)
-}
 
-#sp=,abun=,ind=NiN.wet_mount_forest_seminat.cov[,134:144],
-#iter=1000,obl=1,rat=2/3,var.abun=T
-
-heat.ind.b <- indBoot.HeatOverhang(sp=NiN.wet_mount_forest_seminat.cov[,1],
-                                   abun=NiN.wet_mount_forest_seminat.cov[,43:69],
-                                   ind=NiN.wet_mount_forest_seminat.cov[,137],
-                                   iter=1000,obl=4/5,rat=1/2)
+wet_mount_forest_seminat.ref.cov[["Heat_requirement"]] <- heat.ind.b
