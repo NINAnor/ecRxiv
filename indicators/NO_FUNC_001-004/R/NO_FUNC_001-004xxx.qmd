@@ -332,7 +332,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 Import testing data:
 ```{r}
-#Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
+Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
 # ANO data
 ANO.sp <- st_read("C:/Users/joachim.topper/OneDrive - NINA/work/projects/oekologisk tilstand/Naturovervaking_eksport.gdb",
                     layer="ANO_Art")
@@ -1176,8 +1176,8 @@ cbind(colnames(NiN.wet_mount_forest_seminat),
         'T4-C2','T4-C6','T4-C10','T4-C14',
         'T4-C3','T4-C7','T4-C11','T4-C15',
         'T4-C4','T4-C8','T4-C12','T4-C16',
-        'T4-C17','T4-C18','T4-C19','T4-C18',
-        'T4-C19','T4-C20',
+        'T4-C17','T4-C18a','T4-C19a','T4-C18b',
+        'T4-C19b','T4-C20',
         rep("",16),
         'T30-C1','T30-C2','T30-C3',
         rep("",3),
@@ -1249,8 +1249,8 @@ colnames(NiN.wet_mount_forest_seminat)[2:133] <- c(
                                                   'T4-C2','T4-C6','T4-C10','T4-C14',
                                                   'T4-C3','T4-C7','T4-C11','T4-C15',
                                                   'T4-C4','T4-C8','T4-C12','T4-C16',
-                                                  'T4-C17','T4-C18','T4-C19','T4-C18',
-                                                  'T4-C19','T4-C20',
+                                                  'T4-C17','T4-C18a','T4-C19a','T4-C18b',
+                                                  'T4-C19b','T4-C20',
                                                   'T30-C1','T30-C2','T30-C3',
                                                   'T30-C4',
                                           
@@ -1421,13 +1421,13 @@ head(NiN.natopen.cov) %>%
 
 <br />
 
-For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators, or metric based on a cumulative density curve (Heat requirement indicator in mountain ecosystems).
-In order to get distributions of the metrics rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped.
+For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators, or the cumulative density curve (Heat requirement indicator in mountain ecosystems).
+In order to get distributions of these metrics rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped. For the heat requirement indicator the bootstrapped cumulative density curves for heat requirement 3 and higher are subtracted from the original cumulative density curve and the result summed, i.e. providing a distribution of deviation values.
 
 <br />
 
-##### Bootstrap function for frequency abundance
-- function to calculate community weighted means of selected indicator values (ind)
+##### Bootstrap functions for frequency abundance and cumulative density
+- function to calculate community weighted means (indBoot.freq() ) or cumulative density (indBoot.HeatOverhang() ) of selected indicator values (ind)
 - for species lists (sp) with given abundances in percent (or on a scale from 0 to 1) in one or more 'sites' (abun)
 - with a given number of iterations (iter),
 - with species given a certain minimum abundance occurring in all bootstraps (obl), and
@@ -1492,6 +1492,71 @@ indBoot.freq <- function(sp,abun,ind,iter,obl,rat=2/3,var.abun=F) {
   }
   return(ind.list)
 }
+
+
+indBoot.HeatOverhang <- function(sp,abun,ind, iter,obl,rat) {
+  
+  # data frame to hold the results
+  heat.ind.b <- matrix(nrow=iter,ncol=length(colnames(abun)))
+  colnames(heat.ind.b) <- colnames(abun)
+  heat.ind.b <- as.data.frame(heat.ind.b)  
+  
+  # looping through the ecosystem types  
+  for (j in 1:length(colnames(abun))) {
+    
+    # creating the species data for the respective ecosystem type
+    dat <- cbind(sp,ind,abun[,j])
+    dat <- dat[dat[,3]>0,]            # only species that are present in the ecoystem
+    dat <- dat[!is.na(dat[,2]),]      # only species that have Heat requirement values
+    dat <- as.data.frame(dat)
+    colnames(dat) <- c('sp','ind','abun')  
+          
+    # calculating the cumulative sums for Heat requirement levels 9:1
+    if ( nrow(dat)>2 ) {
+      
+      df <- dat[,c(2,3)]
+      df[,2] <- df[,2]/sum(df[,2]) # scaling to total cover of 100%
+
+      abun.cumsums <- abun.sums <- data.frame(ind=rev(1:13),cumsum=NA)
+      
+      df <- df %>% add_row(ind=1:13, abun=rep(0,13))
+      abun.sums[,2] <- rev(with(df,tapply(abun,ind,sum)))
+      abun.cumsums[,2] <- cumsum(abun.sums[,2])
+
+      
+    # bootstrapping, can specify to always keep certain abundance classes (obl) and how many species to sample (rat)
+    for (i in 1:iter) {
+      
+      speciesSample <- sample(dat$sp[dat[,3] < obl], size=round( (length(dat$sp)-length(dat$sp[dat[,3] >= (obl)])) *rat,0), replace=F)  
+      dat.b <- rbind(dat[dat[,3] >= (obl),],
+                     dat[match(speciesSample,dat$sp),]
+      )
+      dat.b[,2] <- as.numeric(dat.b[,2])
+      dat.b[,3] <- as.numeric(dat.b[,3])
+
+      # calculating the cumulative cover of species with a certain level of heat requirement and above
+      if ( nrow(dat.b)>2 ) {
+        
+        df <- dat.b[,c(2,3)]
+        df[,2] <- df[,2]/sum(df[,2]) # scaling to total cover of 100%
+        
+        abun.cumsums.b <- abun.sums.b <- data.frame(ind=rev(1:13),cumsum=NA)
+
+        df <- df %>% add_row(ind=1:13, abun=rep(0,13))
+        abun.sums.b[,2] <- rev(with(df,tapply(abun,ind,sum)))
+        abun.cumsums.b[,2] <- cumsum(abun.sums.b[,2])
+        heat.ind.b[i,j] <- sum(abun.cumsums.b[1:11,2] - abun.cumsums[1:11,2])
+
+      } else {heat.ind.b[i,j] <- NA}
+      
+#      print(paste(i,"",j)) 
+    }
+   
+    }
+     
+  }
+  return(heat.ind.b)
+}
 ```
 
 ```{r}
@@ -1499,16 +1564,32 @@ colnames(NiN.wet_mount_forest_seminat.cov)
 # 1st column is the species
 # 2nd-133rd column is the abundances of sp in different ecosystem types
 # 134th-144th column is the indicator values of the respective species
+# 137th column is the indicator value for Heat_requirement
 # we choose 1000 iterations
 # species with abundance 1 (i.e. a max of 100%) must be included in each sample
 # each sample re-samples 2/3 of the number of species
 # the abundance of the re-sampled species may vary (see bootstrap function for details)
+
+colnames(NiN.natopen.cov)
+# 1st column is the species
+# 6th-71st column is the abundances of sp in different ecosystem types
+# 74th-79th column is the indicator values of the respective species
+# we choose 1000 iterations
+# species with abundance 1 (i.e. a max of 100%, must be included in each sample)
+# each sample re-samples 1/3 of the number of species
+# the abundance of the re-sampled species may vary (see bootstrap function for details)
+
 ```
 
 Running the bootstraps:
 ```{r, eval = F}
 wet_mount_forest_seminat.ref.cov <- indBoot.freq(sp=NiN.wet_mount_forest_seminat.cov[,1],abun=NiN.wet_mount_forest_seminat.cov[,2:133],ind=NiN.wet_mount_forest_seminat.cov[,134:144],
                           iter=1000,obl=1,rat=2/3,var.abun=T)
+
+wet_mount_forest_seminat.ref.cov[["Heat_requirement"]] <- indBoot.HeatOverhang(sp=NiN.wet_mount_forest_seminat.cov[,1],
+                                   abun=NiN.wet_mount_forest_seminat.cov[,43:69],
+                                   ind=NiN.wet_mount_forest_seminat.cov[,137],
+                                   iter=1000,obl=4/5,rat=1/2)
 
 # fixing NaNs
 for (i in 1:length(wet_mount_forest_seminat.ref.cov) ) {
@@ -1518,24 +1599,44 @@ for (i in 1:length(wet_mount_forest_seminat.ref.cov) ) {
     wet_mount_forest_seminat.ref.cov[[i]][,j] <- v
   }
 }
+
 #saveRDS(wet_mount_forest_seminat.ref.cov, "C:/Users/joachim.topper/OneDrive - NINA/work/R projects/github/ecRxiv_functional-plant-indicators/data/cache/wet_mount_forest_seminat.ref.cov.RDS")
+
+
+natopen.ref.cov <- indBoot.freq(sp=NiN.natopen.cov[,1],abun=NiN.natopen.cov[,6:71],ind=NiN.natopen.cov[,74:79],iter=1000,obl=1,rat=1/3,var.abun=T)
+
+### fixing NaN's
+for (i in 1:length(natopen.ref.cov) ) {
+  for (j in 1:ncol(natopen.ref.cov[[i]]) ) {
+    v <- natopen.ref.cov[[i]][,j]
+    v[is.nan(v)] <- NA
+    natopen.ref.cov[[i]][,j] <- v
+  }
+}
+
+#saveRDS(natopen.ref.cov, "C:/Users/joachim.topper/OneDrive - NINA/work/R projects/github/ecRxiv_functional-plant-indicators/data/cache/natopen.ref.cov.RDS")
+
 ```
 
 <!-- Please insert all the code that produces the cached data. Probably just needs to add the saveRDS() part to the code chunk above. -->
 
 ```{r, include = F}
 # Data from cache
-wetland.ref.cov<-readRDS(paste0(here::here(), "/data/cache/wetland.ref.cov.RDS"))
-#load("/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/FPI_output large files for markdown/ref_lists_wetland.RData")
+wet_mount_forest_seminat.ref.cov<-readRDS(paste0(here::here(), "/data/cache/wet_mount_forest_seminat.ref.cov.RDS"))
+natopen.ref.cov<-readRDS(paste0(here::here(), "/data/cache/natopen.ref.cov.RDS"))
 ```
 
 ```{r}
-head(wetland.ref.cov[[1]]) %>%
+head(wet_mount_forest_seminat.ref.cov[[1]]) %>%
     kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
-
 ```
 
-This results in an R-list with a slot for every selected indicator, and in every slot there's a data frame with as many columns as there are NiN species lists and as many rows as there were iterations in the bootstrap.
+```{r}
+head(natopen.ref.cov[[1]]) %>%
+    kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+This results in two R-lists (one for wetland, mountain, forest and semi-natural ecosystem, and one for naturally open ecosystems below the tree line), each with a data frame for every selected plant indicator and each data frame with as many columns as there are NiN species lists and as many rows as there were iterations in the bootstrap. For the Heat requirement indicator the data frame hold only alpine/arctic ecosystem types.
 
 Next, we need to derive scaling values from these bootstrap-lists (the columns) for every mapping unit in NiN. Here, we define things in the following way:
 
@@ -1545,71 +1646,144 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 
 ```{r, attr.output='style="max-height: 300px;"', results='hide'}
 
+### wetland, mountain, forest, and semi-natural ecosystems
+
 # every NiN-type is represented by one 'generalisert artsliste'
 # some NiN-types are represented by two such species lists
 # in some cases two NiN-types are represented by the same species list
-head(wetland.ref.cov[[1]])
-wetland.ref.cov[[1]][0,]
+head(wet_mount_forest_seminat.ref.cov[[1]])
+wet_mount_forest_seminat.ref.cov[[1]][0,]
 
-# checking the actual NiN-types in the wetland lists
-wetland.NiNtypes <- colnames(wetland.ref.cov[["Light"]])
-wetland.NiNtypes <- substr(wetland.NiNtypes,1,5)
-unique(wetland.NiNtypes)
-
-# 4 indicator-value indicators: Tyler's Light, Moisture, Soil_reaction_pH, "Nitrogen"
-indEll.n=4
-# creating a table to hold:
-# Tyler: the 0.5 quantile (median), 0.05 quantile and  0.95 quantile for each NiN-type
-# for every nature type (nrows)
-tab <- matrix(ncol=3*indEll.n, nrow=length(unique(wetland.NiNtypes)) ) # 43 basic ecosystem types
-# coercing the values into the table
 # NiN-types where each type is represented by one species list (including when one species list represents two NiN-types)
-names(wetland.ref.cov[["Light"]])
-x <- c(27,28,41:45)
+names(wet_mount_forest_seminat.ref.cov[["Light"]])
+x <- c(1,5,16:32,37:47,50:65,68,95:96,109:115,117,121,126,129:132)
+
+# checking the actual NiN-types in the seminat lists
+wet_mount_forest_seminat.NiNtypes <- colnames(wet_mount_forest_seminat.ref.cov[["Light"]])
+wet_mount_forest_seminat.NiNtypes[-x] <- substr(wet_mount_forest_seminat.NiNtypes[-x], 1, nchar(wet_mount_forest_seminat.NiNtypes[-x])-1)
+wet_mount_forest_seminat.NiNtypes
+
+# 11 indicator-value indicators: Tyler's Light, Moisture, Soil_reaction_pH, "Nitrogen"
+indEll.n=11
+# creating a table to hold:
+# for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator), for Heat_requirement in alpine/arctic systems we do 0.05 quantile and  0.95 quantile and ignore the former as it is a one-sided indicator
+# for every nature type (nrows)
+tab <- matrix(ncol=3*indEll.n, nrow=87 ) # 87 basic ecosystem types
+# coercing the values into the table
 
 for (i in 1:length(x) ) {
-  tab[i,1:3] <- quantile(as.matrix(wetland.ref.cov[["Light"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,4:6] <- quantile(as.matrix(wetland.ref.cov[["Moisture"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,7:9] <- quantile(as.matrix(wetland.ref.cov[["Soil_reaction_pH"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,10:12] <- quantile(as.matrix(wetland.ref.cov[["Nitrogen"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,1:3] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["CC"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,4:6] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["SS"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,7:9] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["RR"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+
+  tab[i,13:15] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Light"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,16:18] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Moisture"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,19:21] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_reaction_pH"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,22:24] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Nitrogen"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,25:27] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Phosphorus"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,28:30] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Grazing_mowing"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,31:33] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_disturbance"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+
 }
 
 tab <- as.data.frame(tab)
 tab$NiN <- NA
-tab$NiN[1:length(x)] <- names(wetland.ref.cov[[1]])[x]
+tab$NiN[1:length(x)] <- names(wet_mount_forest_seminat.ref.cov[[1]])[x]
+tab
+
+names(wet_mount_forest_seminat.ref.cov[["Heat_requirement"]])
+x.Hr <- c(1:6,9:24,27)
+tab$NiN
+x.all <- c(25:47)
+
+for (i in 1:length(x.Hr) ) {
+  tab[x.all[i],10:12] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Heat_requirement"]][,x.Hr[i]]),probs=c(0.05,0.5,0.95),na.rm=T)
+
+}
+
 
 # NiN-types represented by several species lists
-wetland.NiNtypes2 <- wetland.NiNtypes[-x]
-unique(wetland.NiNtypes2)
-grep(pattern=unique(wetland.NiNtypes2)[1], x=wetland.NiNtypes) # finds columns in e.g. colnames(wetland.ref.cov[["Continentality"]]) that match the first NiN-type
+wet_mount_forest_seminat.NiNtypes2 <- wet_mount_forest_seminat.NiNtypes[-x]
+unique(wet_mount_forest_seminat.NiNtypes2)
+grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[1], x=wet_mount_forest_seminat.NiNtypes) # finds columns in e.g. colnames(wet_mount_forest_seminat.ref.cov[["Light"]]) that match the first NiN-type
 
 
-for (i in 1:length(unique(wetland.NiNtypes2)) ) {
-  tab[length(x)+i,1:3] <- quantile(as.matrix(wetland.ref.cov[["Light"]][,grep(pattern=unique(wetland.NiNtypes2)[i], x=wetland.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,4:6] <- quantile(as.matrix(wetland.ref.cov[["Moisture"]][,grep(pattern=unique(wetland.NiNtypes2)[i], x=wetland.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,7:9] <- quantile(as.matrix(wetland.ref.cov[["Soil_reaction_pH"]][,grep(pattern=unique(wetland.NiNtypes2)[i], x=wetland.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,10:12] <- quantile(as.matrix(wetland.ref.cov[["Nitrogen"]][,grep(pattern=unique(wetland.NiNtypes2)[i], x=wetland.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab$NiN[length(x)+i] <- unique(wetland.NiNtypes2)[i]
+for (i in 1:length(unique(wet_mount_forest_seminat.NiNtypes2)) ) {
+  
+  tab[length(x)+i,1:3] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["CC"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,4:6] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["SS"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,7:9] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["RR"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+
+  tab[length(x)+i,13:15] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Light"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,16:18] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Moisture"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,19:21] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_reaction_pH"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,22:24] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Nitrogen"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,25:27] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Phosphorus"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,28:30] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Grazing_mowing"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,31:33] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_disturbance"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  
+  tab$NiN[length(x)+i] <- unique(wet_mount_forest_seminat.NiNtypes2)[i]
   
 }
 
+tab[!is.na(tab$NiN) & tab$NiN=="T3-C1",10:12] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Heat_requirement"]][,c("T3-C1a","T3-C1b")]),probs=c(0.05,0.5,0.95),na.rm=T)
+tab[!is.na(tab$NiN) & tab$NiN=="T22-C1C3",10:12] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Heat_requirement"]][,c("T22-C1C3a","T22-C1C3b")]),probs=c(0.05,0.5,0.95),na.rm=T)
+
+tab
+
+# when species lists represent several NiN-types
+tab$NiN
+tab <- rbind(tab,tab[c(27:30,42,44,47,55:57,60,62,71,83,85),])
+tab$NiN[c(27:30,42,44,47,55:57,60,62,71,83,85,88:102)] <- c("T3-C3","T3-C9","T3-C5","T3-C8",
+  "T7-C13","T7-C7","T22-C2","T32-C1",
+  "T32-C3","T32-C7","T45-C1","V10-C1","T22-C1",
+  "T32-C5","T32-C21",
+  
+  "T3-C6","T3-C12","T3-C5","T3-C11",
+  "T7-C14","T7-C9","T22-C4","T32-C2",
+  "T32-C4","T32-C8","T45-C2","V10-C2","T22-C3",
+  "T32-C20","T32-C6")
 tab
 
 # making it a proper data frame
-round(tab[,1:12],digits=2)
+dim(tab)
+round(tab[,1:32],digits=2)
 
-colnames(tab) <- c("Light_q2.5","Light_q50","Light_q97.5",
+colnames(tab) <- c("CC_q2.5","CC_q50","CC_q97.5",
+                   "SS_q2.5","SS_q50","SS_q97.5",
+                   "RR_q2.5","RR_q50","RR_q97.5",
+                   "Heat_requirement_q5","Heat_requirement_q50","Heat_requirement_q95",
+                   "Light_q2.5","Light_q50","Light_q97.5",
                    "Moist_q2.5","Moist_q50","Moist_q97.5",
                    "pH_q2.5","pH_q50","pH_q97.5",
                    "Nitrogen_q2.5","Nitrogen_q50","Nitrogen_q97.5",
+                   "Phosphorus_q2.5","Phosphorus_q50","Phosphorus_q97.5",
+                   "Grazing_mowing_q2.5","Grazing_mowing_q50","Grazing_mowing_q97.5",
+                   "Soil_disturbance_q2.5","Soil_disturbance_q50","Soil_disturbance_q97.5",
+                   
                    "NiN")
 summary(tab)
-tab$NiN <- gsub("C", "C-", tab$NiN) # add extra hyphon after C for NiN-types
+tab$NiN <- gsub("C", "C-", tab$NiN) # add extra hyphen after C for NiN-types
 tab
 
 
-
 # restructuring into separate indicators for lower (q2.5) and higher (q97.5) than reference value (=median, q50)
+y.CC <- numeric(length=nrow(tab)*2)
+y.CC[((1:dim(tab)[1])*2)-1] <- tab$CC_q2.5 
+y.CC[((1:dim(tab)[1])*2)] <- tab$CC_q97.5 
+
+y.SS <- numeric(length=nrow(tab)*2)
+y.SS[((1:dim(tab)[1])*2)-1] <- tab$SS_q2.5 
+y.SS[((1:dim(tab)[1])*2)] <- tab$SS_q97.5 
+
+y.RR <- numeric(length=nrow(tab)*2)
+y.RR[((1:dim(tab)[1])*2)-1] <- tab$RR_q2.5 
+y.RR[((1:dim(tab)[1])*2)] <- tab$RR_q97.5 
+
+y.Heat_requirement <- numeric(length=nrow(tab)*2)
+y.Heat_requirement[((1:dim(tab)[1])*2)-1] <- tab$Heat_requirement_q5 
+y.Heat_requirement[((1:dim(tab)[1])*2)] <- tab$Heat_requirement_q95 
+
 y.Light <- numeric(length=nrow(tab)*2)
 y.Light[((1:dim(tab)[1])*2)-1] <- tab$Light_q2.5 
 y.Light[((1:dim(tab)[1])*2)] <- tab$Light_q97.5 
@@ -1626,47 +1800,197 @@ y.Nitrogen <- numeric(length=nrow(tab)*2)
 y.Nitrogen[((1:dim(tab)[1])*2)-1] <- tab$Nitrogen_q2.5 
 y.Nitrogen[((1:dim(tab)[1])*2)] <- tab$Nitrogen_q97.5 
 
+y.Phosphorus <- numeric(length=nrow(tab)*2)
+y.Phosphorus[((1:dim(tab)[1])*2)-1] <- tab$Phosphorus_q2.5 
+y.Phosphorus[((1:dim(tab)[1])*2)] <- tab$Phosphorus_q97.5 
+
+y.Grazing_mowing <- numeric(length=nrow(tab)*2)
+y.Grazing_mowing[((1:dim(tab)[1])*2)-1] <- tab$Grazing_mowing_q2.5 
+y.Grazing_mowing[((1:dim(tab)[1])*2)] <- tab$Grazing_mowing_q97.5 
+
+y.Soil_disturbance <- numeric(length=nrow(tab)*2)
+y.Soil_disturbance[((1:dim(tab)[1])*2)-1] <- tab$Soil_disturbance_q2.5 
+y.Soil_disturbance[((1:dim(tab)[1])*2)] <- tab$Soil_disturbance_q97.5 
+
 # creating final objects holding the reference and limit values for all indicators
 
 # ref object for indicators
-wetland.ref.cov.val <- data.frame(N1=rep('wetland',(nrow(tab)*2*indEll.n)),
+wet_mount_forest_seminat.ref.cov.val <- data.frame( grunn=c(rep(rep(tab$NiN,each=2),indEll.n)),
+                                                    county=rep('all',(nrow(tab)*2*indEll.n)),
+                                                    region=rep('all',(nrow(tab)*2*indEll.n)),
+                                                    Ind=c(rep(c('CC1','CC2'),nrow(tab)),
+                                                          rep(c('SS1','SS2'),nrow(tab)),
+                                                          rep(c('RR1','RR2'),nrow(tab)),
+                                                          rep(c('Heat_requirement1','Heat_requirement2'),nrow(tab)),
+                                                          rep(c('Light1','Light2'),nrow(tab)),
+                                                          rep(c('Moist1','Moist2'),nrow(tab)),
+                                                          rep(c('pH1','pH2'),nrow(tab)),
+                                                          rep(c('Nitrogen1','Nitrogen2'),nrow(tab)),
+                                                          rep(c('Phosphorus1','Phosphorus2'),nrow(tab)),
+                                                          rep(c('Grazing_mowing1','Grazing_mowing2'),nrow(tab)),
+                                                          rep(c('Soil_disturbance1','Soil_disturbance2'),nrow(tab))
+                                                          
+                                                    ),
+                                                    Rv=c(rep(tab$CC_q50,each=2),
+                                                         rep(tab$SS_q50,each=2),
+                                                         rep(tab$RR_q50,each=2),
+                                                         rep(tab$Heat_requirement_q50,each=2),
+                                                         rep(tab$Light_q50,each=2),
+                                                         rep(tab$Moist_q50,each=2),
+                                                         rep(tab$pH_q50,each=2),
+                                                         rep(tab$Nitrogen_q50,each=2),
+                                                         rep(tab$Phosphorus_q50,each=2),
+                                                         rep(tab$Grazing_mowing_q50,each=2),
+                                                         rep(tab$Soil_disturbance_q50,each=2)
+                                                    ),
+                                                    Gv=c(y.CC,y.SS,y.RR,y.Heat_requirement,y.Light,y.Moist,y.pH,y.Nitrogen,y.Phosphorus,y.Grazing_mowing,y.Soil_disturbance),
+                                                    maxmin=c(rep(c(0,1),nrow(tab)), # CSR 0-1
+                                                             rep(c(0,1),nrow(tab)), # CSR 0-1
+                                                             rep(c(0,1),nrow(tab)), # CSR 0-1
+                                                             rep(c(0,2),nrow(tab)), # Heat_requirement (sum of 2 for difference between ref and data cumulative distributions indicates that the vegetation is not alpine any more)
+                                                             rep(c(1,7),nrow(tab)), # 7 levels of light
+                                                             rep(c(1,12),nrow(tab)), # 12 levels of moisture
+                                                             rep(c(1,8),nrow(tab)), # 8 levels of soil reaction pH
+                                                             rep(c(1,9),nrow(tab)),  # 9 levels of nitrogen
+                                                             rep(c(1,9),nrow(tab)),  # 5 levels of phosphorus
+                                                             rep(c(1,9),nrow(tab)),  # 8 levels of grazing_mowing
+                                                             rep(c(1,9),nrow(tab))  # 9 levels of soil_disturbance
+                                                    )
+)
+
+wet_mount_forest_seminat.ref.cov.val
+wet_mount_forest_seminat.ref.cov.val$grunn <- as.factor(wet_mount_forest_seminat.ref.cov.val$grunn)
+wet_mount_forest_seminat.ref.cov.val$Ind <- as.factor(wet_mount_forest_seminat.ref.cov.val$Ind)
+summary(wet_mount_forest_seminat.ref.cov.val)
+
+
+### naturally open ecosystems below the treeline
+
+# NiN-types where each type is represented by one species list (including when one species list represents two NiN-types)
+names(natopen.ref.cov[["Light"]])
+x <- 1:66
+
+# checking the actual NiN-types in the natopen lists
+natopen.NiNtypes <- colnames(natopen.ref.cov[["Light"]])
+natopen.NiNtypes[-x] <- substr(natopen.NiNtypes[-x], 1, nchar(natopen.NiNtypes[-x])-1)
+natopen.NiNtypes
+
+# 7 indicator-value indicators: Grimes C, S and R, Tyler's Light, Nitrogen, and Soil_disturbance
+indEll.n=6
+# creating a table to hold:
+# Tyler: the 0.5 quantile (median), 0.05 quantile and  0.95 quantile for each NiN-type
+# for every nature type (nrows)
+tab <- matrix(ncol=3*indEll.n, nrow=length(unique(natopen.NiNtypes)) ) # 66 basic ecosystem types
+# coercing the values into the table
+
+
+for (i in 1:length(x) ) {
+  tab[i,1:3] <- quantile(as.matrix(natopen.ref.cov[["CC"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,4:6] <- quantile(as.matrix(natopen.ref.cov[["SS"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,7:9] <- quantile(as.matrix(natopen.ref.cov[["RR"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,10:12] <- quantile(as.matrix(natopen.ref.cov[["Light"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,13:15] <- quantile(as.matrix(natopen.ref.cov[["Nitrogen"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,16:18] <- quantile(as.matrix(natopen.ref.cov[["Soil_disturbance"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+
+}
+
+tab <- as.data.frame(tab)
+tab$NiN <- NA
+tab$NiN[1:length(x)] <- names(natopen.ref.cov[[1]])[x]
+tab
+
+
+# making it a proper data frame
+dim(tab)
+round(tab[,1:18],digits=2)
+
+colnames(tab) <- c("CC_q2.5","CC_q50","CC_q97.5",
+                   "SS_q2.5","SS_q50","SS_q97.5",
+                   "RR_q2.5","RR_q50","RR_q97.5",
+                   "Light_q2.5","Light_q50","Light_q97.5",
+                   "Nitrogen_q2.5","Nitrogen_q50","Nitrogen_q97.5",
+                   "Soil_disturbance_q2.5","Soil_disturbance_q50","Soil_disturbance_q97.5",
+                   "NiN")
+summary(tab)
+tab$NiN
+#tab$NiN <- gsub("C", "C-", tab$NiN) # add extra hyphen after C for NiN-types
+tab
+
+
+# restructuring into separate indicators for lower (q2.5) and higher (q97.5) than reference value (=median, q50)
+y.Light <- numeric(length=nrow(tab)*2)
+y.Light[((1:dim(tab)[1])*2)-1] <- tab$Light_q2.5 
+y.Light[((1:dim(tab)[1])*2)] <- tab$Light_q97.5 
+
+y.CC <- numeric(length=nrow(tab)*2)
+y.CC[((1:dim(tab)[1])*2)-1] <- tab$CC_q2.5 
+y.CC[((1:dim(tab)[1])*2)] <- tab$CC_q97.5 
+
+y.SS <- numeric(length=nrow(tab)*2)
+y.SS[((1:dim(tab)[1])*2)-1] <- tab$SS_q2.5 
+y.SS[((1:dim(tab)[1])*2)] <- tab$SS_q97.5 
+
+y.Nitrogen <- numeric(length=nrow(tab)*2)
+y.Nitrogen[((1:dim(tab)[1])*2)-1] <- tab$Nitrogen_q2.5 
+y.Nitrogen[((1:dim(tab)[1])*2)] <- tab$Nitrogen_q97.5 
+
+y.RR <- numeric(length=nrow(tab)*2)
+y.RR[((1:dim(tab)[1])*2)-1] <- tab$RR_q2.5 
+y.RR[((1:dim(tab)[1])*2)] <- tab$RR_q97.5 
+
+y.Soil_disturbance <- numeric(length=nrow(tab)*2)
+y.Soil_disturbance[((1:dim(tab)[1])*2)-1] <- tab$Soil_disturbance_q2.5 
+y.Soil_disturbance[((1:dim(tab)[1])*2)] <- tab$Soil_disturbance_q97.5 
+
+# creating final objects holding the reference and limit values for all indicators
+
+# ref object for indicators
+natopen.ref.cov.val <- data.frame(N1=rep('natopen',(nrow(tab)*2*indEll.n)),
                               hoved=c(rep('NA',(nrow(tab)*2*indEll.n))),
                               grunn=c(rep(rep(tab$NiN,each=2),indEll.n)),
                               county=rep('all',(nrow(tab)*2*indEll.n)),
                               region=rep('all',(nrow(tab)*2*indEll.n)),
-                              Ind=c(rep(c('Light1','Light2'),nrow(tab)),
-                                    rep(c('Moist1','Moist2'),nrow(tab)),
-                                    rep(c('pH1','pH2'),nrow(tab)),
-                                    rep(c('Nitrogen1','Nitrogen2'),nrow(tab))
+                              Ind=c(rep(c('CC1','CC2'),nrow(tab)),
+                                    rep(c('SS1','SS2'),nrow(tab)),
+                                    rep(c('RR1','RR2'),nrow(tab)),
+                                    rep(c('Light1','Light2'),nrow(tab)),
+                                    rep(c('Nitrogen1','Nitrogen2'),nrow(tab)),
+                                    rep(c('Soil_disturbance1','Soil_disturbance2'),nrow(tab))
                               ),
-                              Rv=c(rep(tab$Light_q50,each=2),
-                                   rep(tab$Moist_q50,each=2),
-                                   rep(tab$pH_q50,each=2),
-                                   rep(tab$Nitrogen_q50,each=2)
+                              Rv=c(rep(tab$CC_q50,each=2),
+                                   rep(tab$SS_q50,each=2),
+                                   rep(tab$RR_q50,each=2),
+                                   rep(tab$Light_q50,each=2),
+                                   rep(tab$Nitrogen_q50,each=2),
+                                   rep(tab$Soil_disturbance_q50,each=2)
                               ),
-                              Gv=c(y.Light,y.Moist,y.pH,y.Nitrogen),
-                              maxmin=c(rep(c(1,7),nrow(tab)), # 7 levels of light
-                                       rep(c(1,12),nrow(tab)), # 12 levels of moisture
-                                       rep(c(1,8),nrow(tab)), # 8 levels of soil reaction pH
-                                       rep(c(1,9),nrow(tab))  # 9 levels of nitrogen
+                              Gv=c(y.CC,y.SS,y.RR,y.Light,y.Nitrogen,y.Soil_disturbance),
+                              maxmin=c(rep(c(0,1),nrow(tab)), # CC
+                                       rep(c(0,1),nrow(tab)), # SS
+                                       rep(c(0,1),nrow(tab)), # RR
+                                       rep(c(1,7),nrow(tab)),  # 7 levels of Light
+                                       rep(c(1,9),nrow(tab)),  # 9 levels of Nitrogen
+                                       rep(c(1,9),nrow(tab))  # 9 levels of Soil_disturbance
                               )
 )
 
-wetland.ref.cov.val
-wetland.ref.cov.val$grunn <- as.factor(wetland.ref.cov.val$grunn)
-wetland.ref.cov.val$Ind <- as.factor(wetland.ref.cov.val$Ind)
-summary(wetland.ref.cov.val)
-
+natopen.ref.cov.val
+natopen.ref.cov.val$grunn <- as.factor(natopen.ref.cov.val$grunn)
+natopen.ref.cov.val$Ind <- as.factor(natopen.ref.cov.val$Ind)
+summary(natopen.ref.cov.val)
 
 ```
 
 ```{r}
-wetland.ref.cov.val %>%
+wet_mount_forest_seminat.ref.cov.val %>%
+      kable("html", caption = "Reference values (Rv and threshold values (Gv) for each indicator and nature type combination") %>% kable_styling("striped") %>% scroll_box(width = "100%", height = "300px")
+
+natopen.ref.cov.val %>%
       kable("html", caption = "Reference values (Rv and threshold values (Gv) for each indicator and nature type combination") %>% kable_styling("striped") %>% scroll_box(width = "100%", height = "300px")
 
 ```
 
-Once test data (ANO) and the scaling values from the reference data (NiN) are in place, we can calculate CWMs of the selected indicators for the ANO community data and scale them against the scaling values from the reference distribution. Note that we scale each ANO plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. An ANO plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
+Once test data and the scaling values from the reference data are in place, we can calculate CWMs (or cumulative distributions in the case of the Heat_requirment indicator in alpine/arcitc systems) of the selected indicators for the ANO community data and scale them against the scaling values from the reference distribution. Note that we scale each ANO plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. An ANO plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
 
 Here is the scaling function:
 ```{r}
@@ -1711,54 +2035,52 @@ We then can prepare a list of data frames to hold the results and perform the sc
 ```{r, results='hide'}
 
 unique(ANO.geo$hovedtype_rute) # NiN types in data
-unique(substr(wetland.ref.cov.val$grunn,1,2)) # NiN types in reference
+unique(substr(wet_mount_forest_seminat.ref.cov.val$grunn,1,2)) # NiN types in reference
 #### creating dataframe to hold the results for wetlands ####
 # all ANO points
 nrow(ANO.geo)
-# all wetland ANO points
-nrow(ANO.geo[ANO.geo$hovedtype_rute %in% list("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11","V12","V13"),])
-# all wetland ANO points with a NiN-type represented in the reference
-nrow(ANO.geo[ANO.geo$hovedtype_rute %in% unique(substr(wetland.ref.cov.val$grunn,1,2)),])
-# ok, we'll be losing 70 (our of 1349) that are not covered by the reference
-ANO.wetland <- ANO.geo[ANO.geo$hovedtype_rute %in% list("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11","V12","V13"),]
+# all ANO points with a NiN-type represented in the reference
+nrow(ANO.geo[ANO.geo$hovedtype_rute %in% unique(substr(wet_mount_forest_seminat.ref.cov.val$grunn,1,2)),])
+# ok, we'll be losing 25% that are not covered by the reference
 
-head(ANO.wetland)
+ANO.wet_mount_forest_seminat <- ANO.geo[ANO.geo$hovedtype_rute %in% unique(substr(wet_mount_forest_seminat.ref.cov.val$grunn,1,2)),]
+head(ANO.wet_mount_forest_seminat)
 # update row-numbers
-row.names(ANO.wetland) <- 1:nrow(ANO.wetland)
-head(ANO.wetland)
-dim(ANO.wetland)
-colnames(ANO.wetland)
+row.names(ANO.wet_mount_forest_seminat) <- 1:nrow(ANO.wet_mount_forest_seminat)
+head(ANO.wet_mount_forest_seminat)
+dim(ANO.wet_mount_forest_seminat)
+colnames(ANO.wet_mount_forest_seminat)
 
-length(levels(as.factor(ANO.wetland$ano_flate_id)))
-length(levels(as.factor(ANO.wetland$ano_punkt_id)))
-summary(as.factor(ANO.wetland$ano_punkt_id))
+length(levels(as.factor(ANO.wet_mount_forest_seminat$ano_flate_id)))
+length(levels(as.factor(ANO.wet_mount_forest_seminat$ano_punkt_id)))
+summary(as.factor(ANO.wet_mount_forest_seminat$ano_punkt_id))
 # four points that are double
-ANO.wetland[ANO.wetland$ano_punkt_id=="ANO0159_55",] # double registration, said so in comment. -> choose row 207 over 206
-ANO.wetland <- ANO.wetland[-206,]
-row.names(ANO.wetland) <- 1:nrow(ANO.wetland) # update row-numbers
-ANO.wetland[ANO.wetland$ano_punkt_id=="ANO0283_22",] # 2019 & 2021. Lot of NA's in 2019 -> omit 2019
-ANO.wetland <- ANO.wetland[-156,]
-row.names(ANO.wetland) <- 1:nrow(ANO.wetland) # update row-numbers
-ANO.wetland[ANO.wetland$ano_punkt_id=="ANO0363_24",]
-ANO.wetland[ANO.wetland$ano_flate_id=="ANO0363","ano_punkt_id"] # point-ID 15 is missing, but 24 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both, call the second obs the one that's missing
-ANO.wetland[311,"ano_punkt_id"] <- "ANO0363_15"
-ANO.wetland[ANO.wetland$ano_punkt_id=="ANO1550_64",] # point-ID 66 is missing, but 64 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both
-ANO.wetland[ANO.wetland$ano_flate_id=="ANO1550","ano_punkt_id"] # point-ID 66 is missing, but 64 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both
-ANO.wetland[1273,"ano_punkt_id"] <- "ANO1550_66"
+ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO0159_55",] # double registration, said so in comment. -> choose row 207 over 206
+ANO.wet_mount_forest_seminat <- ANO.wet_mount_forest_seminat[-206,]
+row.names(ANO.wet_mount_forest_seminat) <- 1:nrow(ANO.wet_mount_forest_seminat) # update row-numbers
+ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO0283_22",] # 2019 & 2021. Lot of NA's in 2019 -> omit 2019
+ANO.wet_mount_forest_seminat <- ANO.wet_mount_forest_seminat[-156,]
+row.names(ANO.wet_mount_forest_seminat) <- 1:nrow(ANO.wet_mount_forest_seminat) # update row-numbers
+ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO0363_24",]
+ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_flate_id=="ANO0363","ano_punkt_id"] # point-ID 15 is missing, but 24 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both, call the second obs the one that's missing
+ANO.wet_mount_forest_seminat[311,"ano_punkt_id"] <- "ANO0363_15"
+ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO1550_64",] # point-ID 66 is missing, but 64 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both
+ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_flate_id=="ANO1550","ano_punkt_id"] # point-ID 66 is missing, but 64 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both
+ANO.wet_mount_forest_seminat[1273,"ano_punkt_id"] <- "ANO1550_66"
 
-unique(ANO.wetland$hovedoekosystem_punkt)
-unique(ANO.wetland$hovedtype_rute)
-unique(ANO.wetland$kartleggingsenhet_1m2)
-ANO.wetland$hovedtype_rute <- factor(ANO.wetland$hovedtype_rute)
-ANO.wetland$kartleggingsenhet_1m2 <- factor(ANO.wetland$kartleggingsenhet_1m2)
-summary(ANO.wetland$Hovedtype_rute)
-summary(ANO.wetland$Kartleggingsenhet_rute)
+unique(ANO.wet_mount_forest_seminat$hovedoekosystem_punkt)
+unique(ANO.wet_mount_forest_seminat$hovedtype_rute)
+unique(ANO.wet_mount_forest_seminat$kartleggingsenhet_1m2)
+ANO.wet_mount_forest_seminat$hovedtype_rute <- factor(ANO.wet_mount_forest_seminat$hovedtype_rute)
+ANO.wet_mount_forest_seminat$kartleggingsenhet_1m2 <- factor(ANO.wet_mount_forest_seminat$kartleggingsenhet_1m2)
+summary(ANO.wet_mount_forest_seminat$Hovedtype_rute)
+summary(ANO.wet_mount_forest_seminat$Kartleggingsenhet_rute)
 
 results.wetland <- list()
 ind <- unique(wetland.ref.cov.val$Ind)
 # choose columns for site description
-colnames(ANO.wetland)
-results.wetland[['original']] <- ANO.wetland
+colnames(ANO.wet_mount_forest_seminat)
+results.wetland[['original']] <- ANO.wet_mount_forest_seminat
 # drop geometry
 st_geometry(results.wetland[['original']]) <- NULL
 results.wetland[['original']]
