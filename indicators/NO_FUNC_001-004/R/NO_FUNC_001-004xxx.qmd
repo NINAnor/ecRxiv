@@ -342,13 +342,13 @@ head(ANO.sp)
 head(ANO.geo)
 
 # GRUK data
-GRUK.variables<-readRDS(paste0(here::here(),"/data/cache/GRUK.variables.RDS"))
-GRUK.species<-readRDS(paste0(here::here(),"/data/cache/GRUK.species.RDS"))
-GRUK2021.condition<-readRDS(paste0(here::here(),"/data/cache/GRUK2021.condition.RDS"))
+GRUK.variables<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/GRUK.variables.RDS"))
+GRUK.species<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/GRUK.species.RDS"))
+GRUK2021.condition<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/GRUK2021.condition.RDS"))
 
 # ASO data
-ASO.sp<-readRDS(paste0(here::here(),"/data/cache/ASO.sp.RDS"))
-ASO.geo<-readRDS(paste0(here::here(),"/data/cache/ASO.geo.RDS"))
+ASO.sp<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ASO.sp.RDS"))
+ASO.geo<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ASO.geo.RDS"))
 
 # 3Q data
 
@@ -358,11 +358,11 @@ ASO.geo<-readRDS(paste0(here::here(),"/data/cache/ASO.geo.RDS"))
 Import Plant indicators from Tyler et al. (2021):
 ```{r}
 ## Tyler indicator data
-#ind.Tyler <-readRDS(paste0(here::here(),"/data/cache/ind.dat.RDS"))
+#ind.Tyler <-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ind.dat.RDS"))
 ind.Tyler <- read.table("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/Tyler et al_Swedish plant indicators.txt", sep = '\t', header=T, quote = '')
 # head(ind.Tyler)
  
-ind.Grime<-readRDS(paste0(here::here(),"/data/cache/ind.Grime.RDS"))
+ind.Grime<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ind.Grime.RDS"))
 
 
 ```
@@ -370,11 +370,11 @@ ind.Grime<-readRDS(paste0(here::here(),"/data/cache/ind.Grime.RDS"))
 Import reference species lists (Generalized species lists from NiN & from Evju et al. 2023)
 ```{r}
 # data from cache
-Eco_State<-readRDS(paste0(here::here(),"/data/cache/Eco_State.RDS"))
+Eco_State<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/Eco_State.RDS"))
 # load("/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/functional plant indicators/reference from NiN/Eco_State.RData")
 # str(Eco_State)
-natopen_NiN_ref<-readRDS(paste0(here::here(),"/data/cache/natopen_NiN_ref.RDS"))
-natopen_NiN_ref_spInfo<-readRDS(paste0(here::here(),"/data/cache/natopen_NiN_ref_spInfo.RDS"))
+natopen_NiN_ref<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/natopen_NiN_ref.RDS"))
+natopen_NiN_ref_spInfo<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/natopen_NiN_ref_spInfo.RDS"))
 ```
 
 #### Data handling
@@ -1600,7 +1600,7 @@ for (i in 1:length(wet_mount_forest_seminat.ref.cov) ) {
   }
 }
 
-#saveRDS(wet_mount_forest_seminat.ref.cov, "C:/Users/joachim.topper/OneDrive - NINA/work/R projects/github/ecRxiv_functional-plant-indicators/data/cache/wet_mount_forest_seminat.ref.cov.RDS")
+#saveRDS(wet_mount_forest_seminat.ref.cov, "C:/Users/joachim.topper/OneDrive - NINA/work/R projects/github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/cache/wet_mount_forest_seminat.ref.cov.RDS")
 
 
 natopen.ref.cov <- indBoot.freq(sp=NiN.natopen.cov[,1],abun=NiN.natopen.cov[,6:71],ind=NiN.natopen.cov[,74:79],iter=1000,obl=1,rat=1/3,var.abun=T)
@@ -1614,7 +1614,7 @@ for (i in 1:length(natopen.ref.cov) ) {
   }
 }
 
-#saveRDS(natopen.ref.cov, "C:/Users/joachim.topper/OneDrive - NINA/work/R projects/github/ecRxiv_functional-plant-indicators/data/cache/natopen.ref.cov.RDS")
+#saveRDS(natopen.ref.cov, "C:/Users/joachim.topper/OneDrive - NINA/work/R projects/github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/cache/natopen.ref.cov.RDS")
 
 ```
 
@@ -1622,8 +1622,8 @@ for (i in 1:length(natopen.ref.cov) ) {
 
 ```{r, include = F}
 # Data from cache
-wet_mount_forest_seminat.ref.cov<-readRDS(paste0(here::here(), "/data/cache/wet_mount_forest_seminat.ref.cov.RDS"))
-natopen.ref.cov<-readRDS(paste0(here::here(), "/data/cache/natopen.ref.cov.RDS"))
+wet_mount_forest_seminat.ref.cov<-readRDS(paste0(here::here(), "/indicators/NO_FUNC_001-004/data/cache/wet_mount_forest_seminat.ref.cov.RDS"))
+natopen.ref.cov<-readRDS(paste0(here::here(), "/indicators/NO_FUNC_001-004/data/cache/natopen.ref.cov.RDS"))
 ```
 
 ```{r}
@@ -2029,243 +2029,616 @@ scal <- function() {
   
 }
 
+## function for calculating scaled values for measured value, without truncation
+scal.2 <- function() {
+  # place to hold the result
+  x <- numeric()
+  if (maxmin < ref) {
+    # values >= the reference value estimated from the linear relationship for lim < x < ref (line below)
+    if (val >= ref) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
+    # values < the reference value and >= the limit value can be deducted from the linear relationship between these two
+    if (val < ref & val >= lim) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
+    # values < the limit value and > maxmin can be deducted from the linear relationship between these two
+    if (val < lim & val > maxmin) {x <- (a.s + (val-maxmin) * ( (l.s-a.s) / (lim-maxmin) ) )}
+    # value equal or lower than maxmin
+    if (val <= maxmin) {x <-0}
+  } else {
+    # values <= the reference value estimated from the linear relationship for lim < x < ref (line below)
+    if (val <= ref) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
+    # values > the reference value and <= the limit value can be deducted from the linear relationship between these two
+    if (val > ref & val <= lim) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
+    # values > the limit value and < maxmin can be deducted from the linear relationship between these two
+    if (val > lim & val < maxmin) {x <- ( l.s - (l.s * (val - lim) / (maxmin - lim) ) )}
+    # value equal og larger than maxmin
+    if (val >= maxmin) {x <-0}
+  }
+  return(x)
+  
+}
+
+
 ```
 
 We then can prepare a list of data frames to hold the results and perform the scaling according to the principles described in NINA report 1967 (Töpper and Jakobsson 2021).
 ```{r, results='hide'}
 
-unique(ANO.geo$hovedtype_rute) # NiN types in data
-unique(substr(wet_mount_forest_seminat.ref.cov.val$grunn,1,2)) # NiN types in reference
+unique(ANO.geo$hovedtype_rute) # NiN main types in data
+unique(sub("\\-.*", "", wet_mount_forest_seminat.ref.cov.val$grunn)) # NiN main types in reference
 #### creating dataframe to hold the results for wetlands ####
 # all ANO points
 nrow(ANO.geo)
-# all ANO points with a NiN-type represented in the reference
-nrow(ANO.geo[ANO.geo$hovedtype_rute %in% unique(substr(wet_mount_forest_seminat.ref.cov.val$grunn,1,2)),])
+# all ANO points with a NiN-type represented in the two reference data sets
+nrow(ANO.geo[ANO.geo$hovedtype_rute %in% unique( c(sub("\\-.*", "", wet_mount_forest_seminat.ref.cov.val$grunn),sub("\\-.*", "", natopen.ref.cov.val$grunn)) ),])
 # ok, we'll be losing 25% that are not covered by the reference
 
-ANO.wet_mount_forest_seminat <- ANO.geo[ANO.geo$hovedtype_rute %in% unique(substr(wet_mount_forest_seminat.ref.cov.val$grunn,1,2)),]
-head(ANO.wet_mount_forest_seminat)
+ANO.all <- ANO.geo[ANO.geo$hovedtype_rute %in% unique( c(sub("\\-.*", "", wet_mount_forest_seminat.ref.cov.val$grunn),sub("\\-.*", "", natopen.ref.cov.val$grunn)) ),]
+head(ANO.all)
 # update row-numbers
-row.names(ANO.wet_mount_forest_seminat) <- 1:nrow(ANO.wet_mount_forest_seminat)
-head(ANO.wet_mount_forest_seminat)
-dim(ANO.wet_mount_forest_seminat)
-colnames(ANO.wet_mount_forest_seminat)
+row.names(ANO.all) <- 1:nrow(ANO.all)
+head(ANO.all)
+dim(ANO.all)
+colnames(ANO.all)
 
-length(levels(as.factor(ANO.wet_mount_forest_seminat$ano_flate_id)))
-length(levels(as.factor(ANO.wet_mount_forest_seminat$ano_punkt_id)))
-summary(as.factor(ANO.wet_mount_forest_seminat$ano_punkt_id))
-# four points that are double
-ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO0159_55",] # double registration, said so in comment. -> choose row 207 over 206
-ANO.wet_mount_forest_seminat <- ANO.wet_mount_forest_seminat[-206,]
-row.names(ANO.wet_mount_forest_seminat) <- 1:nrow(ANO.wet_mount_forest_seminat) # update row-numbers
-ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO0283_22",] # 2019 & 2021. Lot of NA's in 2019 -> omit 2019
-ANO.wet_mount_forest_seminat <- ANO.wet_mount_forest_seminat[-156,]
-row.names(ANO.wet_mount_forest_seminat) <- 1:nrow(ANO.wet_mount_forest_seminat) # update row-numbers
-ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO0363_24",]
-ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_flate_id=="ANO0363","ano_punkt_id"] # point-ID 15 is missing, but 24 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both, call the second obs the one that's missing
-ANO.wet_mount_forest_seminat[311,"ano_punkt_id"] <- "ANO0363_15"
-ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_punkt_id=="ANO1550_64",] # point-ID 66 is missing, but 64 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both
-ANO.wet_mount_forest_seminat[ANO.wet_mount_forest_seminat$ano_flate_id=="ANO1550","ano_punkt_id"] # point-ID 66 is missing, but 64 is double. Likely that registrations are valid, but wrong point-ID.  -> keep both
-ANO.wet_mount_forest_seminat[1273,"ano_punkt_id"] <- "ANO1550_66"
+length(levels(as.factor(ANO.all$ano_flate_id)))
+length(levels(as.factor(ANO.all$ano_punkt_id)))
+summary(as.factor(ANO.all$ano_punkt_id))
+# four points that are triple and many that are double -> needs to be fixed in the original data! Here, we simply proceed
 
-unique(ANO.wet_mount_forest_seminat$hovedoekosystem_punkt)
-unique(ANO.wet_mount_forest_seminat$hovedtype_rute)
-unique(ANO.wet_mount_forest_seminat$kartleggingsenhet_1m2)
-ANO.wet_mount_forest_seminat$hovedtype_rute <- factor(ANO.wet_mount_forest_seminat$hovedtype_rute)
-ANO.wet_mount_forest_seminat$kartleggingsenhet_1m2 <- factor(ANO.wet_mount_forest_seminat$kartleggingsenhet_1m2)
-summary(ANO.wet_mount_forest_seminat$Hovedtype_rute)
-summary(ANO.wet_mount_forest_seminat$Kartleggingsenhet_rute)
+unique(ANO.all$hovedoekosystem_punkt)
+unique(ANO.all$hovedtype_rute)
+unique(ANO.all$kartleggingsenhet_1m2)
+unique(sub("\\ .*", "", ANO.all$kartleggingsenhet_1m2))
+ANO.all$hovedtype_rute <- factor(ANO.all$hovedtype_rute)
+ANO.all$kartleggingsenhet_1m2 <- factor(sub("\\ .*", "", ANO.all$kartleggingsenhet_1m2))
+summary(ANO.all$hovedtype_rute)
+summary(ANO.all$kartleggingsenhet_1m2)
 
-results.wetland <- list()
-ind <- unique(wetland.ref.cov.val$Ind)
+results.ANO <- list()
+ind <- unique(wet_mount_forest_seminat.ref.cov.val$Ind)
 # choose columns for site description
-colnames(ANO.wet_mount_forest_seminat)
-results.wetland[['original']] <- ANO.wet_mount_forest_seminat
+colnames(ANO.all)
+results.ANO[['original']] <- ANO.all
 # drop geometry
-st_geometry(results.wetland[['original']]) <- NULL
-results.wetland[['original']]
+st_geometry(results.ANO[['original']]) <- NULL
+results.ANO[['original']]
 
 # add columns for indicators
-nvar.site <- ncol(results.wetland[['original']])
-for (i in 1:length(ind) ) {results.wetland[['original']][,i+nvar.site] <- NA}
-colnames(results.wetland[['original']])[(nvar.site+1):(length(ind)+nvar.site)] <- paste(ind)
-for (i in (nvar.site+1):(length(ind)+nvar.site) ) {results.wetland[['original']][,i] <- as.numeric(results.wetland[['original']][,i])}
-summary(results.wetland[['original']])
-#results.wetland[['original']]$Region <- as.factor(results.wetland[['original']]$Region)
-results.wetland[['original']]$GlobalID <- as.factor(results.wetland[['original']]$GlobalID)
-results.wetland[['original']]$ano_flate_id <- as.factor(results.wetland[['original']]$ano_flate_id)
-results.wetland[['original']]$ano_punkt_id <- as.factor(results.wetland[['original']]$ano_punkt_id)
-results.wetland[['original']]$hovedoekosystem_punkt <- as.factor(results.wetland[['original']]$hovedoekosystem_punkt)
-#results.wetland[['original']]$Hovedoekosystem_rute  <- as.factor(results.wetland[['original']]$Hovedoekosystem_rute )
-results.wetland[['original']]$kartleggingsenhet_1m2 <- as.factor(results.wetland[['original']]$kartleggingsenhet_1m2)
-results.wetland[['original']]$hovedtype_rute    <- as.factor(results.wetland[['original']]$hovedtype_rute)
+nvar.site <- ncol(results.ANO[['original']])
+for (i in 1:length(ind) ) {results.ANO[['original']][,i+nvar.site] <- NA}
+colnames(results.ANO[['original']])[(nvar.site+1):(length(ind)+nvar.site)] <- paste(ind)
+for (i in (nvar.site+1):(length(ind)+nvar.site) ) {results.ANO[['original']][,i] <- as.numeric(results.ANO[['original']][,i])}
+summary(results.ANO[['original']])
+#results.ANO[['original']]$Region <- as.factor(results.ANO[['original']]$Region)
+results.ANO[['original']]$globalid <- as.factor(results.ANO[['original']]$globalid)
+results.ANO[['original']]$ano_flate_id <- as.factor(results.ANO[['original']]$ano_flate_id)
+results.ANO[['original']]$ano_punkt_id <- as.factor(results.ANO[['original']]$ano_punkt_id)
+results.ANO[['original']]$hovedoekosystem_250m2 <- as.factor(results.ANO[['original']]$hovedoekosystem_250m2)
+#results.ANO[['original']]$Hovedoekosystem_rute  <- as.factor(results.ANO[['original']]$Hovedoekosystem_rute )
+results.ANO[['original']]$kartleggingsenhet_1m2 <- as.factor(results.ANO[['original']]$kartleggingsenhet_1m2)
+results.ANO[['original']]$hovedtype_rute    <- as.factor(results.ANO[['original']]$hovedtype_rute)
 
 
 # roll out
-results.wetland[['scaled']] <- results.wetland[['non-truncated']] <- results.wetland[['original']]
+results.ANO[['scaled']] <- results.ANO[['non-truncated']] <- results.ANO[['original']]
+
 ```
 
 ```{r, eval = F}
 
 #### calculating scaled and non-truncated values for the indicators based on the dataset ####
-for (i in 1:nrow(ANO.wetland) ) {  #
+for (i in 1:nrow(ANO.all) ) {  #
   tryCatch({
     print(i)
-    print(paste(ANO.wetland$ano_flate_id[i]))
-    print(paste(ANO.wetland$ano_punkt_id[i]))
-#    ANO.wetland$Hovedoekosystem_sirkel[i]
-#    ANO.wetland$Hovedoekosystem_rute[i]
-
-
-
-    # if the ANO.hovedtype exists in the reference
-    if (ANO.wetland$hovedtype_rute[i] %in% unique(substr(wetland.ref.cov.val$grunn,1,2)) ) {
+    print(paste(ANO.all$ano_flate_id[i]))
+    print(paste(ANO.all$ano_punkt_id[i]))
+    #    ANO.all$Hovedoekosystem_sirkel[i]
+    #    ANO.all$Hovedoekosystem_rute[i]
+    
+    
+    
+    # if the ANO.hovedtype exists in the wet_mount_forest_seminat reference
+    if ( ANO.all$hovedtype_rute[i] %in% unique(sub("\\-.*", "", wet_mount_forest_seminat.ref.cov.val$grunn)) ) {
       
       # if there is any species present in current ANO point  
-      if ( length(ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.wetland$GlobalID[i]),'Species']) > 0 ) {
+      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),'Species']) > 0 ) {
+        
+        
+        # Light
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Light')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Light),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Light'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Light1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Light1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Light1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Light1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Light1'] <- scal.2() 
+          results.ANO[['original']][i,'Light1'] <- val 
+          
+          # upper part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Light2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Light2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Light2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Light2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Light2'] <- scal.2() 
+          results.ANO[['original']][i,'Light2'] <- val
+        }
+        
+        
+        # Moisture
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Moisture')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Moisture),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Moisture'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Moist1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Moist1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Moist1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Moist1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Moist1'] <- scal.2() 
+          results.ANO[['original']][i,'Moist1'] <- val 
+          
+          # upper part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Moist2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Moist2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Moist2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Moist2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Moist2'] <- scal.2() 
+          results.ANO[['original']][i,'Moist2'] <- val
+        }
+        
+        
+        # Soil_reaction_pH
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Soil_reaction_pH')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Soil_reaction_pH),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Soil_reaction_pH'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='pH1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='pH1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='pH1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'pH1'] <- scal() 
+          results.ANO[['non-truncated']][i,'pH1'] <- scal.2() 
+          results.ANO[['original']][i,'pH1'] <- val 
+          
+          # upper part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='pH2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='pH2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='pH2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'pH2'] <- scal() 
+          results.ANO[['non-truncated']][i,'pH2'] <- scal.2() 
+          results.ANO[['original']][i,'pH2'] <- val
+        }
+        
+        
+        # Nitrogen
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Nitrogen')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Nitrogen),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Nitrogen'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Nitrogen1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Nitrogen1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Nitrogen1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Nitrogen1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Nitrogen1'] <- scal.2() 
+          results.ANO[['original']][i,'Nitrogen1'] <- val 
+          
+          # upper part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Nitrogen2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Nitrogen2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Nitrogen2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Nitrogen2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Nitrogen2'] <- scal.2() 
+          results.ANO[['original']][i,'Nitrogen2'] <- val
+        }
         
 
+        # Phosphorus
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Phosphorus')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Phosphorus),]
+        
+        if ( nrow(dat)>0 ) {
           
-          # Light
-          dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.wetland$GlobalID[i]),c('art_dekning','Light')]
-          results.wetland[['original']][i,'richness'] <- nrow(dat)
-          dat <- dat[!is.na(dat$Light),]
+          val <- sum(dat[,'art_dekning'] * dat[,'Phosphorus'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Phosphorus1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Phosphorus1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Phosphorus1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Phosphorus1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Phosphorus1'] <- scal.2() 
+          results.ANO[['original']][i,'Phosphorus1'] <- val 
           
-          if ( nrow(dat)>0 ) {
-            
-            val <- sum(dat[,'art_dekning'] * dat[,'Light'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
-            # lower part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Light1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Light1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Light1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'Light1'] <- scal() 
-            results.wetland[['non-truncated']][i,'Light1'] <- scal.2() 
-            results.wetland[['original']][i,'Light1'] <- val 
-            
-            # upper part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Light2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Light2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Light2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'Light2'] <- scal() 
-            results.wetland[['non-truncated']][i,'Light2'] <- scal.2() 
-            results.wetland[['original']][i,'Light2'] <- val
-          }
-          
-          
-          # Moisture
-          dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.wetland$GlobalID[i]),c('art_dekning','Moisture')]
-          results.wetland[['original']][i,'richness'] <- nrow(dat)
-          dat <- dat[!is.na(dat$Moisture),]
-          
-          if ( nrow(dat)>0 ) {
-            
-            val <- sum(dat[,'art_dekning'] * dat[,'Moisture'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
-            # lower part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Moist1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Moist1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Moist1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'Moist1'] <- scal() 
-            results.wetland[['non-truncated']][i,'Moist1'] <- scal.2() 
-            results.wetland[['original']][i,'Moist1'] <- val 
-            
-            # upper part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Moist2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Moist2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Moist2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'Moist2'] <- scal() 
-            results.wetland[['non-truncated']][i,'Moist2'] <- scal.2() 
-            results.wetland[['original']][i,'Moist2'] <- val
-          }
-          
-          
-          # Soil_reaction_pH
-          dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.wetland$GlobalID[i]),c('art_dekning','Soil_reaction_pH')]
-          results.wetland[['original']][i,'richness'] <- nrow(dat)
-          dat <- dat[!is.na(dat$Soil_reaction_pH),]
-          
-          if ( nrow(dat)>0 ) {
-            
-            val <- sum(dat[,'art_dekning'] * dat[,'Soil_reaction_pH'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
-            # lower part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='pH1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='pH1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='pH1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'pH1'] <- scal() 
-            results.wetland[['non-truncated']][i,'pH1'] <- scal.2() 
-            results.wetland[['original']][i,'pH1'] <- val 
-            
-            # upper part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='pH2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='pH2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='pH2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'pH2'] <- scal() 
-            results.wetland[['non-truncated']][i,'pH2'] <- scal.2() 
-            results.wetland[['original']][i,'pH2'] <- val
-          }
-          
-          
-          # Nitrogen
-          dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.wetland$GlobalID[i]),c('art_dekning','Nitrogen')]
-          results.wetland[['original']][i,'richness'] <- nrow(dat)
-          dat <- dat[!is.na(dat$Nitrogen),]
-          
-          if ( nrow(dat)>0 ) {
-            
-            val <- sum(dat[,'art_dekning'] * dat[,'Nitrogen'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
-            # lower part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Nitrogen1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Nitrogen1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Nitrogen1' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'Nitrogen1'] <- scal() 
-            results.wetland[['non-truncated']][i,'Nitrogen1'] <- scal.2() 
-            results.wetland[['original']][i,'Nitrogen1'] <- val 
-            
-            # upper part of distribution
-            ref <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Nitrogen2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
-            lim <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Nitrogen2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
-            maxmin <- wetland.ref.cov.val[wetland.ref.cov.val$Ind=='Nitrogen2' & wetland.ref.cov.val$grunn==as.character(results.wetland[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
-            # coercing x into results.wetland dataframe
-            results.wetland[['scaled']][i,'Nitrogen2'] <- scal() 
-            results.wetland[['non-truncated']][i,'Nitrogen2'] <- scal.2() 
-            results.wetland[['original']][i,'Nitrogen2'] <- val
-          }
-          
+          # upper part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Phosphorus2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Phosphorus2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Phosphorus2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Phosphorus2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Phosphorus2'] <- scal.2() 
+          results.ANO[['original']][i,'Phosphorus2'] <- val
         }
-      }
-      
+        
+        
+        # Grazing_mowing
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Grazing_mowing')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Grazing_mowing),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Grazing_mowing'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Grazing_mowing1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Grazing_mowing1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Grazing_mowing1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Grazing_mowing1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Grazing_mowing1'] <- scal.2() 
+          results.ANO[['original']][i,'Grazing_mowing1'] <- val 
+          
+          # upper part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Grazing_mowing2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Grazing_mowing2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Grazing_mowing2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Grazing_mowing2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Grazing_mowing2'] <- scal.2() 
+          results.ANO[['original']][i,'Grazing_mowing2'] <- val
+        }
+        
+        
+        # Soil_disturbance
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Soil_disturbance')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Soil_disturbance),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Soil_disturbance'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Soil_disturbance1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Soil_disturbance1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Soil_disturbance1' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Soil_disturbance1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Soil_disturbance1'] <- scal.2() 
+          results.ANO[['original']][i,'Soil_disturbance1'] <- val 
+          
+          # upper part of distribution
+          ref <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Soil_disturbance2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Soil_disturbance2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- wet_mount_forest_seminat.ref.cov.val[wet_mount_forest_seminat.ref.cov.val$Ind=='Soil_disturbance2' & wet_mount_forest_seminat.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Soil_disturbance2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Soil_disturbance2'] <- scal.2() 
+          results.ANO[['original']][i,'Soil_disturbance2'] <- val
+        }
 
+      }
+    }
+    
+    
+    # if the ANO.hovedtype is a mountain ecosystem qualifying for the Heat_requirement indicator
+    if ( ANO.all$hovedtype_rute[i] %in% c('T3','T7','T14','T22') ) {
+      
+      # if there is any species present in current ANO point  
+      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),'Species']) > 0 ) {
+        
+        
+        #Heat requirement overhang
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Heat_requirement')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Heat_requirement) & dat$art_dekning>0,]
+        
+        if ( nrow(dat)>0 ) {
+          
+          dat$Dekning <- dat$Dekning/sum(dat$Dekning)
+          val <- sum(dat[dat$Heat_requirement>=heat.scal.tab.boot[heat.scal.tab.boot$NiN==as.character(unique(dat$Kartleggingsenhet_rute)),'ind_level'],'Dekning'])
+          ref <- heat.scal.tab.boot[heat.scal.tab.boot$NiN==as.character(unique(dat$Kartleggingsenhet_rute)),'ref']
+          lim <- heat.scal.tab.boot[heat.scal.tab.boot$NiN==as.character(unique(dat$Kartleggingsenhet_rute)),'lim']
+          maxmin <- heat.scal.tab.boot[heat.scal.tab.boot$NiN==as.character(unique(dat$Kartleggingsenhet_rute)),'maxmin']
+          
+          # coercing x into results.mount dataframe
+          result.mount[i,'Heat'] <- scal.2() 
+          
+        } else {
+          result.mount[i,'Heat'] <- 1 
+        }
+        
+        
+      }
+    }
+    
+    
+    # if the ANO.hovedtype exists in the natopen reference
+    if ( ANO.all$hovedtype_rute[i] %in% unique(sub("\\-.*", "", natopen.ref.cov.val$grunn)) ) {
+      
+      # if there is any species present in current ANO point  
+      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),'Species']) > 0 ) {
+        
+        # Grime's C
+        
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','CC')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$CC),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'CC'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'CC1'] <- scal() 
+          results.ANO[['non-truncated']][i,'CC1'] <- scal.2() 
+          results.ANO[['original']][i,'CC1'] <- val 
+          
+          # upper part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }          
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='CC2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'CC2'] <- scal() 
+          results.ANO[['non-truncated']][i,'CC2'] <- scal.2() 
+          results.ANO[['original']][i,'CC2'] <- val
+        }
+        
+        
+        # Grime's S
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','SS')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$SS),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'SS'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }          
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'SS1'] <- scal() 
+          results.ANO[['non-truncated']][i,'SS1'] <- scal.2() 
+          results.ANO[['original']][i,'SS1'] <- val 
+          
+          # upper part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }          
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='SS2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'SS2'] <- scal() 
+          results.ANO[['non-truncated']][i,'SS2'] <- scal.2() 
+          results.ANO[['original']][i,'SS2'] <- val
+        }
+        
+        
+        # Grime's R
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','RR')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$RR),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'RR'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }          
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'RR1'] <- scal() 
+          results.ANO[['non-truncated']][i,'RR1'] <- scal.2() 
+          results.ANO[['original']][i,'RR1'] <- val 
+          
+          # upper part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }          
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='RR2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'RR2'] <- scal() 
+          results.ANO[['non-truncated']][i,'RR2'] <- scal.2() 
+          results.ANO[['original']][i,'RR2'] <- val
+        }
+        
+        
+        # Light
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Light')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Light),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Light'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }            
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Light1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Light1'] <- scal.2() 
+          results.ANO[['original']][i,'Light1'] <- val 
+          
+          # upper part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }            
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Light2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Light2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Light2'] <- scal.2() 
+          results.ANO[['original']][i,'Light2'] <- val
+        }
+        
+        
+        # Nitrogen
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Nitrogen')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Nitrogen),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Nitrogen'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }            
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Nitrogen1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Nitrogen1'] <- scal.2() 
+          results.ANO[['original']][i,'Nitrogen1'] <- val 
+          
+          # upper part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }            
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Nitrogen2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Nitrogen2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Nitrogen2'] <- scal.2() 
+          results.ANO[['original']][i,'Nitrogen2'] <- val
+        }
+        
+        
+        # Soil_disturbance
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Soil_disturbance')]
+        results.ANO[['original']][i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Soil_disturbance),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Soil_disturbance'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance1' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }           
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance1' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Soil_disturbance1'] <- scal() 
+          results.ANO[['non-truncated']][i,'Soil_disturbance1'] <- scal.2() 
+          results.ANO[['original']][i,'Soil_disturbance1'] <- val 
+          
+          # upper part of distribution
+          if( ANO.all$kartleggingsenhet_1m2[i] %in% c("T2-C-7","T2-C-8") ) {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance2' & natopen.ref.cov.val$grunn==paste(as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),"_BN",sep=""),'Gv']
+          } else {
+            ref <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Rv']
+            lim <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'Gv']
+          }
+          maxmin <- natopen.ref.cov.val[natopen.ref.cov.val$Ind=='Soil_disturbance2' & natopen.ref.cov.val$grunn==as.character(results.ANO[['original']][i,"kartleggingsenhet_1m2"]),'maxmin']
+          # coercing x into results.ANO dataframe
+          results.ANO[['scaled']][i,'Soil_disturbance2'] <- scal() 
+          results.ANO[['non-truncated']][i,'Soil_disturbance2'] <- scal.2() 
+          results.ANO[['original']][i,'Soil_disturbance2'] <- val
+        }
+        
+      
+    
+    
+    
     
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 
 # for using both sides of the plant indicators
-results.wetland[['2-sided']] <- results.wetland[['non-truncated']]
+results.ANO[['2-sided']] <- results.ANO[['non-truncated']]
 
 # remove values >1 for 2-sided indicators
-results.wetland[['2-sided']]$Light1[results.wetland[['2-sided']]$Light1>1] <- NA
-results.wetland[['2-sided']]$Light2[results.wetland[['2-sided']]$Light2>1] <- NA
+results.ANO[['2-sided']]$Light1[results.ANO[['2-sided']]$Light1>1] <- NA
+results.ANO[['2-sided']]$Light2[results.ANO[['2-sided']]$Light2>1] <- NA
 
-results.wetland[['2-sided']]$Moist1[results.wetland[['2-sided']]$Moist1>1] <- NA
-results.wetland[['2-sided']]$Moist2[results.wetland[['2-sided']]$Moist2>1] <- NA
+results.ANO[['2-sided']]$Moist1[results.ANO[['2-sided']]$Moist1>1] <- NA
+results.ANO[['2-sided']]$Moist2[results.ANO[['2-sided']]$Moist2>1] <- NA
 
-results.wetland[['2-sided']]$pH1[results.wetland[['2-sided']]$pH1>1] <- NA
-results.wetland[['2-sided']]$pH2[results.wetland[['2-sided']]$pH2>1] <- NA
+results.ANO[['2-sided']]$pH1[results.ANO[['2-sided']]$pH1>1] <- NA
+results.ANO[['2-sided']]$pH2[results.ANO[['2-sided']]$pH2>1] <- NA
 
-results.wetland[['2-sided']]$Nitrogen1[results.wetland[['2-sided']]$Nitrogen1>1] <- NA
-results.wetland[['2-sided']]$Nitrogen2[results.wetland[['2-sided']]$Nitrogen2>1] <- NA
+results.ANO[['2-sided']]$Nitrogen1[results.ANO[['2-sided']]$Nitrogen1>1] <- NA
+results.ANO[['2-sided']]$Nitrogen2[results.ANO[['2-sided']]$Nitrogen2>1] <- NA
+
+
 
 ```
 
 ```{r, include = F}
 # Use cache data
-results.wetland<-readRDS(paste0(here::here(),"/data/cache/results.wetland.RDS"))
+results.wetland<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/results.wetland.RDS"))
 
 #load("/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/FPI_output large files for markdown/results.wetland.RData")
 ```
