@@ -38,6 +38,7 @@ library(knitr)
 library(tidyverse)
 library(kableExtra)
 library(here)
+library(sf)
 knitr::opts_chunk$set(echo = TRUE)
 path <- here::here("indicators/NO_GLAC_001")
 ```
@@ -302,14 +303,122 @@ saveRDS(dat_old, paste0(path, "/data/glacial_extent_old.rds"))
 dat_old <- readRDS(paste0(path, "/data/glacial_extent_old.rds"))
 ```
 
+### 7.2 Dataset B - Glacial extent 2018-2019
 
-### 7.2. Dataset B - Glacial extent 2018-2019
-
-Glacial extent 2018-2019 [@andreassen2022].
+This is the map of glacial extent measured in ther period 2018-2019 [@andreassen2022].
 
 URL: https://nve.brage.unit.no/nve-xmlui/handle/11250/2836926
 
-<!--# Describe additional datasets in a similar was as above. Deleteor add ned subheaders as needed. -->
+```{r import2}
+#| eval: false
+#| code-summary: "Structure and cache data"
+path2 <- paste0(path, "/data/GlacierAreaOutline_NO_2018_2019_N/GlacierAreaOutline_2018_2019_N.shp")
+
+dat_new <- sf::read_sf(path2) |>
+  select(areal_km2)
+saveRDS(dat_new, paste0(path, "/data/glacial_extent_new.rds"))
+```
+
+```{r readCache2}
+#| code-summary: "Read data"
+dat_new <- readRDS(paste0(path, "/data/glacial_extent_new.rds"))
+```
+
+### 7.3 Dataset C - Geographical regions
+
+Importing geographical regions.
+
+```{r}
+greg <- readRDS(paste0(path, "/data/regions.rds"))
+```
+
+
+### 7.4 Dataset D - Bioclimatic regions
+
+Importing bioclimatic regions. The data licence is unknown, and even though a WMS service is publically available, I am not sure it is downloadable anywhere.
+
+```{r}
+#| eval: false
+
+# file path to locally stored data
+path3 <- "R:/GeoSpatialData/BiogeographicalRegions/Norway_PCA_klima/Original/20170614_Bioklima/20170614_Bioklima.gdb"
+
+# read in the data and convert to tibbles for easy joins
+soner <- sf::read_sf(path3, layer = "Soner2017") |> 
+  as_tibble()
+
+seksjoner <- sf::read_sf(path3, layer = "Seksjoner2017") |> 
+  as_tibble()
+
+# join based on SSB IDs and convert to sf object again
+BCreg <- dplyr::left_join(soner , seksjoner |> select(-Shape), by = join_by(SSBID)) |>
+  mutate(region = paste(Seksjon_ko, Sone_kode)) |>
+  sf::st_as_sf() |>
+  select(SSBID,
+  Sone_kode,
+  Sone_navn,
+  Seksjon_ko,
+  Seksjon_na,
+  region) |>
+  st_transform(st_crs(greg))
+
+saveRDS(BCreg, paste0(path, "/data/bioclimatic_regions.rds"))
+```
+
+```{r}
+# read cache
+BCreg <- readRDS(paste0(path, "/data/bioclimatic_regions.rds"))
+```
+
+```{r fig-sonerOgSeksjoner}
+#| fig-cap: "Distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
+BCreg |>
+  ggplot(aes(x = Sone_kode, fill = region)) +
+  geom_bar() +
+  facet_grid(Seksjon_ko ~ Sone_kode, scales = "free") +
+  guides(fill = "none") +
+  theme(axis.text.x = element_blank(),
+    axis.title.x.bottom = element_blank()) +
+  labs(y = "km-2")
+```
+
+### 7.5 Dataset E - Alpine ecosystem extent
+
+This extant map might be updated in the near future. I am not sure the origin of this map. 
+
+```{r}
+#| eval: false
+pathE <- paste0(path, "/data/temp/alpine_extent.tif")
+
+alpine <- stars::read_stars(pathE) |>
+  st_as_sf(merge = T)
+saveRDS(alpine, paste0(path, "/data/alpine_extent.rds"))
+```
+
+```{r}
+alpine <- readRDS(paste0(path, "/data/alpine_extent.rds"))
+```
+
+### 7.6 Combined dataset
+Next we need to create a dataset for the EAs. The EAs will be defined as the intersection between bioclimatic regions and geographical regions
+```{r}
+EA <- BCreg |>
+  rename(BCreg = region) |>  
+  sf::st_intersection(greg)
+
+# create new variable for the unique EA IDs
+EA <- EA |>
+  mutate(EA = row_number())
+
+# get mountain area for each EA 
+alpine2 <- alpine |>
+  st_intersection(EA) |>
+  mutate(mountain_area = st_area())
+```
+
+
+
+
 
 ## 8. Spatial units
 
