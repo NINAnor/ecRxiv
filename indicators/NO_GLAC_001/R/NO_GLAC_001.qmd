@@ -39,6 +39,7 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 knitr::opts_chunk$set(echo = TRUE)
+path <- here::here("indicators/NO_GLAC_001")
 ```
 
 ```{r source}
@@ -149,6 +150,34 @@ How should the metric be used and interpretted, and how should it not be used/in
  -->
 ```
 
+Glaciers represents both an important structural element in alpine ecosystems, providing melt water and local climate control. It is also a unique nature type in itself, with few, but very specialised, species living on or in association with the ice. Glaciers are permanently ice covered areas and they are sensitive to climate change, especially climate warming, which melts the ice. In Norway we have a rather detailed and precise map of the glacial extent from the period 1947-1985. Here we use this data as a representation of the climatic reference condition (pre climate warming), and compare the glacial extent with an update glacial extent map from 2018-2019 to create a normalised ecosystem condition indicator. The ecosystem assets are defined as intersections of bioclimatic regions and geographical regions. We have defined a threshold value (X~60~) as 10% remaining area, based on the assumption from Island Biogeography Theory that further loss of area will result in \>10% local species extinctions.
+
+Indicator uncertainty originates from two sources. Firste we introduce a 3% error in the glacial estimates, based on the reported uncertainties in the mapping method. In practice we assign a probability distribution, rather than a point estimate, to each EA. We then resample the probability distributions for each EA 1000 times, creating 1000 estimates for the spatially aggregated indicator value. This introduces the second type of uncertainty, which is the spatial variation in indicator values across EAs.
+
+The indicator is ready to be used. Future updates will require new maps of glacial extent in Norway, which is highly possible to produce from satellite imagery.
+
+Interpretation: The indicator value represents the mean remaining glacial area across EAs.
+
+Workflow
+
+1.  Import glacial extent maps from two time periods
+
+2.  Import delineations for bioclimatic regions and geographical regions and intersect to create strata (ecosystem assets, EA)
+
+3.  Import alpine ecosystem mask
+
+4.  Compile spatial dataset where each EA has data on strata category, glacial area at two time points and total mountain area.
+
+5.  Add 3% uncertainty to glacial extent estimates
+
+6.  Normalise variable at EA level by scaling, transforming and truncating.
+
+7.  Resample within EAs and create a distribution of 1000 estimates of a spatially aggregate indicator value for geographical regions. Di this using two weighting schemes for comparison: weighted based on total mountain area or initial glacial area within each EA.
+
+8.  Aggregate spatially from geographical region to national level, also using bootstrapping.
+
+9.  Summarise national estimate and 50%CI in a table
+
 ## 2. About the underlying data
 
 <!--# Describe the data you have used in more detail, it's origin, biases, availabilit ect.-->
@@ -169,6 +198,8 @@ How should the metric be used and interpretted, and how should it not be used/in
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
 
+The glaciel extent maps are distributed under CC-BY 4.0. We have made a simplified (less columns) version of the dataset available on github in order to make the workflow more reproducible.
+
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
@@ -181,6 +212,8 @@ This doesnt need to be very long. Maybe just a single sentence.
 
 -->
 ```
+
+Area of glaciers is categorised as describing a C1 - Landscape and seascape characteristic. This put emphasis in the role of glaciers as a unique habitat type and a structural element in alpine ecosystems. The indicator has previously been attributed to A1 - Physical state characteristics due to the importance of melt water.
 
 ### 3.2 Ecosystem condition characteristic
 
@@ -255,11 +288,22 @@ The dataset is manually downloaded.
 
 URL: https://nve.brage.unit.no/nve-xmlui/handle/11250/2831053
 
-```{r}
-
+```{r import1}
+#| eval: false
+#| code-summary: "Structure and cache data"
+path1 <- paste0(path, "/data/cryoclim_GAO_NO_1947_1985_UTM_33N/cryoclim_GAO_NO_1947_1985_UTM_33N.shp")
+dat_old <- sf::read_sf(path1) |>
+  select(areal_km2)
+saveRDS(dat_old, paste0(path, "/data/glacial_extent_old.rds"))
 ```
 
-### 7.2. Dataset B
+```{r readCache1}
+#| code-summary: "Read data"
+dat_old <- readRDS(paste0(path, "/data/glacial_extent_old.rds"))
+```
+
+
+### 7.2. Dataset B - Glacial extent 2018-2019
 
 Glacial extent 2018-2019 [@andreassen2022].
 
