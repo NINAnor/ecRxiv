@@ -335,7 +335,6 @@ greg <- readRDS(paste0(path, "/data/regions.rds")) |>
     .default = region
   ))
 
-unique(greg$region)
 ```
 
 ### 7.4 Dataset D - Bioclimatic regions
@@ -405,6 +404,7 @@ knitr::include_graphics("../img/bcreg.png")
 
 
 ```{r}
+#| eval: false
 BCreg <- BCreg |>
   group_by(BCregion) |>
   summarize(Shape = st_union(Shape))
@@ -462,9 +462,7 @@ EA <- readRDS(paste0(path, "/data/EAs.rds"))
 
 Then we add total mountain area as a variable to the EA dataset.
 
-```{r fig-mountainArea}
-#| fig-cap: 'Total montain area for each biocilmatic region in Norway'
-
+```{r mountainArea}
 
 # get mountain area for each EA 
 temp_alpine <- EA |>
@@ -472,19 +470,18 @@ temp_alpine <- EA |>
   mutate(mountainArea = units::drop_units(st_area(Shape))) |>
   as_tibble()
 
-temp_alpine |>
-  group_by(BCregion) |>
-  summarise(area = sum(mountainArea)) |>
-  ggplot(aes(x = fct_reorder(BCregion, area), y = area)) +
-  geom_col() +
-  labs(x = "Bioclimatic region",
-       y = "Total mountain area (m2)") +
-  coord_flip()+
-  theme_bw()
+#temp_alpine |>
+#  group_by(BCregion) |>
+#  summarise(area = sum(mountainArea)) |>
+#  ggplot(aes(x = fct_reorder(BCregion, area), y = area)) +
+#  geom_col() +
+#  labs(x = "Bioclimatic region",
+#       y = "Total mountain area (m2)") +
+#  coord_flip()+
+#  theme_bw()
 
 ```
 
-It appears from @fig-mountainArea that most of the mountain area is on sones 4 and 5 and sections 4 (and 5, since these are merged). This was expected.
 
 Then we add the glacial area.
 
@@ -523,7 +520,7 @@ EA <- EA |>
 ```
 
 ```{r fig-area}
-#| fig-cap: 'The extent of glacier and total mountain area for each bioclimatic region (sum of all ecosystem assets in thet region). The area for mountains is divided by 100 to get it on the same scale as glacier area for comparisons across regions.'
+#| fig-cap: 'The extent of glacier and total mountain area for each geographical region (sum of all ecosystem assets in thet region). The area for mountains is divided by 100 to get it on the same scale as glacier area for comparisons across regions.'
 myVars <- c("Current",
             "Historic",
             "Mountains"
@@ -549,6 +546,59 @@ EA |>
 
 
 ```
+
+Let's look at this pattern also across sones and sections.
+
+1. Split BCregion into sones and sections
+
+```{r fig-soneSectDist}
+#| fig-cap: 'The extent of glacier and total mountain area for each bioclimatic section(top) and sone (bottom). The area for mountains is divided by 100 to get it on the same scale as glacier area for comparisons across regions.'
+one <- EA |>
+  as_tibble() |>
+  mutate(seksjon = str_split_i(BCregion, " ", 1),
+         sone = str_split_i(BCregion, " ", 2)) |>
+  group_by(seksjon) |>
+  summarise(Current = sum(glacierAreaCurrent, na.rm = T),
+            Historic = sum(glacierAreaOld, na.rm = T),
+            Mountains = sum(mountainArea, na.rm = T)/100) |>
+  pivot_longer(cols = all_of(myVars),
+               names_to = "Variable",
+               values_to = "Area") |>
+  ggplot(aes(fill = Variable, 
+             y = Area,
+             x = seksjon)) +
+  geom_col(position = "dodge") +
+  labs(x = "Section",
+       y = "Areal extent (m2) (divided by 100 in the case of mountain area)") +
+  coord_flip()+
+  theme_bw()
+
+
+two <- EA |>
+  as_tibble() |>
+  mutate(seksjon = str_split_i(BCregion, " ", 1),
+         sone = str_split_i(BCregion, " ", 2)) |>
+  group_by(sone) |>
+  summarise(Current = sum(glacierAreaCurrent, na.rm = T),
+            Historic = sum(glacierAreaOld, na.rm = T),
+            Mountains = sum(mountainArea, na.rm = T)/100) |>
+  pivot_longer(cols = all_of(myVars),
+               names_to = "Variable",
+               values_to = "Area") |>
+  ggplot(aes(fill = Variable, 
+             y = Area,
+             x = sone)) +
+  geom_col(position = "dodge") +
+  labs(x = "Sones",
+       y = "Areal extent (m2) (divided by 100 in the case of mountain area)") +
+  coord_flip()+
+  theme_bw()
+
+
+ggpubr::ggarrange(one, two, ncol= 1)
+```
+
+We see from @fig-soneSectDist that glaciers are rare in sections 4 and 5 (good reason for combining them), and sone 1-3. We could perhaps have combined sone 3 along with sones 1 and 2, but it makes little difference.
 
 
 ## 8. Spatial units
