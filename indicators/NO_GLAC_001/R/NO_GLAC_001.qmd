@@ -332,34 +332,45 @@ Importing geographical regions.
 greg <- readRDS(paste0(path, "/data/regions.rds"))
 ```
 
-
 ### 7.4 Dataset D - Bioclimatic regions
 
-Importing bioclimatic regions. The data licence is unknown, and even though a WMS service is publically available, I am not sure it is downloadable anywhere.
+Here I import a map dataset of bioclimatic sones and sections for Norway [@bakkestuen2008]. The data licence is unknown, but we have the authors permission to use the data (Bakkestuen, *pers. com.*). There is, however, a [public WMS service](https://kartkatalog.geonorge.no/metadata/66f09e22-23a4-43c6-a0df-426d2b317890), but I don't known if the data is downloadable anywhere.
+
+I combine the sones (related to heat sums and the north-south gradient) and sections (related to oceanity and the west-east gradient) into regions. There are 24 regions, but I will combine some sones and sections to reduce this amount. Since there are few glaciers in continental areas I will combine sections 4 and 5, since we don't need that high resolution in the EAs here. Similarly, I will combine the warmer sones 1 and 2.
 
 ```{r}
 #| eval: false
 
 # file path to locally stored data
-path3 <- "R:/GeoSpatialData/BiogeographicalRegions/Norway_PCA_klima/Original/20170614_Bioklima/20170614_Bioklima.gdb"
+pathD <- "R:/GeoSpatialData/BiogeographicalRegions/Norway_PCA_klima/Original/20170614_Bioklima/20170614_Bioklima.gdb"
 
 # read in the data and convert to tibbles for easy joins
-soner <- sf::read_sf(path3, layer = "Soner2017") |> 
-  as_tibble()
+soner <- sf::read_sf(pathD, layer = "Soner2017") |> 
+  as_tibble() |>
+  mutate(Sone = case_when(
+    Sone_kode %in% c("6SO-1", "6SO-2") ~ "6SO-1-2",
+    .default = Sone_kode
+  ))
 
-seksjoner <- sf::read_sf(path3, layer = "Seksjoner2017") |> 
-  as_tibble()
+# unique(soner2$Sone)
+
+seksjoner <- sf::read_sf(pathD, layer = "Seksjoner2017") |> 
+  as_tibble() |>
+  mutate(Seksjon = case_when(
+    Seksjon_ko %in% c("6SE-4", "6SE-5") ~ "6SE-4-5",
+    .default = Seksjon_ko
+  ))
+
+# unique(seksjoner$Seksjon)
 
 # join based on SSB IDs and convert to sf object again
 BCreg <- dplyr::left_join(soner , seksjoner |> select(-Shape), by = join_by(SSBID)) |>
-  mutate(region = paste(Seksjon_ko, Sone_kode)) |>
+  mutate(BCregion = paste(Seksjon, Sone)) |>
   sf::st_as_sf() |>
   select(SSBID,
-  Sone_kode,
-  Sone_navn,
-  Seksjon_ko,
-  Seksjon_na,
-  region) |>
+  Sone,
+  Seksjon,
+  BCregion) |>
   st_transform(st_crs(greg))
 
 saveRDS(BCreg, paste0(path, "/data/bioclimatic_regions.rds"))
@@ -373,9 +384,9 @@ BCreg <- readRDS(paste0(path, "/data/bioclimatic_regions.rds"))
 ```{r fig-sonerOgSeksjoner}
 #| fig-cap: "Distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
 BCreg |>
-  ggplot(aes(x = Sone_kode, fill = region)) +
+  ggplot(aes(x = Sone, fill = BCregion)) +
   geom_bar() +
-  facet_grid(Seksjon_ko ~ Sone_kode, scales = "free") +
+  facet_grid(Seksjon ~ Sone, scales = "free") +
   guides(fill = "none") +
   theme(axis.text.x = element_blank(),
     axis.title.x.bottom = element_blank()) +
@@ -384,7 +395,7 @@ BCreg |>
 
 ### 7.5 Dataset E - Alpine ecosystem extent
 
-This extant map might be updated in the near future. I am not sure the origin of this map. 
+<!-- This extent map might be updated in the near future. I am not sure the origin of this map. Check the ECA rapport. -->
 
 ```{r}
 #| eval: false
@@ -400,25 +411,27 @@ alpine <- readRDS(paste0(path, "/data/alpine_extent.rds"))
 ```
 
 ### 7.6 Combined dataset
+
 Next we need to create a dataset for the EAs. The EAs will be defined as the intersection between bioclimatic regions and geographical regions
+
 ```{r}
 EA <- BCreg |>
-  rename(BCreg = region) |>  
   sf::st_intersection(greg)
+
+saveRDS(EA, paste0(path, "/data/EAs.rds"))
 
 # create new variable for the unique EA IDs
 EA <- EA |>
-  mutate(EA = row_number())
+  mutate(EA_ID = row_number())
 
 # get mountain area for each EA 
 alpine2 <- alpine |>
   st_intersection(EA) |>
   mutate(mountain_area = st_area())
+
+# get glacier area per EA
+
 ```
-
-
-
-
 
 ## 8. Spatial units
 
