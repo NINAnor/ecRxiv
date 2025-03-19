@@ -329,7 +329,13 @@ dat_new <- readRDS(paste0(path, "/data/glacial_extent_new.rds"))
 Importing geographical regions.
 
 ```{r}
-greg <- readRDS(paste0(path, "/data/regions.rds"))
+greg <- readRDS(paste0(path, "/data/regions.rds")) |>
+  mutate(region = case_when(
+    id == 3 ~ "Oestlandet",
+    .default = region
+  ))
+
+unique(greg$region)
 ```
 
 ### 7.4 Dataset D - Bioclimatic regions
@@ -373,16 +379,12 @@ BCreg <- dplyr::left_join(soner , seksjoner |> select(-Shape), by = join_by(SSBI
   BCregion) |>
   st_transform(st_crs(greg))
 
-saveRDS(BCreg, paste0(path, "/data/bioclimatic_regions.rds"))
 ```
 
-```{r}
-# read cache
-BCreg <- readRDS(paste0(path, "/data/bioclimatic_regions.rds"))
-```
 
-```{r fig-sonerOgSeksjoner}
-#| fig-cap: "Distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
+```{r makeFig}
+#| eval: false
+#| code-summary: 'Make figure'
 BCreg |>
   ggplot(aes(x = Sone, fill = BCregion)) +
   geom_bar() +
@@ -391,9 +393,32 @@ BCreg |>
   theme(axis.text.x = element_blank(),
     axis.title.x.bottom = element_blank()) +
   labs(y = "km-2")
+ggsave("../img/bcreg.png")
+```
+
+```{r fig-sonerOgSeksjoner}
+#| fig-cap: "Distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
+
+knitr::include_graphics("../img/bcreg.png")
+```
+
+
+
+```{r}
+BCreg <- BCreg |>
+  group_by(BCregion) |>
+  summarize(Shape = st_union(Shape))
+saveRDS(BCreg, paste0(path, "/data/bioclimatic_regions.rds"))
+```
+
+```{r}
+#| include: false
+# read cache
+BCreg <- readRDS(paste0(path, "/data/bioclimatic_regions.rds"))
 ```
 
 ### 7.5 Dataset E - Alpine ecosystem extent
+
 
 <!-- This extent map might be updated in the near future. I am not sure the origin of this map. Check the ECA rapport. -->
 
@@ -403,6 +428,10 @@ pathE <- paste0(path, "/data/temp/alpine_extent.tif")
 
 alpine <- stars::read_stars(pathE) |>
   st_as_sf(merge = T)
+
+# intersections are much quicker on multipolygons, so I will union the geometries. 
+alpine <- st_union(alpine)
+
 saveRDS(alpine, paste0(path, "/data/alpine_extent.rds"))
 ```
 
@@ -415,23 +444,112 @@ alpine <- readRDS(paste0(path, "/data/alpine_extent.rds"))
 Next we need to create a dataset for the EAs. The EAs will be defined as the intersection between bioclimatic regions and geographical regions
 
 ```{r}
+#| eval: false
 EA <- BCreg |>
   sf::st_intersection(greg)
-
-saveRDS(EA, paste0(path, "/data/EAs.rds"))
 
 # create new variable for the unique EA IDs
 EA <- EA |>
   mutate(EA_ID = row_number())
 
-# get mountain area for each EA 
-alpine2 <- alpine |>
-  st_intersection(EA) |>
-  mutate(mountain_area = st_area())
+saveRDS(EA, paste0(path, "/data/EAs.rds"))
+```
 
-# get glacier area per EA
+```{r}
+#| include: false
+EA <- readRDS(paste0(path, "/data/EAs.rds"))
+```
+
+Then we add total mountain area as a variable to the EA dataset.
+
+```{r fig-mountainArea}
+#| fig-cap: 'Total montain area for each biocilmatic region in Norway'
+
+
+# get mountain area for each EA 
+temp_alpine <- EA |>
+  st_intersection(alpine) |>
+  mutate(mountainArea = units::drop_units(st_area(Shape))) |>
+  as_tibble()
+
+temp_alpine |>
+  group_by(BCregion) |>
+  summarise(area = sum(mountainArea)) |>
+  ggplot(aes(x = fct_reorder(BCregion, area), y = area)) +
+  geom_col() +
+  labs(x = "Bioclimatic region",
+       y = "Total mountain area (m2)") +
+  coord_flip()+
+  theme_bw()
 
 ```
+
+It appears from @fig-mountainArea that most of the mountain area is on sones 4 and 5 and sections 4 (and 5, since these are merged). This was expected.
+
+Then we add the glacial area.
+
+```{r calcCurrent}
+#| warning: false
+# This code block is a bit slow to run. 1 minute maybe.
+dat_new_union <- st_union(dat_new)
+dat_old_union <- st_union(dat_old)
+
+temp_new <- EA |>
+  st_intersection(dat_new_union) |>
+  mutate(glacierAreaCurrent = units::drop_units(st_area(Shape))) |>
+  as_tibble()
+
+temp_old <- EA |>
+  st_intersection(dat_old_union) |>
+  mutate(glacierAreaOld = units::drop_units(st_area(Shape))) |>
+  as_tibble()
+```
+
+```{r join}
+
+EA <- EA |>
+  as_tibble() |>
+  left_join(temp_new |> select(glacierAreaCurrent,
+                           EA_ID), 
+            by = join_by(EA_ID)) |>
+  left_join(temp_old |> select(glacierAreaOld, 
+                               EA_ID),
+            by = join_by(EA_ID)) |>
+  left_join(temp_alpine |> select(mountainArea,
+                                  EA_ID),
+            by = join_by(EA_ID)) |>
+  st_as_sf()
+
+```
+
+```{r fig-area}
+#| fig-cap: 'The extent of glacier and total mountain area for each bioclimatic region (sum of all ecosystem assets in thet region). The area for mountains is divided by 100 to get it on the same scale as glacier area for comparisons across regions.'
+myVars <- c("Current",
+            "Historic",
+            "Mountains"
+            )
+
+EA |>
+  as_tibble() |>
+  group_by(region) |>
+  summarise(Current = sum(glacierAreaCurrent, na.rm = T),
+            Historic = sum(glacierAreaOld, na.rm = T),
+            Mountains = sum(mountainArea, na.rm = T)/100) |>
+  pivot_longer(cols = all_of(myVars),
+               names_to = "Variable",
+               values_to = "Area") |>
+  ggplot(aes(fill = Variable, 
+             y = Area,
+             x = region)) +
+  geom_col(position = "dodge") +
+  labs(x = "Geographical region",
+       y = "Areal extent (m2) (divided by 100 in the case of mountain area)") +
+  coord_flip()+
+  theme_bw()
+
+
+```
+
 
 ## 8. Spatial units
 
