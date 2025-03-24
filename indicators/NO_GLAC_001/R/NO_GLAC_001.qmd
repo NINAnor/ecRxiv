@@ -787,7 +787,8 @@ but here it is quite easy to implement, and I therefore see no reason not to.
 
 ```{r}
 #| warning: false
-EAx <- EA |>
+EA <- EA |>
+  # adding 3% uncertainty
   rowwise() |>
   mutate(
     glacierAreaCurrent_dist = 
@@ -798,29 +799,109 @@ EAx <- EA |>
       if_else(!is.na(glacierAreaOld),
               list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.003)),
               NA))
+
 ```
 
-Then we normalise, using a piecewise linear transformation, and get simialr probability distribution for indicator values.
-
-```{r}
+Then we normalise, using a piecewise linear transformation, and get similar probability distribution for indicator values.
 
 
-EAxx <- EAx |>
+```{r normalise}
+
+# create a temporary dataframe
+EAtemp <- EA |>
+  as_tibble() |>
   # unlist and create new rows for each random pair of current and old glacier area estimate
   unnest_longer(c(
     glacierAreaCurrent_dist,
     glacierAreaOld_dist), 
-    keep_empty = T)
+    keep_empty = T) |>
+  rename(variable = glacierAreaCurrent_dist, 
+         x100 = glacierAreaOld_dist) |>
   mutate(
-    indicator = ea_normalise()
-  )
+    # define x60 value
+    x60 = x100*0.1,
+    # normalise using piecewise linear transfomation
+    indicator =  ifelse(
+      variable < x60, 
+        ((variable - 0)/(x60 - 0)) * 0.6, 
+        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
+    # truncate
+    indicator = case_when(
+      indicator > 1 ~ 1,
+      indicator < 0 ~ 0,
+      .default = indicator
+    )) |>
+  # recast into list column
+  drop_na(indicator) |>
+  group_by(EA_ID) |>
+  summarise(indicator_dist = list(indicator), .groups = "drop")
+
+# we then paste these distributions back into the EA object
+
+EAx <- EA |>
+  as_tibble() |>
+  # simplify datafra by removing these two...
+  select(-glacierAreaCurrent_dist,
+         -glacierAreaOld_dist,
+         -GID_0,
+         -NAME_0) |>
+  # add the probability distribution of indicator values
+  left_join(
+    EAtemp,
+    by = join_by(EA_ID)
+  ) |>
+  # summarise the distribution
+# rowwise() |>
+# mutate(
+#   ifelse(!is.na(indicator),
+#          indicator = median(unlist(indicator_dist)),
+#          NA)
+# )
+# st_as_sf()
+
+
+
+# dummy example
+#test <- tibble(a = rep("A", 5),
+#               b = LETTERS[2:6]) |>
+#  rowwise() |>
+#  mutate(variable = list(runif(5,0, 100)),
+#         x100 = list(rnorm(5, 100,10)))
+#
+#test[2,3] <- NA
+#
+#test2 <- test |>
+#  unnest_longer(c(variable,x100), keep_empty = T) 
+#
+#test3 <- test2 |>
+#  mutate(
+#    x60 = x100*0.1,
+#    indicator =  ifelse(
+#      variable < x60, 
+#        ((variable - 0)/(x60 - 0)) * 0.6, 
+#        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
+#    
+#    indicator = case_when(
+#      indicator > 1 ~ 1,
+#      indicator < 0 ~ 0,
+#      .default = indicator
+#    ))
+#
+#test4 <- test3 |>
+#  drop_na(indicator) |>
+#  group_by(a,b) |>
+#  summarise(indicator_dist = list(indicator), .groups = "drop")
+
 ```
 
 
 Then we sample each EA proportional to the area
 
 ```{r}
-EAx <- EAx |>
+
+
+EAxx <- EAxx |>
+  nest
   group_by(region) |>
   reframe(
     indicator = 
