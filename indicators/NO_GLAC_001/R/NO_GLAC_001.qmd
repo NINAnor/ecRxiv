@@ -39,6 +39,8 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 library(sf)
+library(ggridges)
+library(ggpubr)
 knitr::opts_chunk$set(echo = TRUE)
 path <- here::here("indicators/NO_GLAC_001")
 ```
@@ -805,7 +807,8 @@ EA <- EA |>
 Then we normalise, using a piecewise linear transformation, and get similar probability distribution for indicator values.
 
 
-```{r normalise}
+```{r tbl-normalise}
+#| tbl-cap: 'Table of ecosystem assets, with variable values, X100 values (glacier area 1947-1985), indicator values and quartiles.'
 
 # create a temporary dataframe
 EAtemp <- EA |>
@@ -838,9 +841,9 @@ EAtemp <- EA |>
 
 # we then paste these distributions back into the EA object
 
-EAx <- EA |>
+EA <- EA |>
   as_tibble() |>
-  # simplify datafra by removing these two...
+  # simplify datafra by removing some columns...
   select(-glacierAreaCurrent_dist,
          -glacierAreaOld_dist,
          -GID_0,
@@ -849,76 +852,189 @@ EAx <- EA |>
   left_join(
     EAtemp,
     by = join_by(EA_ID)
-  ) |>
+  ) |>  
   # summarise the distribution
-# rowwise() |>
-# mutate(
-#   ifelse(!is.na(indicator),
-#          indicator = median(unlist(indicator_dist)),
-#          NA)
-# )
-# st_as_sf()
+  rowwise() |>
+  mutate(
+    indicator = ifelse(
+      !is.null(indicator_dist),
+      median(unlist(indicator_dist)),
+      NA),
+  # add first and third quartile
+    indicator_Q1 = ifelse(
+      !is.null(indicator_dist),
+      quantile(unlist(indicator_dist), probs = 0.25),
+      NA), 
+    indicator_Q3 = ifelse(
+      !is.null(indicator_dist),
+      quantile(unlist(indicator_dist), probs = 0.75),
+      NA), 
+  ) |>
+  st_as_sf()
 
-
-
-# dummy example
-#test <- tibble(a = rep("A", 5),
-#               b = LETTERS[2:6]) |>
-#  rowwise() |>
-#  mutate(variable = list(runif(5,0, 100)),
-#         x100 = list(rnorm(5, 100,10)))
-#
-#test[2,3] <- NA
-#
-#test2 <- test |>
-#  unnest_longer(c(variable,x100), keep_empty = T) 
-#
-#test3 <- test2 |>
-#  mutate(
-#    x60 = x100*0.1,
-#    indicator =  ifelse(
-#      variable < x60, 
-#        ((variable - 0)/(x60 - 0)) * 0.6, 
-#        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
-#    
-#    indicator = case_when(
-#      indicator > 1 ~ 1,
-#      indicator < 0 ~ 0,
-#      .default = indicator
-#    ))
-#
-#test4 <- test3 |>
-#  drop_na(indicator) |>
-#  group_by(a,b) |>
-#  summarise(indicator_dist = list(indicator), .groups = "drop")
-
+DT::datatable(EA |>
+  as_tibble() |>
+  select(
+    EA_ID,
+    glacierAreaCurrent,
+    X100 = glacierAreaOld,
+    mountainArea,
+    indicator,
+    indicator_Q1,
+    indicator_Q3
+  ))
 ```
 
+@tbl-normalise shows the dataset with indicator values at the EA level. 
+Also in that dataset are the actuall indicator probability distributions, which can be sampled.
+Now we will spatially aggregate the indicator values to the level of geographic region.
+We do this by sampling the probability distributions of each EA proportional to the weight.
+As the weight, we we use the X~100~ value, i.e. the initial glacial area. 
+EAs with no glaciers in them get NA, and are not included in the aggregated value.
 
-Then we sample each EA proportional to the area
+For comparison, we also calcuate the aggregated values using mountain area as alternative weights, 
+and we then refer to the indicator values as _v2_.
 
-```{r}
 
 
-EAxx <- EAxx |>
-  nest
-  group_by(region) |>
+```{r tbl-gregAgg}
+#| tbl-cap: 'Indicator values aggregated from EAs to geographical regions.'
+
+# In order to control the n for how many samples we draw,
+# we first calculate the summed area of glaciers and mountains
+
+#EA |>
+#  as_tibble() |>
+#  summarise(total_m2 = sum(glacierAreaOld, na.rm=T)) |> 
+#  pull(total_m2)
+## Resul: 3 327 251 347. We can divide this by 10^4
+
+#EA |>
+#  as_tibble() |>
+#  #ungroup() |>
+#  summarise(total_m2 = sum(mountainArea, na.rm=T)) |> 
+#  pull(total_m2)
+## Result: 323 871 072 604. We can divide this by 10^6
+
+
+## 
+EA_to_greg <- ungroup(EA) |>
+  drop_na(indicator) |>
+  group_by(EA_ID, region) |>
+  # sample with weights
   reframe(
     indicator = 
       list(
         sample(
-          unlist(indicator),
-          size = glacierAreaOld,
+          unlist(indicator_dist),
+          size = glacierAreaOld*10^-4,
+          replace = T)),
+    indicator_v2 = 
+      list(
+        sample(
+          unlist(indicator_dist),
+          size = mountainArea*10^-6,
           replace = T))
+  ) |>
+  # concactenate the weighted samples
+  group_by(region) |>
+  summarise(indicator_dist = list(unlist(indicator)),
+            indicator_v2_dist = list(unlist(indicator_v2))) |>
+  # get summary values
+  ungroup() |>
+  rowwise() |>
+  mutate(
+    indicator = ifelse(
+      !is.null(indicator_dist),
+      median(unlist(indicator_dist)),
+      NA),
+  # add first and third quartile
+    indicator_Q1 = ifelse(
+      !is.null(indicator_dist),
+      quantile(unlist(indicator_dist), probs = 0.25),
+      NA), 
+    indicator_Q3 = ifelse(
+      !is.null(indicator_dist),
+      quantile(unlist(indicator_dist), probs = 0.75),
+      NA),
+  # add the same for indicator_v2
+    indicator_v2 = ifelse(
+      !is.null(indicator_v2_dist),
+      median(unlist(indicator_v2_dist)),
+      NA),
+  # add first and third quartile
+    indicator_v2_Q1 = ifelse(
+      !is.null(indicator_v2_dist),
+      quantile(unlist(indicator_v2_dist), probs = 0.25),
+      NA), 
+    indicator_v2_Q3 = ifelse(
+      !is.null(indicator_v2_dist),
+      quantile(unlist(indicator_v2_dist), probs = 0.75),
+      NA)
   )
+
+DT::datatable(EA_to_greg |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
+  select(
+    -indicator_dist,
+    -indicator_v2_dist
+  ))
 ```
 
+@tbl-gregAgg shows is the indicator values for the geographical regions. 
+The estimates differ quite a lot depending onthe weights used.
 
+```{r fig-ridgde1}
+#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions.'
+
+bw <- 0.015
+
+oneRidge <- EA_to_greg |>
+  unnest_longer(indicator_dist) |>
+  ggplot(aes(x = indicator_dist,
+             y = region)) +
+  geom_density_ridges(
+         fill = "skyblue",
+         bandwidth = bw) +
+  labs(y = "",
+       x = "Indicator values")
+
+twoRidge <- EA_to_greg |>
+  unnest_longer(indicator_v2_dist) |>
+  ggplot(aes(x = indicator_v2_dist,
+             y = region)) +
+  geom_density_ridges(
+         fill = "lightgreen",
+         bandwidth = bw) +
+  labs(y = "",
+       x = "Indicator values (alternative weights)")
+
+ggpubr::ggarrange(oneRidge, twoRidge, ncol=1, labels = "auto")  
+```
+
+@fig-ridgde1 show how the weighting by the mountain area of each EA generally reduces the indicator value,
+especially Midt-Norge (central Norway), where one EA (indicator value about 0.3)
+had very little (but not zero) glaciers to begin with (little weight in pane a), 
+but a lot of mountain area (high weight in pane b).
+
+Now I add the spatially aggregated indicator values to the sf object with the 
+geographical regions so that we can make a map.
 
 ```{r}
-summary(st_area(EA$Shape))/10000
-  
+greg2 <- greg |>
+  as_tibble() |>
+  left_join(EA_to_greg, by = join_by(region)) |>
+  st_as_sf()
 ```
+
+What if we used different spatial units as the EAs. 
+Now I calculate the indicator value directly to the geographical regions.
+
+```{r}
+EA_v2
+```
+
+
 
 
 ## 10. Results
