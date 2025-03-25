@@ -659,7 +659,7 @@ In the last example, the EA and the ecosystem accounting area (EAA) is the same.
 
 We also use the EA_v2 dataset as intermediate data when we aggregate from EAs to EAA.
 
-#### 8.2.1 EA_v2
+#### 8.2.1 EA_v2 and EEA
 
 ```{r fig-arealUnits}
 #| fig-cap: 'Current glacier extent, either as the actuall occurences (A); the the summed area per ecosystem asset (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information the maps.'
@@ -816,11 +816,11 @@ EA <- EA |>
   mutate(
     glacierAreaCurrent_dist = 
       if_else(!is.na(glacierAreaCurrent),
-              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.003)),
+              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.03)),
               NA), 
     glacierAreaOld_dist = 
       if_else(!is.na(glacierAreaOld),
-              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.003)),
+              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.03)),
               NA))
 
 ```
@@ -1093,11 +1093,11 @@ EA_v2 <- EA_v2 |>
   mutate(
     glacierAreaCurrent_dist = 
       if_else(!is.na(glacierAreaCurrent),
-              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.003)),
+              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.03)),
               NA), 
     glacierAreaOld_dist = 
       if_else(!is.na(glacierAreaOld),
-              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.003)),
+              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.03)),
               NA))
 ```
 
@@ -1211,8 +1211,7 @@ knitr::include_graphics(paste0(path, "/img/ridge.png"))
 Then we aggregate the reginal probability distributions to the entire ecosystem accounting area (EAA), 
 which is mainland Norway.
 
-```{r tbl-eaaAgg}
-#| tbl-cap: 'Indicator values aggregated from geographical regions to the EAA.'
+```{r tblEAAAgg}
 #| code-fold: true
 #| code-summary: "Sample indicator values"
 
@@ -1266,17 +1265,84 @@ EA_v2_to_EAA <- ungroup(EA_v2) |>
     indicator_Q3 = quantile(unlist(prob_dist), probs = 0.75))
   
 
-DT::datatable(EA_v2_to_EAA |>
-  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
-  select(
-    -prob_dist
-  ))
+
 ```
 
-###9.5 Alternative EA (EAA)
+### 9.5 Alternative EA (EAA)
 
 Similar to in @sec-ea2 I will see what happens if I estimate the indicator value directly at the EAA level.
 
+```{r}
+#| code-fold: true
+#| code-summary: "Replace glacier estimates with probability distributions"
+
+EAA <- EAA |>
+# adding 3% uncertainty
+  rowwise() |>
+  mutate(
+    glacierAreaCurrent_dist = 
+      if_else(!is.na(glacierAreaCurrent),
+              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.03)),
+              NA), 
+    glacierAreaOld_dist = 
+      if_else(!is.na(glacierAreaOld),
+              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.03)),
+              NA))
+```
+
+```{r tbl-NormaliseEAA}
+#| tbl-cap: 'Indicator values (four approaches) aggregated to the EAA level.'
+#| code-fold: true
+#| code-summary: "Estimate indicator directly at EAA level"
+
+# create a temporary dataframe
+EAA_temp <- EAA |>
+  as_tibble() |>
+  # unlist and create new rows for each random pair of current and old glacier area estimate
+  unnest_longer(c(
+    glacierAreaCurrent_dist,
+    glacierAreaOld_dist), 
+    keep_empty = T) |>
+  rename(variable = glacierAreaCurrent_dist, 
+         x100 = glacierAreaOld_dist) |>
+  mutate(
+    # define x60 value
+    x60 = x100*0.1,
+    # normalise using piecewise linear transfomation
+    indicator_eaa =  ifelse(
+      variable < x60, 
+        ((variable - 0)/(x60 - 0)) * 0.6, 
+        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
+    # truncate
+    indicator_eaa = case_when(
+      indicator_eaa > 1 ~ 1,
+      indicator_eaa < 0 ~ 0,
+      .default = indicator_eaa
+    )) |>
+  # recast into list column
+  group_by(EAA_ID) |>
+  summarise(prob_dist = list(indicator_eaa), .groups = "drop") |>
+  add_column(Indicator_variant = "indicator_eaa") |>
+  # get summary values
+  rowwise() |>
+  mutate(
+    indicator_value = median(unlist(prob_dist)),
+  # add first and third quartile
+    indicator_Q1 = quantile(unlist(prob_dist), probs = 0.25), 
+    indicator_Q3 = quantile(unlist(prob_dist), probs = 0.75))
+
+# combine with the eariler dataset
+EA_v2_to_EAA <- EA_v2_to_EAA |>
+  bind_rows(EAA_temp)
+
+DT::datatable(EA_v2_to_EAA |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
+  select(
+    -prob_dist,
+    -EAA_ID
+  ))
+
+```
 
 ## 10. Results
 
@@ -1291,15 +1357,23 @@ and ^3^ refers to further aggregation to the EAA,
 also using weighted sampling from the probability 
 distribution of indicator values for the geographical region level.
 
+
+@fig-maps show that at leat three of the aggregation shemes are qualitatively similar, but not identical.
+
 ```{r}
 #| message: false
 
-# add iondicator data to EAA 
-EAA <- EAA |>
+# add indicator data to EAA 
+EAAx <- EAA |>
+  ungroup() |>
   as_tibble() |>
-  right_join(EA_v2_to_EAA |> add_column(EAA_ID = "1")) |>
+  left_join(EA_v2_to_EAA |>
+              mutate(EAA_ID = "1"),
+            by = join_by(EAA_ID)) |>
   st_as_sf()
 
+EA_v2_to_EAAx <- EA_v2_to_EAA |>
+  add_column()
 # Make map of indicator values across EAs
 ea_plot <- EA |>
   ggplot() +
@@ -1308,8 +1382,8 @@ ea_plot <- EA |>
   scale_fill_gradient(na.value = "white")+
   geom_sf(data = EAA, fill = NA)
 
-# similar map of indicator values arcross geographical regions.
-# To do this I firtst need to wrnagle the data a little
+# similar map of indicator values across geographical regions.
+# To do this I first need to wrangle the data a little
 
 EA_plotdat <- EA_v2 |>
   pivot_longer(cols = c(
@@ -1332,14 +1406,56 @@ greg_plot <- EA_plotdat |>
   facet_wrap(.~Indicator_variant)
 
 # we need the EAA direct method here as well....
-eaa_plot <- EAA |>
+eaa_plot <- EAAx |>
+  select(
+    Indicator_variant,
+    indicator_value
+  ) |>
+  add_column(area = "Norway", 
+      .before = "Indicator_variant") |>
   ggplot() +
   geom_sf(aes(fill = indicator_value),
     colour = NA) +
-  facet_wrap(.~Indicator_variant)
+  facet_wrap(.~Indicator_variant,
+             nrow = 1)
+
+ggpubr::ggarrange(
+  ea_plot, 
+  greg_plot,
+  eaa_plot,
+  nrow = 3)
+ggsave(paste0(path, "/img/allmaps.png"))
 ```
 
+```{r fig-maps}
+#| fig-cap: 'Indicator estimates (median of probability distributions) at three spatial levels: EA level (top map); geographical region (second row); ecosystem accounting area (bottom row). The two latter aggregation levels are represnted with several approaches. _Indicator_ and _indicator_v2_ relies on data aggregated though the EA level, but _indicator_v2_ uses total mountain area, rather than initial glacier area, as the area weight dureing the aggregation. _Indicator alt_ refers to the approach where indicator values were estimated directly at the level of geographical regions, and _indicator_eaa_ was estimated directly at the EAA level.'
+knitr::include_graphics(paste0(path, "/img/allmaps.png"))
+```
 
+The final output is then the indicator estimate for the EAA level (@tbl-finalTable).
+
+```{r tbl-finalTable}
+#| include: false
+#| tbl-cap: 'Indicator values for NO_GLA_001 aggregated to EAA level'
+
+EA_v2_to_EAA |>
+  filter(Indicator_variant == "indicator") |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
+  select(
+    -prob_dist,
+    -EAA_ID,
+    -Indicator_variant
+  ) |>
+  add_column(
+    Indicator = "Glacier area",
+    Indicator_ID = "NO_GLAC_001",
+    Ecosystem = "Alpine",
+    Area = "Mainland Norway",
+    .before = "indicator_value"
+  ) |>
+  rename(Q1 = indicator_Q1,
+         Q3 = indicator_Q3)
+```
 
 
 
