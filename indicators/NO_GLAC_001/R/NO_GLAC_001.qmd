@@ -618,8 +618,7 @@ ggpubr::ggarrange(one, two, three, ncol= 1)
 
 We see from @fig-area that glaciers are rare in sections 4 and 5 (good reason for combining them), and sone 1-3. We could perhaps have combined sone 3 along with sones 1 and 2, but it makes little difference.
 
-```{r fig-current}
-#| fig-cap: 'Current glacier extent, either as the summed area per ecosystem asset (A), or the actuall occurences (B). The legend for pane A is omitted for simplicity.'
+```{r figCurrent}
 
 map1 <- EA |>
   mutate(glacierAreaCurrent = replace_na(glacierAreaCurrent, 0)) |>
@@ -638,7 +637,7 @@ map2 <- ggplot()+
     fill = "dodgerblue4",
     colour = NA)
 
-ggpubr::ggarrange(map1, map2, labels="AUTO")
+# ggpubr::ggarrange(map1, map2, labels="AUTO")
 
 ```
 
@@ -652,8 +651,10 @@ In the last example, the EA and the ecosystem accounting area (EAA) is the same.
 #### 8.2.1 EA_v2
 
 ```{r fig-altEA}
-#| fig-cap: 'Current glacier extent, either as the summed area per gegrapical region (A), or across the entire country (C). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information the maps.'
+#| fig-cap: 'Current glacier extent, either as the actuall occurences (A); the the summed area per ecosystem asset (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information the maps.'
 #| warning: false
+#| fig-height: 10
+#| fig-width: 8
 EA_v2 <- greg |>
   mutate(EA_ID = row_number())
 
@@ -762,11 +763,12 @@ map4 <- EA_v3 |>
   scale_fill_gradient(low = "skyblue", high = "dodgerblue4")
 
 
-ggpubr::ggarrange(map3, map4, labels="AUTO")
+ggpubr::ggarrange(
+  map2, map1,  
+  map3, map4, 
+  labels="AUTO")
 
 ```
-
-
 
 
 
@@ -983,10 +985,9 @@ DT::datatable(EA_to_greg |>
 
 @tbl-gregAgg shows is the indicator values for the geographical regions. 
 The estimates differ quite a lot depending onthe weights used.
-
-```{r fig-ridgde1}
-#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions.'
-
+```{r createRidgePlot}
+#| eval: false
+# set bandwidth
 bw <- 0.015
 
 oneRidge <- EA_to_greg |>
@@ -1010,6 +1011,15 @@ twoRidge <- EA_to_greg |>
        x = "Indicator values (alternative weights)")
 
 ggpubr::ggarrange(oneRidge, twoRidge, ncol=1, labels = "auto")  
+ggsave(paste0(path, "/img/ridge.png"))
+```
+
+
+```{r fig-ridgde1}
+#| echo: false
+#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions.'
+
+knitr::include_graphics(paste0(path, "/img/ridge.png"))
 ```
 
 @fig-ridgde1 show how the weighting by the mountain area of each EA generally reduces the indicator value,
