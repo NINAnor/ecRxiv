@@ -458,6 +458,7 @@ Next we need to create a dataset for the EAs. The EAs will be defined as the int
 
 ```{r}
 #| eval: false
+#| code-summary: 'Create EA dataset'
 EA <- BCreg |>
   sf::st_intersection(greg)
 
@@ -476,6 +477,8 @@ EA <- readRDS(paste0(path, "/data/EAs.rds"))
 Then we add total mountain area as a variable to the EA dataset.
 
 ```{r mountainArea}
+#| warning: false
+#| code-summary: 'Intersect EAs and alpine extent map'
 
 # get mountain area for each EA 
 temp_alpine <- EA |>
@@ -500,6 +503,7 @@ Then we add the glacial area.
 
 ```{r calcCurrent}
 #| eval: false
+#| code-summary: 'Intersect EAs and glacier maps'
 # This code block is a bit slow to run. 1 minute maybe.
 dat_new_union <- st_union(dat_new)
 dat_old_union <- st_union(dat_old)
@@ -522,6 +526,7 @@ saveRDS(temp_old, paste0(path, "/data/temp/temp_old.rds"))
 
 ```{r}
 #| include: false
+
 dat_new_union <- readRDS(paste0(path, "/data/temp/dat_new_union.rds"))
 dat_old_union <- readRDS(paste0(path, "/data/temp/dat_old_union.rds"))
 temp_new <- readRDS(paste0(path, "/data/temp/temp_new.rds"))
@@ -530,6 +535,7 @@ temp_old <- readRDS(paste0(path, "/data/temp/temp_old.rds"))
 
 
 ```{r join}
+#| code-summary: 'Add glacier extent to EA dataset' 
 EA <- EA |>
   as_tibble() |>
   left_join(temp_new |> select(glacierAreaCurrent,
@@ -547,6 +553,7 @@ EA <- EA |>
 
 ```{r fig-area}
 #| fig-cap: 'The extent of glacier and total mountain area for each geographical region (top), bioclimatic section (middle) and sone (bottom). The area for mountains is divided by 100 to get it on the same scale as glacier area for comparisons across regions.'
+#| code-summary: 'Make figure'
 myVars <- c("Current",
             "Historic",
             "Mountains"
@@ -617,8 +624,10 @@ ggpubr::ggarrange(one, two, three, ncol= 1)
 ```
 
 We see from @fig-area that glaciers are rare in sections 4 and 5 (good reason for combining them), and sone 1-3. We could perhaps have combined sone 3 along with sones 1 and 2, but it makes little difference.
+@fig-arealUnits show the summed glacial area for different spatial units. 
 
 ```{r figCurrent}
+#| code-summary: 'Make maps A and B'
 
 map1 <- EA |>
   mutate(glacierAreaCurrent = replace_na(glacierAreaCurrent, 0)) |>
@@ -645,18 +654,21 @@ map2 <- ggplot()+
 ### 8.2 Alternative EAs
 
 In order to test the influence of the modifiable area unit problem (MAUP), 
-I will define two alternative EAs: geographical region (EA_v2), and country (EA_v3).
+I will define two alternative EAs: geographical region (EA_v2), and country (EAA).
 In the last example, the EA and the ecosystem accounting area (EAA) is the same.
+
+We also use the EA_v2 dataset as intermediate data when we aggregate from EAs to EAA.
 
 #### 8.2.1 EA_v2
 
-```{r fig-altEA}
+```{r fig-arealUnits}
 #| fig-cap: 'Current glacier extent, either as the actuall occurences (A); the the summed area per ecosystem asset (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information the maps.'
 #| warning: false
 #| fig-height: 10
 #| fig-width: 8
+#| code-summary: 'Make maps C and D and plot'
 EA_v2 <- greg |>
-  mutate(EA_ID = row_number())
+  mutate(greg_ID = row_number())
 
 
 temp_alpine_2 <- EA_v2 |>
@@ -678,23 +690,23 @@ EA_v2 <- EA_v2 |>
   left_join(
     temp_new_2 |> select(
       glacierAreaCurrent,
-      EA_ID
+      greg_ID
     ),
-    by = join_by(EA_ID)
+    by = join_by(greg_ID)
   ) |>
   left_join(
     temp_old_2 |> select(
       glacierAreaOld,
-      EA_ID
+      greg_ID
     ),
-    by = join_by(EA_ID)
+    by = join_by(greg_ID)
   ) |>
   left_join(
     temp_alpine_2 |> select(
       mountainArea,
-      EA_ID
+      greg_ID
     ),
-    by = join_by(EA_ID)
+    by = join_by(greg_ID)
   ) |>
   st_as_sf()
 
@@ -708,52 +720,52 @@ map3 <- EA_v2 |>
   scale_fill_gradient(low = "skyblue", high = "dodgerblue4")
 
 
-# and the same for EA_v3
-EA_v3 <- readRDS(paste0(path, "/data/norway.rds")) |>
-  add_column(EA_ID = "1")
+# and the same for EAA
+EAA <- readRDS(paste0(path, "/data/norway.rds")) |>
+  add_column(EAA_ID = "1")
 
 
 # I could get these area sums easier, but here I just copy over the method from above
-temp_alpine_3 <- EA_v3 |>
+temp_alpine_3 <- EAA |>
   st_intersection(alpine) |>
   mutate(mountainArea = units::drop_units(st_area(geometry))) |>
   as_tibble()
-temp_new_3 <- EA_v3 |>
+temp_new_3 <- EAA |>
   st_intersection(dat_new_union) |>
   mutate(glacierAreaCurrent = units::drop_units(st_area(geometry))) |>
   as_tibble()
-temp_old_3 <- EA_v3 |>
+temp_old_3 <- EAA |>
   st_intersection(dat_old_union) |>
   mutate(glacierAreaOld = units::drop_units(st_area(geometry))) |>
   as_tibble()
 
 # Add data into EA_v3 dataset
-EA_v3 <- EA_v3 |>
+EAA <- EAA |>
   as_tibble() |>
   left_join(
     temp_new_3 |> select(
       glacierAreaCurrent,
-      EA_ID
+      EAA_ID
     ),
-    by = join_by(EA_ID)
+    by = join_by(EAA_ID)
   ) |>
   left_join(
     temp_old_3 |> select(
       glacierAreaOld,
-      EA_ID
+      EAA_ID
     ),
-    by = join_by(EA_ID)
+    by = join_by(EAA_ID)
   ) |>
   left_join(
     temp_alpine_3 |> select(
       mountainArea,
-      EA_ID
+      EAA_ID
     ),
-    by = join_by(EA_ID)
+    by = join_by(EAA_ID)
   ) |>
   st_as_sf()
 
-map4 <- EA_v3 |>
+map4 <- EAA |>
   #mutate(glacierAreaCurrent = replace_na(glacierAreaCurrent, 0)) |>
   ggplot() +
   geom_sf(aes(fill = glacierAreaCurrent),
@@ -771,26 +783,33 @@ ggpubr::ggarrange(
 ```
 
 
-
-
 ## 9. Analyses
 
-1. Add 3% methodological uncertainty to the data at the EA level by sampling 
-10000 numbers from a normal distribution with sd = mean*0.03.
-1. Normalise the variable (prob. dist.) at the EA level
-1. Aggreate to next spatial level by sampling each probability distribution with n reprenetative to the area weights. Try different area weightings, both by total montain area and initial glacial area.
+Now we go on to calcuate indicator values for the Eas, and then spatially aggregting them.
+
+### 9.1 Calculating indicator values (distributions) for the EAs
+
+The next steps are a follows: 
+
+1. Add 3% methodological uncertainty to the data at the EA level by sampling from a normal distribution
+n numbers from a normal distribution with sd = mean*0.03.
+1. Normalise the variable (the prob. dist.) at the EA level using a piecewise linear transformation.
+1. Aggreate to next spatial level by sampling each probability distribution with n representative to the area weights. Try different area weightings, both by total montain area and initial glacial area.
 1. Aggregate one more time to national level.
 
 
 The papers describing the galcier extent data report an estimated 3% uncertainty with their method [@andreassen2022].
 I assume this to mean the standard deviation is 3% of the mean. 
-I start ten by replacing the point estaimtes in each EA (and altentaive EAs 2 and 3) 
-with probability function centered on the point estimate, and with sd = mean * 0.03.
+I start by replacing the point estimates in each EA (and altentaive EAs 2 and 3) 
+with a probability function centered on the point estimate, and with sd = mean * 0.03.
 In ecosystem accounting it is not common to allow uncertainty in the reference levels,
 but here it is quite easy to implement, and I therefore see no reason not to.
 
 ```{r}
 #| warning: false
+#| code-fold: true
+#| code-summary: "Replace estimates with prob. distributions"
+
 EA <- EA |>
   # adding 3% uncertainty
   rowwise() |>
@@ -876,6 +895,7 @@ EA <- EA |>
 
 DT::datatable(EA |>
   as_tibble() |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
   select(
     EA_ID,
     glacierAreaCurrent,
@@ -889,18 +909,26 @@ DT::datatable(EA |>
 
 @tbl-normalise shows the dataset with indicator values at the EA level. 
 Also in that dataset are the actuall indicator probability distributions, which can be sampled.
+
+
+### 9.2 Aggregating to geographical regions
+
 Now we will spatially aggregate the indicator values to the level of geographic region.
 We do this by sampling the probability distributions of each EA proportional to the weight.
 As the weight, we we use the X~100~ value, i.e. the initial glacial area. 
 EAs with no glaciers in them get NA, and are not included in the aggregated value.
 
 For comparison, we also calcuate the aggregated values using mountain area as alternative weights, 
-and we then refer to the indicator values as _v2_.
+and we then refer to the indicator values as _v2_. 
+We also try an approach where we calculate indicator values for geographical regions directly, 
+that is to say, without using the oroginal EAs at all.
 
 
 
 ```{r tbl-gregAgg}
 #| tbl-cap: 'Indicator values aggregated from EAs to geographical regions.'
+#| code-fold: true
+#| code-summary: "Sample indicator values"
 
 # In order to control the n for how many samples we draw,
 # we first calculate the summed area of glaciers and mountains
@@ -975,6 +1003,7 @@ EA_to_greg <- ungroup(EA) |>
       NA)
   )
 
+
 DT::datatable(EA_to_greg |>
   mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
   select(
@@ -984,9 +1013,13 @@ DT::datatable(EA_to_greg |>
 ```
 
 @tbl-gregAgg shows is the indicator values for the geographical regions. 
-The estimates differ quite a lot depending onthe weights used.
+The estimates differ quite a lot depending onthe weights used, which we also see in @fig-ridgde1.
+
 ```{r createRidgePlot}
 #| eval: false
+#| code-fold: true
+#| code-summary: "Create ridge plot"
+
 # set bandwidth
 bw <- 0.015
 
@@ -998,7 +1031,8 @@ oneRidge <- EA_to_greg |>
          fill = "skyblue",
          bandwidth = bw) +
   labs(y = "",
-       x = "Indicator values")
+       x = "Indicator values")+
+  xlim(.55, 1)
 
 twoRidge <- EA_to_greg |>
   unnest_longer(indicator_v2_dist) |>
@@ -1008,19 +1042,13 @@ twoRidge <- EA_to_greg |>
          fill = "lightgreen",
          bandwidth = bw) +
   labs(y = "",
-       x = "Indicator values (alternative weights)")
+       x = "Indicator values (alternative weights)")+
+  xlim(.55, 1)
 
-ggpubr::ggarrange(oneRidge, twoRidge, ncol=1, labels = "auto")  
-ggsave(paste0(path, "/img/ridge.png"))
+# ggpubr::ggarrange(oneRidge, twoRidge, ncol=1, labels = "auto")  
+
 ```
 
-
-```{r fig-ridgde1}
-#| echo: false
-#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions.'
-
-knitr::include_graphics(paste0(path, "/img/ridge.png"))
-```
 
 @fig-ridgde1 show how the weighting by the mountain area of each EA generally reduces the indicator value,
 especially Midt-Norge (central Norway), where one EA (indicator value about 0.3)
@@ -1031,33 +1059,289 @@ Now I add the spatially aggregated indicator values to the sf object with the
 geographical regions so that we can make a map.
 
 ```{r}
-greg2 <- greg |>
+#| code-fold: true
+#| code-summary: "Add indicators to EA_v2 dataset with the regional delineations"
+
+EA_v2 <- EA_v2 |>
   as_tibble() |>
   left_join(EA_to_greg, by = join_by(region)) |>
   st_as_sf()
 ```
 
+
+### 9.3. Alternative EAs (v_2) {#sec-ea2}
+
 What if we used different spatial units as the EAs. 
-Now I calculate the indicator value directly to the geographical regions.
+Now I calculate the indicator value directly to the geographical regions. 
+This indicator will be names `indicator_alt` in the code.
+As we see from @fig-ridgde1 this creates smoother density plots. 
+This is because the 3% error was added to the summed glacier area for the regions,
+and not on the initial glacier polygons, which would also be a valid approach, 
+but the central tendency should be unaffected by this.
+We also see that the probabilities generally match up well with the pane a and the 
+original weighting scheme.
+But comparing @tbl-gregAgg and @tbl-normaliseGreg we see that the point estimates are not identical,
+meaning that the two approaches are not perfectly commutative, and that some other dataset could give bigger (or smaller) differences between the two approaches than what se see here.
 
 ```{r}
-EA_v2
+#| code-fold: true
+#| code-summary: "Replace glacier estimates with probability distributions"
+
+EA_v2 <- EA_v2 |>
+# adding 3% uncertainty
+  rowwise() |>
+  mutate(
+    glacierAreaCurrent_dist = 
+      if_else(!is.na(glacierAreaCurrent),
+              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.003)),
+              NA), 
+    glacierAreaOld_dist = 
+      if_else(!is.na(glacierAreaOld),
+              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.003)),
+              NA))
 ```
 
+```{r tbl-normaliseGreg}
+#| tbl-cap: 'Table with indicator values and quartiles for alternative EA approach using geographical regions.'
 
+# create a temporary dataframe
+EA_v2_temp <- EA_v2 |>
+  as_tibble() |>
+  # unlist and create new rows for each random pair of current and old glacier area estimate
+  unnest_longer(c(
+    glacierAreaCurrent_dist,
+    glacierAreaOld_dist), 
+    keep_empty = T) |>
+  rename(variable = glacierAreaCurrent_dist, 
+         x100 = glacierAreaOld_dist) |>
+  mutate(
+    # define x60 value
+    x60 = x100*0.1,
+    # normalise using piecewise linear transfomation
+    indicator_alt =  ifelse(
+      variable < x60, 
+        ((variable - 0)/(x60 - 0)) * 0.6, 
+        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
+    # truncate
+    indicator_alt = case_when(
+      indicator > 1 ~ 1,
+      indicator < 0 ~ 0,
+      .default = indicator_alt
+    )) |>
+  # recast into list column
+  drop_na(indicator_alt) |>
+  group_by(greg_ID, region) |>
+  summarise(indicator_dist_alt = list(indicator_alt), .groups = "drop")
+
+# we then paste these distributions back into the EA_v2 object
+
+EA_v2 <- EA_v2 |>
+  as_tibble() |>
+  # simplify datafra by removing some columns...
+  select(-glacierAreaCurrent_dist,
+         -glacierAreaOld_dist,
+         -GID_0,
+         -NAME_0) |>
+  # add the probability distribution of indicator values
+  left_join(
+    EA_v2_temp |> select(-region),
+    by = join_by(greg_ID)
+  ) |>  
+  # summarise the distribution
+  rowwise() |>
+  mutate(
+    indicator_alt = ifelse(
+      !is.null(indicator_dist_alt),
+      median(unlist(indicator_dist_alt)),
+      NA),
+  # add first and third quartile
+    indicator_Q1_alt = ifelse(
+      !is.null(indicator_dist_alt),
+      quantile(unlist(indicator_dist_alt), probs = 0.25),
+      NA), 
+    indicator_Q3_alt = ifelse(
+      !is.null(indicator_dist_alt),
+      quantile(unlist(indicator_dist_alt), probs = 0.75),
+      NA), 
+  ) |>
+  st_as_sf()
+
+DT::datatable(EA_v2 |>
+  as_tibble() |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
+  select(
+    greg_ID,
+    region,
+    #glacierAreaCurrent,
+    #X100 = glacierAreaOld,
+    #mountainArea,
+    indicator_alt,
+    indicator_Q1_alt,
+    indicator_Q3_alt
+  ))
+```
+
+```{r}
+#| eval: false
+threeRidge <- EA_v2_temp |>
+  unnest_longer(indicator_dist_alt) |>
+  ggplot(aes(x = indicator_dist_alt,
+             y = region)) +
+  geom_density_ridges(
+         fill = "orchid1",
+         bandwidth = bw) +
+  labs(y = "",
+       x = "Indicator values (alternative EA approach)") +
+  xlim(.55, 1)
+
+ggpubr::ggarrange(oneRidge, twoRidge, threeRidge, 
+                  ncol=1, labels = "auto") 
+ggsave(paste0(path, "/img/ridge.png"))
+```
+
+```{r fig-ridgde1}
+#| include: false
+#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original EAs using a weighting based on the initial glacial area. b) uses a weighting based on total mountain area in each EA. c) Uses geographical regions as alternative EAs.'
+
+knitr::include_graphics(paste0(path, "/img/ridge.png"))
+```
+
+### 9.4 Aggregating to EAA
+
+Then we aggregate the reginal probability distributions to the entire ecosystem accounting area (EAA), 
+which is mainland Norway.
+
+```{r tbl-eaaAgg}
+#| tbl-cap: 'Indicator values aggregated from geographical regions to the EAA.'
+#| code-fold: true
+#| code-summary: "Sample indicator values"
+
+# In order to control the n for how many samples we draw,
+# we first calculate the summed area of glaciers
+
+#EA_v2 |>
+#  as_tibble() |>
+#  summarise(total_m2 = sum(glacierAreaOld, na.rm=T)) |> 
+#  pull(total_m2)
+## Resul: 33 327 254 334. We can divide this by 10^5
+
+
+EA_v2_to_EAA <- ungroup(EA_v2) |>
+  group_by(greg_ID, region) |>
+  # sample with weights
+  reframe(
+    indicator = 
+      list(
+        sample(
+          unlist(indicator_dist),
+          size = glacierAreaOld*10^-5,
+          replace = T)),
+    indicator_v2 = 
+      list(
+        sample(
+          unlist(indicator_v2_dist),
+          size = glacierAreaOld*10^-5,
+          replace = T)),
+    indicator_alt = 
+      list(
+        sample(
+          unlist(indicator_dist_alt),
+          size = glacierAreaOld*10^-5,
+          replace = T))
+  ) |>
+  # concactenate the weighted samples
+  ungroup() |>
+  summarise(indicator = list(unlist(indicator)),
+            indicator_v2 = list(unlist(indicator_v2)),
+            indicator_alt = list(unlist(indicator_alt))) |>
+  pivot_longer(everything(),
+               names_to = "Indicator_variant",
+               values_to = "prob_dist") |>
+  # get summary values
+  rowwise() |>
+  mutate(
+    indicator_value = median(unlist(prob_dist)),
+  # add first and third quartile
+    indicator_Q1 = quantile(unlist(prob_dist), probs = 0.25), 
+    indicator_Q3 = quantile(unlist(prob_dist), probs = 0.75))
+  
+
+DT::datatable(EA_v2_to_EAA |>
+  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
+  select(
+    -prob_dist
+  ))
+```
+
+###9.5 Alternative EA (EAA)
+
+Similar to in @sec-ea2 I will see what happens if I estimate the indicator value directly at the EAA level.
 
 
 ## 10. Results
 
-```{=html}
-<!--# 
+@tbl-eaaAgg show the main results, and I recomend using the first row, i.e. the 
+indicator version using the aggregation pathway 
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+$$sp.agg^1^ - [scale - transform - truncate] - sp-agg^2^ - sp.agg^3^$$ 
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+where ^1^ refers to the definition of EAs and the summation of glacial area inside each EA; 
+^2^ refers to aggregation to geographical region using weighted sampling and taking the median from the resulting distribution; 
+and ^3^ refers to further aggregation to the EAA, 
+also using weighted sampling from the probability 
+distribution of indicator values for the geographical region level.
 
--->
+```{r}
+#| message: false
+
+# add iondicator data to EAA 
+EAA <- EAA |>
+  as_tibble() |>
+  right_join(EA_v2_to_EAA |> add_column(EAA_ID = "1")) |>
+  st_as_sf()
+
+# Make map of indicator values across EAs
+ea_plot <- EA |>
+  ggplot() +
+  geom_sf(aes(fill = indicator),
+    colour = NA)+
+  scale_fill_gradient(na.value = "white")+
+  geom_sf(data = EAA, fill = NA)
+
+# similar map of indicator values arcross geographical regions.
+# To do this I firtst need to wrnagle the data a little
+
+EA_plotdat <- EA_v2 |>
+  pivot_longer(cols = c(
+    indicator,
+    indicator_alt,
+    indicator_v2
+  ),
+  names_to = "Indicator_variant",
+  values_to = "indicator_value") |>
+  select(
+    region,
+    Indicator_variant,
+    indicator_value
+  )
+
+greg_plot <- EA_plotdat |>
+  ggplot() +
+  geom_sf(aes(fill = indicator_value),
+    colour = NA) +
+  facet_wrap(.~Indicator_variant)
+
+# we need the EAA direct method here as well....
+eaa_plot <- EAA |>
+  ggplot() +
+  geom_sf(aes(fill = indicator_value),
+    colour = NA) +
+  facet_wrap(.~Indicator_variant)
 ```
+
+
+
+
 
 ## 11. Export file
 
