@@ -2660,9 +2660,11 @@ results.ANO[['2-sided']]$Soil_disturbance1[results.ANO[['2-sided']]$Soil_disturb
 results.ANO[['2-sided']]$Soil_disturbance2[results.ANO[['2-sided']]$Soil_disturbance2>1] <- NA
 
 results.ANO[['2-sided']]$Heat_requirement1 <- NA
-results.ANO[['2-sided']]$Heat_requirement2 <- NA
+results.ANO[['2-sided']]$Heat_requirement2 <- results.ANO[['scaled']]$Heat_requirement2
 
-#saveRDS(results.ANO, "C:/Users/joachim.topper/OneDrive - NINA/work/R projects/github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/cache/results.ANO.RDS")
+#saveRDS(results.ANO, "C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/cache/results.ANO.RDS")
+
+#saveRDS(ANO.all, "C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/cache/ANO.all.RDS")
 
 
 ```
@@ -2670,39 +2672,67 @@ results.ANO[['2-sided']]$Heat_requirement2 <- NA
 ```{r, include = F}
 # Use cache data
 results.ANO<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/results.ANO.RDS"))
-
-#load("/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/FPI_output large files for markdown/results.wetland.RData")
+ANO.all<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ANO.all.RDS"))
 ```
 
 ```{r}
-head(results.wetland[['2-sided']]) %>%
-      kable("html", caption = "ANO plots for wetland ecosystems with scaled indicator values in the far-right columns.") %>% 
+head(results.ANO[['2-sided']]) %>%
+      kable("html", caption = "ANO plots for ecosystems with scaled indicator values in the far-right columns.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 #### Scaled value analyses
 
-In order to visualize the results we need to rearrange the results-objects from wide to long format (note that there is both a lower and an upper condition indicator for each of the functional plant indicators).
+In order to calculate regional indices for the indicator(s) in addition to national ones we need add information on region to the results-object before rearrange the results-object from wide to long format (note that there is both a lower and an upper condition indicator for each of the functional plant community indicators other than Heat-requirement).
 
 ```{r, message = FALSE}
 #### plotting scaled values by main ecosystem type ####
 ## continuing with 2-sided
-res.wetland <- results.wetland[['2-sided']]
+res.ANO <- results.ANO[['2-sided']]
+
+# keep wide format and add geometry again
+st_geometry(res.ANO) <- st_geometry(ANO.all)
+
+#nor <- readRDS('P:/41201785_okologisk_tilstand_2022_2023/data/rds/norway_outline.RDS')%>%
+#  st_as_sf() %>%
+#  st_transform(crs = crs(ANO.geo))
+
+nor <- st_read("data/outlineOfNorway_EPSG25833.shp")%>%
+  st_as_sf() %>%
+  st_transform(crs = crs(ANO.all))
+
+#reg <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/regioner/regNorway_wgs84 - MERGED.shp")%>%
+#  st_as_sf() %>%
+#  st_transform(crs = crs(ANO.geo))
+
+reg <- st_read("data/regions.shp")%>%
+  st_as_sf() %>%
+  st_transform(crs = crs(ANO.geo))
+
+# change region names to something R-friendly
+reg$region
+reg$region <- c("Northern Norway","Central Norway","Eastern Norway","Western Norway","Southern Norway")
+
+regnor <- st_intersection(reg,nor)
+
+
+
+
 
 # make long version of the scaled value part
-res.wetland <-
-res.wetland %>%
+res.ANO <-
+res.ANO %>%
 pivot_longer(
-cols = c("Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2"),
+cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2"),
 names_to = "fp_ind",
 values_to = "scaled_value",
 values_drop_na = FALSE
 )
 
 # add original values as well
-res.wetland <-
-res.wetland %>% add_column(original = results.wetland[['original']] %>%
+res.ANO <-
+res.ANO %>% add_column(original = results.ANO[['original']] %>%
 pivot_longer(
-cols = c("Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2"),
+cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2"),
 names_to = NULL,
 values_to = "original",
 values_drop_na = FALSE
@@ -2711,6 +2741,21 @@ pull(original)
 )
 
 ```
+
+### Calculating national and regional indices for the single plant indicators and for the overall functional plant community indicator
+
+```{r}
+
+
+```
+
+
+
+
+
+
+
+
 
 ### Ecosystem sub-types {#ecosystem-sub-types-fpiw}
 And we can show the resulting scaled values as Violin plots for each indicator and main ecosystem type 
