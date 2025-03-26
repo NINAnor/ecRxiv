@@ -2685,28 +2685,20 @@ head(results.ANO[['2-sided']]) %>%
 In order to calculate regional indices for the indicator(s) in addition to national ones we need add information on region to the results-object before rearrange the results-object from wide to long format (note that there is both a lower and an upper condition indicator for each of the functional plant community indicators other than Heat-requirement).
 
 ```{r, message = FALSE}
-#### plotting scaled values by main ecosystem type ####
+#### preparing results data for calculating of indices ####
 ## continuing with 2-sided
 res.ANO <- results.ANO[['2-sided']]
 
 # keep wide format and add geometry again
 st_geometry(res.ANO) <- st_geometry(ANO.all)
 
-#nor <- readRDS('P:/41201785_okologisk_tilstand_2022_2023/data/rds/norway_outline.RDS')%>%
-#  st_as_sf() %>%
-#  st_transform(crs = crs(ANO.geo))
-
-nor <- st_read("data/outlineOfNorway_EPSG25833.shp")%>%
+nor <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/outlineOfNorway_EPSG25833.shp")%>%
   st_as_sf() %>%
   st_transform(crs = crs(ANO.all))
 
-#reg <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/regioner/regNorway_wgs84 - MERGED.shp")%>%
-#  st_as_sf() %>%
-#  st_transform(crs = crs(ANO.geo))
-
-reg <- st_read("data/regions.shp")%>%
+reg <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/regions.shp")%>%
   st_as_sf() %>%
-  st_transform(crs = crs(ANO.geo))
+  st_transform(crs = crs(ANO.all))
 
 # change region names to something R-friendly
 reg$region
@@ -2714,12 +2706,10 @@ reg$region <- c("Northern Norway","Central Norway","Eastern Norway","Western Nor
 
 regnor <- st_intersection(reg,nor)
 
-
-
-
+res.ANO = st_join(res.ANO, regnor, left = TRUE)
 
 # make long version of the scaled value part
-res.ANO <-
+res.ANO.long <-
 res.ANO %>%
 pivot_longer(
 cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2"),
@@ -2729,8 +2719,8 @@ values_drop_na = FALSE
 )
 
 # add original values as well
-res.ANO <-
-res.ANO %>% add_column(original = results.ANO[['original']] %>%
+res.ANO.long <-
+res.ANO.long %>% add_column(original = results.ANO[['original']] %>%
 pivot_longer(
 cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2"),
 names_to = NULL,
@@ -2743,6 +2733,69 @@ pull(original)
 ```
 
 ### Calculating national and regional indices for the single plant indicators and for the overall functional plant community indicator
+
+We can calculate national and region-wise means and their related standard errors. But note that calculating a simple mean would be inappropriate for these data. This is because:
+(i) the scaled data are bound between 0 and 1, and thus follow a beta-distribution rather than a Gaussian one, and
+(ii) the ANO dataset has a nested structure
+
+Therefore, we need to (i) use a beta-model, that (ii) can account for the nested structure of the data.
+Here, we apply the following function using either a glmmTMB null-model with a beta-distribution, logit link, and the nesting as a random intercept, or a simple betareg null-model with logit link if the nesting is not extensive enough for a mixed model.
+```{r}
+expit <- function(L) exp(L) / (1+exp(L)) # since the beta-models use a logit link, we need to calculate the estimates back to the identity scale
+
+# the function performs a glmmTMB if there's >= 5 random levels in the nesting structure
+# if that is not the case, then the function performs a betareg if theres >= 2 observations
+# if that is not the case either, then the function returns the value of the single observation with NA standard error
+
+indmean.beta <- function(df) {
+
+  st_geometry(df) <- NULL
+  colnames(df) <- c("y","ran")
+  
+  if ( nrow(df[!is.na(df[,1]),]) >= 2 ) {
+    
+    if ( length(unique(df[!is.na(df[,1]),2])) >=5 ) {
+      
+      mod1 <- glmmTMB(y ~ 1 +(1|ran), family=beta_family(), data=df)
+      
+      return(c(
+        expit(summary( mod1 )$coefficients$cond[1]),
+        
+        expit( summary( mod1 )$coefficients$cond[1] + 
+                 summary( mod1 )$coefficients$cond[2] )-
+          expit( summary( mod1 )$coefficients$cond[1] ),
+        
+        nrow(df[!is.na(df$y),]),
+        summary( mod1 )$coefficients$cond[1],
+        summary( mod1 )$coefficients$cond[2]
+      ))
+      
+    } else {
+      
+      mod2 <- betareg(y ~ 1, data=df)
+      
+      return(c(
+        expit(summary( mod2 )$coefficients$mean[1]),
+        expit( summary( mod2 )$coefficients$mean[1] + 
+                 summary( mod2 )$coefficients$mean[2] )-
+          expit( summary( mod2 )$coefficients$mean[1] ),
+        nrow(df[!is.na(df$y),]),
+        summary( mod2 )$coefficients$mean[1],
+        summary( mod2 )$coefficients$mean[2]
+      ))
+      
+    }
+    
+  } else {
+    
+    return(c(df$y,NA,1,NA,NA))
+    
+  }
+
+}
+
+```
+
 
 ```{r}
 
@@ -2837,67 +2890,6 @@ tm_shape(regnor) +
 ...but here the colors and values of the data points on the map are hard to make out.
 
 ### Regions - maps and statistics
-Alternatively we can calculate and show the region-wise means and their related standard errors. But note that calculating a simple mean would be inappropriate for these data. This is because:
-(i) the scaled data are bound between 0 and 1, and thus follow a beta-distribution rather than a Gaussian one
-(ii) the ANO dataset has a nested structure
-
-Therefore, we need to (i) use a beta-model, that (ii) can account for the nested structure of the data.
-Here, we apply the following function using either a glmmTMB null-model with a beta-distribution, logit link, and the nesting as a random intercept, or a simple betareg null-model with logit link if the nesting is not extensive enough for a mixed model.
-```{r}
-expit <- function(L) exp(L) / (1+exp(L)) # since the beta-models use a logit link, we need to calculate the estimates back to the identity scale
-
-# the function performs a glmmTMB if there's >= 5 random levels in the nesting structure
-# if that is not the case, then the function performs a betareg if theres >= 2 observations
-# if that is not the case either, then the function returns the value of the single observation with NA standard error
-
-indmean.beta <- function(df) {
-
-  st_geometry(df) <- NULL
-  colnames(df) <- c("y","ran")
-  
-  if ( nrow(df[!is.na(df[,1]),]) >= 2 ) {
-    
-    if ( length(unique(df[!is.na(df[,1]),2])) >=5 ) {
-      
-      mod1 <- glmmTMB(y ~ 1 +(1|ran), family=beta_family(), data=df)
-      
-      return(c(
-        expit(summary( mod1 )$coefficients$cond[1]),
-        
-        expit( summary( mod1 )$coefficients$cond[1] + 
-                 summary( mod1 )$coefficients$cond[2] )-
-          expit( summary( mod1 )$coefficients$cond[1] ),
-        
-        nrow(df[!is.na(df$y),]),
-        summary( mod1 )$coefficients$cond[1],
-        summary( mod1 )$coefficients$cond[2]
-      ))
-      
-    } else {
-      
-      mod2 <- betareg(y ~ 1, data=df)
-      
-      return(c(
-        expit(summary( mod2 )$coefficients$mean[1]),
-        expit( summary( mod2 )$coefficients$mean[1] + 
-                 summary( mod2 )$coefficients$mean[2] )-
-          expit( summary( mod2 )$coefficients$mean[1] ),
-        nrow(df[!is.na(df$y),]),
-        summary( mod2 )$coefficients$mean[1],
-        summary( mod2 )$coefficients$mean[2]
-      ))
-      
-    }
-    
-  } else {
-    
-    return(c(df$y,NA,1,NA,NA))
-    
-  }
-
-}
-
-```
 
 ```{r ph-map-fpiw, fig.cap="Mean index value by region for the lower pH indicator (i.e. index shows deviations towards a more acidic environment). Numbers in grey fields show the number of observations in the respective region."}
 
