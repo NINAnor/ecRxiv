@@ -26,11 +26,10 @@ code-links:
         icon: github
         href: https://github.com/NINAnor/ecRxiv
 bibliography: references.bib
+editor: 
+  markdown: 
+    wrap: 72
 ---
-
-<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
-
-<!--# Load all you dependencies here -->
 
 ```{r setup}
 #| include: false
@@ -100,7 +99,8 @@ status(st)
 ```
 
 ::: {layout-ncol="2"}
-> **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+> **Recomended citation**:
+> `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 > **Version**: `r version`
 :::
@@ -128,7 +128,7 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 
--   01 Jan. 1901 - Original PR
+-   26 Mar. 2025 - Original PR
 :::
 
 <hr />
@@ -137,32 +137,71 @@ meta |>
 
 ## 1. Summary
 
+Glaciers represents important structural elements in alpine ecosystems,
+providing melt water and local climate control. It is also a unique
+nature type in itself, with few, but very specialised, species living on
+or in association with the ice. Glaciers are permanently ice covered
+areas and they are sensitive to climate change, especially climate
+warming, which melts the ice. In Norway we have a rather detailed and
+precise map of the glacial extent from the period 1947-1985. Here we use
+this data as a representation of the climatic reference condition (pre
+climate warming), and compare this with an updated glacial extent map
+from 2018-2019 to create a normalised ecosystem condition indicator. The
+ecosystem assets (EA) are defined as intersections of bioclimatic
+regions and geographical regions. We have defined a threshold value
+(X~60~) as 10% remaining glacier area inside each EA, based on a general
+assumption (from Island Biogeography Theory) that further loss of area
+will result in \>10% local species extinctions.
 
-Glaciers represents both an important structural element in alpine ecosystems, providing melt water and local climate control. It is also a unique nature type in itself, with few, but very specialised, species living on or in association with the ice. Glaciers are permanently ice covered areas and they are sensitive to climate change, especially climate warming, which melts the ice. In Norway we have a rather detailed and precise map of the glacial extent from the period 1947-1985. Here we use this data as a representation of the climatic reference condition (pre climate warming), and compare the glacial extent with an update glacial extent map from 2018-2019 to create a normalised ecosystem condition indicator. The ecosystem assets are defined as intersections of bioclimatic regions and geographical regions. We have defined a threshold value (X~60~) as 10% remaining area, based on the assumption from Island Biogeography Theory that further loss of area will result in \>10% local species extinctions.
+Indicator uncertainty originates from two sources. Firste we introduce a
+3% error in the glacial estimates, based on the reported uncertainties
+in the mapping method. In practice we create a gaussian probability
+distribution (*n* = 1000, sd = 0.03 × mean), rather than a point
+estimate, to each EA. I then resample these probability distributions
+for each EA n times, with n equal to the area weight, and combine these
+samples into a joint probability distribution for the next spatial
+aggregation level. This also introduces the second type of uncertainty,
+which is the spatial variation in indicator values across EAs.
 
-Indicator uncertainty originates from two sources. Firste we introduce a 3% error in the glacial estimates, based on the reported uncertainties in the mapping method. In practice we assign a probability distribution, rather than a point estimate, to each EA. We then resample the probability distributions for each EA 1000 times, creating 1000 estimates for the spatially aggregated indicator value. This introduces the second type of uncertainty, which is the spatial variation in indicator values across EAs.
+The indicator is ready to be used. Future updates will require new maps
+of glacial extent in Norway, which is highly possible to produce from
+satellite imagery.
 
-The indicator is ready to be used. Future updates will require new maps of glacial extent in Norway, which is highly possible to produce from satellite imagery.
+I include in this fact sheet an analyses of the influence of using
+different areal weight, and different EA definitions. This work
+concludes that initial glacier extent should be used as area weights
+rather than total mountain area, and that the modifiable area unit
+problem is not having a very strong influence on the resulting
+aggregated probabilities.
 
-Interpretation: The indicator value represents the mean remaining glacial area across EAs.
+**Interpretation**: The indicator value represents the negative
+ecological effect of melting glacier ice, as a mean across the EAs. It
+does NOT directly represent the area of remaining glacier ice.
 
-Workflow
+**Simlified workflow**
 
 1.  Import glacial extent maps from two time periods
 
-2.  Import delineations for bioclimatic regions and geographical regions and intersect to create strata (ecosystem assets, EA)
+2.  Import delineations for bioclimatic regions and geographical regions
+    and intersect to create strata (ecosystem assets, EA)
 
 3.  Import alpine ecosystem mask
 
-4.  Compile spatial dataset where each EA has data on strata category, glacial area at two time points and total mountain area.
+4.  Compile spatial dataset where each EA has data on strata category,
+    glacial area at two time points and total mountain area.
 
-5.  Add 3% uncertainty to glacial extent estimates
+5.  Add 3% uncertainty to glacial extent estimates by replacing point
+    estimate with a probability sample (n = 1000)
 
-6.  Normalise variable at EA level by scaling, transforming and truncating.
+6.  Normalise variable at EA level by scaling, transforming and
+    truncating.
 
-7.  Resample within EAs and create a distribution of 1000 estimates of a spatially aggregate indicator value for geographical regions. Di this using two weighting schemes for comparison: weighted based on total mountain area or initial glacial area within each EA.
+7.  Make a weighted sample within EAs and create a new, joint sampling
+    distribution for a spatially aggregate indicator value for
+    geographical regions.
 
-8.  Aggregate spatially from geographical region to national level, also using bootstrapping.
+8.  Similarly, aggregate spatially from geographical region to national
+    level.
 
 9.  Summarise national estimate and 50%CI in a table
 
@@ -170,91 +209,115 @@ Workflow
 
 <!--# Describe the data you have used in more detail, it's origin, biases, availabilit ect.-->
 
+I mainly make use of two datasets on glacier extent in Norway. One
+covering the years 1947 to 1985 [@winsvold2014], and one covering
+2018-2019 [@andreassen2022]. The first dataset is made to represent the
+climatic reference condition (pre-climate change). It as a digitalised
+version of the N50 map, made based on the interpretation of aerial
+photos. The newer map is a classification based on Sentinel imagery. The
+uncertainties in both maps is said to be 3% (interpreted here as sd =
+mean × 0.03), but these are several generalisations embedded in this
+single number.
+
 ### 2.1 Spatial and temporal resolution and extent
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
+
+The data covers all of mainland Norway (defined here as the ecosystem
+accounting area, EAA), and two time steps (see above).
 
 ### 2.2 Original units
 
 <!--# What are the original units for the most relevant  variables in the data-->
 
+The original data is a vector map. Early in the workflow, I summarise
+these as summed area (m^2^) per EA.
+
 ### 2.3 Additional comments about the dataset
 
 <!--# Text here -->
+
+I know of no concrete plans to update the glacier extent map, but with
+the advent of remote sensing, this is indeed possible to to, and quite
+easy as well probably.
 
 #### 2.3.1 Instructions for citing, using and accessing data
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
 
-The glaciel extent maps are distributed under CC-BY 4.0. We have made a simplified (less columns) version of the dataset available on github in order to make the workflow more reproducible.
+The glaciel extent maps are distributed under CC-BY 4.0. We have made a
+simplified (less columns) version of the dataset available on github in
+order to make the workflow more reproducible.
 
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-
-Area of glaciers is categorised as describing a C1 - Landscape and seascape characteristic. This put emphasis in the role of glaciers as a unique habitat type and a structural element in alpine ecosystems. The indicator has previously been attributed to A1 - Physical state characteristics due to the importance of melt water.
+Area of glaciers is categorised as describing a *C1 - Landscape and
+seascape characteristic*. This puts emphasis in the role of glaciers as
+a unique habitat type and a structural element in alpine ecosystems. The
+indicator has previously been attributed to *A1 - Physical state
+characteristics* due to the importance of melt water.
 
 ### 3.2 Ecosystem condition characteristic
 
-
 ### 3.3 Other standards
 
-<!--# Optional: Add text about other spesific standards, e.g. national standards, and how the indicator relates to these -->
+In the Norwegian standard [@nybø2017] I place the indicator under the
+category *Landskapsøkologiske mønstre*.
 
 ### 3.4 Collinearities with other indicators
 
-<!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
+The indicator is in many ways unique, but will likely be collinear with
+other indicators that are similarly affected by climate warming.
 
 ### 3.5 Impact factors
 
-<!--# Describe the main natural and anthropogenic factors that affecst the metric -->
+Glaciers are mainly affected by climate change, especially climate
+warming [@zemp2025].
 
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
 
-<!--# Define the reference condition (or refer to where it is defined). Note the destinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
+The reference condition of mountain ecosystems are defined, in general
+terms, as one with minimal human impact. For the climate, the definition
+is more precisely defined as the time period 1961-1990, which is the
+last 30 year normal period before climate change became really
+prominent.
 
 ### 4.2 Reference levels
 
-```{=html}
-<!--# 
-
-If relevant (i.e. if you have normalised a variable), describe the reference levels used to normalise the variable. 
-
-Use the terminology where X~0~ referes to the referece level (the variable value) denoting the worst possible condition; X~100~denotes the optimum or best possible condition; and X~*n*~, where in is between 0 and 100, denotes any other anchoring points linking the variable scale to the indicator scale (e.g. the threshold value between good and bad condition X~60^). 
-
-Why was the current option chosen and how were the reference levels quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here.
-
- -->
-```
+Reference levels are defined for each EA uniquely based on the glacier
+extent in 1947-1985.
 
 #### 4.2.1 Spatial resolution and validity
 
-```{=html}
-<!--# 
-
-Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
-
- -->
-```
+The reference levels are defined for each EA, and can therefore only be
+used to normalise variables at that scale. However, reference levels can
+easily be recalculated for any spatial scale, as I have also done here.
+When testing out alternative aggregation pathways I had to create new
+reference levels for larger regions.
 
 ## 5. Uncertainties
 
-<!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
+There is some uncertainty in the mapping method,and this is said to be
+3%. There is also some uncertainty, or at least some arbitrariness, in
+how X~60~ is defined as 10% of X~100~.
 
 ## 6. References
 
-<!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
+::: {#refs}
+:::
 
 ## 7. Datasets
 
-<!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
-
 ### 7.1 Dataset A - Glacial extent 1947-1985
 
-This data is based on a combination of landsat imagery and digitized topographic maps [@winsvold2014]. We use this map as our reference condition and assume this glacial extent represents the climatic period 1961-1990.
+This data is based on a combination of landsat imagery and digitized
+topographic maps [@winsvold2014]. We use this map as our reference
+condition and assume this glacial extent represents the climatic period
+1961-1990.
 
 The dataset is manually downloaded.
 
@@ -276,7 +339,8 @@ dat_old <- readRDS(paste0(path, "/data/glacial_extent_old.rds"))
 
 ### 7.2 Dataset B - Glacial extent 2018-2019
 
-This is the map of glacial extent measured in ther period 2018-2019 [@andreassen2022].
+This is the map of glacial extent measured in the period 2018-2019
+[@andreassen2022].
 
 URL: https://nve.brage.unit.no/nve-xmlui/handle/11250/2836926
 
@@ -297,8 +361,10 @@ dat_new <- readRDS(paste0(path, "/data/glacial_extent_new.rds"))
 
 ### 7.3 Dataset C - Geographical regions
 
+I impart a delineation of five geographical regions in Norway that I
+will use as an intermediate aggregation level and for defining EA.
 
-```{r greg}
+```{r greg2}
 #| code-fold: true
 #| code-summary: "Importing geographical regions"
 
@@ -312,9 +378,21 @@ greg <- readRDS(paste0(path, "/data/regions.rds")) |>
 
 ### 7.4 Dataset D - Bioclimatic regions
 
-Here I import a map dataset of bioclimatic sones and sections for Norway [@bakkestuen2008]. The data licence is unknown, but we have the authors permission to use the data (Bakkestuen, *pers. com.*). There is, however, a [public WMS service](https://kartkatalog.geonorge.no/metadata/66f09e22-23a4-43c6-a0df-426d2b317890), but I don't known if the data is downloadable anywhere.
+Here I import a map dataset of bioclimatic sones and sections for Norway
+[@bakkestuen2008]. The data licence is unknown, but we have the authors
+permission to use the data (Bakkestuen, *pers. com.*). There is,
+however, a [public WMS
+service](https://kartkatalog.geonorge.no/metadata/66f09e22-23a4-43c6-a0df-426d2b317890),
+but I don't known if the data is downloadable anywhere.
 
-I combine the sones (related to heat sums and the north-south gradient) and sections (related to oceanity and the west-east gradient) into regions. There are 24 regions, but I will combine some sones and sections to reduce this amount. Since there are few glaciers in continental areas I will combine sections 4 and 5, since we don't need that high resolution in the EAs here. Similarly, I will combine the warmer sones 1 and 2.
+I combine the sones (related to heat sums and the north-south gradient)
+and sections (related to oceanity and the west-east gradient) into
+regions. There are 24 regions, but I will combine some sones and
+sections to reduce this amount. Since there are few glaciers in
+continental areas I will combine sections 4 and 5, since we don't need
+that high resolution in the EAs here. Similarly, I will combine the
+warmer sones 1 and 2. The total area of each bioclimatic region is shown
+in @fig-sonerOgSeksjoner.
 
 ```{r}
 #| eval: false
@@ -353,7 +431,6 @@ BCreg <- dplyr::left_join(soner , seksjoner |> select(-Shape), by = join_by(SSBI
 
 ```
 
-
 ```{r makeFig}
 #| eval: false
 #| code-summary: 'Make figure'
@@ -374,8 +451,6 @@ ggsave("../img/bcreg.png")
 knitr::include_graphics("../img/bcreg.png")
 ```
 
-
-
 ```{r}
 #| eval: false
 #| code-fold: true
@@ -395,8 +470,11 @@ BCreg <- readRDS(paste0(path, "/data/bioclimatic_regions.rds"))
 
 ### 7.5 Dataset E - Alpine ecosystem extent
 
-
-<!-- This extent map might be updated in the near future. I am not sure the origin of this map. Check the ECA rapport. -->
+I use a map of alpine extent that was also used by @framstad2021. It is
+based on certain open, terrestrial land cover types above the current
+/realised forest line. There is ongoing work to replace the ecosystem
+mask for the alpine main ecosystem. When such a map is ready, the
+workflow here can easily be updated.
 
 ```{r}
 #| eval: false
@@ -419,13 +497,16 @@ saveRDS(alpine, paste0(path, "/data/alpine_extent.rds"))
 alpine <- readRDS(paste0(path, "/data/alpine_extent.rds"))
 ```
 
-
 ## 8. Spatial units
 
-
+I use basically three spatial units: EAs (level 1; 70 units),
+geographical region (level 2, 5 units), and the EAA.
 
 ### 8.1 Ecosystem assets (EA)
-Next we need to create a dataset for the EAs. The EAs will be defined as the intersection between bioclimatic regions and geographical regions
+
+Here I create a dataset for the EAs. The EAs will be defined as the
+intersection between bioclimatic regions and geographical regions. Then
+I add total mountain area and glacier area as variables to this dataset.
 
 ```{r}
 #| eval: false
@@ -444,8 +525,6 @@ saveRDS(EA, paste0(path, "/data/EAs.rds"))
 #| include: false
 EA <- readRDS(paste0(path, "/data/EAs.rds"))
 ```
-
-Then we add total mountain area and glacier area as variables to the EA dataset.
 
 ```{r mountainArea}
 #| warning: false
@@ -468,7 +547,6 @@ temp_alpine <- EA |>
 #  theme_bw()
 
 ```
-
 
 ```{r calcCurrent}
 #| eval: false
@@ -502,7 +580,6 @@ temp_new <- readRDS(paste0(path, "/data/temp/temp_new.rds"))
 temp_old <- readRDS(paste0(path, "/data/temp/temp_old.rds"))
 ```
 
-
 ```{r join}
 #| code-summary: 'Add glacier and mountain extent to EA dataset' 
 EA <- EA |>
@@ -532,8 +609,11 @@ EA <- EA |>
 
 ```
 
-We see from @fig-area that glaciers are rare in sections 4 and 5 (good reason for combining them), and sone 1-3. We could perhaps have combined sone 3 along with sones 1 and 2, but it makes little difference.
-@fig-arealUnits show the summed glacial area for different spatial units. 
+We see from @fig-area that glaciers are rare in sections 4 and 5 (good
+reason for combining them), and sones 1-3. We could perhaps have
+combined sone 3 along with sones 1 and 2, but it makes little
+difference. @fig-arealUnits show the summed glacial area for different
+spatial units.
 
 ```{r fig-area}
 #| fig-cap: 'The extent of glacier and total mountain area for each geographical region (top), bioclimatic section (middle) and sone (bottom). The area for mountains is divided by 100 to get it on the same scale as glacier area for comparisons across regions.'
@@ -607,8 +687,6 @@ ggpubr::ggarrange(one, two, three, ncol= 1)
 
 ```
 
-
-
 ```{r figCurrent}
 #| code-summary: 'Make maps A and B'
 
@@ -633,14 +711,15 @@ map2 <- ggplot()+
 
 ```
 
-
 ### 8.2 Alternative EAs
 
-In order to test the influence of the modifiable area unit problem (MAUP), 
-I will define two alternative EAs, meaning two alternative minimum mapping units: 
-geographical region (greg), and country (EAA).
+In order to test the influence of the modifiable area unit problem
+(MAUP; @openshaw1984), I will define two alternative EAs, meaning two
+alternative minimum mapping units: geographical region (`greg`), and
+country (`EAA`).
 
-We also use the greg dataset as intermediate data when we aggregate from EAs to EAA.
+We also use the `greg` dataset as intermediate data when we aggregate
+from EAs to EAA.
 
 #### 8.2.1 greg and EEA
 
@@ -747,9 +826,8 @@ EAA <- EAA |>
 
 ```
 
-
 ```{r fig-arealUnits}
-#| fig-cap: 'Current glacier extent, either as the actuall occurences (A); the the summed area per ecosystem asset (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information the maps.'
+#| fig-cap: 'Current glacier extent, either as the actuall occurences (A); the the summed area per ecosystem asset (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information in the maps.'
 #| warning: false
 #| fig-height: 10
 #| fig-width: 8
@@ -784,29 +862,35 @@ ggpubr::ggarrange(
 
 ```
 
-
 ## 9. Analyses
 
-Now we go on to calcuate indicator values for the EAs, and then spatially aggregating them.
+I now go on to calculate indicator values for the EAs, and then
+spatially aggregating them.
 
 ### 9.1 Calculating indicator values (distributions) for the EAs
 
-The next steps are a follows: 
+The next steps are a follows:
 
-1. Add 3% methodological uncertainty to the data at the EA level by sampling
-n numbers from a normal distribution with sd = mean*0.03.
-1. Normalise the variable (now a prob. dist.) at the EA level using a piecewise linear transformation.
-1. Aggreate to next spatial level by sampling each probability distribution with n scaled to the area weights. Try different area weightings, both by total montain area and initial glacial area.
-1. Aggregate one more time to national level.
-1. Repeat for two alternative _entry points_, using either geographical region or the EEA as alternative EAs.
+1.  Add 3% methodological uncertainty to the data at the EA level by
+    sampling *n* numbers from a normal distribution with sd =
+    mean × 0.03.
+2.  Normalise the variable (now a prob. dist.) at the EA level using a
+    piecewise linear transformation.
+3.  Aggregate to next spatial level by sampling each probability
+    distribution with *n* scaled to the area weights. Try different area
+    weightings, both by total mountain area and initial glacial area.
+4.  Aggregate one more time to national level.
+5.  Repeat for two alternative *entry points*, using either geographical
+    region or the EEA as alternative EAs.
 
-
-The papers describing the galcier extent data report an estimated 3% uncertainty with their method [@andreassen2022].
-I assume this to mean the standard deviation is 3% of the mean. 
-I start by replacing the point estimates in each EA (and alternative EAs) 
-with a probability function centered on the point estimate, and with sd = mean * 0.03.
-In ecosystem accounting it is not common to allow uncertainty in the reference levels,
-but here it is quite easy to implement, and I therefore see no reason not to.
+The papers describing the glacier extent data report an estimated 3%
+uncertainty with their method [@andreassen2022]. I assume this to mean
+the standard deviation is 3% of the mean. I start by replacing the point
+estimates in each EA (and alternative EAs) with a probability
+distribution centered on the point estimate, and with sd = mean × 0.03.
+In ecosystem accounting it is not common to allow uncertainty in the
+reference levels, but here it is quite easy to implement, and I
+therefore see no reason not to.
 
 ```{r}
 #| warning: false
@@ -828,9 +912,11 @@ EA <- EA |>
 
 ```
 
-Then we normalise, using a piecewise linear transformation, and get similar probability distribution for indicator values.
-@tbl-normalise shows the dataset with indicator values (just the median value) at the EA level. 
-Also in that dataset are the actuall indicator probability distributions, which can be sampled.
+Then I normalise, using a piecewise linear transformation, and get
+similar probability distribution for indicator values. @tbl-normalise
+shows the dataset with indicator values (just the median value) at the
+EA level. Also in that dataset are the actual indicator probability
+distributions, which can be sampled.
 
 ```{r tbl-normalise}
 #| tbl-cap: 'Table of ecosystem assets, with variable values, X100 values (glacier area 1947-1985), indicator values and quartiles.'
@@ -914,23 +1000,24 @@ DT::datatable(EA |>
   ))
 ```
 
-
-
-
 ### 9.2 Aggregating to geographical regions
 
-Now we will spatially aggregate the indicator values to the level of geographic region.
-We do this by sampling the probability distributions of each EA proportional to the weight.
-As the weight, we we use the X~100~ value, i.e. the initial glacial area. 
-EAs with no glaciers in them get NA, and are not included in the aggregated value.
+Now I spatially aggregate the indicator values to the level of
+geographic region by sampling the probability distributions of each EA
+proportional to the weight. As the weight, we we use the X~100~ value,
+i.e. the initial glacial area. EAs with no glaciers in them get NA, and
+are not included in the aggregated value.
 
-For comparison, we also calcuate the aggregated values using mountain area (_mtArea_) as alternative weights, 
-and we refer to these indicator values with a _mtArea_ suffix. 
-We also try an approach where we calculate indicator values for geographical regions or EAA level directly, 
-that is to say, without using the original EAs at all. These indicator values get a _level2_ or _level3_ suffix, respectively.
+For comparison, we also calculate the aggregated values using mountain
+area (`mtArea`) as alternative weights, and we refer to these indicator
+values with a *mtArea* suffix. We also try an approach where we
+calculate indicator values for geographical regions or EAA level
+directly, that is to say, without using the original EAs at all. These
+indicator values get a *level2* or *level3* suffix, respectively.
 
-@tbl-gregAgg shows is the indicator values for the geographical regions. 
-The estimates differ quite a lot depending onthe weights used, which we also see in @fig-ridgde1.
+@tbl-gregAgg shows is the indicator values for the geographical regions.
+The estimates differ quite a lot depending onthe weights used, which we
+also see in @fig-ridgde1.
 
 ```{r gregAggx}
 #| code-fold: true
@@ -1012,8 +1099,6 @@ EA_to_greg <- ungroup(EA) |>
 
 ```
 
-
-
 ```{r createRidgePlot}
 #| eval: false
 #| code-fold: true
@@ -1048,9 +1133,8 @@ twoRidge <- EA_to_greg |>
 
 ```
 
-
-Now I add the spatially aggregated indicator values to the sf object with the 
-geographical regions so that we can make a map.
+Now I add the spatially aggregated indicator values to the sf object
+with the geographical regions so that we can make a map.
 
 ```{r}
 #| code-fold: true
@@ -1062,21 +1146,22 @@ greg <- greg |>
   st_as_sf()
 ```
 
-
 ### 9.3. Alternative EAs {#sec-ea2}
 
-What if we used different spatial units as the EAs. 
-Now I calculate the indicator value directly to the geographical regions. 
-This indicator will be named `indicator_level2` in the code.
-As we see from @fig-ridgde1 this creates smoother density plots. 
-In fact they are perfect gaussian distributions, since the 3% error was added 
-to the summed glacier area for the regions,
-and not on the initial glacier polygons, 
-which would also be a valid approach, but it would require a lot more memory.. 
-We also see that the probabilities generally match up well with the pane a and the 
-original weighting scheme.
-But comparing @tbl-gregAgg and @tbl-normaliseGreg we see that the point estimates are not identical,
-meaning that the two approaches are not perfectly commutative, and that some other dataset could give bigger (or smaller) differences between the two approaches than what se see here.
+What if we used different spatial units as the EAs?
+
+Now I calculate the indicator value directly to the geographical
+regions. This indicator will be named `indicator_level2` in the code and
+the figures. As we see from @fig-ridgde1 this creates smoother density
+plots. In fact they are practically perfect gaussian distributions,
+since the 3% error was added to the summed glacier area for the regions,
+and not on the initial glacier polygons (which would also be a valid
+approach, but it would require a lot more memory). We also see that the
+probabilities generally match up well with pane a and the original
+weighting scheme. But @tbl-gregAgg show us that the point estimates are
+not identical, meaning that the two approaches are not perfectly
+commutative, and that some other dataset could give bigger (or smaller)
+differences between the two approaches than what we see here.
 
 ```{r}
 #| code-fold: true
@@ -1166,6 +1251,8 @@ greg <- greg |>
 
 ```{r tbl-gregAgg}
 #| tbl-cap: 'Table with indicator values and quartiles for geographical regions.'
+#| code-fold: true
+#| code-summary: "Make table"
 
 
 DT::datatable(greg |>
@@ -1185,6 +1272,11 @@ DT::datatable(greg |>
 
 ```{r}
 #| eval: false
+#| code-fold: true
+#| code-summary: "Make third ridge plot"
+
+bw <- 0.015
+
 threeRidge <- greg_temp |>
   unnest_longer(indicator_dist_level2) |>
   ggplot(aes(x = indicator_dist_level2,
@@ -1201,24 +1293,25 @@ ggpubr::ggarrange(oneRidge, twoRidge, threeRidge,
 ggsave(paste0(path, "/img/ridge.png"))
 ```
 
-
-@fig-ridgde1 and @tbl-gregAgg show how the weighting by the mountain area of each EA generally reduces the indicator value,
-especially Midt-Norge (central Norway), where one EA (indicator value about 0.3)
-had very little (but not zero) glaciers to begin with (little weight in pane a), 
-but a lot of mountain area (high weight in pane b).
-We also see how _preaggregating_ to geographical regions creates more unimodal probability distributions (pane C).
+@fig-ridgde1 and @tbl-gregAgg show how the weighting by the mountain
+area of each EA generally reduces the indicator value, especially
+Midt-Norge (central Norway), where one EA (indicator value about 0.3)
+had very little (but not zero) glaciers to begin with (little weight in
+pane a), but a lot of mountain area (high weight in pane b). We also see
+how *preaggregating* to geographical regions creates more unimodal
+probability distributions (pane C).
 
 ```{r fig-ridgde1}
 #| echo: false
-#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original EAs using a weighting based on the initial glacial area. b) uses a weighting based on total mountain area in each EA. c) Uses geographical regions as alternative EAs.'
+#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original EAs using a weighting based on the initial glacial area. b) uses a weighting based on total mountain area in each EA. c) uses geographical regions as alternative EAs.'
 
 knitr::include_graphics(paste0(path, "/img/ridge.png"))
 ```
 
 ### 9.4 Aggregating to EAA
 
-Then we aggregate the reginal probability distributions to the entire ecosystem accounting area (EAA), 
-which is mainland Norway.
+Then I aggregate the regional probability distributions to the entire
+ecosystem accounting area (EAA), which is mainland Norway.
 
 ```{r tblEAAAgg}
 #| code-fold: true
@@ -1279,7 +1372,8 @@ greg_to_EAA <- ungroup(greg) |>
 
 ### 9.5 Alternative EA (EAA)
 
-Similar to in @sec-ea2 I will see what happens if I estimate the indicator value directly at the EAA level.
+Similar to in @sec-ea2 I will see what happens if I estimate the
+indicator value directly at the EAA level.
 
 ```{r}
 #| code-fold: true
@@ -1354,7 +1448,14 @@ DT::datatable(greg_to_EAA |>
 ```
 
 ```{r fig-eaaRidge}
-#| fig.cap: 'Distribution of indicator values for the EAA leel using four alternative aggregation pathways. Lines are quantiles.'
+#| fig.cap: 'Distribution of indicator values for the EAA level using four alternative aggregation pathways. Vertical lines are quartiles.'
+#| warning: false
+#| code-fold: true
+#| code-summary: "Make ridge plot"
+
+bw <- 0.015
+
+
 greg_to_EAA |>
   unnest_longer(prob_dist) |>
   ggplot(aes(x = prob_dist,
@@ -1373,26 +1474,31 @@ greg_to_EAA |>
 
 ## 10. Results
 
-@tbl-NormaliseEAA and @fig-eaaRidge show the indicator estaimates and distributions for the EAA level.
-I recomend using the _indicator_, i.e. the 
-indicator version using the aggregation pathway 
+@tbl-NormaliseEAA and @fig-eaaRidge show the indicator estaimates and
+distributions for the EAA level. I recomend using the *indicator*, i.e.
+the indicator version using the aggregation pathway
 
 $$
-sp.agg^1^ - [scale - transform - truncate] - sp-agg^2^ - sp.agg^3^
-$$ 
+sp.agg^1 - [scale - transform - truncate] - sp.agg^2 - sp.agg^3
+$$
 
-where ^1^ refers to the summation of glacial area inside each EA (_pre-aggregation_); 
-^2^ refers to aggregation to geographical region using weighted sampling and taking the median from the resulting distribution; 
-and ^3^ refers to further aggregation to the EAA, 
-also using weighted sampling from the probability 
-distribution of indicator values for the geographical region level.
+where ^1^ refers to the summation of glacial area inside each EA
+(*pre-aggregation*); ^2^ refers to aggregation to geographical region
+using weighted sampling and taking the median from the resulting
+distribution; and ^3^ refers to further aggregation to the EAA, also
+using weighted sampling from the probability distribution of indicator
+values for the geographical region level.
 
-
-@fig-maps show that at least three of the aggregation shemes are qualitatively similar, but not identical.
+@fig-maps show that at least three of the aggregation shemes are
+qualitatively similar, but not identical.
 
 ```{r}
 #| message: false
 #| eval: false
+#| code-fold: true
+#| code-summary: "Make maps"
+
+
 
 # add indicator data to EAA 
 EAA <- EAA |>
@@ -1467,15 +1573,20 @@ ggsave(paste0(path, "/img/allmaps.png"))
 ```
 
 ```{r fig-maps}
-#| fig-cap: 'Indicator estimates (median of probability distributions) at three spatial levels: EA level (top row); geographical region (second row); ecosystem accounting area (bottom row). The two latter aggregation levels are represnted with several approaches. _Indicator_ and _indicator_mtArea_ relies on data aggregated through the EA level, but _indicator_mtArea_ uses total mountain area, rather than initial glacier area, as the area weight during the aggregation. _Indicator level2_ refers to the approach where indicator values were estimated directly at the level of geographical regions, and _indicator_level3_ was estimated directly at the EAA level.'
+#| fig-cap: 'Indicator estimates (median of probability distributions) at three spatial levels: EA level (top row, level 1); geographical region (second row, level 2); ecosystem accounting area (bottom row, level 3). The two latter aggregation levels are represented with several approaches. _Indicator_ and _indicator_mtArea_ relies on data aggregated through the EA level, but _indicator_mtArea_ uses total mountain area, rather than initial glacier area, as the area weight during the aggregation. _Indicator level2_ refers to the approach where indicator values were estimated directly at the level of geographical regions, and _indicator_level3_ was estimated directly at the EAA level.'
+#| echo: false
 knitr::include_graphics(paste0(path, "/img/allmaps.png"))
 ```
 
-The final output is then the indicator estimate for the EAA level (@tbl-finalTable).
+The final output is then the indicator estimate for the EAA level
+(@tbl-finalTable).
 
 ```{r tbl-finalTable}
-#| include: false
-#| tbl-cap: 'Indicator values for NO_GLA_001 aggregated to EAA level'
+#| tbl-cap: 'Indicator values and the first and third quartile for NO_GLA_001 aggregated to EAA level'
+#| code-fold: true
+#| code-summary: "Make table"
+
+
 
 greg_to_EAA |>
   filter(Indicator_variant == "indicator") |>
