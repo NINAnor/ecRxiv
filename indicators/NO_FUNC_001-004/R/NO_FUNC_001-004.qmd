@@ -47,6 +47,7 @@ library(here)
 library(sf)
 library(readxl)
 library(plyr)
+library(dplyr)
 library(RColorBrewer)
 library("gridExtra") 
 library(ggridges)
@@ -163,9 +164,9 @@ Functional plant community indicators represent the response of the vascular pla
 Here, we build functional plant community indicators by combining field sampled plant community data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019) with functional plant indicator values from Tyler et al. (2021) and indicator values for plant strategies towards stressors from Grime (1974). We calculate the functional signatures of plant communities in the monitored sites with respect to various environmental variables depending on ecosystem type (not all variables are relevant for all ecosystem types). These functional signatures are then compared to reference distributions of functional signature, separately for each ecosystem type, calculated from ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020). These functional plant community indicators are developed following the principles and technical protocol of the IBECA framework (Jakobsson et al. 2021, Töpper & Jakobsson 2021).
 
 For grazing land and hay meadows as well as naturally open lowland ecosystems, the main challenges today are abandonment/land use change, climatic changes, pollution, and recreational overuse. Therefore, we use functional plant indicator values for light, moisture, pH, nitrogen, phosphorus, grazing/mowing, and soil disturbance as well as Grime's strategy indicator values for competition, abiotic stress, and disturbance. 
-For mountain ecosystems, the main challenges today are disturbance from human infrastructure, climatic changes, species range shifts  , and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for heat requirement, light, and nitrogen, respectively.
+For mountain ecosystems, the main challenges today are disturbance from human infrastructure, climatic changes, species range shifts, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for heat requirement, light, and nitrogen, respectively.
 For wetland ecosystems, the main challenges today are drainage, shrub/tree encroachment, pollution and climate change related changes in water table and moisture content.  Therefore, we use functional plant indicator values for moisture, light, pH, and nitrogen.
-For forest ecosystems, the main challenges today are disturbance from human infrastructure, climatic changes, and pollution  . For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for moisture and nitrogen.
+For forest ecosystems, the main challenges today are disturbance from human infrastructure, climatic changes, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for moisture and nitrogen.
 Note, that these indicators do not address the issue of loss of area, which is the overarching and dominating reason for biodiversity loss both globally and in Norway. This pressure is covered in the extent account and not the condition account.
 
 ## 2. About the underlying data
@@ -492,6 +493,16 @@ head(ANO.geo)
 ANO.geo$hovedtype_rute <- substr(ANO.geo$kartleggingsenhet_1m2,1,3) # take the 3 first characters
 ANO.geo$hovedtype_rute <- gsub("-", "", ANO.geo$hovedtype_rute) # remove hyphen
 unique(as.factor(ANO.geo$hovedtype_rute))
+
+ANO.geo$hovedoekosystem_rute <- ANO.geo$hovedtype_rute
+ANO.geo <- ANO.geo %>% mutate(hovedoekosystem_rute=recode(hovedoekosystem_rute, 
+                                                          'T4'='Forest', 'T30'='Forest',
+                                                          'T3'='Mountain', 'T7'='Mountain', 'T14'='Mountain', 'T22'='Mountain',
+                                                          'V1'='Wetland', 'V2'='Wetland', 'V3'='Wetland', 'V4'='Wetland', 'V5'='Wetland', 'V6'='Wetland', 'V7'='Wetland', 'V8'='Wetland', 
+                                                          'T31'='Seminat', 'T32'='Seminat', 'T33'='Seminat', 'T34'='Seminat','V9'='Seminat', 'V10'='Seminat',
+                                                          'T2'='Natopen', 'T8'='Natopen', 'T11'='Natopen', 'T12'='Natopen','T13'='Natopen', 'T15'='Natopen','T16'='Natopen', 'T18'='Natopen','T21'='Natopen', 'T24'='Natopen', 'T29'='Natopen'
+                                                          ))
+
 
 ## fix NiN-variables
 colnames(ANO.geo)
@@ -2689,6 +2700,10 @@ In order to calculate regional indices for the indicator(s) in addition to natio
 ## continuing with 2-sided
 res.ANO <- results.ANO[['2-sided']]
 
+# for each ANO point, aggregate all functional plant indicators relevant for the ecosystem of that ANO-point by the 'verste-styrer' principle (i.e. the lowest indicator defines the index for the overall functional plant community indicator result)
+res.ANO <- res.ANO %>% mutate(fpci.min = as.numeric(pmap(list(CC1,CC2,SS1,SS2,RR1,RR2,Light1,Light2,Moist1,Moist2,pH1,pH2,Nitrogen1,Nitrogen2,Phosphorus1,Phosphorus2,Grazing_mowing1,Grazing_mowing2,Soil_disturbance1,Soil_disturbance2,Heat_requirement2), min,na.rm=TRUE))) %>% 
+  mutate(fpci.min = na_if(fpci.min,Inf))
+
 # keep wide format and add geometry again
 st_geometry(res.ANO) <- st_geometry(ANO.all)
 
@@ -2702,7 +2717,7 @@ reg <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicato
 
 # change region names to something R-friendly
 reg$region
-reg$region <- c("Northern Norway","Central Norway","Eastern Norway","Western Norway","Southern Norway")
+reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
 
 regnor <- st_intersection(reg,nor)
 
@@ -2712,23 +2727,23 @@ res.ANO = st_join(res.ANO, regnor, left = TRUE)
 res.ANO.long <-
 res.ANO %>%
 pivot_longer(
-cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2"),
+cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2","fpci.min"),
 names_to = "fp_ind",
 values_to = "scaled_value",
 values_drop_na = FALSE
 )
 
 # add original values as well
-res.ANO.long <-
-res.ANO.long %>% add_column(original = results.ANO[['original']] %>%
-pivot_longer(
-cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2"),
-names_to = NULL,
-values_to = "original",
-values_drop_na = FALSE
-) %>%
-pull(original)
-)
+#res.ANO.long <-
+#res.ANO.long %>% add_column(original = results.ANO[['original']] %>%
+#pivot_longer(
+#cols = c("CC1","CC2","SS1","SS2","RR1","RR2","Light1","Light2","Moist1","Moist2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2","Heat_requirement2"),
+#names_to = NULL,
+#values_to = "original",
+#values_drop_na = FALSE
+#) %>%
+#pull(original)
+#)
 
 ```
 
@@ -2743,8 +2758,8 @@ Here, we apply the following function using either a glmmTMB null-model with a b
 ```{r}
 expit <- function(L) exp(L) / (1+exp(L)) # since the beta-models use a logit link, we need to calculate the estimates back to the identity scale
 
-# the function performs a glmmTMB if there's >= 5 random levels in the nesting structure
-# if that is not the case, then the function performs a betareg if theres >= 2 observations
+# the function performs a glmmTMB if there is >= 5 random levels in the nesting structure
+# if that is not the case, then the function performs a betareg if there is >= 2 observations
 # if that is not the case either, then the function returns the value of the single observation with NA standard error
 
 indmean.beta <- function(df) {
@@ -2752,10 +2767,16 @@ indmean.beta <- function(df) {
   st_geometry(df) <- NULL
   colnames(df) <- c("y","ran")
   
-  if ( nrow(df[!is.na(df[,1]),]) >= 2 ) {
-    
-    if ( length(unique(df[!is.na(df[,1]),2])) >=5 ) {
-      
+  # add/remove small increment to/from 0 or 1 for beta-regression
+  df <- df %>% 
+    mutate(y = ifelse(y == 0, 0.00001, y)) %>%
+    mutate(y = ifelse(y == 1, 0.99999, y))
+  
+  # at least 2 observations to do a regression
+  if ( nrow(df[!is.na(df[,"y"]),]) >= 2 ) {
+    # at least 5 random levels to do a random effects regression 
+    if ( nrow(unique(df[!is.na(df[,"y"]),"ran"])) >=5 ) {
+      # glmmTMB
       mod1 <- glmmTMB(y ~ 1 +(1|ran), family=beta_family(), data=df)
       
       return(c(
@@ -2771,7 +2792,7 @@ indmean.beta <- function(df) {
       ))
       
     } else {
-      
+      # betareg
       mod2 <- betareg(y ~ 1, data=df)
       
       return(c(
@@ -2787,8 +2808,11 @@ indmean.beta <- function(df) {
     }
     
   } else {
-    
-    return(c(df$y,NA,1,NA,NA))
+    # no regrssion run
+    #return only original value and n=1
+    #return(c(df$y,NA,nrow(df[!is.na(df$y),]),NA,NA))
+    #return only NAs
+    return(c(NA,NA,nrow(df[!is.na(df$y),]),NA,NA))
     
   }
 
@@ -2796,484 +2820,113 @@ indmean.beta <- function(df) {
 
 ```
 
+We define dataframes to hold the results and populate them with calculated indices
 
 ```{r}
+## forest ecosystems
+# list to hold the results
+NO_FUNC_004 <- list()
+NO_FUNC_004[['mean']] <- NO_FUNC_004[['se']] <- NO_FUNC_004[['n']] <-
+  data.frame(Indicator=c("fpci.min","Moist1","Moist2","Nitrogen1","Nitrogen2"),
+             'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
+# calculation of the beta-means
+for (i in 1:length(NO_FUNC_004[['mean']]$Indicator) ) {
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      NO_FUNC_004[['mean']][i,2] <- res[1]
+      NO_FUNC_004[['se']][i,2] <- res[2]
+      NO_FUNC_004[['n']][i,2] <- res[3]
+  for (j in names(NO_FUNC_004[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_004[['mean']][i,j] <- res[1]
+      NO_FUNC_004[['se']][i,j] <- res[2]
+      NO_FUNC_004[['n']][i,j] <- res[3]
+  }
+}
+ 
+## mountain ecosystems
+# list to hold the results
+NO_FUNC_002 <- list()
+NO_FUNC_002[['mean']] <- NO_FUNC_002[['se']] <- NO_FUNC_002[['n']] <-
+  data.frame(Indicator=c("fpci.min","Heat_requirement2","Light1","Light2","Nitrogen1","Nitrogen2"),
+             'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
+# calculation of the beta-means
+for (i in 1:length(NO_FUNC_002[['mean']]$Indicator) ) {
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      NO_FUNC_002[['mean']][i,2] <- res[1]
+      NO_FUNC_002[['se']][i,2] <- res[2]
+      NO_FUNC_002[['n']][i,2] <- res[3]
+  for (j in names(NO_FUNC_002[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_002[['mean']][i,j] <- res[1]
+      NO_FUNC_002[['se']][i,j] <- res[2]
+      NO_FUNC_002[['n']][i,j] <- res[3]
+  }
+}
 
+## wetland ecosystems
+# list to hold the results
+NO_FUNC_003 <- list()
+NO_FUNC_003[['mean']] <- NO_FUNC_003[['se']] <- NO_FUNC_003[['n']] <-
+  data.frame(Indicator=c("fpci.min","Moist1","Moist2","Light1","Light2","pH1","pH2","Nitrogen1","Nitrogen2"),
+             'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
+# calculation of the beta-means
+for (i in 1:length(NO_FUNC_003[['mean']]$Indicator) ) {
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      NO_FUNC_003[['mean']][i,2] <- res[1]
+      NO_FUNC_003[['se']][i,2] <- res[2]
+      NO_FUNC_003[['n']][i,2] <- res[3]
+  for (j in names(NO_FUNC_003[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_003[['mean']][i,j] <- res[1]
+      NO_FUNC_003[['se']][i,j] <- res[2]
+      NO_FUNC_003[['n']][i,j] <- res[3]
+  }
+}
 
-```
-
-
-
-
-
-
-
-
-
-### Ecosystem sub-types {#ecosystem-sub-types-fpiw}
-And we can show the resulting scaled values as Violin plots for each indicator and main ecosystem type 
-```{r fpiw-plot-maintype, message=FALSE, warning=FALSE, fig.cap="Scaled vegetation indicator values for wetlands. 1 = cases where variable is lower than the reference value- 2 = cases where variablei is higher than the reference value.", out.width='100%', echo=F}
-# making the plot
-ggplot(res.wetland, aes(x=factor(hovedtype_rute), y=scaled_value, fill=fp_ind)) + 
-  geom_hline(yintercept=0.6, linetype="dashed") + 
-  geom_violin() +
-#  geom_boxplot(width=0.2, color="grey") +
-  geom_point(size=0.7, shape=16, color="grey") +
-  facet_wrap(~factor(fp_ind,levels=c("Light1","Moist1","pH1","Nitrogen1","Light2","Moist2","pH2","Nitrogen2")), ncol = 4) + 
-  xlab("Wetland ecosystem sub-type") + 
-  ylab("Scaled indicator value") 
-```
-
-This figure is a bit easier to read if we remove the sub-types with very few data points:
-```{r fpiw-plot-maintype-v2, message=FALSE, warning=FALSE, fig.cap="Scaled vegetation indicator values for the four most common sub-types of wetland. 1 = cases where variable is lower than the reference value- 2 = cases where variablei is higher than the reference value.", out.width='100%'}
-ggplot(res.wetland[res.wetland$hovedtype_rute %in% c("V1", "V2", "V3", "V4"),], aes(x=factor(hovedtype_rute), y=scaled_value, fill=fp_ind)) + 
-  geom_hline(yintercept=0.6, linetype="dashed") + 
-  geom_violin() +
-#  geom_boxplot(width=0.2, color="grey") +
-  geom_point(size=0.7, shape=16, color="grey") +
-  facet_wrap(~factor(fp_ind,levels=c("Light1","Moist1","pH1","Nitrogen1","Light2","Moist2","pH2","Nitrogen2")), ncol = 4) + 
-  xlab("Wetland ecosystem sub-type") + 
-  ylab("Scaled indicator value") +
-  guides(fill='none')
-```
-
-
-### Indicator index maps
-We can also show the results as a map, for instance for pH1 (the lower pH indicator), either by directly plotting the data onto the map...
-
-```{r ph-lower-map-fpiw, warning=FALSE, message = FALSE, fig.cap="Functional plant indicator values for pH (lower) in wetlands."}
-#### scaled value maps ####
-# keep wide format and add geometry again
-res.wetland2 <- results.wetland[['2-sided']]
-st_geometry(res.wetland2) <- st_geometry(ANO.wetland)
-
-#nor <- readRDS('P:/41201785_okologisk_tilstand_2022_2023/data/rds/norway_outline.RDS')%>%
-#  st_as_sf() %>%
-#  st_transform(crs = crs(ANO.geo))
-
-nor <- st_read("data/outlineOfNorway_EPSG25833.shp")%>%
-  st_as_sf() %>%
-  st_transform(crs = crs(ANO.geo))
-
-#reg <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/regioner/regNorway_wgs84 - MERGED.shp")%>%
-#  st_as_sf() %>%
-#  st_transform(crs = crs(ANO.geo))
-
-reg <- st_read("data/regions.shp")%>%
-  st_as_sf() %>%
-  st_transform(crs = crs(ANO.geo))
-
-# change region names to something R-friendly
-reg$region
-reg$region <- c("Northern Norway","Central Norway","Eastern Norway","Western Norway","Southern Norway")
-
-regnor <- st_intersection(reg,nor)
-
-
-## scaled value maps
-# pH1 (lower indicator)
-tm_shape(regnor) +
-  tm_fill('GID_0', labels="", title="", legend.show = FALSE) + 
-  tm_borders() +
-  tm_shape(res.wetland2) +
-  tm_dots('pH1',midpoint=NA, palette=tmaptools::get_brewer_pal("YlOrRd", 7, plot = FALSE), scale=1, legend.show = FALSE) + # 
-  tm_layout(main.title = "pH (lower), wetland",legend.position = c("right", "bottom"), main.title.size=1.2) + 
-  tm_add_legend(type = "fill", 
-                col = c(tmaptools::get_brewer_pal("YlOrRd", 5, plot = FALSE),'grey'),
-                labels = c("0.0 - 0.2", "0.2 - 0.4", "0.4 - 0.6", 
-                           "0.6 - 0.8", "0.8 - 1.0", "NA"),
-                title = "index values")
-
-
-```
-
-...but here the colors and values of the data points on the map are hard to make out.
-
-### Regions - maps and statistics
-
-```{r ph-map-fpiw, fig.cap="Mean index value by region for the lower pH indicator (i.e. index shows deviations towards a more acidic environment). Numbers in grey fields show the number of observations in the respective region."}
-
-res.wetland2 = st_join(res.wetland2, regnor, left = TRUE)
-
-regnor <- regnor %>%
-  mutate(
-    pH1.reg.mean = c(indmean.beta(df=res.wetland2[res.wetland2$region=="Northern Norway",c("pH1","ano_flate_id")])[1],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Central Norway",c("pH1","ano_flate_id")])[1],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Eastern Norway",c("pH1","ano_flate_id")])[1],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Western Norway",c("pH1","ano_flate_id")])[1],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Southern Norway",c("pH1","ano_flate_id")])[1]
-    ),
-    pH1.reg.se = c(indmean.beta(df=res.wetland2[res.wetland2$region=="Northern Norway",c("pH1","ano_flate_id")])[2],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Central Norway",c("pH1","ano_flate_id")])[2],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Eastern Norway",c("pH1","ano_flate_id")])[2],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Western Norway",c("pH1","ano_flate_id")])[2],
-            indmean.beta(df=res.wetland2[res.wetland2$region=="Southern Norway",c("pH1","ano_flate_id")])[2]
-    ),
-    pH1.reg.n = c(nrow(res.wetland2[res.wetland2$region=="Northern Norway" & !is.na(res.wetland2$pH1),]),
-            nrow(res.wetland2[res.wetland2$region=="Central Norway" & !is.na(res.wetland2$pH1),]),
-            nrow(res.wetland2[res.wetland2$region=="Eastern Norway" & !is.na(res.wetland2$pH1),]),
-            nrow(res.wetland2[res.wetland2$region=="Western Norway" & !is.na(res.wetland2$pH1),]),
-            nrow(res.wetland2[res.wetland2$region=="Southern Norway" & !is.na(res.wetland2$pH1),])
-    )
-  )
-
-# Colour palettes
-myCol <- "RdYlGn"
-
-## scaled value maps for pH1 (lower indicator)
-# mean
-tm_shape(regnor) +
-  tm_polygons(col="pH1.reg.mean", title="pH (lower), mean", style="fixed", 
-              palette=myCol,
-              breaks = seq(0,1,.2)) +
-  tm_text("pH1.reg.n",col="black",bg.color="grey")
-```
-
-
-We can also plot the uncertainty, here represented as the spatial variation:
-```{r ph-se-fpiw, fig.cap="Standard error to the mean index value by region for the lower pH indicator. Numbers in grey fields show the number of observations in the respective region."}
-
-tm_shape(regnor) +
-  tm_polygons(col="pH1.reg.se", title="pH (lower), sd", style="quantile", palette=get_brewer_pal(palette="OrRd", n=5, plot=FALSE)) +
-  tm_text("pH1.reg.n",col="black",bg.color="grey")
+## open lowland ecosystems
+# list to hold the results
+NO_FUNC_001 <- list()
+NO_FUNC_001[['mean']] <- NO_FUNC_001[['se']] <- NO_FUNC_001[['n']] <-
+  data.frame(Indicator=c("fpci.min","CC1","CC2","SS1","SS2","RR1","RR2","Moist1","Moist2","Light1","Light2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2"),
+             'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
+# calculation of the beta-means
+for (i in 1:length(NO_FUNC_001[['mean']]$Indicator) ) {
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      NO_FUNC_001[['mean']][i,2] <- res[1]
+      NO_FUNC_001[['se']][i,2] <- res[2]
+      NO_FUNC_001[['n']][i,2] <- res[3]
+  for (j in names(NO_FUNC_001[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_001[['mean']][i,j] <- res[1]
+      NO_FUNC_001[['se']][i,j] <- res[2]
+      NO_FUNC_001[['n']][i,j] <- res[3]
+  }
+}
 
 ```
 
 
-### Unscaled values vs. reference
-We can also compare the unscaled values to the reference distribution in order to identify ecosystem types and functional plant indicators showing a deviation from the expectation. Since pH and nitrogen show some deviation in the lower indicator we exemplify this with these two indicators for unscaled values. (Only the code for the first figure is shown).
 
-```{r pH-distcomp-fpiw, fig.cap="Comparing the reference and variable distribution for the pH indicator in ecosystem sub-type V1."}
-    #summary(res.wetland$kartleggingsenhet_1m2)
-    #length(unique(res.wetland$kartleggingsenhet_1m2))
-# 16 NiN-types to plot
-    #colnames(wetland.ref.cov[['Soil_reaction_pH']])
-
-### pH
-par(mfrow=c(2,4))
-## V1s
-# V1-C-1
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C1a","V1-C1b","V1-C1c","V1-C1d","V1-C1e")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C1',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-1",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-1",]$original)),
-       col="red")
-
-# V1-C-2
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C2a","V1-C2b","V1-C2c","V1-C2d")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C2',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-2",]$original)),
-       col="red")
-
-# V1-C-3
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C3a","V1-C3b","V1-C3c","V1-C3d")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C3',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-3",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-3",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-3",]$original)),
-       col="red")
-
-# V1-C-4
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C4a","V1-C4b","V1-C4c","V1-C4d","V1-C4e","V1-C4f","V1-C4g","V1-C4h")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C4',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-4",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-4",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-4",]$original)),
-       col="red")
-
-# V1-C-5
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C5")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C5',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-5",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-5",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-5",]$original)),
-       col="red")
-
-# V1-C-6
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C6a","V1-C6b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C6',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-6",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-6",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-6",]$original)),
-       col="red")
-
-# V1-C-7
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C7a","V1-C7b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C7',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-7",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-7",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-7",]$original)),
-       col="red")
-
-# V1-C-8
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V1-C8a","V1-C8b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C8',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-8",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-8",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V1-C-8",]$original)),
-       col="red")
-```
-
-```{r ph-distcomp2-fpiw, fig.cap="Comparing the reference and variable distribution for the pH indicator in ecosystem sub-types other than V1.", echo=FALSE}
-par(mfrow=c(2,4))
-## V2s
-# V2-C-1
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V2-C1a","V2-C1b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V2-C1',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-1",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-1",]$original)),
-       col="red")
-
-# V2-C-2
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V2-C2a","V2-C2b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V2-C2',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-2",]$original)),
-       col="red")
-
-# V2-C-3
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V2-C3a","V2-C3b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V2-C3',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-3",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-3",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V2-C-3",]$original)),
-       col="red")
-
-## V3s
-# V3-C-1
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V3-C1a","V3-C1b","V3-C1c","V3-C1d","V3-C1e")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V3-C1',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V3-C-1",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V3-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V3-C-1",]$original)),
-       col="red")
-
-# V3-C-2
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V3-C2")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V3-C2',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V3-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V3-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V3-C-2",]$original)),
-       col="red")
-
-## V4s
-# V4-C-2
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V4-C2")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V4-C2',xlab='pH value')
-points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V4-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V4-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V4-C-2",]$original)),
-       col="red")
-
-
-## V8s
-# V8-C-1
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V8-C1")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V8-C1',xlab='pH value')
-#points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V8-C-1",]$original,na.rm=T),
-#       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V8-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V8-C-1",]$original)),
-       col="red")
-
-# V8-C-2
-plot(density( as.matrix(wetland.ref.cov[['Soil_reaction_pH']][,c("V8-C2")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V8-C2',xlab='pH value')
-#points(density(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V8-C-2",]$original,na.rm=T),
-#       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V8-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="pH1" & res.wetland$fp_ind=="pH1" & res.wetland$kartleggingsenhet_1m2=="V8-C-2",]$original)),
-       col="red")
-legend("topleft", legend=c("reference","field data"), pch=c(NA,1), lty=1, col=c("black","red"))
-```
-
-```{r n-distcomp-fpiw, fig.cap="Comparing the reference and variable distribution for the nitrogen affiliation indicator in ecosystem sub-type V1.", echo=F}
-### Nitrogen
-par(mfrow=c(2,4))
-## V1s
-# V1-C-1
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C1a","V1-C1b","V1-C1c","V1-C1d","V1-C1e")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C1',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-1",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-1",]$original)),
-       col="red")
-
-# V1-C-2
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C2a","V1-C2b","V1-C2c","V1-C2d")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C2',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-2",]$original)),
-       col="red")
-
-# V1-C-3
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C3a","V1-C3b","V1-C3c","V1-C3d")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C3',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-3",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-3",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-3",]$original)),
-       col="red")
-
-# V1-C-4
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C4a","V1-C4b","V1-C4c","V1-C4d","V1-C4e","V1-C4f","V1-C4g","V1-C4h")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C4',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-4",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-4",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-4",]$original)),
-       col="red")
-
-# V1-C-5
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C5")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C5',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-5",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-5",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-5",]$original)),
-       col="red")
-
-# V1-C-6
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C6a","V1-C6b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C6',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-6",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-6",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-6",]$original)),
-       col="red")
-
-# V1-C-7
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C7a","V1-C7b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C7',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-7",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-7",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-7",]$original)),
-       col="red")
-
-# V1-C-8
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V1-C8a","V1-C8b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V1-C8',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-8",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-8",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V1-C-8",]$original)),
-       col="red")
-```
-
-```{r n-distcomp2-fpiw, fig.cap="Comparing the reference and variable distribution for the nitrogen affiliation indicator in ecosystem sub-types other than V1.", echo=F}
-par(mfrow=c(2,4))
-## V2s
-# V2-C-1
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V2-C1a","V2-C1b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V2-C1',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-1",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-1",]$original)),
-       col="red")
-
-# V2-C-2
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V2-C2a","V2-C2b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V2-C2',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-2",]$original)),
-       col="red")
-
-# V2-C-3
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V2-C3a","V2-C3b")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V2-C3',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-3",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-3",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V2-C-3",]$original)),
-       col="red")
-
-## V3s
-# V3-C-1
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V3-C1a","V3-C1b","V3-C1c","V3-C1d","V3-C1e")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V3-C1',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V3-C-1",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V3-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V3-C-1",]$original)),
-       col="red")
-
-# V3-C-2
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V3-C2")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V3-C2',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V3-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V3-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V3-C-2",]$original)),
-       col="red")
-
-## V4s
-# V4-C-2
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V4-C2")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V4-C2',xlab='Nitrogen value')
-points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V4-C-2",]$original,na.rm=T),
-       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V4-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V4-C-2",]$original)),
-       col="red")
-
-## V8s
-# V8-C-1
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V8-C1")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V8-C1',xlab='Nitrogen value')
-#points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V8-C-1",]$original,na.rm=T),
-#       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V8-C-1",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V8-C-1",]$original)),
-       col="red")
-
-# V8-C-2
-plot(density( as.matrix(wetland.ref.cov[['Nitrogen']][,c("V8-C2")]) ,na.rm=T),
-     xlim=c(1,7), type="l", main='V8-C2',xlab='Nitrogen value')
-#points(density(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V8-C-2",]$original,na.rm=T),
-#       type="l", col="red")
-points(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V8-C-2",]$original,
-       rep(0,length(res.wetland[res.wetland$fp_ind=="Nitrogen1" & res.wetland$fp_ind=="Nitrogen1" & res.wetland$kartleggingsenhet_1m2=="V8-C-2",]$original)),
-       col="red")
-
-legend("topleft", legend=c("reference","field data"), pch=c(NA,1), lty=1, col=c("black","red"))
-```
 
 
 ## 10. Results
+```{r}
+NO_FUNC_001[['mean']]
+NO_FUNC_002[['mean']]
+NO_FUNC_003[['mean']]
 
-<!--# 
+### forest ecosystems - indices (mean), standard errors (se), and number of observations (n)
+## Indicators:
+# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
+# Moist1 = lower moisture indicator (i.e. deviations towards too little moisture)
+# Moist2 = upper moisture indicator (i.e. deviations towards too much moisture)
+# Nitrogen1 = lower moisture indicator (i.e. deviations towards too little nitrogen)
+# Nitrogen2 = upper moisture indicator (i.e. deviations towards too much nitrogen)
+NO_FUNC_004[['mean']]
+NO_FUNC_004[['se']]
+NO_FUNC_004[['n']]
 
-Repeat the final results here. Typically this is a map or table of indicator values.
-
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
-
--->
+```
 
 ## 11. Export file
 
