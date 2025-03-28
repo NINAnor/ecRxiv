@@ -2830,81 +2830,137 @@ We define dataframes to hold the results and populate them with calculated indic
 ```{r, echo = FALSE}
 ## forest ecosystems
 # list to hold the results
-NO_FUNC_004 <- list()
-NO_FUNC_004[['mean']] <- NO_FUNC_004[['se']] <- NO_FUNC_004[['n']] <-
+NO_FUNC_004_2022to2024 <- list()
+NO_FUNC_004_2019to2021 <- list()
+NO_FUNC_004_2022to2024[['mean']] <- NO_FUNC_004_2022to2024[['se']] <- NO_FUNC_004_2022to2024[['n']] <- NO_FUNC_004_2019to2021[['mean']] <- NO_FUNC_004_2019to2021[['se']] <- NO_FUNC_004_2019to2021[['n']] <-
   data.frame(Indicator=c("fpci.min","Moist1","Moist2","Nitrogen1","Nitrogen2"),
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
-for (i in 1:length(NO_FUNC_004[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Forest",c("scaled_value","ano_flate_id")])
-      NO_FUNC_004[['mean']][i,2] <- res[1]
-      NO_FUNC_004[['se']][i,2] <- res[2]
-      NO_FUNC_004[['n']][i,2] <- res[3]
-  for (j in names(NO_FUNC_004[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Forest" & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
-           NO_FUNC_004[['mean']][i,j] <- res[1]
-      NO_FUNC_004[['se']][i,j] <- res[2]
-      NO_FUNC_004[['n']][i,j] <- res[3]
+for (i in 1:length(NO_FUNC_004_2022to2024[['mean']]$Indicator) ) {
+  
+        res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Forest" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")])
+      NO_FUNC_004_2022to2024[['mean']][i,2] <- res[1]
+      NO_FUNC_004_2022to2024[['se']][i,2] <- res[2]
+      NO_FUNC_004_2022to2024[['n']][i,2] <- res[3]
+      
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Forest" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")])
+      NO_FUNC_004_2019to2021[['mean']][i,2] <- res[1]
+      NO_FUNC_004_2019to2021[['se']][i,2] <- res[2]
+      NO_FUNC_004_2019to2021[['n']][i,2] <- res[3]
+      
+      
+  for (j in names(NO_FUNC_004_2022to2024[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Forest" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_004_2022to2024[['mean']][i,j] <- res[1]
+      NO_FUNC_004_2022to2024[['se']][i,j] <- res[2]
+      NO_FUNC_004_2022to2024[['n']][i,j] <- res[3]
+      
+           res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Forest" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_004_2019to2021[['mean']][i,j] <- res[1]
+      NO_FUNC_004_2019to2021[['se']][i,j] <- res[2]
+      NO_FUNC_004_2019to2021[['n']][i,j] <- res[3]
   }
 }
  
 ## mountain ecosystems
 # list to hold the results
-NO_FUNC_002 <- list()
-NO_FUNC_002[['mean']] <- NO_FUNC_002[['se']] <- NO_FUNC_002[['n']] <-
+NO_FUNC_002_2022to2024 <- list()
+NO_FUNC_002_2019to2021 <- list()
+NO_FUNC_002_2022to2024[['mean']] <- NO_FUNC_002_2022to2024[['se']] <- NO_FUNC_002_2022to2024[['n']] <- NO_FUNC_002_2019to2021[['mean']] <- NO_FUNC_002_2019to2021[['se']] <- NO_FUNC_002_2019to2021[['n']] <-
   data.frame(Indicator=c("fpci.min","Heat_requirement2","Light1","Light2","Nitrogen1","Nitrogen2"),
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
-for (i in 1:length(NO_FUNC_002[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain",c("scaled_value","ano_flate_id")])
-      NO_FUNC_002[['mean']][i,2] <- res[1]
-      NO_FUNC_002[['se']][i,2] <- res[2]
-      NO_FUNC_002[['n']][i,2] <- res[3]
-  for (j in names(NO_FUNC_002[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain" & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
-           NO_FUNC_002[['mean']][i,j] <- res[1]
-      NO_FUNC_002[['se']][i,j] <- res[2]
-      NO_FUNC_002[['n']][i,j] <- res[3]
+for (i in 1:length(NO_FUNC_002_2022to2024[['mean']]$Indicator) ) {
+  
+        res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Mountain" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")])
+      NO_FUNC_002_2022to2024[['mean']][i,2] <- res[1]
+      NO_FUNC_002_2022to2024[['se']][i,2] <- res[2]
+      NO_FUNC_002_2022to2024[['n']][i,2] <- res[3]
+      
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Mountain" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")])
+      NO_FUNC_002_2019to2021[['mean']][i,2] <- res[1]
+      NO_FUNC_002_2019to2021[['se']][i,2] <- res[2]
+      NO_FUNC_002_2019to2021[['n']][i,2] <- res[3]
+      
+      
+  for (j in names(NO_FUNC_002_2022to2024[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_002_2022to2024[['mean']][i,j] <- res[1]
+      NO_FUNC_002_2022to2024[['se']][i,j] <- res[2]
+      NO_FUNC_002_2022to2024[['n']][i,j] <- res[3]
+      
+           res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_002_2019to2021[['mean']][i,j] <- res[1]
+      NO_FUNC_002_2019to2021[['se']][i,j] <- res[2]
+      NO_FUNC_002_2019to2021[['n']][i,j] <- res[3]
   }
 }
 
 ## wetland ecosystems
 # list to hold the results
-NO_FUNC_003 <- list()
-NO_FUNC_003[['mean']] <- NO_FUNC_003[['se']] <- NO_FUNC_003[['n']] <-
+NO_FUNC_003_2022to2024 <- list()
+NO_FUNC_003_2019to2021 <- list()
+NO_FUNC_003_2022to2024[['mean']] <- NO_FUNC_003_2022to2024[['se']] <- NO_FUNC_003_2022to2024[['n']] <- NO_FUNC_003_2019to2021[['mean']] <- NO_FUNC_003_2019to2021[['se']] <- NO_FUNC_003_2019to2021[['n']] <-
   data.frame(Indicator=c("fpci.min","Moist1","Moist2","Light1","Light2","pH1","pH2","Nitrogen1","Nitrogen2"),
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
-for (i in 1:length(NO_FUNC_003[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland",c("scaled_value","ano_flate_id")])
-      NO_FUNC_003[['mean']][i,2] <- res[1]
-      NO_FUNC_003[['se']][i,2] <- res[2]
-      NO_FUNC_003[['n']][i,2] <- res[3]
-  for (j in names(NO_FUNC_003[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland" & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
-           NO_FUNC_003[['mean']][i,j] <- res[1]
-      NO_FUNC_003[['se']][i,j] <- res[2]
-      NO_FUNC_003[['n']][i,j] <- res[3]
+for (i in 1:length(NO_FUNC_003_2022to2024[['mean']]$Indicator) ) {
+  
+        res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Wetland" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")])
+      NO_FUNC_003_2022to2024[['mean']][i,2] <- res[1]
+      NO_FUNC_003_2022to2024[['se']][i,2] <- res[2]
+      NO_FUNC_003_2022to2024[['n']][i,2] <- res[3]
+      
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Wetland" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")])
+      NO_FUNC_003_2019to2021[['mean']][i,2] <- res[1]
+      NO_FUNC_003_2019to2021[['se']][i,2] <- res[2]
+      NO_FUNC_003_2019to2021[['n']][i,2] <- res[3]
+      
+      
+  for (j in names(NO_FUNC_003_2022to2024[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_003_2022to2024[['mean']][i,j] <- res[1]
+      NO_FUNC_003_2022to2024[['se']][i,j] <- res[2]
+      NO_FUNC_003_2022to2024[['n']][i,j] <- res[3]
+      
+           res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_003_2019to2021[['mean']][i,j] <- res[1]
+      NO_FUNC_003_2019to2021[['se']][i,j] <- res[2]
+      NO_FUNC_003_2019to2021[['n']][i,j] <- res[3]
   }
 }
 
 ## open lowland ecosystems
 # list to hold the results
-NO_FUNC_001 <- list()
-NO_FUNC_001[['mean']] <- NO_FUNC_001[['se']] <- NO_FUNC_001[['n']] <-
+NO_FUNC_001_2022to2024 <- list()
+NO_FUNC_001_2019to2021 <- list()
+NO_FUNC_001_2022to2024[['mean']] <- NO_FUNC_001_2022to2024[['se']] <- NO_FUNC_001_2022to2024[['n']] <- NO_FUNC_001_2019to2021[['mean']] <- NO_FUNC_001_2019to2021[['se']] <- NO_FUNC_001_2019to2021[['n']] <-
   data.frame(Indicator=c("fpci.min","CC1","CC2","SS1","SS2","RR1","RR2","Moist1","Moist2","Light1","Light2","pH1","pH2","Nitrogen1","Nitrogen2","Phosphorus1","Phosphorus2","Grazing_mowing1","Grazing_mowing2","Soil_disturbance1","Soil_disturbance2"),
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
-for (i in 1:length(NO_FUNC_001[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen"),c("scaled_value","ano_flate_id")])
-      NO_FUNC_001[['mean']][i,2] <- res[1]
-      NO_FUNC_001[['se']][i,2] <- res[2]
-      NO_FUNC_001[['n']][i,2] <- res[3]
-  for (j in names(NO_FUNC_001[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
-           NO_FUNC_001[['mean']][i,j] <- res[1]
-      NO_FUNC_001[['se']][i,j] <- res[2]
-      NO_FUNC_001[['n']][i,j] <- res[3]
+for (i in 1:length(NO_FUNC_001_2022to2024[['mean']]$Indicator) ) {
+  
+        res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")])
+      NO_FUNC_001_2022to2024[['mean']][i,2] <- res[1]
+      NO_FUNC_001_2022to2024[['se']][i,2] <- res[2]
+      NO_FUNC_001_2022to2024[['n']][i,2] <- res[3]
+      
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")])
+      NO_FUNC_001_2019to2021[['mean']][i,2] <- res[1]
+      NO_FUNC_001_2019to2021[['se']][i,2] <- res[2]
+      NO_FUNC_001_2019to2021[['n']][i,2] <- res[3]
+      
+      
+  for (j in names(NO_FUNC_001_2022to2024[['mean']])[3:7] ) {
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_001_2022to2024[['mean']][i,j] <- res[1]
+      NO_FUNC_001_2022to2024[['se']][i,j] <- res[2]
+      NO_FUNC_001_2022to2024[['n']][i,j] <- res[3]
+      
+           res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+           NO_FUNC_001_2019to2021[['mean']][i,j] <- res[1]
+      NO_FUNC_001_2019to2021[['se']][i,j] <- res[2]
+      NO_FUNC_001_2019to2021[['n']][i,j] <- res[3]
   }
 }
 
@@ -2923,36 +2979,52 @@ for (i in 1:length(NO_FUNC_001[['mean']]$Indicator) ) {
 # CC, SS, RR =  Grime's C, S and R
 # xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
 # xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
-NO_FUNC_001[['mean']]
-NO_FUNC_001[['se']]
-NO_FUNC_001[['n']]
+NO_FUNC_001_2022to2024[['mean']]
+NO_FUNC_001_2022to2024[['se']]
+NO_FUNC_001_2022to2024[['n']]
+
+NO_FUNC_001_2019to2021[['mean']]
+NO_FUNC_001_2019to2021[['se']]
+NO_FUNC_001_2019to2021[['n']]
 
 ### mountain ecosystems - indices (mean), standard errors (se), and number of observations (n)
 ## Indicators:
 # fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
 # xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
 # xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
-NO_FUNC_002[['mean']]
-NO_FUNC_002[['se']]
-NO_FUNC_002[['n']]
+NO_FUNC_002_2022to2024[['mean']]
+NO_FUNC_002_2022to2024[['se']]
+NO_FUNC_002_2022to2024[['n']]
+
+NO_FUNC_002_2019to2021[['mean']]
+NO_FUNC_002_2019to2021[['se']]
+NO_FUNC_002_2019to2021[['n']]
 
 ### wetland ecosystems - indices (mean), standard errors (se), and number of observations (n)
 ## Indicators:
 # fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
 # xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
 # xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
-NO_FUNC_003[['mean']]
-NO_FUNC_003[['se']]
-NO_FUNC_003[['n']]
+NO_FUNC_003_2022to2024[['mean']]
+NO_FUNC_003_2022to2024[['se']]
+NO_FUNC_003_2022to2024[['n']]
+
+NO_FUNC_003_2019to2021[['mean']]
+NO_FUNC_003_2019to2021[['se']]
+NO_FUNC_003_2019to2021[['n']]
 
 ### forest ecosystems - indices (mean), standard errors (se), and number of observations (n)
 ## Indicators:
 # fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
 # xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
 # xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
-NO_FUNC_004[['mean']]
-NO_FUNC_004[['se']]
-NO_FUNC_004[['n']]
+NO_FUNC_004_2022to2024[['mean']]
+NO_FUNC_004_2022to2024[['se']]
+NO_FUNC_004_2022to2024[['n']]
+
+NO_FUNC_004_2019to2021[['mean']]
+NO_FUNC_004_2019to2021[['se']]
+NO_FUNC_004_2019to2021[['n']]
 
 ```
 
