@@ -2129,7 +2129,7 @@ results.ANO[['original']]$globalid <- as.factor(results.ANO[['original']]$global
 results.ANO[['original']]$ano_flate_id <- as.factor(results.ANO[['original']]$ano_flate_id)
 results.ANO[['original']]$ano_punkt_id <- as.factor(results.ANO[['original']]$ano_punkt_id)
 results.ANO[['original']]$hovedoekosystem_250m2 <- as.factor(results.ANO[['original']]$hovedoekosystem_250m2)
-#results.ANO[['original']]$Hovedoekosystem_rute  <- as.factor(results.ANO[['original']]$Hovedoekosystem_rute )
+results.ANO[['original']]$hovedoekosystem_rute  <- as.factor(results.ANO[['original']]$hovedoekosystem_rute)
 results.ANO[['original']]$kartleggingsenhet_1m2 <- as.factor(results.ANO[['original']]$kartleggingsenhet_1m2)
 results.ANO[['original']]$hovedtype_rute    <- as.factor(results.ANO[['original']]$hovedtype_rute)
 
@@ -2139,7 +2139,7 @@ results.ANO[['scaled']] <- results.ANO[['non-truncated']] <- results.ANO[['origi
 
 ```
 
-```{r, eval = F}
+```{r, eval = F, echo = F}
 
 #### calculating scaled and non-truncated values for the indicators based on the dataset ####
 for (i in 1:nrow(ANO.all) ) {  #
@@ -2695,13 +2695,18 @@ head(results.ANO[['2-sided']]) %>%
 
 In order to calculate regional indices for the indicator(s) in addition to national ones we need add information on region to the results-object before rearrange the results-object from wide to long format (note that there is both a lower and an upper condition indicator for each of the functional plant community indicators other than Heat-requirement).
 
-```{r, message = FALSE}
+```{r, message = FALSE, echo = FALSE}
 #### preparing results data for calculating of indices ####
 ## continuing with 2-sided
 res.ANO <- results.ANO[['2-sided']]
 
 # for each ANO point, aggregate all functional plant indicators relevant for the ecosystem of that ANO-point by the 'verste-styrer' principle (i.e. the lowest indicator defines the index for the overall functional plant community indicator result)
-res.ANO <- res.ANO %>% mutate(fpci.min = as.numeric(pmap(list(CC1,CC2,SS1,SS2,RR1,RR2,Light1,Light2,Moist1,Moist2,pH1,pH2,Nitrogen1,Nitrogen2,Phosphorus1,Phosphorus2,Grazing_mowing1,Grazing_mowing2,Soil_disturbance1,Soil_disturbance2,Heat_requirement2), min,na.rm=TRUE))) %>% 
+res.ANO <- res.ANO %>% 
+  mutate(fpci.min = ifelse(hovedoekosystem_rute == 'Forest', as.numeric(pmap(list(Moist1,Moist2,Nitrogen1,Nitrogen2), min,na.rm=TRUE)), 
+                           ifelse(hovedoekosystem_rute == 'Mountain', as.numeric(pmap(list(Light1,Light2,Nitrogen1,Nitrogen2,Heat_requirement2), min,na.rm=TRUE)), 
+                                  ifelse(hovedoekosystem_rute == 'Wetland', as.numeric(pmap(list(Light1,Light2,Moist1,Moist2,pH1,pH2,Nitrogen1,Nitrogen2), min,na.rm=TRUE)), 
+                                         ifelse(hovedoekosystem_rute %in% c('Seminat','Natopen'), as.numeric(pmap(list(CC1,CC2,SS1,SS2,RR1,RR2,Light1,Light2,Moist1,Moist2,pH1,pH2,Nitrogen1,Nitrogen2,Phosphorus1,Phosphorus2,Grazing_mowing1,Grazing_mowing2,Soil_disturbance1,Soil_disturbance2), min,na.rm=TRUE)), NA) 
+                                         ))) ) %>% 
   mutate(fpci.min = na_if(fpci.min,Inf))
 
 # keep wide format and add geometry again
@@ -2831,12 +2836,12 @@ NO_FUNC_004[['mean']] <- NO_FUNC_004[['se']] <- NO_FUNC_004[['n']] <-
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
 for (i in 1:length(NO_FUNC_004[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Forest",c("scaled_value","ano_flate_id")])
       NO_FUNC_004[['mean']][i,2] <- res[1]
       NO_FUNC_004[['se']][i,2] <- res[2]
       NO_FUNC_004[['n']][i,2] <- res[3]
   for (j in names(NO_FUNC_004[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Forest" & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
            NO_FUNC_004[['mean']][i,j] <- res[1]
       NO_FUNC_004[['se']][i,j] <- res[2]
       NO_FUNC_004[['n']][i,j] <- res[3]
@@ -2851,12 +2856,12 @@ NO_FUNC_002[['mean']] <- NO_FUNC_002[['se']] <- NO_FUNC_002[['n']] <-
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
 for (i in 1:length(NO_FUNC_002[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain",c("scaled_value","ano_flate_id")])
       NO_FUNC_002[['mean']][i,2] <- res[1]
       NO_FUNC_002[['se']][i,2] <- res[2]
       NO_FUNC_002[['n']][i,2] <- res[3]
   for (j in names(NO_FUNC_002[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain" & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
            NO_FUNC_002[['mean']][i,j] <- res[1]
       NO_FUNC_002[['se']][i,j] <- res[2]
       NO_FUNC_002[['n']][i,j] <- res[3]
@@ -2871,12 +2876,12 @@ NO_FUNC_003[['mean']] <- NO_FUNC_003[['se']] <- NO_FUNC_003[['n']] <-
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
 for (i in 1:length(NO_FUNC_003[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland",c("scaled_value","ano_flate_id")])
       NO_FUNC_003[['mean']][i,2] <- res[1]
       NO_FUNC_003[['se']][i,2] <- res[2]
       NO_FUNC_003[['n']][i,2] <- res[3]
   for (j in names(NO_FUNC_003[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland" & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
            NO_FUNC_003[['mean']][i,j] <- res[1]
       NO_FUNC_003[['se']][i,j] <- res[2]
       NO_FUNC_003[['n']][i,j] <- res[3]
@@ -2891,12 +2896,12 @@ NO_FUNC_001[['mean']] <- NO_FUNC_001[['se']] <- NO_FUNC_001[['n']] <-
              'Norway'=NA,'Northern.Norway'=NA, 'Central.Norway'=NA, 'Western.Norway'=NA,'Eastern.Norway'=NA, 'Southern.Norway'=NA)
 # calculation of the beta-means
 for (i in 1:length(NO_FUNC_001[['mean']]$Indicator) ) {
-      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i],c("scaled_value","ano_flate_id")])
+      res <-  indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen"),c("scaled_value","ano_flate_id")])
       NO_FUNC_001[['mean']][i,2] <- res[1]
       NO_FUNC_001[['se']][i,2] <- res[2]
       NO_FUNC_001[['n']][i,2] <- res[3]
   for (j in names(NO_FUNC_001[['mean']])[3:7] ) {
-     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
+     res <- indmean.beta(df=res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001[['mean']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") & res.ANO.long$region==j,c("scaled_value","ano_flate_id")])
            NO_FUNC_001[['mean']][i,j] <- res[1]
       NO_FUNC_001[['se']][i,j] <- res[2]
       NO_FUNC_001[['n']][i,j] <- res[3]
@@ -2911,17 +2916,40 @@ for (i in 1:length(NO_FUNC_001[['mean']]$Indicator) ) {
 
 ## 10. Results
 ```{r}
+
+### open lowland (seminat & natopen) ecosystems - indices (mean), standard errors (se), and number of observations (n)
+## Indicators:
+# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
+# CC, SS, RR =  Grime's C, S and R
+# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
+# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
 NO_FUNC_001[['mean']]
+NO_FUNC_001[['se']]
+NO_FUNC_001[['n']]
+
+### mountain ecosystems - indices (mean), standard errors (se), and number of observations (n)
+## Indicators:
+# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
+# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
+# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
 NO_FUNC_002[['mean']]
+NO_FUNC_002[['se']]
+NO_FUNC_002[['n']]
+
+### wetland ecosystems - indices (mean), standard errors (se), and number of observations (n)
+## Indicators:
+# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
+# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
+# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
 NO_FUNC_003[['mean']]
+NO_FUNC_003[['se']]
+NO_FUNC_003[['n']]
 
 ### forest ecosystems - indices (mean), standard errors (se), and number of observations (n)
 ## Indicators:
 # fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
-# Moist1 = lower moisture indicator (i.e. deviations towards too little moisture)
-# Moist2 = upper moisture indicator (i.e. deviations towards too much moisture)
-# Nitrogen1 = lower moisture indicator (i.e. deviations towards too little nitrogen)
-# Nitrogen2 = upper moisture indicator (i.e. deviations towards too much nitrogen)
+# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
+# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
 NO_FUNC_004[['mean']]
 NO_FUNC_004[['se']]
 NO_FUNC_004[['n']]
