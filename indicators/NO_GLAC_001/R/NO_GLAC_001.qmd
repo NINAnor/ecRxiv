@@ -1472,6 +1472,97 @@ greg_to_EAA |>
 
 ```
 
+### 9.6 Gradient analysis
+
+Although not required, it is a nice validation of the method of we can
+look at the indicator values across some environemental gradients and
+find the expected trends. I will threefore aggregate the indicator
+values (EA level) to the different sones and sections.
+
+```{r gradientAnalysis}
+#| code-fold: true
+#| code-summary: "Aggregate from EA to bioclimatic sones and sections"
+
+# create new variables
+gradient <- ungroup(EA) |>
+  separate(BCregion,
+    into = c("section", "sone"),
+    sep = " ",
+    extra = "merge",
+    remove = F)
+
+
+gradientx <- gradient |>  
+  drop_na(indicator) |>
+  group_by(EA_ID, sone, section) |>
+  # sample with weights
+  reframe(
+    indicator_strata_dist = 
+      list(
+        sample(
+          unlist(indicator_dist),
+          size = glacierAreaOld*10^-4,
+          replace = T))) |>
+  # concactenate the weighted samples
+  group_by(sone) |>
+  summarise(indicator_strata_dist = list(unlist(indicator_strata_dist))) |>
+  # get summary values
+  ungroup() |>
+  rowwise() |>
+  mutate(
+    indicator_strata = ifelse(
+      !is.null(indicator_strata_dist),
+      median(unlist(indicator_strata_dist)),
+      NA),
+  # add first and third quartile
+    indicator_Q1_strata = ifelse(
+      !is.null(indicator_strata_dist),
+      quantile(unlist(indicator_strata_dist), probs = 0.25),
+      NA), 
+    indicator_Q3_strata = ifelse(
+      !is.null(indicator_strata_dist),
+      quantile(unlist(indicator_strata_dist), probs = 0.75),
+      NA)
+  )
+
+
+```
+
+```{r ridgeGradient}
+#| eval: false
+#| code-fold: true
+#| code-summary: "Create ridge plot"
+
+# set bandwidth
+bw <- 0.015
+
+oneRidge <- EA_to_greg |>
+  unnest_longer(indicator_dist) |>
+  ggplot(aes(x = indicator_dist,
+             y = region)) +
+  geom_density_ridges(
+         fill = "skyblue",
+         bandwidth = bw) +
+  labs(y = "",
+       x = "Indicator values")+
+  xlim(.55, 1)
+
+twoRidge <- EA_to_greg |>
+  unnest_longer(indicator_mtArea_dist) |>
+  ggplot(aes(x = indicator_mtArea_dist,
+             y = region)) +
+  geom_density_ridges(
+         fill = "lightgreen",
+         bandwidth = bw) +
+  labs(y = "",
+       x = "Indicator values (alternative weights)")+
+  xlim(.55, 1)
+
+# ggpubr::ggarrange(oneRidge, twoRidge, ncol=1, labels = "auto")  
+
+```
+
+
 ## 10. Results
 
 @tbl-NormaliseEAA and @fig-eaaRidge show the indicator estaimates and
