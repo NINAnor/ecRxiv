@@ -408,7 +408,18 @@ soner <- sf::read_sf(pathD, layer = "Soner2017") |>
     .default = Sone_kode
   ))
 
-# unique(soner2$Sone)
+# unique(soner$Sone) # where is the middle and high alpine sone?
+# I checked the WMS data and there the alpine sones are all combined
+# I check the extents against the geographical region map to ensure no big data holes
+# and it looks ok. 
+
+#soner |>
+#  mutate(area = st_area(Shape)) |>
+#  summarise(area = sum(area)/10^6) # 351 402 [km^2]
+#
+#greg |>
+#  mutate(area = st_area(geometry)) |>
+#  summarise(area = sum(area)/10^6) # 325 462.2 [km^2]
 
 seksjoner <- sf::read_sf(pathD, layer = "Seksjoner2017") |> 
   as_tibble() |>
@@ -467,6 +478,8 @@ saveRDS(BCreg, paste0(path, "/data/bioclimatic_regions.rds"))
 # read cache
 BCreg <- readRDS(paste0(path, "/data/bioclimatic_regions.rds"))
 ```
+
+
 
 ### 7.5 Dataset E - Alpine ecosystem extent
 
@@ -1000,6 +1013,76 @@ DT::datatable(EA |>
   ))
 ```
 
+@fig-EAglacArea show the current (2018-2019) glacier extent per EA,
+stratified by bioclimatic sone and region. Clearly most glaciers are in section 2, 
+which is the _clearly oceanic section_. High percipitation is a prerequitese for glaciers. 
+Section 1 has even more precipitation, but is also warmer and has less total extent (@fig-sonerOgSeksjoner).
+
+Of the sones, its mainly in the alpine sones (sone 5) where we find glaciers. 
+@fig-gradientIndicator show how the warmer sones also have a little lower indicator values,
+as expected.
+
+```{r fig-EAglacArea}
+#| fig-cap: 'Current glacier extent (2018-2019) for individual ecosystem assets (bars) stratified by bioclimatic sones and coloured by bioclimatic regions.'
+
+EA |>
+  ungroup() |>
+  separate(BCregion,
+    into = c("section", "sone"),
+    sep = " ",
+    extra = "merge",
+    remove = F) |>
+  drop_na(glacierAreaCurrent) |>
+  ggplot() +
+  geom_col(aes(
+    x = fct_reorder(factor(EA_ID), glacierAreaCurrent), 
+    y = glacierAreaCurrent,
+    fill = sone),
+    ) +
+  coord_flip() +
+  theme_bw() +
+  labs(y = "Glacier extent (m2)") +
+  facet_wrap(.~section,
+             scales = "free_y") +
+  theme(
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+```
+
+```{r fig-gradientIndicator}
+#| fig-cap: 'Indicator values for individual ecosystem assets (bars) stratified by bioclimatic sones and coloured by bioclimatic regions.'
+
+EA |>
+  ungroup() |>
+  separate(BCregion,
+    into = c("section", "sone"),
+    sep = " ",
+    extra = "merge",
+    remove = F) |>
+  drop_na(indicator) |>
+  ggplot() +
+  geom_col(aes(
+    x = fct_reorder(factor(EA_ID), indicator), 
+    y = indicator,
+    fill = sone),
+    ) +
+  coord_flip() +
+  theme_bw() +
+  labs(y = "Indicator value") +
+  facet_wrap(.~section,
+             scales = "free_y") +
+  theme(
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+```
+
+
+
+
 ### 9.2 Aggregating to geographical regions
 
 Now I spatially aggregate the indicator values to the level of
@@ -1471,6 +1554,7 @@ greg_to_EAA |>
   xlim(.55, 1)
 
 ```
+
 
 ## 10. Results
 
