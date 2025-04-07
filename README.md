@@ -53,17 +53,17 @@ BRANCH NAME is likely to be `main` in the above. Now, specify additional folders
 
 `git sparse-checkout set <dir1>/<dir2>`
 
-If you are starting to work on a new indicator (not updating an existing indicator), dir1 should be `indicators` and dir2 should be `template_copy_folder_then_rename`
+If you are starting to work on a new indicator (not updating an existing indicator), dir1 should be `indicators` and dir2 should be `template_copy_folder_then_rename`. Leave the git bash window open. 
 
-
-3.  Copy the `template` folder and name the new folder, and files and folders inside it, according to our [naming convention](https://github.com/NINAnor/ecRxiv/wiki#naming-convention). Make sure not to simply rename the `template` folder - make a real copy.
-4.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` (don't rename this file as it is automatically read and used to populate tables in the quarto file). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recomended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
-5.  Render the quarto file to html
-6.  Do a pull request (PR) from your forked repo to the `main` branch in this repo.
-7.  Administrators of this repo will check that the submission (the PR) is done properly and that all files have been named in the correct way. If you have submitted data and code, this review will also include checking that the code is able to locate the data and run, and that proper code annotation is provided. Revise the PR until it reached the requirements set by the administrators.
-8.  The PR will be merged with the `main` branch and the indicator documentation (the rendered html) will be published on an online web application.
-9.  The publicly available documentation is now subject to voluntary review, for which there are separate guidelines.
-10.  The PR authors can revise their documentation as many time as needed, and in response to review by peers. Major revisions may result in the creation of a new version number for the original indicator.
+3.  Copy the `template_copy_folder_then_rename` folder and name the new folder, and files and folders inside it, according to our [naming convention](https://github.com/NINAnor/ecRxiv/wiki#naming-convention). Make sure not to simply rename the `template` folder - make a real copy.
+4.  Update the sparse checkout. The sparse checkout is set up to read only the `template_copy_folder_then_rename` folder, but you now want to work in the new folder you just created. Bring up the git bash window again and type `git sparse-checkout set <indicators>/<NEW_FOLDER_NAME>` where NEW_FOLDER_NAME will be the indicator ID(s).
+5.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` (don't rename this file as it is automatically read and used to populate tables in the quarto file). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recomended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
+6.  Render the quarto file to html
+7.  Do a pull request (PR) from your forked repo to the `main` branch in this repo.
+8.  Administrators of this repo will check that the submission (the PR) is done properly and that all files have been named in the correct way. If you have submitted data and code, this review will also include checking that the code is able to locate the data and run, and that proper code annotation is provided. Revise the PR until it reached the requirements set by the administrators.
+9.  The PR will be merged with the `main` branch and the indicator documentation (the rendered html) will be published on an online web application.
+10.  The publicly available documentation is now subject to voluntary review, for which there are separate guidelines.
+11.  The PR authors can revise their documentation as many time as needed, and in response to review by peers. Major revisions may result in the creation of a new version number for the original indicator.
 
 
 
