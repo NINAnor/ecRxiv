@@ -1,5 +1,5 @@
 ---
-title: "Glacial area"
+title: "Glacier area"
 subtitle: "[NO_GLAC_001]"
 format: 
   html:
@@ -17,7 +17,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research 
-date: March 5, 2025
+date: April 8, 2025
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -143,9 +143,9 @@ nature type in itself, with few, but very specialised, species living on
 or in association with the ice. Glaciers are permanently ice covered
 areas and they are sensitive to climate change, especially climate
 warming, which melts the ice. In Norway we have a rather detailed and
-precise map of the glacial extent from the period 1947-1985. Here we use
+precise map of the glacier cover or extent from the period 1947-1985. Here we use
 this data as a representation of the climatic reference condition (pre
-climate warming), and compare this with an updated glacial extent map
+climate warming), and compare this with an updated glacier cover map
 from 2018-2019 to create a normalised ecosystem condition indicator. The
 ecosystem assets (EA) are defined as intersections of bioclimatic
 regions and geographical regions. We have defined a threshold value
@@ -154,7 +154,7 @@ assumption (from Island Biogeography Theory) that further loss of area
 will result in \>10% local species extinctions.
 
 Indicator uncertainty originates from two sources. Firste we introduce a
-3% error in the glacial estimates, based on the reported uncertainties
+3% error in the glacier cover estimates, based on the reported uncertainties
 in the mapping method. In practice we create a gaussian probability
 distribution (*n* = 1000, sd = 0.03 × mean), rather than a point
 estimate, to each EA. I then resample these probability distributions
@@ -164,7 +164,7 @@ aggregation level. This also introduces the second type of uncertainty,
 which is the spatial variation in indicator values across EAs.
 
 The indicator is ready to be used. Future updates will require new maps
-of glacial extent in Norway, which is highly possible to produce from
+of glacier cover in Norway, which is highly possible to produce from
 satellite imagery.
 
 I include in this fact sheet an analyses of the influence of using
@@ -180,7 +180,7 @@ does NOT directly represent the area of remaining glacier ice.
 
 **Simlified workflow**
 
-1.  Import glacial extent maps from two time periods
+1.  Import glacier cover maps from two time periods
 
 2.  Import delineations for bioclimatic regions and geographical regions
     and intersect to create strata (ecosystem assets, EA)
@@ -188,9 +188,9 @@ does NOT directly represent the area of remaining glacier ice.
 3.  Import alpine ecosystem mask
 
 4.  Compile spatial dataset where each EA has data on strata category,
-    glacial area at two time points and total mountain area.
+    glacier area at two time points and total mountain area.
 
-5.  Add 3% uncertainty to glacial extent estimates by replacing point
+5.  Add 3% uncertainty to glacier cover estimates by replacing point
     estimate with a probability sample (n = 1000)
 
 6.  Normalise variable at EA level by scaling, transforming and
@@ -312,11 +312,11 @@ how X~60~ is defined as 10% of X~100~.
 
 ## 7. Datasets
 
-### 7.1 Dataset A - Glacial extent 1947-1985
+### 7.1 Dataset A - Glacier cover 1947-1985
 
 This data is based on a combination of landsat imagery and digitized
 topographic maps [@winsvold2014]. We use this map as our reference
-condition and assume this glacial extent represents the climatic period
+condition and assume this glacier cover represents the climatic period
 1961-1990.
 
 The dataset is manually downloaded.
@@ -337,9 +337,9 @@ saveRDS(dat_old, paste0(path, "/data/glacial_extent_old.rds"))
 dat_old <- readRDS(paste0(path, "/data/glacial_extent_old.rds"))
 ```
 
-### 7.2 Dataset B - Glacial extent 2018-2019
+### 7.2 Dataset B - Glacier cover 2018-2019
 
-This is the map of glacial extent measured in the period 2018-2019
+This is the map of glacier cover measured in the period 2018-2019
 [@andreassen2022].
 
 URL: https://nve.brage.unit.no/nve-xmlui/handle/11250/2836926
@@ -521,6 +521,10 @@ Here I create a dataset for the EAs. The EAs will be defined as the
 intersection between bioclimatic regions and geographical regions. Then
 I add total mountain area and glacier area as variables to this dataset.
 
+Note that the EA are not contiguous, and so metric values shold not be 
+presented at the EA level as maps since data from other geographical areas inside 
+each EA strata is informed from the entire EA.
+
 ```{r}
 #| eval: false
 #| code-summary: 'Create EA dataset'
@@ -593,18 +597,8 @@ if(!file.exists(paste0(path, "/data/dat_old_union.rds"))){
     temp_old <- readRDS(paste0(path, "/data/temp_old.rds"))
   }
 
-
-
-
-
 ```
 
-```{r}
-#| include: false
-
-
-
-```
 
 ```{r join}
 #| code-summary: 'Add glacier and mountain extent to EA dataset' 
@@ -638,7 +632,7 @@ EA <- EA |>
 We see from @fig-area that glaciers are rare in sections 4 and 5 (good
 reason for combining them), and sones 1-3. We could perhaps have
 combined sone 3 along with sones 1 and 2, but it makes little
-difference. @fig-arealUnits show the summed glacial area for different
+difference. @fig-arealUnits show the summed glacier area for different
 spatial units.
 
 ```{r fig-area}
@@ -868,9 +862,6 @@ map3 <- greg |>
   ) +
   scale_fill_gradient(low = "skyblue", high = "dodgerblue4")
 
-
-
-
 map4 <- EAA |>
   #mutate(glacierAreaCurrent = replace_na(glacierAreaCurrent, 0)) |>
   ggplot() +
@@ -886,6 +877,7 @@ ggpubr::ggarrange(
   map3, map4, 
   labels="AUTO")
 
+# ggsave("../img/spUnits.png", bg = "white")
 ```
 
 ## 9. Analyses
@@ -904,7 +896,7 @@ The next steps are a follows:
     piecewise linear transformation.
 3.  Aggregate to next spatial level by sampling each probability
     distribution with *n* scaled to the area weights. Try different area
-    weightings, both by total mountain area and initial glacial area.
+    weightings, both by total mountain area and initial glacier area.
 4.  Aggregate one more time to national level.
 5.  Repeat for two alternative *entry points*, using either geographical
     region or the EEA as alternative EAs.
@@ -961,6 +953,10 @@ EAtemp <- EA |>
   rename(variable = glacierAreaCurrent_dist, 
          x100 = glacierAreaOld_dist) |>
   mutate(
+    # replace NA with zero if EA had glaciers, but lost them
+    variable = case_when(
+      is.na(variable) & x100 > 0 ~ 0,
+      .default = variable),
     # define x60 value
     x60 = x100*0.1,
     # normalise using piecewise linear transfomation
@@ -1095,13 +1091,12 @@ EA |>
 
 
 
-
 ### 9.2 Aggregating to geographical regions
 
 Now I spatially aggregate the indicator values to the level of
 geographic region by sampling the probability distributions of each EA
 proportional to the weight. As the weight, we we use the X~100~ value,
-i.e. the initial glacial area. EAs with no glaciers in them get NA, and
+i.e. the initial glacier area. EAs with no glaciers in them get NA, and
 are not included in the aggregated value.
 
 For comparison, we also calculate the aggregated values using mountain
@@ -1196,34 +1191,55 @@ EA_to_greg <- ungroup(EA) |>
 ```
 
 ```{r createRidgePlot}
-#| eval: false
+#| eval: true
 #| code-fold: true
 #| code-summary: "Create ridge plot"
 
 # set bandwidth
 bw <- 0.015
 
-oneRidge <- EA_to_greg |>
-  unnest_longer(indicator_dist) |>
-  ggplot(aes(x = indicator_dist,
-             y = region)) +
-  geom_density_ridges(
-         fill = "skyblue",
-         bandwidth = bw) +
-  labs(y = "",
-       x = "Indicator values")+
-  xlim(.55, 1)
 
-twoRidge <- EA_to_greg |>
-  unnest_longer(indicator_mtArea_dist) |>
-  ggplot(aes(x = indicator_mtArea_dist,
-             y = region)) +
-  geom_density_ridges(
-         fill = "lightgreen",
-         bandwidth = bw) +
-  labs(y = "",
-       x = "Indicator values (alternative weights)")+
-  xlim(.55, 1)
+# the ridge plots are uge files and stop the rendering of the html.
+# thats why I sample 300 values, enough to get a smooth curve, and
+# run the code only on first excecution.
+
+if(!file.exists(paste0(path, "/data/temp_oneRidge.rds"))){
+  oneRidge <- ungroup(EA_to_greg) |>
+    unnest_longer(indicator_dist) |>
+    slice_sample(n = 300,
+                 by = region) |>
+    ggplot(aes(x = indicator_dist,
+               y = region)) +
+    geom_density_ridges(
+           fill = "skyblue",
+           bandwidth = bw) +
+    labs(y = "",
+         x = "Indicator values")+
+    xlim(.55, 1)
+  saveRDS(oneRidge, paste0(path, "/data/temp_oneRidge.rds"))
+} else {
+    oneRidge <- readRDS(paste0(path, "/data/temp_oneRidge.rds"))
+  }
+
+if(!file.exists(paste0(path, "/data/temp_twoRidge.rds"))){
+  twoRidge <- ungroup(EA_to_greg) |>
+    unnest_longer(indicator_mtArea_dist) |>
+    slice_sample(n = 300,
+                 by = region) |>
+    ggplot(aes(x = indicator_mtArea_dist,
+               y = region)) +
+    geom_density_ridges(
+           fill = "lightgreen",
+           bandwidth = bw) +
+    labs(y = "",
+         x = "Indicator values (alternative weights)")+
+    xlim(.55, 1)
+  saveRDS(twoRidge, paste0(path, "/data/temp_twoRidge.rds"))
+} else {
+    twoRidge <- readRDS(paste0(path, "/data/temp_twoRidge.rds"))
+  }
+
+
 
 # ggpubr::ggarrange(oneRidge, twoRidge, ncol=1, labels = "auto")  
 
@@ -1366,27 +1382,32 @@ DT::datatable(greg |>
   ))
 ```
 
-```{r}
-#| eval: false
+```{r ridge3}
+#| eval: true
 #| code-fold: true
 #| code-summary: "Make third ridge plot"
+#| warning: false
 
 bw <- 0.015
 
-threeRidge <- greg_temp |>
-  unnest_longer(indicator_dist_level2) |>
-  ggplot(aes(x = indicator_dist_level2,
-             y = region)) +
-  geom_density_ridges(
-         fill = "orchid1",
-         bandwidth = bw) +
-  labs(y = "",
-       x = "Indicator values (alternative EA approach)") +
-  xlim(.55, 1)
 
-ggpubr::ggarrange(oneRidge, twoRidge, threeRidge, 
-                  ncol=1, labels = "auto") 
-ggsave(paste0(path, "/img/ridge.png"))
+if(!file.exists(paste0(path, "/data/temp_threeRidge.rds"))){
+  threeRidge <- greg_temp |>
+    unnest_longer(indicator_dist_level2) |>
+    ggplot(aes(x = indicator_dist_level2,
+               y = region)) +
+    geom_density_ridges(
+           fill = "orchid1",
+           bandwidth = bw) +
+    labs(y = "",
+         x = "Indicator values (alternative EA approach)") +
+    xlim(.55, 1)
+  saveRDS(threeRidge, paste0(path, "/data/temp_threeRidge.rds"))
+} else {
+    threeRidge <- readRDS(paste0(path, "/data/temp_threeRidge.rds"))
+  }
+
+
 ```
 
 @fig-ridgde1 and @tbl-gregAgg show how the weighting by the mountain
@@ -1399,9 +1420,13 @@ probability distributions (pane C).
 
 ```{r fig-ridgde1}
 #| echo: false
-#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original EAs using a weighting based on the initial glacial area. b) uses a weighting based on total mountain area in each EA. c) uses geographical regions as alternative EAs.'
+#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original EAs using a weighting based on the initial glacier area. b) uses a weighting based on total mountain area in each EA. c) uses geographical regions as alternative EAs.'
+#| warning: false
+ggpubr::ggarrange(oneRidge, twoRidge, threeRidge, 
+                  ncol=1, labels = "auto") 
 
-knitr::include_graphics(paste0(path, "/img/ridge.png"))
+#ggsave(paste0(path, "/img/ridge.png"))
+#knitr::include_graphics(paste0(path, "/img/ridge.png"))
 ```
 
 ### 9.4 Aggregating to EAA
@@ -1579,7 +1604,7 @@ $$
 sp.agg^1 - [scale - transform - truncate] - sp.agg^2 - sp.agg^3
 $$
 
-where ^1^ refers to the summation of glacial area inside each EA
+where ^1^ refers to the summation of glacier area inside each EA
 (*pre-aggregation*); ^2^ refers to aggregation to geographical region
 using weighted sampling and taking the median from the resulting
 distribution; and ^3^ refers to further aggregation to the EAA, also
