@@ -562,35 +562,48 @@ temp_alpine <- EA |>
 ```
 
 ```{r calcCurrent}
-#| eval: false
+#| eval: true
 #| code-summary: 'Intersect EAs and glacier maps'
-# This code block is a bit slow to run. 1 minute maybe.
-dat_new_union <- st_union(dat_new)
-dat_old_union <- st_union(dat_old)
 
-temp_new <- EA |>
-  st_intersection(dat_new_union) |>
-  mutate(glacierAreaCurrent = units::drop_units(st_area(Shape))) |>
-  as_tibble()
+# Runs cone only if the files are not caches, in which case they are somly read back.
 
-temp_old <- EA |>
-  st_intersection(dat_old_union) |>
-  mutate(glacierAreaOld = units::drop_units(st_area(Shape))) |>
-  as_tibble()
+if(!file.exists(paste0(path, "/data/dat_new_union.rds"))) {
+  dat_new_union <- st_union(dat_new)
+  temp_new <- EA |>
+    st_intersection(dat_new_union) |>
+    mutate(glacierAreaCurrent = units::drop_units(st_area(Shape))) |>
+    as_tibble()
+  saveRDS(temp_new, paste0(path, "/data/temp_new.rds"))
+  saveRDS(dat_new_union, paste0(path, "/data/dat_new_union.rds"))
+} else {
+  dat_new_union <- readRDS(paste0(path, "/data/dat_new_union.rds"))
+  temp_new <- readRDS(paste0(path, "/data/temp_new.rds"))
+  }
 
-saveRDS(dat_new_union, paste0(path, "/data/temp/dat_new_union.rds"))
-saveRDS(dat_old_union, paste0(path, "/data/temp/dat_old_union.rds"))
-saveRDS(temp_new, paste0(path, "/data/temp/temp_new.rds"))
-saveRDS(temp_old, paste0(path, "/data/temp/temp_old.rds"))
+if(!file.exists(paste0(path, "/data/dat_old_union.rds"))){
+  dat_old_union <- st_union(dat_old)
+  temp_old <- EA |>
+    st_intersection(dat_old_union) |>
+    mutate(glacierAreaOld = units::drop_units(st_area(Shape))) |>
+    as_tibble()
+  saveRDS(dat_old_union, paste0(path, "/data/dat_old_union.rds"))
+  saveRDS(temp_old, paste0(path, "/data/temp_old.rds"))
+} else {
+    dat_old_union <- readRDS(paste0(path, "/data/dat_old_union.rds"))
+    temp_old <- readRDS(paste0(path, "/data/temp_old.rds"))
+  }
+
+
+
+
+
 ```
 
 ```{r}
 #| include: false
 
-dat_new_union <- readRDS(paste0(path, "/data/temp/dat_new_union.rds"))
-dat_old_union <- readRDS(paste0(path, "/data/temp/dat_old_union.rds"))
-temp_new <- readRDS(paste0(path, "/data/temp/temp_new.rds"))
-temp_old <- readRDS(paste0(path, "/data/temp/temp_old.rds"))
+
+
 ```
 
 ```{r join}
