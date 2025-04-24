@@ -282,6 +282,83 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 
 ## 9. Analyses
 
+### 9.1 URGR_10
+#### 9.1.1 Preparation of the data
+First we need to create separate data sets for each ecosystem types that are relevant to include in "urban green ecosystems". According to the @cond-gn-eurostat, all ecosystem types in the EU Ecosystem Types Typology with a green cover should be included. This means that Marine Ecosystems and Settlements and Other Artificial areas are discarded.  There is however specific mention of including the categories "Urban green" and "Discontinuous urban areas". 
+```{r}
+#| eval: false
+#| code-summary: "Create Ecosystem Types datasets"
+
+# Code co-created by Sylvie Clappe and Jennifer E. Hansen
+# path to the Grunnkart data
+gdb_folder <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format"
+
+# list the gdb files
+gdb_files <- list.files(gdb_folder, pattern = "_gdb\\.gdb$", 
+                        full.names = TRUE)
+
+# read the first file and stor its Coordinate Reference System (CRS)
+gk_crs <- st_read(gdb_files[1]) %>%
+            crs()
+
+# create a function to read the gdb files and re-project them n a common CRS
+read_gdb <- function(gdb_path, projection_crs) {
+  tryCatch({
+    layer <- st_read(dsn = gdb_path, layer = "arealregnskap", query = query_string)
+  }, error = function(e) {
+    message("Error reading: ", gdb_path, "\n", e)
+    return(NULL)  # error handling
+  })
+  
+  if (crs(layer) == projection_crs){
+    return(layer)} 
+  else{
+    layer_proj <- st_transform(layer, crs = projection_crs)
+    print(crs(layer_proj))
+    return(layer_proj)
+  }
+}
+
+# create a list of SQL queries and name them: one per ecosystem type
+query_string_list <- list()
+
+query_string_list[[1]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Discontinuous settlement area'"
+query_string_list[[2]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Urban greenspace'"
+query_string_list[[3]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Lakes and ponds'"
+query_string_list[[4]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Cropland'"
+query_string_list[[5]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Grassland'"
+query_string_list[[6]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Inland wetlands'"
+query_string_list[[7]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Sparsely vegetated ecosystems'"
+query_string_list[[8]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Rivers and canals'"
+query_string_list[[9]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Coastal beaches, dunes and wetlands'"
+query_string_list[[10]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Heathland and shrub'"
+query_string_list[[11]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Forest and woodlands'"
+
+
+names(query_string_list) <- c("Discontinuous settlement area",
+                              "Urban greenspace",
+                              "Lakes and ponds",
+                              "Cropland",
+                              "Grassland",
+                              "Inland wetland",
+                              "Sparsely vegetated ecosystems",
+                              "Rivers and canals",
+                              "Coastal beaches, sand dunes and wetlands",
+                              "Forest and woodland",
+                              "Heathland and shrub")
+
+# run SQL query and store results in a list
+for (i in 1: length(query_string_list)){
+query_string <- query_string_list[[i]] 
+
+et_data <- gdb_files %>% 
+            map(\(.) read_gdb(., projection_crs = gk_crs))  %>% 
+            compact() %>%  
+            bind_rows()
+}
+
+```
+
 <!--# 
 
 Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
