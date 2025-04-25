@@ -492,7 +492,7 @@ knitr::include_graphics("../img/bcreg.png")
 
 ```{r fig-sonerOgSeksjonerPie}
 #| fig-cap: "Relative distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
-#| fig-width: 5
+#| fig-width: 6
 
 knitr::include_graphics("../img/bcregPie.png")
 ```
@@ -547,22 +547,29 @@ alpine <- readRDS(paste0(path, "/data/alpine_extent.rds"))
 
 ## 8. Spatial units
 
-I use basically three spatial units: EAs (level 1; 70 units),
+
+I use basically three spatial units: Strata (level 1; 70 units),
 geographical region (level 2, 5 units), and the EAA.
 
-### 8.1 Ecosystem assets (EA)
+Ecosystem assetsa re not defined. Although we have an ecosystem map and could
+potentially assogn indicator values to individual polygons of alpine ecosystems,
+this would require a lot of computing power and no real added benefit.
 
-Here I create a dataset for the EAs. The EAs will be defined as the
+### 8.1 Strata
+
+Here I create a dataset for the strata. The strat will be defined as the
 intersection between bioclimatic regions and geographical regions. Then
 I add total mountain area and glacier area as variables to this dataset.
 
-Note that the EA are not contiguous, and so metric values shold not be 
-presented at the EA level as maps since data from other geographical areas inside 
-each EA strata is informed from the entire EA.
+Note that the strata are not contiguous (and therefore can not be classes as EAs).
+Therefore metric values shold not be presented at the strata level as maps 
+since within each strata, 
+data is aggregated (summed) across rather large geographical areas.
 
 ```{r}
 #| eval: false
-#| code-summary: 'Create EA dataset'
+#| code-summary: 'Create strata dataset'
+# As a legacy, the strata dataset is called EA, but I changed this in the text since they do not conform to the SEEA EA definition of EAs.
 EA <- BCreg |>
   sf::st_intersection(greg)
 
@@ -582,7 +589,7 @@ EA <- readRDS(paste0(path, "/data/EAs.rds"))
 #| warning: false
 #| code-summary: 'Intersect EAs and alpine extent map'
 
-# get mountain area for each EA 
+# get mountain area for each strata (called EA below) 
 temp_alpine <- EA |>
   st_intersection(alpine) |>
   mutate(mountainArea = units::drop_units(st_area(Shape))) |>
@@ -604,7 +611,7 @@ temp_alpine <- EA |>
 #| eval: true
 #| code-summary: 'Intersect EAs and glacier maps'
 
-# Runs cone only if the files are not caches, in which case they are somly read back.
+# Runs only if the files are not cached, in which case they are simply read back.
 
 if(!file.exists(paste0(path, "/data/dat_new_union.rds"))) {
   dat_new_union <- st_union(dat_new)
@@ -766,15 +773,15 @@ map2 <- ggplot()+
 
 ```
 
-### 8.2 Alternative EAs
+### 8.2 Alternative strata
 
 In order to test the influence of the modifiable area unit problem
-(MAUP; @openshaw1984), I will define two alternative EAs, meaning two
+(MAUP; @openshaw1984), I will define two alternative strata sets, meaning two
 alternative minimum mapping units: geographical region (`greg`), and
 country (`EAA`).
 
 We also use the `greg` dataset as intermediate data when we aggregate
-from EAs to EAA.
+from strata to EAA.
 
 #### 8.2.1 greg and EEA
 
@@ -882,7 +889,7 @@ EAA <- EAA |>
 ```
 
 ```{r fig-arealUnits}
-#| fig-cap: 'Current glacier extent, either as the actuall occurences (A); the the summed area per ecosystem asset (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information in the maps.'
+#| fig-cap: 'Current glacier extent, either as the actuall occurences (A); the the summed area per strata (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information in the maps.'
 #| warning: false
 #| fig-height: 10
 #| fig-width: 8
@@ -917,7 +924,7 @@ ggpubr::ggarrange(
 
 ## 9. Analyses
 
-I now go on to calculate indicator values for the EAs, and then
+I now go on to calculate indicator values for the different strata, and then
 spatially aggregating them.
 
 ### 9.1 Calculating indicator values (distributions) for the EAs
