@@ -17,7 +17,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research
-date: April 22, 2025 
+date: April 25, 2025 
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -223,7 +223,8 @@ Text here -->
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
 The ECT of AIP is **A2** (chemical state) because the indicator measures the effect of acidification on the periphyton community.
-¤ Secondary ECTs?!
+
+B1 (compositional state) may be regarded as a *secondary* ECT class of AIP, as AIP is estimated based on the set of periphyton species present in the locality sampled, which is a measure of *biodiversity*.
 
 <!--# 
 Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
@@ -232,7 +233,7 @@ This doesnt need to be very long. Maybe just a single sentence.
 
 ### 3.2 Ecosystem condition characteristic
 
-¤¤¤ Intact ecosystems are characterised by having no organic pollution, and ASPT represents the organic pollution of rivers.
+Intact ecosystems are characterised by being chemically neutral or slightly alkaline, and AIP represents the acidification of rivers.
 
 <!--# 
 Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
@@ -258,7 +259,7 @@ AIP may be broadly correlated to other measures of river acidification, specific
 
 ### 3.5 Impact factors
 
-¤¤¤ ASPT is affected by eutrophication and organic pollution, which can be the result from local or up-stream run-off (e.g. from fertilisers), direct pollution, or long distance pollution (e.g. nitrogen deposition).
+AIP is affected by acidification, which usually is the result of long distance pollution (air pollution with sulfur dioxide, nitrogen oxide etc., and subsequent acidic precipitation).
 
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
 
@@ -297,8 +298,9 @@ Why was the current option chosen and how were the reference levels quantified? 
 
 #### 4.2.1 Spatial resolution and validity
 
-¤¤¤ For ASPT, the same reference levels apply to all water bodies throughout Norway, i.e. irrespective of water-body type. 
-The spatial resolution of WFD reference levels is the water body.
+The spatial resolution of WFD reference levels is the water body. 
+Reference levels of AIP differ between river water types. 
+Depending on the natural alkalinity (calcium concentration) and total organic carbon (TOC), river water bodies are grouped in four categories, each with their own set of reference levels ([DGVF 2025](#veil2), Table 5.3a).
 
 <!--# 
 Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
@@ -427,11 +429,11 @@ vannkategori <- "R"
 ```
 
 The dataflow used here has been described in the GitHub repository [NI_vannf](https://github.com/NINAnor/NI_vannf/). 
-We start by downloading the functions and data files from archived version 1.4 of that repo.
+We start by downloading the functions and data files from archived version 1.5 of that repo.
 
 ```{r}
 if(!exists("../data/VF.RData")) {
-  download.file("https://zenodo.org/records/11625234/files/NINAnor/NI_vannf-v1.4.zip", 
+  download.file("https://zenodo.org/records/15276139/files/NINAnor/NI_vannf-v1.5.zip", 
                 "../data/NI_vannf.zip")
   folder <- "../data/NI_vannf"
   unzip("../data/NI_vannf.zip", exdir = folder)
@@ -638,9 +640,9 @@ utmating <- WFD2ECA(
   vannlokaliteter = VL,
   parameter = indikator,
   vannkategori = vannkategori,
-  iterasjoner = 10000, #¤ 1000,
+  iterasjoner = 1000,
   SEED = 479001600,
-  vis = TRUE #¤ FALSE
+  vis = FALSE
 )
 ```
 ```{r, eval=TRUE, echo=FALSE}
