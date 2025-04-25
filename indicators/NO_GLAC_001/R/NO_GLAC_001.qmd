@@ -40,6 +40,7 @@ library(here)
 library(sf)
 library(ggridges)
 library(ggpubr)
+library(webr)
 knitr::opts_chunk$set(echo = TRUE)
 path <- here::here("indicators/NO_GLAC_001")
 ```
@@ -373,8 +374,8 @@ dat_new <- readRDS(paste0(path, "/data/glacial_extent_new.rds"))
 
 ### 7.3 Dataset C - Geographical regions
 
-I impart a delineation of five geographical regions in Norway that I
-will use as an intermediate aggregation level and for defining EA.
+I import a delineation of five geographical regions in Norway that I
+will use as an intermediate aggregation level and for defining strata.
 
 ```{r greg2}
 #| code-fold: true
@@ -402,12 +403,13 @@ and sections (related to oceanity and the west-east gradient) into
 regions. There are 24 regions, but I will combine some sones and
 sections to reduce this amount. Since there are few glaciers in
 continental areas I will combine sections 4 and 5, since we don't need
-that high resolution in the EAs here. Similarly, I will combine the
-warmer sones 1 and 2. The total area of each bioclimatic region is shown
-in @fig-sonerOgSeksjoner.
+that high resolution in the strata here. Similarly, I will combine the
+warmer sones 1 and 2. The total and relative area of each bioclimatic region is shown
+in @fig-sonerOgSeksjoner and @fig-sonerOgSeksjonerPie, respectively.
 
-```{r}
+```{r makeReg}
 #| eval: false
+#| code-summary: 'Create bioclimatic regions map'
 
 # file path to locally stored data
 pathD <- "R:/GeoSpatialData/BiogeographicalRegions/Norway_PCA_klima/Original/20170614_Bioklima/20170614_Bioklima.gdb"
@@ -466,12 +468,33 @@ BCreg |>
     axis.title.x.bottom = element_blank()) +
   labs(y = "km-2")
 ggsave("../img/bcreg.png")
+
+# amke pie chart
+png("../img/bcregPie.png")
+BCreg |>
+  as_tibble() |>
+  webr::PieDonut(aes(Sone, Seksjon),
+                 ratioByGroup=FALSE,
+                 labelposition=1,
+                 r0=0,
+                 r1 = 0.8,
+                 r2 = 1.2,
+                 showPieName = F)
+dev.off()
 ```
 
 ```{r fig-sonerOgSeksjoner}
 #| fig-cap: "Distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
 
 knitr::include_graphics("../img/bcreg.png")
+```
+
+
+```{r fig-sonerOgSeksjonerPie}
+#| fig-cap: "Relative distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
+#| fig-width: 5
+
+knitr::include_graphics("../img/bcregPie.png")
 ```
 
 ```{r}
