@@ -129,6 +129,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 
 -   26 Mar. 2025 - Original PR
+-   25 Apr. 2025 - New reference levels
 :::
 
 <hr />
@@ -139,43 +140,44 @@ meta |>
 
 Glaciers represents important structural elements in alpine ecosystems,
 providing melt water and local climate control. It is also a unique
-nature type in itself, with few, but very specialised, species living on
+nature type and habitat in itself, with few, but very specialised, species living on
 or in association with the ice. Glaciers are permanently ice covered
 areas and they are sensitive to climate change, especially climate
 warming, which melts the ice. In Norway we have a rather detailed and
-precise map of the glacier cover or extent from the period 1947-1985. Here we use
+precise map of the glacier cover or extent from the period 1947-1985. Here I use
 this data as a representation of the climatic reference condition (pre
 climate warming), and compare this with an updated glacier cover map
-from 2018-2019 to create a normalised ecosystem condition indicator. The
-ecosystem assets (EA) are defined as intersections of bioclimatic
-regions and geographical regions. We have defined a threshold value
-(X~60~) as 10% remaining glacier area inside each EA, based on a general
-assumption (from Island Biogeography Theory) that further loss of area
-will result in \>10% local species extinctions.
+from 2018-2019 to create a normalised ecosystem condition indicator. 
+Glacier area and glacier area change is calculated for each unique combination of 
+bioclimatic and geographical regions (refered to as _strata_). 
+A threshold value (X~60~) have tentatively been defined as 60% remaining glacier 
+area inside each EA with the interpretation that a 60% loss of glaciers inside
+each strata represents a scenario where the ecological functions provided
+by glaciers are clearly deteriorated.
 
 Indicator uncertainty originates from two sources. Firste we introduce a
 3% error in the glacier cover estimates, based on the reported uncertainties
 in the mapping method. In practice we create a gaussian probability
 distribution (*n* = 1000, sd = 0.03 × mean), rather than a point
-estimate, to each EA. I then resample these probability distributions
-for each EA n times, with n equal to the area weight, and combine these
+estimate, to each strata. I then resample these probability distributions
+for each stratum n times, with n equal to the area weight, and combine these
 samples into a joint probability distribution for the next spatial
 aggregation level. This also introduces the second type of uncertainty,
-which is the spatial variation in indicator values across EAs.
+which is the spatial variation in indicator values across strata.
 
 The indicator is ready to be used. Future updates will require new maps
 of glacier cover in Norway, which is highly possible to produce from
 satellite imagery.
 
 I include in this fact sheet an analyses of the influence of using
-different areal weight, and different EA definitions. This work
+different areal weight, and different strata definitions. This work
 concludes that initial glacier extent should be used as area weights
 rather than total mountain area, and that the modifiable area unit
 problem is not having a very strong influence on the resulting
 aggregated probabilities.
 
 **Interpretation**: The indicator value represents the negative
-ecological effect of melting glacier ice, as a mean across the EAs. It
+ecological effect of melting glacier ice, as a mean across the strata. It
 does NOT directly represent the area of remaining glacier ice.
 
 **Simlified workflow**
@@ -183,20 +185,20 @@ does NOT directly represent the area of remaining glacier ice.
 1.  Import glacier cover maps from two time periods
 
 2.  Import delineations for bioclimatic regions and geographical regions
-    and intersect to create strata (ecosystem assets, EA)
+    and intersect to create strata
 
 3.  Import alpine ecosystem mask
 
-4.  Compile spatial dataset where each EA has data on strata category,
+4.  Compile spatial dataset where each strata has data on strata category,
     glacier area at two time points and total mountain area.
 
 5.  Add 3% uncertainty to glacier cover estimates by replacing point
     estimate with a probability sample (n = 1000)
 
-6.  Normalise variable at EA level by scaling, transforming and
+6.  Normalise variable at strata level by scaling, transforming and
     truncating.
 
-7.  Make a weighted sample within EAs and create a new, joint sampling
+7.  Make a weighted sample within strata and create a new, joint sampling
     distribution for a spatially aggregate indicator value for
     geographical regions.
 
@@ -231,21 +233,21 @@ accounting area, EAA), and two time steps (see above).
 <!--# What are the original units for the most relevant  variables in the data-->
 
 The original data is a vector map. Early in the workflow, I summarise
-these as summed area (m^2^) per EA.
+these as summed area (m^2^) per strata.
 
 ### 2.3 Additional comments about the dataset
 
 <!--# Text here -->
 
-I know of no concrete plans to update the glacier extent map, but with
-the advent of remote sensing, this is indeed possible to to, and quite
+I know of no concrete plans to update the glacier cover map, but with
+of remote sensing, this is indeed possible to to, and quite
 easy as well probably.
 
 #### 2.3.1 Instructions for citing, using and accessing data
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
 
-The glaciel extent maps are distributed under CC-BY 4.0. We have made a
+The glacier cover maps are distributed under CC-BY 4.0. We have made a
 simplified (less columns) version of the dataset available on github in
 order to make the workflow more reproducible.
 
@@ -288,12 +290,22 @@ prominent.
 
 ### 4.2 Reference levels
 
-Reference levels are defined for each EA uniquely based on the glacier
-extent in 1947-1985.
+The reference level X~100~ is defined for each strat uniquely based on the glacier
+extent in 1947-1985. X~0~ equates to an absence of glaciers.
+X~60~ is defined as 60% loss of glaciers, and this value originated from expert opinion
+and a discussion mainly between the author and with Erik Framstad. The reasoning is that
+with 60% loss of glacier ice, the ecological functions provided by glaciers is 
+reduced so much that we call the system deteriorated, or strongly modified. 
+There is no empirical evidence to back this up, and that is at least partly
+because the effect that glaciers have on ecosystem condition as many-faceted.
+We base our estimate on a 100 year time span for natural variation, which exludes
+from our evaluation the fact that most glaciers in Norway were melted away in the 
+warm period between 7500 and 6000 year before present.
+
 
 #### 4.2.1 Spatial resolution and validity
 
-The reference levels are defined for each EA, and can therefore only be
+The reference levels are defined for each strata, and can therefore only be
 used to normalise variables at that scale. However, reference levels can
 easily be recalculated for any spatial scale, as I have also done here.
 When testing out alternative aggregation pathways I had to create new
@@ -301,9 +313,9 @@ reference levels for larger regions.
 
 ## 5. Uncertainties
 
-There is some uncertainty in the mapping method,and this is said to be
+There is some uncertainty in the mapping method, and this is said to be
 3%. There is also some uncertainty, or at least some arbitrariness, in
-how X~60~ is defined as 10% of X~100~.
+how X~60~ is defined as 60% of X~100~.
 
 ## 6. References
 
