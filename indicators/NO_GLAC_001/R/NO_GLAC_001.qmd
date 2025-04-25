@@ -927,14 +927,14 @@ ggpubr::ggarrange(
 I now go on to calculate indicator values for the different strata, and then
 spatially aggregating them.
 
-### 9.1 Calculating indicator values (distributions) for the EAs
+### 9.1 Calculating indicator values (distributions) for the strata
 
 The next steps are a follows:
 
-1.  Add 3% methodological uncertainty to the data at the EA level by
+1.  Add 3% methodological uncertainty to the data at the strata level by
     sampling *n* numbers from a normal distribution with sd =
     mean × 0.03.
-2.  Normalise the variable (now a prob. dist.) at the EA level using a
+2.  Normalise the variable (now a prob. dist.) at the strata level using a
     piecewise linear transformation.
 3.  Aggregate to next spatial level by sampling each probability
     distribution with *n* scaled to the area weights. Try different area
@@ -946,7 +946,7 @@ The next steps are a follows:
 The papers describing the glacier extent data report an estimated 3%
 uncertainty with their method [@andreassen2022]. I assume this to mean
 the standard deviation is 3% of the mean. I start by replacing the point
-estimates in each EA (and alternative EAs) with a probability
+estimates in each strata (and alternative strat definitions) with a probability
 distribution centered on the point estimate, and with sd = mean × 0.03.
 In ecosystem accounting it is not common to allow uncertainty in the
 reference levels, but here it is quite easy to implement, and I
@@ -975,7 +975,7 @@ EA <- EA |>
 Then I normalise, using a piecewise linear transformation, and get
 similar probability distribution for indicator values. @tbl-normalise
 shows the dataset with indicator values (just the median value) at the
-EA level. Also in that dataset are the actual indicator probability
+strata level. Also in that dataset are the actual indicator probability
 distributions, which can be sampled.
 
 ```{r tbl-normalise}
@@ -999,8 +999,8 @@ EAtemp <- EA |>
     variable = case_when(
       is.na(variable) & x100 > 0 ~ 0,
       .default = variable),
-    # define x60 value
-    x60 = x100*0.1,
+    # define x60 value as 60% glacier loss (40% of X100)
+    x60 = x100*0.4,
     # normalise using piecewise linear transfomation
     indicator =  ifelse(
       variable < x60, 
@@ -1064,7 +1064,7 @@ DT::datatable(EA |>
   ))
 ```
 
-@fig-EAglacArea show the current (2018-2019) glacier extent per EA,
+@fig-EAglacArea show the current (2018-2019) glacier extent per strata,
 stratified by bioclimatic sone and region. Clearly most glaciers are in section 2, 
 which is the _clearly oceanic section_. High percipitation is a prerequitese for glaciers. 
 Section 1 has even more precipitation, but is also warmer and has less total extent (@fig-sonerOgSeksjoner).
@@ -1074,7 +1074,7 @@ Of the sones, its mainly in the alpine sones (sone 5) where we find glaciers.
 as expected.
 
 ```{r fig-EAglacArea}
-#| fig-cap: 'Current glacier extent (2018-2019) for individual ecosystem assets (bars) stratified by bioclimatic sones and coloured by bioclimatic regions.'
+#| fig-cap: 'Current glacier extent (2018-2019) for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend).'
 
 EA |>
   ungroup() |>
@@ -1103,7 +1103,7 @@ EA |>
 ```
 
 ```{r fig-gradientIndicator}
-#| fig-cap: 'Indicator values for individual ecosystem assets (bars) stratified by bioclimatic sones and coloured by bioclimatic regions.'
+#| fig-cap: 'Indicator values for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend).'
 
 EA |>
   ungroup() |>
@@ -1136,16 +1136,16 @@ EA |>
 ### 9.2 Aggregating to geographical regions
 
 Now I spatially aggregate the indicator values to the level of
-geographic region by sampling the probability distributions of each EA
+geographic region by sampling the probability distributions of each stratum
 proportional to the weight. As the weight, we we use the X~100~ value,
-i.e. the initial glacier area. EAs with no glaciers in them get NA, and
+i.e. the initial glacier area. Stratum with no glaciers in them get NA, and
 are not included in the aggregated value.
 
 For comparison, we also calculate the aggregated values using mountain
 area (`mtArea`) as alternative weights, and we refer to these indicator
 values with a *mtArea* suffix. We also try an approach where we
 calculate indicator values for geographical regions or EAA level
-directly, that is to say, without using the original EAs at all. These
+directly, that is to say, without using the original strata at all. These
 indicator values get a *level2* or *level3* suffix, respectively.
 
 @tbl-gregAgg shows is the indicator values for the geographical regions.
@@ -1257,7 +1257,7 @@ if(!file.exists(paste0(path, "/data/temp_oneRidge.rds"))){
            bandwidth = bw) +
     labs(y = "",
          x = "Indicator values")+
-    xlim(.55, 1)
+    xlim(0, 1)
   saveRDS(oneRidge, paste0(path, "/data/temp_oneRidge.rds"))
 } else {
     oneRidge <- readRDS(paste0(path, "/data/temp_oneRidge.rds"))
@@ -1275,7 +1275,7 @@ if(!file.exists(paste0(path, "/data/temp_twoRidge.rds"))){
            bandwidth = bw) +
     labs(y = "",
          x = "Indicator values (alternative weights)")+
-    xlim(.55, 1)
+    xlim(0, 1)
   saveRDS(twoRidge, paste0(path, "/data/temp_twoRidge.rds"))
 } else {
     twoRidge <- readRDS(paste0(path, "/data/temp_twoRidge.rds"))
@@ -1300,9 +1300,9 @@ greg <- greg |>
   st_as_sf()
 ```
 
-### 9.3. Alternative EAs {#sec-ea2}
+### 9.3. Alternative strata/MMUs {#sec-ea2}
 
-What if we used different spatial units as the EAs?
+What if we used different minimal mapping units MMUs, or strata?
 
 Now I calculate the indicator value directly to the geographical
 regions. This indicator will be named `indicator_level2` in the code and
@@ -1351,7 +1351,7 @@ greg_temp <- greg |>
          x100 = glacierAreaOld_dist) |>
   mutate(
     # define x60 value
-    x60 = x100*0.1,
+    x60 = x100*0.4,
     # normalise using piecewise linear transfomation
     indicator_level2 =  ifelse(
       variable < x60, 
@@ -1443,7 +1443,7 @@ if(!file.exists(paste0(path, "/data/temp_threeRidge.rds"))){
            bandwidth = bw) +
     labs(y = "",
          x = "Indicator values (alternative EA approach)") +
-    xlim(.55, 1)
+    xlim(0.2, 1)
   saveRDS(threeRidge, paste0(path, "/data/temp_threeRidge.rds"))
 } else {
     threeRidge <- readRDS(paste0(path, "/data/temp_threeRidge.rds"))
@@ -1573,7 +1573,7 @@ EAA_temp <- EAA |>
          x100 = glacierAreaOld_dist) |>
   mutate(
     # define x60 value
-    x60 = x100*0.1,
+    x60 = x100*0.4,
     # normalise using piecewise linear transfomation
     indicator_level3 =  ifelse(
       variable < x60, 
@@ -1631,7 +1631,7 @@ greg_to_EAA |>
          show.legend = F) +
   labs(y = "",
        x = "Indicator values") +
-  xlim(.55, 1)
+  xlim(.45, 1)
 
 ```
 
