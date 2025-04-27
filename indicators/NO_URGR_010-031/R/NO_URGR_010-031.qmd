@@ -360,8 +360,8 @@ et_data <- gdb_files %>%
 ```
 
 
+To compile URGR_10, we need the Norwegian Local Administrative units. We already prepared that file and stored it on our project folder. This shapefile does not contain all LAUs in Norway. According to the @cond-gn-eurostat, only LAUs whcih are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat to select the citites (DEGURBA = 1) and towns and surbbs (DEGURBA = 2) that were adjacent to these cities.  Moreover, URGR_010 will be calculated at national and regional scales, we also need to upload the administrative boundaries data for Norwegian regions.
 
-To compile URGR_10, we need the Norwegian Local Administrative units.  Moreover, URGR_010 will be calculated at national and regional scales, we also need to upload the administrative boundaries data for Norwegian regions.
 ```{r}
 #| eval: false
 #| code-summary: "Upload administrative boundaries"
@@ -603,8 +603,43 @@ urgur_010_rgn <- lau_area_rgn %>%
 ### 9.2 URGR_11 - Corine Land Cover
 The workflow is very similar to the previous URGR_010 calculation with the Grunnkart.
 
-#### 9.2.1 Preparation of the data
+#### 9.2.1 Load and prepare the data
+We need Corine Land Cover 2018, form which we select the same ecosystem types as before.
+```{r}
+#| eval: false
+#| code-summary: "Upload and prepare Corine Land Cover"
 
+# Load Corine Land Cover 2018
+path_clc <- "/data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018/"
+clc18 <- st_read(paste0(path_clc, "0000_32632_corine2018_8d4abc_SHAPE.shp"))
+
+# Select the ecosystem types of interest
+clc18_green <- clc18 %>%
+                  filter(! clc18_kode == 111,
+                         ! clc18_kode == 121,
+                         ! clc18_kode == 122,
+                         ! clc18_kode == 123,
+                         ! clc18_kode == 131,
+                         ! clc18_kode == 132,
+                         ! clc18_kode == 133,
+                         ! clc18_kode == 521,
+                         ! clc18_kode == 522,
+                         ! clc18_kode == 523)
+```
+
+Same as for URGR_010, we then upload the boundaries of LAUs and regions.
+```{r}
+#| eval: false
+#| code-summary: "Upload Administrative boundaries"
+
+# path to the data
+path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/"
+
+# load the data
+lau <- st_read(paste0(path_lau, "LAUs_URGR_010.shp"))
+region_no <- st_read(paste0(path_boundaries, "Norway_Regions_2024.shp"))
+
+```
 <!--# 
 
 Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
