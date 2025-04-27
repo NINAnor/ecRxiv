@@ -640,6 +640,84 @@ lau <- st_read(paste0(path_lau, "LAUs_URGR_010.shp"))
 region_no <- st_read(paste0(path_boundaries, "Norway_Regions_2024.shp"))
 
 ```
+
+#### 9.2.2 Data cleaning
+We decided to use the same Coordiante Reference System (CRS) than used for URGR_010. So we decided to project Corine Land Cover and the administrative boundaries in the grunnkart projection. We also checked for geometrical and topological issues.
+```{r}
+#| eval: false
+#| code-summary: "Projection"
+
+# CRS Grunnkart
+# File path to Grunnkart
+gdb_folder <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format"
+
+# Pattern for stored gdb
+gdb_files <- list.files(gdb_folder, pattern = "_gdb\\.gdb$", 
+                        full.names = TRUE)
+
+# Define CRS of the first layer (most common CRS of the gdb files)
+gk_crs <- st_read(gdb_files[1]) %>%
+            crs()
+
+# CLC CRS
+clc18_green_crs <- crs(clc18_green)
+
+# LAUs
+lau_crs <- crs(lau)
+
+# Region and fylke boundaries
+region_no_crs <- crs(region_no)
+fylke_no_crs <- crs(fylke_no)
+
+# Check they are the same
+clc18_green_crs == gk_crs
+clc18_green_crs == region_no_crs
+clc18_green_crs == lau_crs
+region_no_crs == lau_crs
+gk_crs == lau_crs
+region_no_crs == gk_crs
+
+
+# Re-project boundaries (they are less heavy!)
+clc18_green_32 <- st_transform(clc18_green, gk_crs)
+lau_32 <- st_transform(lau, gk_crs)
+region_no_32 <- st_transform(region_no, gk_crs)
+```
+
+```{r}
+#| eval: false
+#| code-summary: "Geometry and topology check"
+
+# Check for empty geometry
+clc18_green_empty <- which(st_is_empty(clc18_green_32) == TRUE)
+lau_32_empty <- which(st_is_empty(lau_32) == TRUE)
+region_32_empty <- which(st_is_empty(region_no_32) == TRUE)
+
+# Check validity
+clc18_green_invalid <- which(st_is_valid(clc18_green_32) == FALSE)
+lau_32_invalid <- which(st_is_valid(lau_32) == FALSE)
+region_32_invalid <- which(st_is_valid(region_no_32) == FALSE)
+```
+
+Then we clean our R environment before the analyses.
+```{r}
+#| eval: false
+#| code-summary: "Clean R environment"
+
+# Remove non-essential R objects
+rm(list=setdiff(ls(), c("clc18_green_32",
+                        "region_no_32",
+                        "lau_32")))
+```
+
+#### 9.2.3 Data analyses
+
+
+
+
+
+
+
 <!--# 
 
 Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
