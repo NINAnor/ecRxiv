@@ -282,7 +282,7 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 
 ## 9. Analyses
 
-### 9.1 URGR_10
+### 9.1 URGR_10 - Grunnkart
 #### 9.1.1 Preparation of the data
 First we need to create separate data sets for each ecosystem types that are relevant to include in "urban green ecosystems". According to the @cond-gn-eurostat, all ecosystem types in the EU Ecosystem Types Typology with a green cover should be included. This means that Marine Ecosystems and Settlements and Other Artificial areas are discarded.  There is however specific mention of including the categories "Urban green" and "Discontinuous urban areas". 
 ```{r}
@@ -324,14 +324,14 @@ query_string_list <- list()
 
 query_string_list[[1]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Discontinuous settlement area'"
 query_string_list[[2]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Urban greenspace'"
-query_string_list[[3]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Lakes and ponds'"
-query_string_list[[4]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Cropland'"
-query_string_list[[5]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Grassland'"
+query_string_list[[3]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Cropland'"
+query_string_list[[4]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Grassland'"
+query_string_list[[5]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Heathland and shrub'"
 query_string_list[[6]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Inland wetlands'"
-query_string_list[[7]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Sparsely vegetated ecosystems'"
+query_string_list[[7]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Lakes and ponds'"
 query_string_list[[8]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Rivers and canals'"
-query_string_list[[9]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Coastal beaches, dunes and wetlands'"
-query_string_list[[10]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Heathland and shrub'"
+query_string_list[[9]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Sparsely vegetated ecosystems'"
+query_string_list[[10]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Coastal beaches, dunes and wetlands'"
 query_string_list[[11]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Forest and woodlands'"
 
 
@@ -359,9 +359,255 @@ et_data <- gdb_files %>%
 
 ```
 
+
+
+To compile URGR_10, we need the Norwegian Local Administrative units.  Moreover, URGR_010 will be calculated at national and regional scales, we also need to upload the administrative boundaries data for Norwegian regions.
+```{r}
+#| eval: false
+#| code-summary: "Upload administrative boundaries"
+
+# path to the data
+path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/"
+
+# load the data
+lau <- st_read(paste0(path_lau, "LAUs_URGR_010.shp"))
+region_no <- st_read(paste0(path_boundaries, "Norway_Regions_2024.shp"))
+
+```
+
+
+#### 9.1.2 Data Cleaning
+To have correct spatial analyses, all spatial data loaded before must have the same CRS. We already ensured that the ecosystem types from the Grunnkart have the same CRS. BUt the administrative boundaries now need to be projected in the same CRS as the one from the ecosystem type.
+```{r}
+#| eval: false
+#| code-summary: "Check CRS and reproject"
+
+# CRS ecosystem type from Grunnkart
+disc_settle_crs <- crs(et_data[[1]])
+
+# CRS LAUs
+lau_crs <- crs(lau)
+
+# CRS regional boundaries
+region_no_crs <- crs(region_no)
+
+# Check they are the same
+disc_settle_crs == region_no_crs
+disc_settle_crs == lau_crs
+region_no_crs == lau_crs
+
+# Re-project boundaries
+lau_32 <- st_transform(lau, disc_settle_crs)
+region_no_32 <- st_transform(region_no, disc_settle_crs)
+```
+
+
+The next step is to check for geometrical and topological issues and fix them if there are. Note that we use the `st_make_valid()` function from the `sf` package. This function did not work for healthand and 
+```{r}
+#| eval: false
+#| code-summary: "Geometry and topology - check and fix"
+
+# Check for empty geometry
+for(i in 1:length(et_data)){
+  empty_test <- which(st_is_empty(et_data[[i]]) == TRUE)
+  print(empty_test)
+}
+
+lau_32_invalid <- which(st_is_empty(lau_32) == FALSE)
+region_32_invalid <- which(st_is_empty(region_32) == FALSE)
+
+# Check validity
+for(i in 1:length(et_data)){
+  validity_test <- which(st_is_valid(et_data[[i]]) == FALSE)
+  print(length(validity_test))
+}
+
+lau_32_invalid <- which(st_is_valid(lau_32) == FALSE)
+region_32_invalid <- which(st_is_valid(region_32) == FALSE)
+
+# Clean geometry of ETs with st_make_valid()
+et_clean_list <- list()
+for(i in c(seq(1,4,1), seq(6,8,1), 10, 11)){
+  et_clean <- st_make_valid(et_data[[i]])
+  et_clean_list[[i]] <- et_clean
+}
+
+et_clean_list[[5]] <- st_buffer(et_data[[5]], 0) %>%
+                        filter(!st_is_empty(.)) %>%
+                        st_make_valid()
+
+et_clean_list[[9]] <- st_buffer(et_data[[9]], 0) %>%
+                        filter(!st_is_empty(.)) %>%
+                        st_make_valid() 
+
+#  Check cleaning geometry worked
+for(i in 1:length(et_clean_list)){
+  geometry_check <- which(st_is_valid(et_clean_list[[i]]) == FALSE)
+  print(length(geometry_check))
+}
+
+# Check for empty geometry
+for(i in 1:length(et_clean_list)){
+  empty_test <- which(st_is_empty(et_clean_list[[i]]) == TRUE)
+  print(empty_test)
+}
+
+```
+
+Now we just need to only extract polygons from the ecosystem type data. Some points and line are present. As we are interested in areas, we decide to remove them as they won't contribute to the area estimates.
+```{r}
+#| eval: false
+#| code-summary: "Final dataset of ecosystem type"
+
+# Keep only polygon features
+et_final <- et_clean_list %>%
+              map(\(.) st_collection_extract(.,
+                                             type = c("POLYGON"), 
+                                             warn = FALSE))
+```
+
+
+The data used are quite heavy, it is important to clean the R Environment to free memory space.
+```{r}
+#| eval: false
+#| code-summary: "Clean R Environment"
+
+# Remove non-essential R objects
+rm(list=setdiff(ls(), c("et_final",
+                        "region_no_32",
+                        "lau_32")))
+
+```
+
+#### 9.1.3 Data analyses
+URGR_010 is calculated at both national and regional level. Below we created one subsection for each.
+
+##### 9.1.3.1 URGR_010 - National
+First we need to calculate the areas of urban green within the LAUs and the total area of each LAUs.
+```{r}
+#| eval: false
+#| code-summary: "Total area of ecosystem types per LAUs"
+#| 
+# Calculate intersection between ecosystem types and LAUs
+et_lau_inter <- et_final %>%
+                  map(\(.) st_intersection(., lau_32))
+
+
+# Calculate areas of ecosystem types in LAUs
+et_lau_area <- et_lau_inter %>%
+                  map(\(.) mutate(., area_m2  = st_area(.)))
+
+# Create a function to calculate the total area of each ecosystem type per LAUs
+total_area_fn <- function(data){
+  summary_tab <- data %>% 
+                  st_drop_geometry() %>%
+                  select(okosystemtype_1, okosystemtype_2, area_m2, LAU_ID) %>%             
+                  group_by(LAU_ID) %>%
+                  summarise(total_area = sum(area_m2))
+  return(summary_tab)
+}
+
+
+# Calculate total area of each ecosystem types per LAUs
+et_lau_tot_area <- et_lau_area %>%
+                    map(total_area_fn)
+
+# Sum the area of all ecosystem types per LAUs
+area_lau_green_ets <- et_lau_tot_area %>%
+                        map(\(.) sum(.$total_area))
+
+# Calculate total area of all LAUs            
+area_lau <- lau_32 %>%
+              mutate(area_m2 = st_area(.)) %>%
+              st_drop_geometry() %>%
+              group_by(LAU_ID) %>%
+              summarise(total_area = sum(area_m2))
+
+
+
+
+
+```
+
+Now, based on the areas calculated before, we can compile URGR_010 at national level.
+```{r}
+#| eval: false
+#| code-summary: "Calculate URGR_010 - National"
+
+urgur_010_national <- sum(unlist(area_green_ets)) / sum(area_lau) * 100
+
+```
+
+
+##### 9.1.3.2 URGR_010 - Regional
+The process is very similar to what has been done to compile URGR_010 at national level. We will be using some of the areas we calculated before. The first step is however to associate the LAUs to each region. For this we need to do a spatial intersection.
+
+```{r}
+#| eval: false
+#| code-summary: "Connect LAUs and regions"
+
+# Calculate Intersection LAUs and Regions
+lau_region_inter <- st_intersection(lau_32, region_no_32)
+
+
+```
+
+Once this is done, we first have to prouce a summary table of the total area of ecosystem types per LAUs.
+```{r}
+#| eval: false
+#| code-summary: "Summary table of total area of ecosystem types per LAUs"
+
+# Create summary table with areas of all ETs per LAUs
+et_area_lau_summary <- et_lau_tot_area %>%
+                        compact() %>%
+                        bind_rows() %>%
+                        group_by(LAU_ID) %>%
+                        summarise(total_area = sum(total_area))
+```
+
+Then we can join this table with the intersection spatial layer to add the information on region names. This gives the total area of ecosystem types present in LAUs for each regions. In parallel we also calculate the total area of LAUs per regions.
+
+```{r}
+#| eval: false
+#| code-summary: "Total areas of ecosystem types and LAUs per regions"
+
+# Total area of ecosystem types in the LAUs of each region 
+green_area_rgn <- lau_region_inter %>%
+                    st_drop_geometry %>%
+                    select(LAU_ID, regn_nm) %>%
+                    inner_join(., et_area_lau_summary, by = "LAU_ID") %>%
+                    group_by(regn_nm) %>%
+                    summarise(total_green_area = sum(total_area))
+
+# Total area of LAUs in ecah region             
+lau_area_rgn <- lau_region_inter %>%
+                  st_drop_geometry %>%
+                  select(LAU_ID, regn_nm) %>%
+                  inner_join(., area_lau, by = "LAU_ID") %>%
+                  group_by(regn_nm) %>%
+                  summarise(total_area_lau_rgn = sum(total_area))
+```
+
+Finally, we can use all the areas calculated above to compile a regional URGR_010.
+
+```{r}
+#| eval: false
+#| code-summary: "Summary table of total area of ecosystem types per regions"
+
+# URGR_010 - regional
+urgur_010_rgn <- lau_area_rgn %>% 
+                  inner_join(., green_area_rgn, by = "regn_nm") %>%
+                  mutate(urgr_010 = total_green_area /  total_area_lau_rgn * 100)
+```
+
+### 9.2 URGR_11 - Corine Land Cover
+The workflow is very similar to the previous URGR_010 calculation with the Grunnkart.
+
+#### 9.2.1 Preparation of the data
+
 <!--# 
 
-Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
 
 Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
 
