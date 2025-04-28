@@ -162,7 +162,7 @@ in the mapping method. In practice we create a gaussian probability
 distribution (*n* = 1000, sd = 0.03 × mean), rather than a point
 estimate, to each strata. I then resample these probability distributions
 for each stratum n times, with n equal to the area weight, and combine these
-samples into a joint probability distribution for the next spatial
+samples into a joint sample distribution for the next spatial
 aggregation level. This also introduces the second type of uncertainty,
 which is the spatial variation in indicator values across strata.
 
@@ -170,7 +170,7 @@ The indicator is ready to be used. Future updates will require new maps
 of glacier cover in Norway, which is highly possible to produce from
 satellite imagery.
 
-I include in this fact sheet an analyses of the influence of using
+I also include an analyses of the influence of using
 different areal weight, and different strata definitions. This work
 concludes that initial glacier extent should be used as area weights
 rather than total mountain area, and that the modifiable area unit
@@ -302,6 +302,11 @@ because the effect that glaciers have on ecosystem condition as many-faceted.
 We base our estimate on a 100 year time span for natural variation, which exludes
 from our evaluation the fact that most glaciers in Norway were melted away in the 
 warm period between 7500 and 6000 year before present.
+
+```{r X60}
+scalar <- 0.4
+```
+
 
 
 #### 4.2.1 Spatial resolution and validity
@@ -470,7 +475,7 @@ BCreg |>
 ggsave("../img/bcreg.png")
 
 # amke pie chart
-png("../img/bcregPie.png")
+png("../img/bcregPie.png", width = 1480, height = 1480)
 BCreg |>
   as_tibble() |>
   webr::PieDonut(aes(Sone, Seksjon),
@@ -479,7 +484,9 @@ BCreg |>
                  r0=0,
                  r1 = 0.8,
                  r2 = 1.2,
-                 showPieName = F)
+                 showPieName = F,
+                 pieLabelSize = 10,
+                 donutLabelSize = 8)
 dev.off()
 ```
 
@@ -492,7 +499,7 @@ knitr::include_graphics("../img/bcreg.png")
 
 ```{r fig-sonerOgSeksjonerPie}
 #| fig-cap: "Relative distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
-#| fig-width: 6
+#| fig-width: 12
 
 knitr::include_graphics("../img/bcregPie.png")
 ```
@@ -937,7 +944,7 @@ The next steps are a follows:
 2.  Normalise the variable (now a prob. dist.) at the strata level using a
     piecewise linear transformation.
 3.  Aggregate to next spatial level by sampling each probability
-    distribution with *n* scaled to the area weights. Try different area
+    distribution with *n* scaled to the area weights, thus creatuing a jiont sampling distribution. Try different area
     weightings, both by total mountain area and initial glacier area.
 4.  Aggregate one more time to national level.
 5.  Repeat for two alternative *entry points*, using either geographical
@@ -1000,7 +1007,7 @@ EAtemp <- EA |>
       is.na(variable) & x100 > 0 ~ 0,
       .default = variable),
     # define x60 value as 60% glacier loss (40% of X100)
-    x60 = x100*0.4,
+    x60 = x100*scalar,
     # normalise using piecewise linear transfomation
     indicator =  ifelse(
       variable < x60, 
@@ -1100,6 +1107,7 @@ EA |>
     axis.title.y = element_blank(),
     axis.ticks.y = element_blank()
   )
+
 ```
 
 ```{r fig-gradientIndicator}
@@ -1241,7 +1249,7 @@ EA_to_greg <- ungroup(EA) |>
 bw <- 0.015
 
 
-# the ridge plots are uge files and stop the rendering of the html.
+# the ridge plots are huge files and stop the rendering of the html.
 # thats why I sample 300 values, enough to get a smooth curve, and
 # run the code only on first excecution.
 
@@ -1311,7 +1319,7 @@ plots. In fact they are practically perfect gaussian distributions,
 since the 3% error was added to the summed glacier area for the regions,
 and not on the initial glacier polygons (which would also be a valid
 approach, but it would require a lot more memory). We also see that the
-probabilities generally match up well with pane a and the original
+distributions generally match up well with pane a and the original
 weighting scheme. But @tbl-gregAgg show us that the point estimates are
 not identical, meaning that the two approaches are not perfectly
 commutative, and that some other dataset could give bigger (or smaller)
@@ -1351,7 +1359,7 @@ greg_temp <- greg |>
          x100 = glacierAreaOld_dist) |>
   mutate(
     # define x60 value
-    x60 = x100*0.4,
+    x60 = x100*scalar,
     # normalise using piecewise linear transfomation
     indicator_level2 =  ifelse(
       variable < x60, 
@@ -1442,8 +1450,8 @@ if(!file.exists(paste0(path, "/data/temp_threeRidge.rds"))){
            fill = "orchid1",
            bandwidth = bw) +
     labs(y = "",
-         x = "Indicator values (alternative EA approach)") +
-    xlim(0.2, 1)
+         x = "Indicator values (alternative strata approach)") +
+    xlim(0, 1)
   saveRDS(threeRidge, paste0(path, "/data/temp_threeRidge.rds"))
 } else {
     threeRidge <- readRDS(paste0(path, "/data/temp_threeRidge.rds"))
@@ -1453,16 +1461,17 @@ if(!file.exists(paste0(path, "/data/temp_threeRidge.rds"))){
 ```
 
 @fig-ridgde1 and @tbl-gregAgg show how the weighting by the mountain
-area of each EA generally reduces the indicator value, especially
-Midt-Norge (central Norway), where one EA (indicator value about 0.3)
-had very little (but not zero) glaciers to begin with (little weight in
-pane a), but a lot of mountain area (high weight in pane b). We also see
-how *preaggregating* to geographical regions creates more unimodal
-probability distributions (pane C).
+area of each EA generally reduces the indicator value. See for example Norther Norway (Nord-Norge)
+where where one strata has an indicator value of 0. This strata had very little
+glaciers to begin with, and in the øastest survey i had none lesft. 
+The alpine area of that strata, however, is quite large. Therefore, thata strata 
+is give en weight in the spatial aggregation only when the weights are determined by the alpine extent. 
+We also see how *preaggregating* to geographical regions creates more unimodal
+sample distributions (pane C).
 
 ```{r fig-ridgde1}
 #| echo: false
-#| fig-cap: 'Probability distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original EAs using a weighting based on the initial glacier area. b) uses a weighting based on total mountain area in each EA. c) uses geographical regions as alternative EAs.'
+#| fig-cap: 'Sample distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original strata using a weighting based on the initial glacier area. b) uses a weighting based on total mountain area in each strata. c) uses geographical regions as alternative strata.'
 #| warning: false
 ggpubr::ggarrange(oneRidge, twoRidge, threeRidge, 
                   ncol=1, labels = "auto") 
@@ -1473,7 +1482,7 @@ ggpubr::ggarrange(oneRidge, twoRidge, threeRidge,
 
 ### 9.4 Aggregating to EAA
 
-Then I aggregate the regional probability distributions to the entire
+Then I aggregate the regional sample distributions to the entire
 ecosystem accounting area (EAA), which is mainland Norway.
 
 ```{r tblEAAAgg}
@@ -1573,7 +1582,7 @@ EAA_temp <- EAA |>
          x100 = glacierAreaOld_dist) |>
   mutate(
     # define x60 value
-    x60 = x100*0.4,
+    x60 = x100*scalar,
     # normalise using piecewise linear transfomation
     indicator_level3 =  ifelse(
       variable < x60, 
@@ -1650,7 +1659,7 @@ where ^1^ refers to the summation of glacier area inside each EA
 (*pre-aggregation*); ^2^ refers to aggregation to geographical region
 using weighted sampling and taking the median from the resulting
 distribution; and ^3^ refers to further aggregation to the EAA, also
-using weighted sampling from the probability distribution of indicator
+using weighted sampling from the sample distribution of indicator
 values for the geographical region level.
 
 @fig-maps show that at least three of the aggregation shemes are
@@ -1737,7 +1746,7 @@ ggsave(paste0(path, "/img/allmaps.png"))
 ```
 
 ```{r fig-maps}
-#| fig-cap: 'Indicator estimates (median of probability distributions) at three spatial levels: EA level (top row, level 1); geographical region (second row, level 2); ecosystem accounting area (bottom row, level 3). The two latter aggregation levels are represented with several approaches. _Indicator_ and _indicator_mtArea_ relies on data aggregated through the EA level, but _indicator_mtArea_ uses total mountain area, rather than initial glacier area, as the area weight during the aggregation. _Indicator level2_ refers to the approach where indicator values were estimated directly at the level of geographical regions, and _indicator_level3_ was estimated directly at the EAA level.'
+#| fig-cap: 'Indicator estimates (median of sample distributions) at three spatial levels: Strata level (top row, level 1); geographical region (second row, level 2); ecosystem accounting area (bottom row, level 3). The two latter aggregation levels are represented with several approaches. _Indicator_ and _indicator_mtArea_ relies on data aggregated through the strata level, but _indicator_mtArea_ uses total mountain area, rather than initial glacier area, as the area weight during the aggregation. _Indicator level2_ refers to the approach where indicator values were estimated directly at the level of geographical regions, and _indicator_level3_ was estimated directly at the EAA level.'
 #| echo: false
 knitr::include_graphics(paste0(path, "/img/allmaps.png"))
 ```
