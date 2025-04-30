@@ -1,10 +1,10 @@
 ---
-title: "Area without alien plant species indicator"
+title: "Area without alien plant species"
 subtitle: |
-  [NO_ALIE_001] (farmland and open lowland) \
   [NO_ALIE_002] (mountains) \
   [NO_ALIE_003] (wetlands) \
-  [NO_ALIE_004] (forests)
+  [NO_ALIE_004] (forests) \
+  [NO_ALIE_005] (farmland and open lowland)
 format: 
   html:
     embed-resources: true
@@ -41,13 +41,11 @@ code-links:
 ```{r setup}
 #| include: false
 library(knitr)
-library(tidyverse)
 library(kableExtra)
 library(here)
 library(sf)
 library(readxl)
 library(plyr)
-library(dplyr)
 library(RColorBrewer)
 library("gridExtra") 
 library(ggridges)
@@ -58,6 +56,9 @@ library(stars)
 library(betareg)
 library(glmmTMB)
 library(flextable)
+library(conflicted)
+library(tidyverse)
+conflict_prefer_all("dplyr")
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -150,7 +151,7 @@ meta |>
 ## Logg
 
 <!--# Update this logg with short messages for each update -->
-- 01 Jan. 1901 - Original PR
+- 09 Apr. 2025 - Original PR
 :::
 
 
@@ -253,11 +254,13 @@ Import testing data:
 #Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
 # ANO data
 ANO.sp <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/Naturovervaking_eksport.gdb",
-                    layer="ANO_Art")
+                    layer="ANO_Art",
+                  quiet = T)
 ANO.geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/Naturovervaking_eksport.gdb",
-                   layer="ANO_SurveyPoint")
-head(ANO.sp)
-head(ANO.geo)
+                   layer="ANO_SurveyPoint",
+                   quiet = T)
+#head(ANO.sp)
+#head(ANO.geo)
 
 ```
 
@@ -267,8 +270,8 @@ head(ANO.geo)
 
 #### ANO monitoring data
 
-head(ANO.sp)
-head(ANO.geo)
+#head(ANO.sp)
+#head(ANO.geo)
 
 ## fix NiN information
 ANO.geo$hovedtype_rute <- substr(ANO.geo$kartleggingsenhet_1m2,1,3) # take the 3 first characters
@@ -276,13 +279,13 @@ ANO.geo$hovedtype_rute <- gsub("-", "", ANO.geo$hovedtype_rute) # remove hyphen
 unique(as.factor(ANO.geo$hovedtype_rute))
 
 ANO.geo$hovedoekosystem_rute <- ANO.geo$hovedtype_rute
-ANO.geo <- ANO.geo %>% mutate(hovedoekosystem_rute=recode(hovedoekosystem_rute, 
-                                                          'T4'='Forest', 'T30'='Forest',
-                                                          'T3'='Mountain', 'T7'='Mountain', 'T14'='Mountain', 'T22'='Mountain',
-                                                          'V1'='Wetland', 'V2'='Wetland', 'V3'='Wetland', 'V4'='Wetland', 'V5'='Wetland', 'V6'='Wetland', 'V7'='Wetland', 'V8'='Wetland', 
-                                                          'T31'='Seminat', 'T32'='Seminat', 'T33'='Seminat', 'T34'='Seminat','V9'='Seminat', 'V10'='Seminat',
-                                                          'T2'='Natopen', 'T8'='Natopen', 'T11'='Natopen', 'T12'='Natopen','T13'='Natopen', 'T15'='Natopen','T16'='Natopen', 'T18'='Natopen','T21'='Natopen', 'T24'='Natopen', 'T29'='Natopen'
-                                                          ))
+ANO.geo <- ANO.geo %>% mutate(hovedoekosystem_rute = recode(hovedoekosystem_rute,
+  "T4" = "Forest", "T30" = "Forest",
+  "T3" = "Mountain", "T7" = "Mountain", "T14" = "Mountain", "T22" = "Mountain",
+  "V1" = "Wetland", "V2" = "Wetland", "V3" = "Wetland", "V4" = "Wetland", "V5" = "Wetland", "V6" = "Wetland", "V7" = "Wetland", "V8" = "Wetland",
+  "T31" = "Seminat", "T32" = "Seminat", "T33" = "Seminat", "T34" = "Seminat", "V9" = "Seminat", "V10" = "Seminat",
+  "T2" = "Natopen", "T8" = "Natopen", "T11" = "Natopen", "T12" = "Natopen", "T13" = "Natopen", "T15" = "Natopen", "T16" = "Natopen", "T18" = "Natopen", "T21" = "Natopen", "T24" = "Natopen", "T29" = "Natopen"
+))
 
 
 ## fix NiN-variables
@@ -293,13 +296,13 @@ colnames(ANO.geo)[42:47] <- c("groeftingsintensitet",
                               "slatteintensitet",
                               "tungekjoretoy",
                               "slitasje")
-head(ANO.geo)
+#head(ANO.geo)
 
 
 ## check that every point is present only once
-length(levels(as.factor(ANO.geo$ano_flate_id)))
-length(levels(as.factor(ANO.geo$ano_punkt_id)))
-summary(as.factor(ANO.geo$ano_punkt_id))
+#length(levels(as.factor(ANO.geo$ano_flate_id)))
+#length(levels(as.factor(ANO.geo$ano_punkt_id)))
+#summary(as.factor(ANO.geo$ano_punkt_id))
 # there's many double presences, probably some wrong registrations of point numbers,
 
 
@@ -435,18 +438,18 @@ for (i in 1:nrow(ANO.geo) ) {  #
 }
 
 
-#saveRDS(results.ANO.alien, "C:/R projects github/ecRxiv_aliens/indicators/NO_ALIE_001-004/data/cache/results.ANO.alien.RDS")
+#saveRDS(results.ANO.alien, paste0(here::here(),"/indicators/NO_ALIE_002-005/data/cache/results.ANO.alien.RDS"))
 
 ```
 
 ```{r, include = F}
 # Use cache data
-results.ANO.alien<-readRDS(paste0(here::here(),"/indicators/NO_ALIE_001-004/data/cache/results.ANO.alien.RDS"))
+results.ANO.alien<-readRDS(paste0(here::here(),"/indicators/NO_ALIE_002-005/data/cache/results.ANO.alien.RDS"))
 ```
 
 #### Scaled value analyses
 
-In order to calculate regional indices for the indicator(s) in addition to national ones we need add information on region to the results-object.
+In order to calculate regional indices for the indicator(s) in addition to national ones we need to add information on region to the results-object.
 ```{r, message = F, echo = F, warning = F}
 #### preparing results data for calculating of indices ####
 ## continuing with 2-sided
@@ -455,11 +458,13 @@ res.ANO.alien <- results.ANO.alien[['scaled']]
 # add geometry again
 st_geometry(res.ANO.alien) <- st_geometry(ANO.geo)
 
-nor <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/outlineOfNorway_EPSG25833.shp")%>%
+nor <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/outlineOfNorway_EPSG25833.shp",
+               quiet = T)%>%
   st_as_sf() %>%
   st_transform(crs = crs(ANO.geo))
 
-reg <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/regions.shp")%>%
+reg <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/regions.shp",
+               quiet = T) %>%
   st_as_sf() %>%
   st_transform(crs = crs(ANO.geo))
 
