@@ -41,13 +41,11 @@ code-links:
 ```{r setup}
 #| include: false
 library(knitr)
-library(tidyverse)
 library(kableExtra)
 library(here)
 library(sf)
 library(readxl)
 library(plyr)
-library(dplyr)
 library(RColorBrewer)
 library("gridExtra") 
 library(ggridges)
@@ -58,6 +56,9 @@ library(stars)
 library(betareg)
 library(glmmTMB)
 library(flextable)
+library(conflicted)
+library(tidyverse)
+conflict_prefer_all("dplyr")
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -150,7 +151,7 @@ meta |>
 ## Logg
 
 <!--# Update this logg with short messages for each update -->
-- 01 Jan. 1901 - Original PR
+- 09 Apr. 2025 - Original PR
 :::
 
 
@@ -339,11 +340,11 @@ Import testing data:
 #Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
 # ANO data
 ANO.sp <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/naturovervaking_eksport.gdb",
-                    layer="ANO_Art")
+                  layer="ANO_Art", quiet = T)
 ANO.geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/naturovervaking_eksport.gdb",
-                   layer="ANO_SurveyPoint")
-head(ANO.sp)
-head(ANO.geo)
+                   layer="ANO_SurveyPoint", quiet = T)
+##head(ANO.sp)
+##head(ANO.geo)
 
 # GRUK data
 GRUK.variables<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/GRUK.variables.RDS"))
@@ -364,7 +365,7 @@ Import Plant indicators from Tyler et al. (2021):
 ## Tyler indicator data
 #ind.Tyler <-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ind.dat.RDS"))
 ind.Tyler <- read.table("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/Tyler et al_Swedish plant indicators.txt", sep = '\t', header=T, quote = '')
-# head(ind.Tyler)
+# #head(ind.Tyler)
  
 ind.Grime<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ind.Grime.RDS"))
 
@@ -475,7 +476,7 @@ ind.Tyler$species <- as.factor(ind.Tyler$species)
 summary(ind.Tyler$species)
 # no duplicates left
 
-head(ind.Tyler)
+#head(ind.Tyler)
 
 # merge indicator data
 ind.dat <- merge(ind.Grime,ind.Tyler, by="species", all=T)
@@ -483,13 +484,13 @@ ind.dat <- merge(ind.Grime,ind.Tyler, by="species", all=T)
 #ind.dat[duplicated(ind.dat[,'species']),"species"]
 ind.dat$species <- as.factor(ind.dat$species)
 #summary(ind.dat$species)
-head(ind.dat)
+#head(ind.dat)
 
 
 #### ANO monitoring data
 
-head(ANO.sp)
-head(ANO.geo)
+#head(ANO.sp)
+#head(ANO.geo)
 
 ## fix NiN information
 ANO.geo$hovedtype_rute <- substr(ANO.geo$kartleggingsenhet_1m2,1,3) # take the 3 first characters
@@ -498,11 +499,11 @@ unique(as.factor(ANO.geo$hovedtype_rute))
 
 ANO.geo$hovedoekosystem_rute <- ANO.geo$hovedtype_rute
 ANO.geo <- ANO.geo %>% mutate(hovedoekosystem_rute=recode(hovedoekosystem_rute, 
-                                                          'T4'='Forest', 'T30'='Forest',
-                                                          'T3'='Mountain', 'T7'='Mountain', 'T14'='Mountain', 'T22'='Mountain',
-                                                          'V1'='Wetland', 'V2'='Wetland', 'V3'='Wetland', 'V4'='Wetland', 'V5'='Wetland', 'V6'='Wetland', 'V7'='Wetland', 'V8'='Wetland', 
-                                                          'T31'='Seminat', 'T32'='Seminat', 'T33'='Seminat', 'T34'='Seminat','V9'='Seminat', 'V10'='Seminat',
-                                                          'T2'='Natopen', 'T8'='Natopen', 'T11'='Natopen', 'T12'='Natopen','T13'='Natopen', 'T15'='Natopen','T16'='Natopen', 'T18'='Natopen','T21'='Natopen', 'T24'='Natopen', 'T29'='Natopen'
+                                                          "T4"="Forest", "T30"="Forest",
+                                                          "T3"="Mountain", "T7"="Mountain", "T14"="Mountain", "T22"="Mountain",
+                                                          "V1"="Wetland", "V2"="Wetland", "V3"="Wetland", "V4"="Wetland", "V5"="Wetland", "V6"="Wetland", "V7"="Wetland", "V8"="Wetland", 
+                                                          "T31"="Seminat", "T32"="Seminat", "T33"="Seminat", "T34"="Seminat","V9"="Seminat", "V10"="Seminat",
+                                                          "T2"="Natopen", "T8"="Natopen", "T11"="Natopen", "T12"="Natopen","T13"="Natopen", "T15"="Natopen","T16"="Natopen", "T18"="Natopen","T21"="Natopen", "T24"="Natopen", "T29"="Natopen"
                                                           ))
 
 
@@ -514,7 +515,7 @@ colnames(ANO.geo)[42:47] <- c("groeftingsintensitet",
                               "slatteintensitet",
                               "tungekjoretoy",
                               "slitasje")
-head(ANO.geo)
+#head(ANO.geo)
 
 # remove variable code in the data
 ANO.geo$groeftingsintensitet <- gsub("7GR-GI_", "", ANO.geo$groeftingsintensitet) 
@@ -560,8 +561,8 @@ ANO.geo$slitasje <- as.numeric(ANO.geo$slitasje)
 unique(ANO.geo$slitasje)
 
 ## check that every point is present only once
-length(levels(as.factor(ANO.geo$ano_flate_id)))
-length(levels(as.factor(ANO.geo$ano_punkt_id)))
+#length(levels(as.factor(ANO.geo$ano_flate_id)))
+#length(levels(as.factor(ANO.geo$ano_punkt_id)))
 summary(as.factor(ANO.geo$ano_punkt_id))
 # there's many double presences, probably some wrong registrations of point numbers,
 
@@ -684,14 +685,14 @@ ANO.sp.ind <- ANO.sp.ind[!is.na(ANO.sp.ind$art_dekning),]
 
 
 summary(ANO.sp.ind)
-head(ANO.sp.ind)
+#head(ANO.sp.ind)
 rm(ANO.sp)
 
 
 #### GRUK data handling
-names(GRUK.variables)
-names(GRUK.species)
-names(GRUK2021.condition)
+#names(GRUK.variables)
+#names(GRUK.species)
+#names(GRUK2021.condition)
 
 colnames(GRUK.species)[5] <- "art_dekning"
 
@@ -798,7 +799,7 @@ unique(GRUK.species.ind[is.na(GRUK.species.ind$Light &
                                 is.na(GRUK.species.ind$RR)),'Species'])
 
 ### make GRUK.variables into spatial object
-names(GRUK.variables)
+#names(GRUK.variables)
 GRUK.variables <- st_as_sf(GRUK.variables, coords = c("x","y"),remove=F)
 # add CRS
 GRUK.variables <- st_set_crs(GRUK.variables,4326)
@@ -811,8 +812,8 @@ GRUK.variables <- GRUK.variables %>%
 #GRUK.variables <- as.data.frame(GRUK.variables)
 GRUK2021.condition <- as.data.frame(GRUK2021.condition)
 
-head(GRUK.variables)
-head(GRUK2021.condition)
+#head(GRUK.variables)
+#head(GRUK2021.condition)
 
 ## fixing site-ID in the condition-data
 GRUK2021.condition$Flate_ID <- GRUK2021.condition$områdenavn
@@ -828,8 +829,8 @@ unique(as.factor(GRUK2021.condition$Flate_ID))
 #GRUK2021.condition$Flate_ID <- substr(GRUK2021.condition$Flate_ID, 1, nchar(GRUK2021.condition$Flate_ID)-1) # remove the last character ('-' for all)
 
 
-colnames(GRUK.variables)
-colnames(GRUK2021.condition)
+#colnames(GRUK.variables)
+#colnames(GRUK2021.condition)
 
 GRUK.variables <- merge(x=GRUK.variables, 
                         y=GRUK2021.condition[,c("tilstandsvurdering","tilstandsgrunn","artsmangfoldvurdering","lokalitetskvalitet","Flate_ID")], 
@@ -856,17 +857,17 @@ GRUK.species.ind <- GRUK.species.ind[!is.na(GRUK.species.ind$art_dekning),]
 
 
 summary(GRUK.species.ind)
-head(GRUK.species.ind)
+#head(GRUK.species.ind)
 
 
 ### ASO data handling
 ## make ASO.geo into a spatial object
-names(ASO.geo)
+#names(ASO.geo)
 ASO.geo <- st_as_sf(x = ASO.geo, 
                         coords = c("x", "y"),
                         crs = "+proj=longlat +datum=WGS84 +ellps=WGS84")
 
-colnames(ASO.geo)
+#colnames(ASO.geo)
 colnames(ASO.geo)[c(6,7,8,10,14,16,18,23,24)] <- c("Omradenummer_flatenummer","Eng_ID","ASO_ID","NiN_grunntype",
                                                    "bruksintensitet",
                                                    "beitetrykk",
@@ -920,7 +921,7 @@ unique(ASO.geo$slitasje)
 
 
 ## fixing variable names and issues in ASO.sp
-head(as.data.frame(ASO.sp))
+#head(as.data.frame(ASO.sp))
 
 colnames(ASO.sp)
 colnames(ASO.sp)[8] <- "art_dekning"
@@ -988,8 +989,8 @@ unique(ASO.sp.ind[is.na(ASO.sp.ind$Light &
 
 
 ## adding information on ecosystem and condition variables to species data
-names(ASO.sp.ind)
-names(ASO.geo)
+#names(ASO.sp.ind)
+#names(ASO.geo)
 ASO.sp.ind <- merge(x=ASO.sp.ind, 
                     y=ASO.geo[,c("GlobalID","Omradenummer_flatenummer","Eng_ID","ASO_ID","NiN_grunntype")], 
                     by.x="ParentGlobalID", by.y="GlobalID", all.x=T)
@@ -1003,7 +1004,7 @@ ASO.sp.ind <- ASO.sp.ind[!is.na(ASO.sp.ind$art_dekning),]
 
 
 summary(ASO.sp.ind)
-head(ASO.sp.ind)
+#head(ASO.sp.ind)
 
 
 #### 3Q data - data handling
@@ -1171,72 +1172,72 @@ names(NiN.wet_mount_forest_seminat)
 cbind(colnames(NiN.wet_mount_forest_seminat),
       c("",
         
-        'T34-C1',
-        'T34-C2a','T34-C2b','T34-C2c',
-        '',
-        'T34-C3',
-        'T34-C4a','T34-C4b','T34-C4c','T34-C4d',
-        'T34-C5a','T34-C5b','T34-C5c',
-        'T34-C6a','T34-C6b','T34-C6c',
-        '',
-        
-        'T4-C1','T4-C5','T4-C9','T4-C13',
-        rep("",4),
-        'T4-C2','T4-C6','T4-C10','T4-C14',
-        'T4-C3','T4-C7','T4-C11','T4-C15',
-        'T4-C4','T4-C8','T4-C12','T4-C16',
-        'T4-C17','T4-C18a','T4-C19a','T4-C18b',
-        'T4-C19b','T4-C20',
-        rep("",16),
-        'T30-C1','T30-C2','T30-C3',
-        rep("",3),
-        'T30-C4',
-        rep("",8),
-        
-        'T14-C1','T14-C2','T3-C3C6','T3-C9C12',
-        'T3-C2C5','T3-C8C11','T3-C1a','T3-C1b',
-        'T3-C4','T3-C7','T3-C10','T3-C13',
-        'T3-C14','T7-C1','T7-C2','T7-C3',
-        'T7-C6','T7-C8',
+        "T34-C1",
+        "T34-C2a","T34-C2b","T34-C2c",
         "",
-        'T7-C12','T7-C13C14','T7-C4','T7-C7C9','T7-C5','T7-C10',
-        rep("",8),
-        'T22-C1C3a',"",'T22-C1C3b',"",'T22-C2C4',
+        "T34-C3",
+        "T34-C4a","T34-C4b","T34-C4c","T34-C4d",
+        "T34-C5a","T34-C5b","T34-C5c",
+        "T34-C6a","T34-C6b","T34-C6c",
+        "",
         
-        'V3-C1a','V3-C1b','V3-C1c','V3-C1d','V3-C1e',
-        'V1-C1a','V1-C1b','V1-C1c','V1-C1d','V1-C1e',
-        'V1-C2a','V1-C2b','V1-C2c','V1-C2d',
-        'V1-C3a','V1-C3b','V1-C3c','V1-C3d',
-        'V1-C4a','V1-C4b','V1-C4c','V1-C4d',
-        'V1-C4e','V1-C4f','V1-C4g','V1-C4h',
-        'V3-C2','V1-C5',
-        'V1-C6a','V1-C6b',
-        'V1-C7a','V1-C7b',
-        'V1-C8a','V1-C8b',
-        'V2-C1a','V2-C1b',
-        'V2-C2a','V2-C2b',
-        'V2-C3a','V2-C3b',
+        "T4-C1","T4-C5","T4-C9","T4-C13",
+        rep("",4),
+        "T4-C2","T4-C6","T4-C10","T4-C14",
+        "T4-C3","T4-C7","T4-C11","T4-C15",
+        "T4-C4","T4-C8","T4-C12","T4-C16",
+        "T4-C17","T4-C18a","T4-C19a","T4-C18b",
+        "T4-C19b","T4-C20",
+        rep("",16),
+        "T30-C1","T30-C2","T30-C3",
+        rep("",3),
+        "T30-C4",
+        rep("",8),
+        
+        "T14-C1","T14-C2","T3-C3C6","T3-C9C12",
+        "T3-C2C5","T3-C8C11","T3-C1a","T3-C1b",
+        "T3-C4","T3-C7","T3-C10","T3-C13",
+        "T3-C14","T7-C1","T7-C2","T7-C3",
+        "T7-C6","T7-C8",
+        "",
+        "T7-C12","T7-C13C14","T7-C4","T7-C7C9","T7-C5","T7-C10",
+        rep("",8),
+        "T22-C1C3a","","T22-C1C3b","","T22-C2C4",
+        
+        "V3-C1a","V3-C1b","V3-C1c","V3-C1d","V3-C1e",
+        "V1-C1a","V1-C1b","V1-C1c","V1-C1d","V1-C1e",
+        "V1-C2a","V1-C2b","V1-C2c","V1-C2d",
+        "V1-C3a","V1-C3b","V1-C3c","V1-C3d",
+        "V1-C4a","V1-C4b","V1-C4c","V1-C4d",
+        "V1-C4e","V1-C4f","V1-C4g","V1-C4h",
+        "V3-C2","V1-C5",
+        "V1-C6a","V1-C6b",
+        "V1-C7a","V1-C7b",
+        "V1-C8a","V1-C8b",
+        "V2-C1a","V2-C1b",
+        "V2-C2a","V2-C2b",
+        "V2-C3a","V2-C3b",
         "V4-C2","V4-C3",
         "","",
-        'V8-C1','V8-C2','V8-C3',
+        "V8-C1","V8-C2","V8-C3",
         rep("",10),
         
-        rep('',7),
-        'T32-C1C2','T32-C3C4',
-        'T32-C5C20a',
-        'T32-C7C8',
-        'T32-C5C20b',
-        'T32-C9a',
-        'T32-C9b',
-        'T32-C15',
-        'T32-C21C6a',
-        'T32-C21C6b',
-        'T32-C10a',
-        'T32-C10b',
-        'T32-C16',
-        'T41a','T41b',
-        'T45-C1C2','T45-C3',
-        'V10-C1C2','V10-C3',
+        rep("",7),
+        "T32-C1C2","T32-C3C4",
+        "T32-C5C20a",
+        "T32-C7C8",
+        "T32-C5C20b",
+        "T32-C9a",
+        "T32-C9b",
+        "T32-C15",
+        "T32-C21C6a",
+        "T32-C21C6b",
+        "T32-C10a",
+        "T32-C10b",
+        "T32-C16",
+        "T41a","T41b",
+        "T45-C1C2","T45-C3",
+        "V10-C1C2","V10-C3",
         
         rep("",11) # indicators
       )
@@ -1303,7 +1304,7 @@ colnames(NiN.wet_mount_forest_seminat)[2:133] <- c(
                                                   'T45-C1C2','T45-C3',
                                                   'V10-C1C2','V10-C3'
 )
-head(NiN.wet_mount_forest_seminat)
+#head(NiN.wet_mount_forest_seminat)
 
 
 # translating the abundance classes into %-cover
@@ -1321,11 +1322,11 @@ NiN.wet_mount_forest_seminat.cov$sp <- as.factor(NiN.wet_mount_forest_seminat.co
 
 
 ### generalized species lists for naturally open systems below the tree line
-head(natopen_NiN_ref)
-head(natopen_NiN_ref_spInfo)
+#head(natopen_NiN_ref)
+#head(natopen_NiN_ref_spInfo)
 
 colnames(natopen_NiN_ref)[1] <- "sp"
-head(natopen_NiN_ref)
+#head(natopen_NiN_ref)
 
 natopen_NiN_ref <- merge(natopen_NiN_ref,natopen_NiN_ref_spInfo[,c(1,4)], by.x="sp", by.y="ScientificName", all.x=T)
 unique(natopen_NiN_ref[is.na(natopen_NiN_ref$Phylum),'sp']) # Pucinella does not exist in ind.dat, so we don't care
@@ -1344,7 +1345,7 @@ natopen_NiN_ref$sp <- word(natopen_NiN_ref$sp, 1,2)
 natopen_NiN_ref <- natopen_NiN_ref[!is.na(natopen_NiN_ref$sp),]
 # merging with indicator values
 NiN.natopen <- merge(natopen_NiN_ref,ind.dat[,c(1,3:5,20,23,27)], by.x="sp", by.y="species", all.x=T)
-head(NiN.natopen)
+#head(NiN.natopen)
 summary(NiN.natopen)
 
 
@@ -1394,20 +1395,20 @@ This leaves us with the monitoring data including plant indicators (ANO.sp.ind, 
 
 <!-- Print head of data set with horizontal scrolling -->
 ```{r ano-sp-tab, echo=F}
-head(ANO.sp.ind) %>%
+#head(ANO.sp.ind) %>%
   kable("html",caption = "ANO species occurence data set with attached plant trait data.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 ```{r GRUK-sp-tab, echo=F}
-head(GRUK.species.ind) %>%
+#head(GRUK.species.ind) %>%
   kable("html",caption = "GRUK species occurence data set with attached plant trait data.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 
 ```{r aso-sp-tab, echo=F}
-head(ASO.sp.ind) %>%
+#head(ASO.sp.ind) %>%
   kable("html",caption = "ASO species occurence data set with attached plant trait data.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
@@ -1416,13 +1417,13 @@ head(ASO.sp.ind) %>%
 
 
 ```{r wetland_mountain_forest_seminatural-ref-data-tab, echo=FALSE}
-head(NiN.wet_mount_forest_seminat.cov) %>% 
+#head(NiN.wet_mount_forest_seminat.cov) %>% 
   kable("html", caption = "Reference data set for wetland, mountain, forest, and semi-natural ecosystems") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 ```{r naturally open-ref-data-tab, echo=FALSE}
-head(NiN.natopen.cov) %>% 
+#head(NiN.natopen.cov) %>% 
   kable("html", caption = "Reference data set for naturally open ecosystems below the treeline") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
@@ -1613,8 +1614,7 @@ for (i in 1:length(wet_mount_forest_seminat.ref.cov) ) {
   }
 }
 
-#saveRDS(wet_mount_forest_seminat.ref.cov, "indicators/NO_FUNC_001-004/data/cache/wet_mount_forest_seminat.ref.cov.RDS")
-
+#saveRDS(wet_mount_forest_seminat.ref.cov, paste0(here::here(),"/NO_FUNC_001-004/data/cache/wet_mount_forest_seminat.ref.cov.RDS"))
 
 natopen.ref.cov <- indBoot.freq(sp=NiN.natopen.cov[,1],abun=NiN.natopen.cov[,6:71],ind=NiN.natopen.cov[,74:79],iter=1000,obl=0.8,rat=1/2,var.abun=T)
 
@@ -1627,7 +1627,7 @@ for (i in 1:length(natopen.ref.cov) ) {
   }
 }
 
-#saveRDS(natopen.ref.cov, "indicators/NO_FUNC_001-004/data/cache/natopen.ref.cov.RDS")
+#saveRDS(natopen.ref.cov, paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/natopen.ref.cov.RDS"))
 
 ```
 
@@ -1640,12 +1640,12 @@ natopen.ref.cov<-readRDS(paste0(here::here(), "/indicators/NO_FUNC_001-004/data/
 ```
 
 ```{r}
-head(wet_mount_forest_seminat.ref.cov[[1]]) %>%
+#head(wet_mount_forest_seminat.ref.cov[[1]]) %>%
     kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 ```{r}
-head(natopen.ref.cov[[1]]) %>%
+#head(natopen.ref.cov[[1]]) %>%
     kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
@@ -1664,7 +1664,7 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 # every NiN-type is represented by one 'generalisert artsliste'
 # some NiN-types are represented by two such species lists
 # in some cases two NiN-types are represented by the same species list
-head(wet_mount_forest_seminat.ref.cov[[1]])
+#head(wet_mount_forest_seminat.ref.cov[[1]])
 wet_mount_forest_seminat.ref.cov[[1]][0,]
 
 # NiN-types where each type is represented by one species list (including when one species list represents two NiN-types)
@@ -2085,10 +2085,10 @@ nrow(ANO.geo[ANO.geo$hovedtype_rute %in% unique( c(sub("\\-.*", "", wet_mount_fo
 # ok, we'll be losing 25% that are not covered by the reference
 
 ANO.all <- ANO.geo[ANO.geo$hovedtype_rute %in% unique( c(sub("\\-.*", "", wet_mount_forest_seminat.ref.cov.val$grunn),sub("\\-.*", "", natopen.ref.cov.val$grunn)) ),]
-head(ANO.all)
+#head(ANO.all)
 # update row-numbers
 row.names(ANO.all) <- 1:nrow(ANO.all)
-head(ANO.all)
+#head(ANO.all)
 dim(ANO.all)
 colnames(ANO.all)
 
@@ -2670,10 +2670,9 @@ results.ANO[['2-sided']]$Soil_disturbance2[results.ANO[['2-sided']]$Soil_disturb
 results.ANO[['2-sided']]$Heat_requirement1 <- NA
 results.ANO[['2-sided']]$Heat_requirement2 <- results.ANO[['scaled']]$Heat_requirement2
 
-#saveRDS(results.ANO, "C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/cache/results.ANO.RDS")
+#saveRDS(results.ANO, paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/results.ANO.RDS"))
 
-#saveRDS(ANO.all, "C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/cache/ANO.all.RDS")
-
+#saveRDS(ANO.all, paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ANO.all.RDS"))
 
 ```
 
@@ -2684,13 +2683,13 @@ ANO.all<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ANO
 ```
 
 ```{r}
-head(results.ANO[['2-sided']]) %>%
+#head(results.ANO[['2-sided']]) %>%
       kable("html", caption = "ANO plots for ecosystems with scaled indicator values in the far-right columns.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 #### Scaled value analyses
 
-In order to calculate regional indices for the indicator(s) in addition to national ones we need add information on region to the results-object before rearrange the results-object from wide to long format (note that there is both a lower and an upper condition indicator for each of the functional plant community indicators other than Heat-requirement).
+In order to calculate regional indices for the indicator(s) in addition to national ones we need to add information on region to the results-object before rearrange the results-object from wide to long format (note that there is both a lower and an upper condition indicator for each of the functional plant community indicators other than Heat-requirement).
 
 ```{r, message = F, echo = F, warning = F}
 #### preparing results data for calculating of indices ####
@@ -2709,16 +2708,16 @@ res.ANO <- res.ANO %>%
 # keep wide format and add geometry again
 st_geometry(res.ANO) <- st_geometry(ANO.all)
 
-nor <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/outlineOfNorway_EPSG25833.shp")%>%
+nor <- st_read(here::here("indicators/NO_FUNC_001-004/data/spatial/outlineOfNorway_EPSG25833.shp"), quiet = T) %>%
   st_as_sf() %>%
   st_transform(crs = crs(ANO.all))
 
-reg <- st_read("C:/R projects github/ecRxiv_functional-plant-indicators/indicators/NO_FUNC_001-004/data/spatial/regions.shp")%>%
+reg <- st_read(here::here("indicators/NO_FUNC_001-004/data/spatial/regions.shp"), quiet = T) %>%
   st_as_sf() %>%
   st_transform(crs = crs(ANO.all))
 
 # change region names to something R-friendly
-reg$region
+#reg$region
 reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
 
 regnor <- st_intersection(reg,nor)
@@ -3116,16 +3115,4 @@ NO_FUNC_004_2019to2021[['high']]
 NO_FUNC_004_2019to2021[['low']]
 NO_FUNC_004_2019to2021[['n']]
 
-```
-
-## 11. Export file
-
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
-
-```{r export}
-#| eval: false
 ```
