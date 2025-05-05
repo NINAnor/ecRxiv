@@ -592,7 +592,7 @@ Finally, we can use all the areas calculated above to compile a regional URGR_01
 
 ```{r}
 #| eval: false
-#| code-summary: "Summary table of total area of ecosystem types per regions"
+#| code-summary: "Compile URGR_010"
 
 # URGR_010 - regional
 urgur_010_rgn <- lau_area_rgn %>% 
@@ -712,12 +712,94 @@ rm(list=setdiff(ls(), c("clc18_green_32",
 
 #### 9.2.3 Data analyses
 ##### URGR_011 - National
+First we need to do an intersection between Corine Land Cover and the LAUs administrative boundaries.
+```{r}
+#| eval: false
+#| code-summary: "Intersecting Corine Land Cover and LAUs"
+
+# Calculate intersection between ETs and LAUs
+et_lau_inter <-  st_intersection(clc18_green_32, lau_32)
+```
+
+Then we calculate the areas of green ecosystem types per LAUs and the total areas of the LAUs.
+```{r}
+#| eval: false
+#| code-summary: "Calculate areas"
+
+# Calculate areas of ETs in LAUs
+et_lau_area <- et_lau_inter %>%
+                  mutate(., area_m2  = st_area(.))
+
+
+# Calculate areas of ETs in LAUs
+et_lau_tot_area <- et_lau_area %>% 
+                    st_drop_geometry() %>%
+                    select(clc18_kode, area_m2, LAU_ID) %>%             
+                    group_by(LAU_ID) %>%
+                    summarise(total_area = sum(area_m2))
+
+#Calculate the total areas of ecosystem types within LAUs
+area_lau_green_ets <- et_lau_tot_area$total_area %>%
+                        unclass() %>%
+                        sum()
+              
+
+# Calculate the total areas of the LAUs           
+area_lau <- lau_32 %>%
+              mutate(area_m2 = st_area(.)) %>%
+              st_drop_geometry() %>%
+              group_by(LAU_ID) %>%
+              summarise(total_area = sum(area_m2))
+```
+
+Once we have the areas, the URGR_011 index can be calculated as per (total area of green ecosystem types within LAUs)/(total areas of the LAUs) * 100.
+```{r}
+#| eval: false
+#| code-summary: "Compile National URGR_011"
+
+urgr_011_nat <- sum(area_lau_green_ets) / sum(unclass(area_lau$total_area)) * 100
+```
 
 ##### URGR_011 - Regional
+The first step is to do an intersection between the LAUs and the regions to attribute the LAUs to a region.
+```{r}
+#| eval: false
+#| code-summary: "Intersecting LAUs and regions"
 
+# Calculate Intersection LAUs and Regions
+lau_region_inter <- st_intersection(lau_32, region_no_32)
+```
 
+From there, we can just join this new layer with the areas calculated before so the region information is brought along and attributed to LAUs total areas and total areas of green ecosystem types per LAUs.
+```{r}
+#| eval: false
+#| code-summary: "Toral areas of green ecosystem types and LAUs per regions"
 
+# Join Regions and LAUs with 
+green_area_rgn <- lau_region_inter %>%
+                    st_drop_geometry %>%
+                    select(LAU_ID, regn_nm) %>%
+                    inner_join(., et_lau_tot_area, by = "LAU_ID") %>%
+                    group_by(regn_nm) %>%
+                    summarise(total_green_area = sum(total_area))
+              
+lau_area_rgn <- lau_region_inter %>%
+                  st_drop_geometry %>%
+                  select(LAU_ID, regn_nm) %>%
+                  inner_join(., area_lau, by = "LAU_ID") %>%
+                  group_by(regn_nm) %>%
+                  summarise(total_area_lau_rgn = sum(total_area))
+```
 
+We can then calculate URGR_011 at regional level, the same way we calculated it at national level.
+```{r}
+#| eval: false
+#| code-summary: "Compile Regional URGR_011"
+
+urgr_011_rgn <- lau_area_rgn %>% 
+                  inner_join(., green_area_rgn, by = "regn_nm") %>%
+                  mutate(urgr_010 = total_green_area /  total_area_lau_rgn * 100)
+```
 
 
 <!--# 
