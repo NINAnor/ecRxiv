@@ -17,7 +17,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research
-date: April 28, 2025 
+date: May 6, 2025 
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -136,6 +136,7 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 28 Apr 2025 - Version 000.001 started
+- 6 May 2025 - Version 000.001 revised
 :::
 
 
@@ -156,7 +157,7 @@ In Norway, the WFD is implemented by means of [*Vannforskriften*](#vannf), and r
 The data collected are archived and made available in the [*Vannmiljø*](https://vannmiljo.miljodirektoratet.no/) database. 
 
 These WFD data can be used in other contexts, including ecological condition assessments. 
-The procedure implemented here follows a dataflow that has been described and documented earlier ([Sandvik 2019](#san19), [Sandvik 2024](#san24)) and that consists of the following steps:
+The procedure implemented here follows a dataflow that has been described and documented earlier ([Sandvik 2019](#san19), [Sandvik 2024](#san24)) and that consists of the following steps (for details, see [section 9.5](#estimating-the-indicator-values-and-their-uncertainty)):
 
 * Selecting measurements from the relevant time period.
 * Removing measurements that do not fulfil the requirements for the specific indicator.
@@ -252,7 +253,7 @@ The WFD enforces the environmental **objectives** that water bodies shall not ha
 
 ### 3.4 Collinearities with other indicators
 
-RAMI may be broadly correlated to other measures of river acidification, specifically AIP and Raddum.
+RAMI is correlated to water pH and may be broadly correlated to other measures of river acidification, specifically AIP, ANC and labile aluminium (LAl).
 <!--# these indicator abbreviations can be linked to the appropriate fact sheets at a later stage -->
 
 <!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
@@ -530,15 +531,15 @@ The output informs us of several adjustments made to the data, but that the oper
 ### 9.4. Calculating mEQRs using reference levels
 
 According to the WFD and DGVF ([2025](#veil2)), measurements of WFD variables are transformed into so-called nEQR values ("normalised Ecological Quality Ratios") between 0 and 1, which correspond to indicator values sensu [SEEA EA](#seeaea). 
-This is achieved in the following steps:
+This is normally done using the following steps:
 
 1. *Truncation.* Variable values are truncated, where measurements that are poorer than X~0~ are set to X~0~, and measurements that are better than X~100~ are set to X~100~.
 2. *Scaling.* The truncated variable values are linearly scaled so that X~0~ becomes 0 and X~100~ becomes 1. The resulting indicator values are referred to as **EQR**s ("Ecological Quality Ratios").
 3. *Transformation.* EQR values are transformed in a stepwise-linear manner, so that the indicator values 0.2, 0.4, 0.6 and 0.8 correspond to the thresholds between the normative definitions of "bad", "poor", "moderate", "good" and "high" ecological status according to the WFD. The resulting indicator values are referred to as **nEQR**s ("normalised EQRs").
 
-Truncation, however, destroys information about variation in ecological condition that is important for estimating (modelling and extrapolating) the indicator value and its uncertainty. 
+Truncation, however, removes information about variation in ecological condition that is important for estimating (modelling and extrapolating) the indicator value and its uncertainty. 
 Therefore, the dataflow from WFD to an Ecological Condition Account should be based on values that are *scaled and transformed but not truncated*.
-This is achieved by modifying the order of the steps from truncation&ndash;scaling&ndash;transformation to scaling&ndash;transformation&ndash;aggregation&ndash;truncation (following [Sandvik 2019](#san19): pp. 13--15, [Sandvik 2024](#san24)):
+This is implemented in the current context by modifying the order of the steps from truncation&ndash;scaling&ndash;transformation to scaling&ndash;transformation&ndash;aggregation&ndash;truncation (following [Sandvik 2019](#san19): pp. 13--15, [Sandvik 2024](#san24)):
 
 1. *Scaling.* The *un*truncated variable values are linearly scaled so that X~0~ becomes 0 and X~100~ becomes 1. Note that the resulting values may be negative (if X is poorer than X~0~) or larger than 1 (if X is better than X~100~).
 2. *Transformation.* The scaled values are transformed in a stepwise-linear manner in accordance with the threshold values defined by the WFD. The resulting indicator values are here referred to as **mEQR**s ("modified EQRs"). This step requires an adjustment in cases were the minimum and/or maximum values of X can be much lower or higher than X~0~ or X~100~. The approach chosen here ensures that no indicator value can be below &minus;0.2 or above 1.2.
@@ -551,15 +552,15 @@ Let us have closer look at the reference levels of the indicator (which are give
 klassegrenser <- hentKlassegrenser("../data/klassegrenser_" %+% indikator %+% ".xlsx")
 if (nrow(klassegrenser) > 1) {
   m <- matrix(0, 8, 2, dimnames = list(
-    c("Minimum value:", "Range of X_" %+% seq(0, 100, 20) %+% ":", "Maximum value:"), 
+    c("Pessimum:", "Range of X_" %+% seq(0, 100, 20) %+% ":", "Optimum:"), 
     c("from", "to")))
   m[, 1] <- apply(klassegrenser, 2, min, na.rm = TRUE)
   m[, 2] <- apply(klassegrenser, 2, max, na.rm = TRUE)
   klassegrenser <- klassegrenser[which(!is.na(klassegrenser[, 1]))[1], ]
 } else {
   m <- t(klassegrenser)
-  dimnames(m) <- list(c("Minimum", "X_0   =", "X_20  =", "X_40  =", "X_60  =",
-                        "X_80  =", "X_100 =", "Maximum"), "")
+  dimnames(m) <- list(c("Pessim.", "X_0   =", "X_20  =", "X_40  =", "X_60  =",
+                        "X_80  =", "X_100 =", "Optimum"), "")
 }
 print(m)
 ```
@@ -607,7 +608,7 @@ text(klassegrenser[2], -0.15, expression(X[0]),   pos=ifelse(rf, 4, 2), offset=0
 text(klassegrenser[7], -0.15, expression(X[100]), pos=ifelse(rf, 2, 4), offset=0.3)
 ```
 
-Note that variables values may be substantially larger than X~100~ (blue line). 
+Note that variable values may be substantially larger than X~100~ (blue line). 
 Therefore, an asymptotic transformation is used for X > X~100~ in order to keep mEQR values below 1.2.
 
 ### 9.5. Estimating the indicator values and their uncertainty
@@ -710,7 +711,7 @@ The estimates and their confidence intervals may be summarised as tables.
 ```{r}
 {
   kvantiler <- c(0.025, 0.25, 0.5, 0.75, 0.975)
-  print(round(t(apply(utmating$Norge[  "Norge", , -1], 1, quantile, kvantiler)), 8)) 
+  print(round(t(apply(utmating$Norge[  "Norge", , -1], 1, quantile, kvantiler)), 4)) 
   print(round(t(apply(utmating$landsdel[, "2024", -1], 1, quantile, kvantiler)), 4))
 }
 ```
@@ -727,7 +728,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 ## 10. Results
 
 The results are here tabulated (a) for the whole country and different years, and (b) for regions in 2024. 
-These estimates are based on 10,000 iterations<!-- not yet! (¤) --> and therefore differ from the ones above.
+These estimates are based on 10,000 iterations and therefore differ from the ones above.
 
 *NB: Please note that these results are not the final ones for 2024. The deadline for reporting WFD measurements taken in 2024 is September 2025, meaning that the values for 2024 are so far based mainly on measurements taken in 2022 and 2023.* 
 
@@ -738,7 +739,7 @@ These estimates are based on 10,000 iterations<!-- not yet! (¤) --> and therefo
 | 2021 | 1.000         | 1.000          | 1.000          |
 | 2018 | 1.000         | 1.000          | 1.000          |
 | 2015 | 1.000         | 1.000          | 1.000          |
-| 2012 | 0.977         | 0.974          | 0.980          |
+| 2012 | 0.977         | 0.975          | 0.980          |
 
 : RAMI for Norway in different years {.striped .hover}
 
@@ -747,7 +748,7 @@ These estimates are based on 10,000 iterations<!-- not yet! (¤) --> and therefo
 | Region     | Best estimate | Lower quartile | Upper quartile |
 |:-----------|:-------------:|:--------------:|:--------------:|
 | Østlandet  | 1.000         | 1.000          | 1.000          |
-| Sørlandet  | 0.963         | 0.957          | 0.969          |
+| Sørlandet  | 0.964         | 0.957          | 0.970          |
 | Vestlandet | 1.000         | 1.000          | 1.000          |
 | Midt-Norge | 1.000         | 1.000          | 1.000          |
 | Nord-Norge | 1.000         | 1.000          | 1.000          |
