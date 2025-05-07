@@ -335,6 +335,14 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 ### Data sets
 <!-- Please print the entire workflow with echo=T. Also, simply reading cached data creates loose ends - I cant find out where this data comes from. You may also chose to read tin this data (or a cached version of it) way at the top of the file, so that you can add some in-line R code for the summary stats in the introduction part (see previous comments)-->
 
+Download ANO testing data from Miljødirektoratet
+```{r, eval = F, echo = F}
+# download 
+url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
+download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
+unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
+```
+
 Import testing data:
 ```{r}
 #Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
@@ -343,8 +351,8 @@ ANO.sp <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/naturovervaking
                   layer="ANO_Art", quiet = T)
 ANO.geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/naturovervaking_eksport.gdb",
                    layer="ANO_SurveyPoint", quiet = T)
-##head(ANO.sp)
-##head(ANO.geo)
+#head(ANO.sp)
+#head(ANO.geo)
 
 # GRUK data
 GRUK.variables<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/GRUK.variables.RDS"))
@@ -2005,7 +2013,7 @@ natopen.ref.cov.val %>%
 
 Once test data and the scaling values from the reference data are in place, we can calculate CWMs (or cumulative distributions in the case of the Heat_requirment indicator in alpine/arcitc systems) of the selected indicators for the ANO community data and scale them against the scaling values from the reference distribution. Note that we scale each ANO plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. An ANO plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
 
-Here is the scaling function:
+Here is the normalisation function for mapping the abundance values to indicator values:
 ```{r}
 
 #### scaled values ####
@@ -2750,7 +2758,7 @@ values_drop_na = FALSE
 
 ### Calculating national and regional indices for the single plant indicators and for the overall functional plant community indicator
 
-We can calculate national and region-wise medians and 0.025 and 0.975 quantiles. Calculating means is not recommended since these 0-1 data do not follow a Gaussian distribution.
+We can calculate national and region-wise medians and 0.25 and 0.75 quantiles. Calculating means is not recommended since these 0-1 data do not follow a Gaussian distribution.
 ```{r}
 ## forest ecosystems
 # list to hold the results
@@ -2763,14 +2771,14 @@ NO_FUNC_004_2022to2024[['median']] <- NO_FUNC_004_2022to2024[['low']] <- NO_FUNC
 for (i in 1:length(NO_FUNC_004_2022to2024[['median']]$Indicator) ) {
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004_2022to2024[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Forest" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_004_2022to2024[['low']][i,2] <- res[1]
   NO_FUNC_004_2022to2024[['median']][i,2] <- res[2]
   NO_FUNC_004_2022to2024[['high']][i,2] <- res[3]
   NO_FUNC_004_2022to2024[['n']][i,2] <- nrow(df[!is.na(df$scaled_value),])
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004_2019to2021[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Forest" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_004_2019to2021[['low']][i,2] <- res[1]
   NO_FUNC_004_2019to2021[['median']][i,2] <- res[2]
   NO_FUNC_004_2019to2021[['high']][i,2] <- res[3]
@@ -2781,8 +2789,8 @@ for (i in 1:length(NO_FUNC_004_2022to2024[['median']]$Indicator) ) {
     df2 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004_2022to2024[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Forest" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     df1 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_004_2019to2021[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Forest" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     
-    res2 <- quantile(df2$scaled_value,c(.025, .5, .975), na.rm=T)
-    res1 <- quantile(df1$scaled_value,c(.025, .5, .975), na.rm=T)
+    res2 <- quantile(df2$scaled_value,c(.25, .5, .75), na.rm=T)
+    res1 <- quantile(df1$scaled_value,c(.25, .5, .75), na.rm=T)
     
     NO_FUNC_004_2022to2024[['low']][i,j] <- res2[1]
     NO_FUNC_004_2022to2024[['median']][i,j] <- res2[2]
@@ -2807,14 +2815,14 @@ NO_FUNC_002_2022to2024[['median']] <- NO_FUNC_002_2022to2024[['low']] <- NO_FUNC
 for (i in 1:length(NO_FUNC_002_2022to2024[['median']]$Indicator) ) {
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002_2022to2024[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Mountain" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_002_2022to2024[['low']][i,2] <- res[1]
   NO_FUNC_002_2022to2024[['median']][i,2] <- res[2]
   NO_FUNC_002_2022to2024[['high']][i,2] <- res[3]
   NO_FUNC_002_2022to2024[['n']][i,2] <- nrow(df[!is.na(df$scaled_value),])
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002_2019to2021[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Mountain" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_002_2019to2021[['low']][i,2] <- res[1]
   NO_FUNC_002_2019to2021[['median']][i,2] <- res[2]
   NO_FUNC_002_2019to2021[['high']][i,2] <- res[3]
@@ -2825,8 +2833,8 @@ for (i in 1:length(NO_FUNC_002_2022to2024[['median']]$Indicator) ) {
     df2 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002_2022to2024[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     df1 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_002_2019to2021[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Mountain" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     
-    res2 <- quantile(df2$scaled_value,c(.025, .5, .975), na.rm=T)
-    res1 <- quantile(df1$scaled_value,c(.025, .5, .975), na.rm=T)
+    res2 <- quantile(df2$scaled_value,c(.25, .5, .75), na.rm=T)
+    res1 <- quantile(df1$scaled_value,c(.25, .5, .75), na.rm=T)
     
     NO_FUNC_002_2022to2024[['low']][i,j] <- res2[1]
     NO_FUNC_002_2022to2024[['median']][i,j] <- res2[2]
@@ -2852,14 +2860,14 @@ NO_FUNC_003_2022to2024[['median']] <- NO_FUNC_003_2022to2024[['low']] <- NO_FUNC
 for (i in 1:length(NO_FUNC_003_2022to2024[['median']]$Indicator) ) {
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003_2022to2024[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Wetland" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_003_2022to2024[['low']][i,2] <- res[1]
   NO_FUNC_003_2022to2024[['median']][i,2] <- res[2]
   NO_FUNC_003_2022to2024[['high']][i,2] <- res[3]
   NO_FUNC_003_2022to2024[['n']][i,2] <- nrow(df[!is.na(df$scaled_value),])
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003_2019to2021[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Wetland" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_003_2019to2021[['low']][i,2] <- res[1]
   NO_FUNC_003_2019to2021[['median']][i,2] <- res[2]
   NO_FUNC_003_2019to2021[['high']][i,2] <- res[3]
@@ -2870,8 +2878,8 @@ for (i in 1:length(NO_FUNC_003_2022to2024[['median']]$Indicator) ) {
     df2 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003_2022to2024[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     df1 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_003_2019to2021[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Wetland" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     
-    res2 <- quantile(df2$scaled_value,c(.025, .5, .975), na.rm=T)
-    res1 <- quantile(df1$scaled_value,c(.025, .5, .975), na.rm=T)
+    res2 <- quantile(df2$scaled_value,c(.25, .5, .75), na.rm=T)
+    res1 <- quantile(df1$scaled_value,c(.25, .5, .75), na.rm=T)
     
     NO_FUNC_003_2022to2024[['low']][i,j] <- res2[1]
     NO_FUNC_003_2022to2024[['median']][i,j] <- res2[2]
@@ -2897,14 +2905,14 @@ NO_FUNC_001_2022to2024[['median']] <- NO_FUNC_001_2022to2024[['low']] <- NO_FUNC
 for (i in 1:length(NO_FUNC_001_2022to2024[['median']]$Indicator) ) {
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001_2022to2024[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_001_2022to2024[['low']][i,2] <- res[1]
   NO_FUNC_001_2022to2024[['median']][i,2] <- res[2]
   NO_FUNC_001_2022to2024[['high']][i,2] <- res[3]
   NO_FUNC_001_2022to2024[['n']][i,2] <- nrow(df[!is.na(df$scaled_value),])
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001_2019to2021[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_001_2019to2021[['low']][i,2] <- res[1]
   NO_FUNC_001_2019to2021[['median']][i,2] <- res[2]
   NO_FUNC_001_2019to2021[['high']][i,2] <- res[3]
@@ -2915,8 +2923,8 @@ for (i in 1:length(NO_FUNC_001_2022to2024[['median']]$Indicator) ) {
     df2 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001_2022to2024[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     df1 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001_2019to2021[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute %in% c("Seminat","Natopen") &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     
-    res2 <- quantile(df2$scaled_value,c(.025, .5, .975), na.rm=T)
-    res1 <- quantile(df1$scaled_value,c(.025, .5, .975), na.rm=T)
+    res2 <- quantile(df2$scaled_value,c(.25, .5, .75), na.rm=T)
+    res1 <- quantile(df1$scaled_value,c(.25, .5, .75), na.rm=T)
     
     NO_FUNC_001_2022to2024[['low']][i,j] <- res2[1]
     NO_FUNC_001_2022to2024[['median']][i,j] <- res2[2]
@@ -2942,14 +2950,14 @@ NO_FUNC_001a_2022to2024[['median']] <- NO_FUNC_001a_2022to2024[['low']] <- NO_FU
 for (i in 1:length(NO_FUNC_001a_2022to2024[['median']]$Indicator) ) {
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001a_2022to2024[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Natopen" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_001a_2022to2024[['low']][i,2] <- res[1]
   NO_FUNC_001a_2022to2024[['median']][i,2] <- res[2]
   NO_FUNC_001a_2022to2024[['high']][i,2] <- res[3]
   NO_FUNC_001a_2022to2024[['n']][i,2] <- nrow(df[!is.na(df$scaled_value),])
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001a_2019to2021[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Natopen" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_001a_2019to2021[['low']][i,2] <- res[1]
   NO_FUNC_001a_2019to2021[['median']][i,2] <- res[2]
   NO_FUNC_001a_2019to2021[['high']][i,2] <- res[3]
@@ -2960,8 +2968,8 @@ for (i in 1:length(NO_FUNC_001a_2022to2024[['median']]$Indicator) ) {
     df2 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001a_2022to2024[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Natopen" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     df1 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001a_2019to2021[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Natopen" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     
-    res2 <- quantile(df2$scaled_value,c(.025, .5, .975), na.rm=T)
-    res1 <- quantile(df1$scaled_value,c(.025, .5, .975), na.rm=T)
+    res2 <- quantile(df2$scaled_value,c(.25, .5, .75), na.rm=T)
+    res1 <- quantile(df1$scaled_value,c(.25, .5, .75), na.rm=T)
     
     NO_FUNC_001a_2022to2024[['low']][i,j] <- res2[1]
     NO_FUNC_001a_2022to2024[['median']][i,j] <- res2[2]
@@ -2987,14 +2995,14 @@ NO_FUNC_001b_2022to2024[['median']] <- NO_FUNC_001b_2022to2024[['low']] <- NO_FU
 for (i in 1:length(NO_FUNC_001b_2022to2024[['median']]$Indicator) ) {
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001b_2022to2024[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Seminat" & res.ANO.long$aar %in% c(2022, 2023, 2024),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_001b_2022to2024[['low']][i,2] <- res[1]
   NO_FUNC_001b_2022to2024[['median']][i,2] <- res[2]
   NO_FUNC_001b_2022to2024[['high']][i,2] <- res[3]
   NO_FUNC_001b_2022to2024[['n']][i,2] <- nrow(df[!is.na(df$scaled_value),])
   
   df <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001b_2019to2021[['median']]$Indicator[i]  & res.ANO.long$hovedoekosystem_rute=="Seminat" & res.ANO.long$aar %in% c(2019, 2020, 2021),c("scaled_value","ano_flate_id")]
-  res <-  quantile(df$scaled_value,c(.025, .5, .975), na.rm=T)
+  res <-  quantile(df$scaled_value,c(.25, .5, .75), na.rm=T)
   NO_FUNC_001b_2019to2021[['low']][i,2] <- res[1]
   NO_FUNC_001b_2019to2021[['median']][i,2] <- res[2]
   NO_FUNC_001b_2019to2021[['high']][i,2] <- res[3]
@@ -3005,8 +3013,8 @@ for (i in 1:length(NO_FUNC_001b_2022to2024[['median']]$Indicator) ) {
     df2 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001b_2022to2024[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Seminat" &  res.ANO.long$aar %in% c(2022, 2023, 2024) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     df1 <- res.ANO.long[res.ANO.long$fp_ind==NO_FUNC_001b_2019to2021[['median']]$Indicator[i] & res.ANO.long$hovedoekosystem_rute=="Seminat" &  res.ANO.long$aar %in% c(2019, 2020, 2021) & res.ANO.long$region==j,c("scaled_value","ano_flate_id")]
     
-    res2 <- quantile(df2$scaled_value,c(.025, .5, .975), na.rm=T)
-    res1 <- quantile(df1$scaled_value,c(.025, .5, .975), na.rm=T)
+    res2 <- quantile(df2$scaled_value,c(.25, .5, .75), na.rm=T)
+    res1 <- quantile(df1$scaled_value,c(.25, .5, .75), na.rm=T)
     
     NO_FUNC_001b_2022to2024[['low']][i,j] <- res2[1]
     NO_FUNC_001b_2022to2024[['median']][i,j] <- res2[2]
