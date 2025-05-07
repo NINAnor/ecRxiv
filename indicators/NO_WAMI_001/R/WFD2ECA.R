@@ -1,7 +1,7 @@
 ### WFD2ECA
 # Dataflyt fra vannforskriften til økologisk tilstandsregnskap
 # ved Hanno Sandvik
-# januar 2025
+# mai 2025
 # se https://github.com/NINAnor/NI_vannf
 ###
 
@@ -26,8 +26,8 @@ WFD2ECA <- function(
   maksSkjevhet = 3,
   bareInkluder = NULL,
   ikkeInkluder = NULL,
-  maalingPer = 100, #¤
-  maalingTot = 1000, #¤
+  maalingPer = 50, #¤
+  maalingTot = 200, #¤
   maalingTyp = 50, #¤
   maalingInt = 50, #¤
   EQR = "asymptotisk",
