@@ -17,7 +17,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research 
-date: April 8, 2025
+date: May 15, 2025
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -131,6 +131,7 @@ meta |>
 
 -   26 Mar. 2025 - Original PR
 -   25 Apr. 2025 - New reference levels
+-   15 May  2025 - revision following code review 
 :::
 
 <hr />
@@ -320,7 +321,7 @@ reference levels for larger regions.
 ## 5. Uncertainties
 
 There is some uncertainty in the mapping method, and this is said to be
-3%. There is also some uncertainty, or at least some arbitrariness, in
+3% [@andreassen2022]. There is also some uncertainty, or at least some arbitrariness, in
 how X~60~ is defined as 60% of X~100~.
 
 ## 6. References
@@ -339,7 +340,7 @@ condition and assume this glacier cover represents the climatic period
 
 The dataset is manually downloaded.
 
-URL: https://nve.brage.unit.no/nve-xmlui/handle/11250/2831053
+URL: <https://nve.brage.unit.no/nve-xmlui/handle/11250/2831053>
 
 ```{r import1}
 #| eval: false
@@ -360,7 +361,7 @@ dat_old <- readRDS(paste0(path, "/data/glacial_extent_old.rds"))
 This is the map of glacier cover measured in the period 2018-2019
 [@andreassen2022].
 
-URL: https://nve.brage.unit.no/nve-xmlui/handle/11250/2836926
+URL: <https://nve.brage.unit.no/nve-xmlui/handle/11250/2836926>
 
 ```{r import2}
 #| eval: false
@@ -396,20 +397,20 @@ greg <- readRDS(paste0(path, "/data/regions.rds")) |>
 
 ### 7.4 Dataset D - Bioclimatic regions
 
-Here I import a map dataset of bioclimatic sones and sections for Norway
+Here I import a map dataset of bioclimatic zones and sections for Norway
 [@bakkestuen2008]. The data licence is unknown, but we have the authors
 permission to use the data (Bakkestuen, *pers. com.*). There is,
 however, a [public WMS
 service](https://kartkatalog.geonorge.no/metadata/66f09e22-23a4-43c6-a0df-426d2b317890),
 but I don't known if the data is downloadable anywhere.
 
-I combine the sones (related to heat sums and the north-south gradient)
+I combine the zones (related to heat sums and the north-south gradient)
 and sections (related to oceanity and the west-east gradient) into
-regions. There are 24 regions, but I will combine some sones and
+regions. There are 24 regions, but I will combine some zones and
 sections to reduce this amount. Since there are few glaciers in
 continental areas I will combine sections 4 and 5, since we don't need
 that high resolution in the strata here. Similarly, I will combine the
-warmer sones 1 and 2. The total and relative area of each bioclimatic region is shown
+warmer zones 1 and 2. The total and relative area of each bioclimatic region is shown
 in @fig-sonerOgSeksjoner and @fig-sonerOgSeksjonerPie, respectively.
 
 ```{r makeReg}
@@ -491,14 +492,14 @@ dev.off()
 ```
 
 ```{r fig-sonerOgSeksjoner}
-#| fig-cap: "Distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
+#| fig-cap: "Distribution of area within each combination of bioclimatic zone and section (i.e. each bioclimatic region). Zones (SE, rows) range from 1 (boreonemoral) to 5 (alpine), and sections (SO, columns) range from 1 (strongly oceanic) to 5 (contintal)."
 
 knitr::include_graphics("../img/bcreg.png")
 ```
 
 
 ```{r fig-sonerOgSeksjonerPie}
-#| fig-cap: "Relative distribution of area within each combination of bioclimatic sone and section (i.e. each bioclimatic region)."
+#| fig-cap: "Relative distribution of area within each combination of bioclimatic zone and section (i.e. each bioclimatic region). Zones (SE) range from 1 (boreonemoral) to 5 (alpine), and sections (SO) range from 1 (strongly oceanic) to 5 (contintal)."
 #| fig-width: 12
 
 knitr::include_graphics("../img/bcregPie.png")
@@ -602,6 +603,7 @@ temp_alpine <- EA |>
   mutate(mountainArea = units::drop_units(st_area(Shape))) |>
   as_tibble()
 
+# Plot to show amount of maountain area per strata
 #temp_alpine |>
 #  group_by(BCregion) |>
 #  summarise(area = sum(mountainArea)) |>
@@ -679,8 +681,8 @@ EA <- EA |>
 ```
 
 We see from @fig-area that glaciers are rare in sections 4 and 5 (good
-reason for combining them), and sones 1-3. We could perhaps have
-combined sone 3 along with sones 1 and 2, but it makes little
+reason for combining them), and zones 1-3. We could perhaps have
+combined zone 3 along with zones 1 and 2, but it makes little
 difference. @fig-arealUnits show the summed glacier area for different
 spatial units.
 
@@ -746,7 +748,7 @@ three <- EA |>
              y = Area,
              x = sone)) +
   geom_col(position = "dodge") +
-  labs(x = "Sones",
+  labs(x = "zones",
        y = "Areal extent (m2) (divided by 100 in the case of mountain area)") +
   coord_flip()+
   theme_bw()
@@ -1072,16 +1074,17 @@ DT::datatable(EA |>
 ```
 
 @fig-EAglacArea show the current (2018-2019) glacier extent per strata,
-stratified by bioclimatic sone and region. Clearly most glaciers are in section 2, 
-which is the _clearly oceanic section_. High percipitation is a prerequitese for glaciers. 
+stratified by bioclimatic zone and region. Clearly most glaciers are in section 2, 
+which is the _clearly oceanic section_. 
+High percipitation is a prerequitese for glaciers. 
 Section 1 has even more precipitation, but is also warmer and has less total extent (@fig-sonerOgSeksjoner).
 
-Of the sones, its mainly in the alpine sones (sone 5) where we find glaciers. 
+Of the zones, its mainly in the alpine zones (zone 5) where we find glaciers. 
 @fig-gradientIndicator show how the warmer sones also have a little lower indicator values,
 as expected.
 
 ```{r fig-EAglacArea}
-#| fig-cap: 'Current glacier extent (2018-2019) for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend).'
+#| fig-cap: 'Current glacier extent (2018-2019) for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend). Note the logarithmic axis.'
 
 EA |>
   ungroup() |>
@@ -1097,7 +1100,7 @@ EA |>
     y = glacierAreaCurrent,
     fill = sone),
     ) +
-  coord_flip() +
+  coord_flip(clip = "off") +
   theme_bw() +
   labs(y = "Glacier extent (m2)") +
   facet_wrap(.~section,
@@ -1106,12 +1109,17 @@ EA |>
     axis.text.y = element_blank(),
     axis.title.y = element_blank(),
     axis.ticks.y = element_blank()
-  )
+  )+
+  scale_y_log10(guide = "axis_logticks",
+                minor_breaks = seq(0, 10^9, 10^6)
+    #breaks = scales::trans_breaks("log10", function(x) 10^x),
+    #labels = scales::trans_format("log10", scales::math_format(10^.x))
+    )
 
 ```
 
 ```{r fig-gradientIndicator}
-#| fig-cap: 'Indicator values for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend).'
+#| fig-cap: 'Indicator values for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend). The missing strata in the bottom right pane represents a case when a strata had no glaciers before, but some glaciers where mapped in the last survey (possibly due to mapping inconsistencies). The missing strata in the top right pane is a case of a strat having an indicator value of zero (some glaciers found in the first survey but none in the second)'
 
 EA |>
   ungroup() |>
@@ -1162,7 +1170,7 @@ also see in @fig-ridgde1.
 
 ```{r gregAggx}
 #| code-fold: true
-#| code-summary: "Aggregate from EA to geographical region"
+#| code-summary: "Aggregate from strata to geographical region"
 
 # In order to control the n for how many samples we draw,
 # we first calculate the summed area of glaciers and mountains
@@ -1542,7 +1550,7 @@ greg_to_EAA <- ungroup(greg) |>
 
 ```
 
-### 9.5 Alternative EA (EAA)
+### 9.5 Alternative MMU (EAA)
 
 Similar to in @sec-ea2 I will see what happens if I estimate the
 indicator value directly at the EAA level.
