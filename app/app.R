@@ -13,6 +13,7 @@ data <- App_data
 #tags$head(tags$link(rel="shortcut icon", href="www/favicon.png")),
 
 ui <- page_navbar(
+  id='nav',
   theme = bs_theme(version = 5, bootswatch = "minty") |>
     bslib::bs_add_rules(
       rules = "
@@ -44,17 +45,23 @@ ui <- page_navbar(
 
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   shiny::addResourcePath("indicators", here::here("indicators"))
-
+  
   output$indicatorTable <- DT::renderDT(
     data |>
       dplyr::select(!c(HTML_File, Variable, url)) ,
     selection = "single",
     filter = "top"
   )
-
-
+  
+  # Automatically switch to documentation tab when a row is selected
+  observeEvent(input$indicatorTable_rows_selected, {
+    if (length(input$indicatorTable_rows_selected) > 0) {
+      updateNavbarPage(session, inputId = "nav", selected = "Documentation")
+    }
+  })
+  
   output$documentation <- renderUI({
     selected_row <- input$indicatorTable_rows_selected
     if (length(selected_row) == 0) {
@@ -63,13 +70,12 @@ server <- function(input, output) {
       selected_ID <- data$ID[selected_row]
       html_file_path <- data$HTML_File[data$ID == selected_ID]
       html_file_path2 <- paste0("indicators/", selected_ID, "/R/", selected_ID, ".html")
-      # print(html_file_path)
       if (!file.exists(html_file_path)) {
         return(shiny::tags$p("No documentation available for the selected ecosystem."))
       } else {
-        div(#class="documentation-content",
-            tags$iframe(src= html_file_path2, style='width:100vw;height:100vh;')
-            )
+        div(
+          tags$iframe(src = html_file_path2, style = 'width:100vw;height:100vh;')
+        )
       }
     }
   })
@@ -77,21 +83,11 @@ server <- function(input, output) {
   output$startpage <- renderUI({
     layout_columns(
       col_widths = c(6, 6, 6, 6),
-      #row_heights = c(1, 2),
-        bslib::card(
-          includeMarkdown("overview.md")
-        ),
-      bslib::card(
-        includeMarkdown("HowToUse.md")
-      ),
-        bslib::card(
-          includeMarkdown("contribute.md")
-        ),
-        bslib::card(
-          includeMarkdown("contact.md")
-        )
+      bslib::card(includeMarkdown("overview.md")),
+      bslib::card(includeMarkdown("HowToUse.md")),
+      bslib::card(includeMarkdown("contribute.md")),
+      bslib::card(includeMarkdown("contact.md"))
     )
-    
   })
 }
 
