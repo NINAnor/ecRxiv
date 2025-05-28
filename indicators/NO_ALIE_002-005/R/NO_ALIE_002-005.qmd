@@ -179,11 +179,11 @@ Abundance data for alien plant species in ANO is given as % cover within a 250 m
 
 ### 2.3 Additional comments about the dataset
 
-<!--# Text here -->The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
+The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
 
 #### 2.3.1 Instructions for citing, using and accessing data
 
-<!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
+ANO data are available from Kartkatalogen on the webpages of the Norwegian Environment Agency (as used here, https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054) and via GBIF (https://doi.org/10.15468/4wc9r4).
 
 
 ## 3. Indicator properties
@@ -490,6 +490,9 @@ res.ANO.alien = st_join(res.ANO.alien, regnor, left = TRUE)
 We can calculate national and region-wise medians and 0.25 and 0.75 quantiles. Calculating means is not recommended since these data do not follow a Gaussian distribution. The national and regional estimates are computed separately (i.e. regional estimates are not spatially aggregated)
 
 ```{r}
+# define quantiles
+res.quant <- c(.25,.5,.75)
+
 ## forest ecosystems
 # list to hold the results
 NO_ALIE_004_2022to2024 <- data.frame(Indicator="alien",
@@ -508,7 +511,7 @@ NO_ALIE_004_2019to2021 <- data.frame(Indicator="alien",
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_004_2022to2024$low[1] <- res[1]
 NO_ALIE_004_2022to2024$median[1] <- res[2]
 NO_ALIE_004_2022to2024$high[1] <- res[3]
@@ -516,7 +519,7 @@ NO_ALIE_004_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_004_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_004_2022to2024$low[i] <- res[1]
 NO_ALIE_004_2022to2024$median[i] <- res[2]
 NO_ALIE_004_2022to2024$high[i] <- res[3]
@@ -524,7 +527,7 @@ NO_ALIE_004_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
 }
 # Norway 2019-2021
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_004_2019to2021$low[1] <- res[1]
 NO_ALIE_004_2019to2021$median[1] <- res[2]
 NO_ALIE_004_2019to2021$high[1] <- res[3]
@@ -532,7 +535,7 @@ NO_ALIE_004_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_004_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_004_2019to2021$low[i] <- res[1]
 NO_ALIE_004_2019to2021$median[i] <- res[2]
 NO_ALIE_004_2019to2021$high[i] <- res[3]
@@ -558,7 +561,7 @@ NO_ALIE_002_2019to2021 <- data.frame(Indicator="alien",
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_002_2022to2024$low[1] <- res[1]
 NO_ALIE_002_2022to2024$median[1] <- res[2]
 NO_ALIE_002_2022to2024$high[1] <- res[3]
@@ -566,7 +569,7 @@ NO_ALIE_002_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_002_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_002_2022to2024$low[i] <- res[1]
 NO_ALIE_002_2022to2024$median[i] <- res[2]
 NO_ALIE_002_2022to2024$high[i] <- res[3]
@@ -574,7 +577,7 @@ NO_ALIE_002_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
 }
 # Norway 2019-2021
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_002_2019to2021$low[1] <- res[1]
 NO_ALIE_002_2019to2021$median[1] <- res[2]
 NO_ALIE_002_2019to2021$high[1] <- res[3]
@@ -582,7 +585,7 @@ NO_ALIE_002_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_002_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_002_2019to2021$low[i] <- res[1]
 NO_ALIE_002_2019to2021$median[i] <- res[2]
 NO_ALIE_002_2019to2021$high[i] <- res[3]
@@ -607,7 +610,7 @@ NO_ALIE_003_2019to2021 <- data.frame(Indicator="alien",
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_003_2022to2024$low[1] <- res[1]
 NO_ALIE_003_2022to2024$median[1] <- res[2]
 NO_ALIE_003_2022to2024$high[1] <- res[3]
@@ -615,7 +618,7 @@ NO_ALIE_003_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_003_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_003_2022to2024$low[i] <- res[1]
 NO_ALIE_003_2022to2024$median[i] <- res[2]
 NO_ALIE_003_2022to2024$high[i] <- res[3]
@@ -623,7 +626,7 @@ NO_ALIE_003_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
 }
 # Norway 2019-2021
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_003_2019to2021$low[1] <- res[1]
 NO_ALIE_003_2019to2021$median[1] <- res[2]
 NO_ALIE_003_2019to2021$high[1] <- res[3]
@@ -631,7 +634,7 @@ NO_ALIE_003_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_003_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_003_2019to2021$low[i] <- res[1]
 NO_ALIE_003_2019to2021$median[i] <- res[2]
 NO_ALIE_003_2019to2021$high[i] <- res[3]
@@ -657,7 +660,7 @@ NO_ALIE_005_2019to2021 <- data.frame(Indicator="alien",
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005_2022to2024$low[1] <- res[1]
 NO_ALIE_005_2022to2024$median[1] <- res[2]
 NO_ALIE_005_2022to2024$high[1] <- res[3]
@@ -665,7 +668,7 @@ NO_ALIE_005_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_005_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005_2022to2024$low[i] <- res[1]
 NO_ALIE_005_2022to2024$median[i] <- res[2]
 NO_ALIE_005_2022to2024$high[i] <- res[3]
@@ -673,7 +676,7 @@ NO_ALIE_005_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
 }
 # Norway 2019-2021
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005_2019to2021$low[1] <- res[1]
 NO_ALIE_005_2019to2021$median[1] <- res[2]
 NO_ALIE_005_2019to2021$high[1] <- res[3]
@@ -681,7 +684,7 @@ NO_ALIE_005_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_005_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005_2019to2021$low[i] <- res[1]
 NO_ALIE_005_2019to2021$median[i] <- res[2]
 NO_ALIE_005_2019to2021$high[i] <- res[3]
@@ -707,7 +710,7 @@ NO_ALIE_005a_2019to2021 <- data.frame(Indicator="alien",
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005a_2022to2024$low[1] <- res[1]
 NO_ALIE_005a_2022to2024$median[1] <- res[2]
 NO_ALIE_005a_2022to2024$high[1] <- res[3]
@@ -715,7 +718,7 @@ NO_ALIE_005a_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_005a_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005a_2022to2024$low[i] <- res[1]
 NO_ALIE_005a_2022to2024$median[i] <- res[2]
 NO_ALIE_005a_2022to2024$high[i] <- res[3]
@@ -723,7 +726,7 @@ NO_ALIE_005a_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
 }
 # Norway 2019-2021
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005a_2019to2021$low[1] <- res[1]
 NO_ALIE_005a_2019to2021$median[1] <- res[2]
 NO_ALIE_005a_2019to2021$high[1] <- res[3]
@@ -731,7 +734,7 @@ NO_ALIE_005a_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_005a_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005a_2019to2021$low[i] <- res[1]
 NO_ALIE_005a_2019to2021$median[i] <- res[2]
 NO_ALIE_005a_2019to2021$high[i] <- res[3]
@@ -757,7 +760,7 @@ NO_ALIE_005b_2019to2021 <- data.frame(Indicator="alien",
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005b_2022to2024$low[1] <- res[1]
 NO_ALIE_005b_2022to2024$median[1] <- res[2]
 NO_ALIE_005b_2022to2024$high[1] <- res[3]
@@ -765,7 +768,7 @@ NO_ALIE_005b_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_005b_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005b_2022to2024$low[i] <- res[1]
 NO_ALIE_005b_2022to2024$median[i] <- res[2]
 NO_ALIE_005b_2022to2024$high[i] <- res[3]
@@ -773,7 +776,7 @@ NO_ALIE_005b_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
 }
 # Norway 2019-2021
 df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005b_2019to2021$low[1] <- res[1]
 NO_ALIE_005b_2019to2021$median[1] <- res[2]
 NO_ALIE_005b_2019to2021$high[1] <- res[3]
@@ -781,7 +784,7 @@ NO_ALIE_005b_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_005b_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$alien,res.quant, na.rm=T)
 NO_ALIE_005b_2019to2021$low[i] <- res[1]
 NO_ALIE_005b_2019to2021$median[i] <- res[2]
 NO_ALIE_005b_2019to2021$high[i] <- res[3]
