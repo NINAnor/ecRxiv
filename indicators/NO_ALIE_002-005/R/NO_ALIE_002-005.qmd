@@ -24,7 +24,7 @@ author:
   - name: Erik Framstad
     affiliations:
       - ref: myID               # To reuse affiliations referecen the id like this
-date: April 9, 2025 # Enter date 
+date: June 2, 2025 # Enter date 
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -120,7 +120,7 @@ status(st)
 
 
 
-> **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: https://view.nina.no/ecRxiv/", sep="")`
+> **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ALIE_002-005", sep="")`
 
 > **Version**: `r version`
 
@@ -152,6 +152,7 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 09 Apr. 2025 - Original PR
+- 02 Jun. 2025 - Code review complete.
 :::
 
 
@@ -224,7 +225,7 @@ X~0~: 0% area without alien plant species (see also Framstad et al. 2022 for imp
 
 #### 4.2.1 Spatial resolution and validity
 
-the same reference levels apply to all types of ecosystems and all regions.
+The same reference levels apply to all types of ecosystems and all regions.
 
 ## 5. Uncertainties
 
@@ -257,14 +258,15 @@ The spatial units for the 'Alien plant species' indicator are governed by the AN
 
 Import ANO testing data:
 First, download from from Miljødirektoratet...
-```{r, eval = F, echo = F}
+```{r, eval = F, echo = T}
 # download 
 url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
 download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
 unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
 ```
 
-...then upload from local storage
+...then upload from local storage.
+
 The geodatabase contains two relevant layers; one for the species data (ANO_Art) and one for the spatial data (ANO_SurveyPoint). These then can later be combined into one dataset if needed.
 ```{r}
 #Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
@@ -510,8 +512,7 @@ res.ANO.alien = st_join(res.ANO.alien, regnor, left = TRUE)
 
 ### Calculating national and regional indices
 
-<<<<<<< HEAD
-We can calculate national and region-wise medians and 0.25 and 0.75 quantiles. Calculating means is not recommended since these data do not follow a Gaussian distribution. The national and regional estimates are computed separately (i.e. regional estimates are not spatially aggregated)
+We can calculate national and region-wise medians and 0.25 and 0.75 quantiles. Calculating means is not recommended since these data do not follow a Gaussian distribution. The national and regional estimates are computed separately (i.e. regional estimates are not spatially aggregated).
 
 ```{r}
 # define quantiles
@@ -819,7 +820,7 @@ NO_ALIE_005b_2019to2021$n[i] <- nrow(df[!is.na(df$alien),])
 ```
 
 ## 10. Results
-The results are shown in @tbl-results.
+The results are shown in @tbl-results. Although there are some ANO sites with alien plant species, the aggregated indicator values (medians and quartiles) are consistently 1.
 
 ```{r tbl-results}
 #| tbl-cap: 'Indicator values for the indicator Alien plant species.'
