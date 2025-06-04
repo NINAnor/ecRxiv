@@ -1,7 +1,7 @@
 ### WFD2ECA
 # Dataflyt fra vannforskriften til økologisk tilstandsregnskap
 # ved Hanno Sandvik
-# mai 2025
+# juni 2025
 # se https://github.com/NINAnor/NI_vannf
 ###
 
@@ -33,6 +33,7 @@ WFD2ECA <- function(
   EQR = "asymptotisk",
   ignorerVariabel = NULL,
   fastVariabel = NULL,
+  anadrom = FALSE, #¤
   aktVekting = TRUE,
   aktivitetsvekt = 3, #¤
   antallvekt = 0.5,
@@ -95,6 +96,7 @@ WFD2ECA <- function(
   #   - FALSE (dataene skaleres ikke)
   # ignorerVariabel: typologifaktorer som ikke skal  inngå i modelltilpasninga
   # fastVariabel: typologifaktorer som ikke skal droppes fra modelltilpasninga
+  # anadrom: er klassegrenser for mEQR-verdier avhengig av anadromi #¤
   # aktVekting: måten vekting av overvåkingsaktiviteter blir implementert på
   # aktivitetsvekt: tallverdi som blir brukt for vekting av overvåkingsaktiviteter
   # antallvekt: tallverdi som blir brukt for vekting av antall prøver per maaleverdi
@@ -104,7 +106,7 @@ WFD2ECA <- function(
   #   - 1 (vekting med innsjøvannforekomstenes idealiserte diameter)
   #   - 2 (vekting med innsjøvannforekomstenes areal)
   #   - 3 (vekting med innsjøvannforekomstenes idealiserte volum)
-  # logit: skal mEQR-verdier logit-transformeres for modelltilpasninga
+  # logit: skal mEQR-verdier logit-transformeres for modelltilpasninga #¤
   # DeltaAIC: hvor mye lavere AIC skal en mer kompleks modell ha for å bli valgt
   # interaksjon: skal modellseleksjonen teste interaksjoner med rapporteringsperiode
   # ekstrapolering: skal det ekstrapoleres til "alle" eller til "kjente" vanntyper
@@ -129,8 +131,8 @@ WFD2ECA <- function(
   breddeUtmating <<- bredde
   
   #######################################################################
-  skriv("Innledende tester", pre = "   ", linjer.over  = 1, skjerm = vis)
-  skriv("=================", pre = "   ", linjer.under = 1, skjerm = vis)
+  skriv("Innledende tester", pre = "   ", linjer.over  = 1, Skjerm = vis)
+  skriv("=================", pre = "   ", linjer.under = 1, Skjerm = vis)
 
   # Sjekke om nødvendige funksjonsargumenter er oppgitt
   if (missing(DATA)) {
@@ -211,7 +213,7 @@ WFD2ECA <- function(
   if (!(arealvekt %in% 0:3)) {
     u <- c(u, skriv("Å sette \"arealvekt = ", arealvekt, "\" er et overraskende ",
                     "valg. Jeg håper at du vet hva du gjør!", 
-                    pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                    pre = "OBS: ", linjer.under = 1, Ut = TRUE))
   }
 
   # Sjekke om nødvendig informasjon er tilgjengelig
@@ -275,8 +277,7 @@ WFD2ECA <- function(
     for (v in c("%=%", "%!=%", "%==%", "%+%", "%-%", "%A%",
                 "%inneholder%", "%mellom%", "%utafor%", "%begynner%", "%pluss%",
                 "ln", "lg", "skriv", "erstatt", "komma", "oppsummer", "somDag",
-                "parameterNavn", "tillatteVerdier", "skaler", "reskaler", "iNv",
-                "tabulerKoeffisienter")) {
+                "skaler", "reskaler", "iNv", "tabulerKoeffisienter")) {
       if (!exists(v)) {
         OK <- FALSE
         skriv("Funksjonen \"", v, "\" fins ikke!", pre = "FEIL: ",
@@ -295,8 +296,6 @@ WFD2ECA <- function(
       } else {
         if (is.data.frame(Parametere) && 
             names(Parametere) %=% c("id", "navn", "min", "max")) {
-          Parametere$min <- suppressWarnings(as.numeric(Parametere$min))
-          Parametere$max <- suppressWarnings(as.numeric(Parametere$max))
           w <- which(Parametere$id == parameter)
           if (length(w) %=% 1) {
             if (any(is.na(Parametere[w, ]))) {
@@ -304,6 +303,9 @@ WFD2ECA <- function(
               skriv("Tillatte verdier er ikke angitt for \"", parameter,
                     "\" i regnearket \"", paramFil, "\"!",
                     pre = "FEIL: ", linjer.over = 1, linjer.under = 1)
+            } else {
+              tillatteVerdier <- suppressWarnings(as.numeric(Parametere[w, 3:4]))
+              parameterNavn   <- Parametere[w, "navn"]
             }
           } else {
             OK <- FALSE
@@ -348,14 +350,30 @@ WFD2ECA <- function(
     }
   }
 
-  if (OK) {
+  if (OK & EQR %!=% FALSE) {
     # Lese inn klassegrenser for den angitte parameteren
     if (is.null(filKlasser)) {
-      filKlasser <- "../data/klassegrenser_" %+% parameter %+% ".xlsx" #¤
+      filKlasser <- "../data/klassegrenser_" %+% parameter %+% ".xlsx"
     }
     KlasseGrenser <- hentKlassegrenser(filKlasser)
     if (is.null(KlasseGrenser)) {
       OK <- FALSE
+    }
+  }
+  
+  if (OK & anadrom) {
+    # Håndtering av anadromi
+    if (vannkategori == "R" && "anadr" %in% rownames(vannforekomster) && 
+        all(DATA$anadr %in% c("ja", "nei"))) {
+      R <- which(vannforekomster$kat == "R")
+      vannforekomster$typ[R] <- substr(vannforekomster$typ[R], 1, 6) %+% 
+        ifelse(vannforekomster$anadr == "ja", 2, 1)
+      Variabler <- c(Variabler, "anadr")
+    } else {
+      anadrom <- FALSE
+      skriv("Argumentet \"anadrom\" ignoreres, siden det forutsetter at ",
+            "\"vannkategori\" er \"R\", og at \"DATA\" har en ",
+            "kolonne \"anadr\".", pre = "OBS: ", linjer.over = 1)
     }
   }
   
@@ -391,11 +409,11 @@ WFD2ECA <- function(
                   linjer.over = 1, linjer.under = 1)
           }
         } else {
-          if (!EQR %!=% FALSE) {
+          if (EQR %!=% FALSE) {
             if (!("asymptotisk" %begynner% tolower(EQR))) {
-              u <- c(u, skriv("Argumentet \"mEQR\" har en ugyldig verdi. Det ",
+              u <- c(u, skriv("Argumentet \"EQR\" har en ugyldig verdi. Det ",
                               "brukes mEQR-verdier med asymptotisk begrensning.", 
-                              pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                              pre = "OBS: ", linjer.under = 1, Ut = TRUE))
             }
             EQR <- "asymptotisk"
             if (!exists("mEQR") || !is.function(mEQR)) {
@@ -411,7 +429,7 @@ WFD2ECA <- function(
           "kjente" %begynner% tolower(ekstrapolering))) {
       u <- c(u, skriv("Argumentet \"ekstrapolering\" har en ugyldig verdi og ",
                       "settes derfor til \"kjente\".", pre = "OBS: ",
-                      linjer.under = 1, ut = TRUE))
+                      linjer.under = 1, Ut = TRUE))
       ekstrapolering <- "kjente"
     }
     ekstrapol <- "alle" %begynner% tolower(ekstrapolering)
@@ -555,7 +573,7 @@ WFD2ECA <- function(
     relaar <- aar - rappAar
     u <- c(u, skriv("Det foreligger ", length(which(DATA$parid == parameter)), 
                     " målinger av parameteren ", parameter, " [", 
-                    parameterNavn(parameter), "].", linjer.under = 1, ut = TRUE))
+                    parameterNavn, "].", linjer.under = 1, Ut = TRUE))
     feil <- FALSE
     ikke.med <- which(DATA$parid == parameter & aar < startaar)
     if (length(ikke.med)) {
@@ -563,7 +581,7 @@ WFD2ECA <- function(
                                           " måling ble ekskludert fordi den",
                                           " målinger ble ekskludert fordi de"),
                       " ble tatt før " %+% startaar %+% ".", 
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
       feil <- TRUE
     }
     ikke.med <- which(DATA$parid == parameter & aar > sluttaar)
@@ -572,7 +590,7 @@ WFD2ECA <- function(
                                           " måling ble ekskludert fordi den",
                                           " målinger ble ekskludert fordi de"),
                       " ble tatt etter " %+% sluttaar %+% ".", 
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
       feil <- TRUE
     }
     ikke.med <- which(DATA$parid == parameter & is.na(aar))
@@ -581,12 +599,12 @@ WFD2ECA <- function(
                                           " måling ble ekskludert fordi den",
                                           " målinger ble ekskludert fordi de"),
                       " ble foretatt på et ukjent tidspunkt.", 
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
       feil <- TRUE
     }
     if (!feil) {
       u <- c(u, skriv("Alle målinger ble tatt mellom ", min(aar[er.med]), " og ",
-                      max(aar[er.med]), ".", linjer.under=1, ut=TRUE, skjerm=vis))
+                      max(aar[er.med]), ".", linjer.under=1, Ut=TRUE, Skjerm=vis))
     }
 
     # Parameterens måleenhet
@@ -596,9 +614,8 @@ WFD2ECA <- function(
     }
 
     # Sjekk av måleverdiene mot parameterens definisjonsområde
-    feil1 <- er.med %A% which(DATA$verdi %utafor% tillatteVerdier(parameter))
+    feil1 <- er.med %A% which(DATA$verdi %utafor% tillatteVerdier)
     if (length(feil1)) {
-      tillt <- tillatteVerdier(parameter)
       feil2 <- range(DATA$verdi[feil1])
       feil3 <- feil1
       tekst <- " ligger utafor parameterens definisjonsområde! "
@@ -607,13 +624,13 @@ WFD2ECA <- function(
                       " måling"   %+% tekst %+% "Dens verdi er ",
                       " målinger" %+% tekst %+% "Deres verdier er ")
       txt2 <- c()
-      if (feil2[1] < tillt[1]) {
-        txt2 <- c(txt2, "mindre enn " %+% komma(tillt[1])  %+% 
+      if (feil2[1] < tillatteVerdier[1]) {
+        txt2 <- c(txt2, "mindre enn " %+% komma(tillatteVerdier[1]) %+% 
                   " (ned til " %+% komma(feil2[1]) %+% ")" %+% 
                   ifelse(is.null(enhet), "", " " %+% enhet))
       }
-      if (feil2[2] > tillt[2]) {
-        txt2 <- c(txt2, "større enn " %+% komma(tillt[2])  %+% 
+      if (feil2[2] > tillatteVerdier[2]) {
+        txt2 <- c(txt2, "større enn " %+% komma(tillatteVerdier[2]) %+% 
                   " (opp til " %+% komma(feil2[2]) %+% ")" %+%
                   ifelse(is.null(enhet), "", " " %+% enhet))
       }
@@ -622,7 +639,7 @@ WFD2ECA <- function(
         feil3 <- unique(feil3)
         u <- c(u, skriv(tekst, ifelse(length(feil1) == 1, " Denne", " Disse"), 
                         " ble ekskludert.", 
-                        pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                        pre = "OBS: ", linjer.under = 1, Ut = TRUE))
       }
       if (vedMaalefeil %=% "dato") {
         for (i in (unique(DATA$oppdrt[feil1]) %-% "")) {
@@ -645,7 +662,7 @@ WFD2ECA <- function(
                         paste(unique(format(as.Date(DATA$tidpkt[feil1]), 
                                             "%d.%m.%Y")), 
                               collapse=", "), ").", 
-                        pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                        pre = "OBS: ", linjer.under = 1, Ut = TRUE))
       }
       if (vedMaalefeil %=% "oppdragstager") {
         for (i  in (unique(DATA$oppdrt[feil1]) %-% "")) {
@@ -660,7 +677,7 @@ WFD2ECA <- function(
                                " måling", " målinger"), 
                         " ekskludert, fordi de hadde samme oppdragstaker (",
                         paste(unique(DATA$oppdrt[feil1]), collapse=", "), ").", 
-                        pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                        pre = "OBS: ", linjer.under = 1, Ut = TRUE))
       }
       if (length(feil1) > length(er.med) / 10) {
         u <- c(u, skriv("Hele ", round(100 * length(feil1) / length(er.med)),
@@ -669,12 +686,12 @@ WFD2ECA <- function(
                         "at parameterens definisjon er dårlig forstått blant ",
                         "oppdragstagerne. Det bør vurderes om de resterende ",
                         "målingene er til å stole på!", pre = "OBS: ",
-                        linjer.under = 1, ut = TRUE))
+                        linjer.under = 1, Ut = TRUE))
       }
       er.med <- er.med %-% feil3
     } else {
       u <- c(u,skriv("Alle målinger ligger innafor parameterens definisjonsområde.", 
-                     linjer.under = 1, ut = TRUE, skjerm = vis))
+                     linjer.under = 1, Ut = TRUE, Skjerm = vis))
     }
     
     # Sjekk av overvåkingsaktivitetene bak målingene
@@ -686,11 +703,11 @@ WFD2ECA <- function(
                                             " måling", " målinger"),
                       " bla samla inn i rammen av aktiviteter som er for lite ",
                       "representative. Disse ble ekskludert.", 
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
     } else {
       if (maksSkjevhet < 3) {
         u <- c(u, skriv("Ingen målinger ble ekskludert pga. aktivitetens skjevhet.",
-                        linjer.under = 1, ut = TRUE, skjerm = vis))
+                        linjer.under = 1, Ut = TRUE, Skjerm = vis))
       }
     }
     
@@ -703,7 +720,7 @@ WFD2ECA <- function(
                           stø ="", alk ="", hum ="", tur ="", dyp ="", kys ="", 
                           sal ="", tid ="", eks ="", mix ="", opp ="", str ="",
                           kom ="", fyl ="", ant = 1, vkt = 1, vrd = 0,
-                          smvf="", CaCO3=0, P_tot=0, dybde=0, 
+                          smvf="",anadr="", CaCO3=0, P_tot=0, dybde=0, 
                           kystt=0, saltk=0, ekspo=0, miksg=0, oppht=0, vknop=0,
                           stringsAsFactors = FALSE)
     sam <- 17:32 # dette er typologifaktorene! forsiktig med å endre! (¤)
@@ -727,7 +744,7 @@ WFD2ECA <- function(
           maaling <- rbind(maaling, maaling[1, ])
           L <- nrow(maaling)
           maaling$vfo[L]   <- Vf$id  [vfk]  # vannforekomst-id
-#          maaling$inn[L]   <- VL$sjøn[lok]  # innsjønummer #¤!
+         #maaling$inn[L]   <- VL$sjøn[lok]  # innsjønummer #¤!
           maaling$lok[L]   <- VL$loki[lok]  # vannlokalitets-id
           maaling$aar[L]   <- aar    [i]    # år, måned og dag
           maaling$mnd[L]   <- as.numeric(     substr(DATA$tidpkt[i], 6,  7))
@@ -750,6 +767,8 @@ WFD2ECA <- function(
           maaling$gleng[L] <- Vf$long[vfk]  # geografisk lengde i grader øst
           maaling$smvf [L] <- if            # sterk modifisert vannforekomst?
                              (Vf$smvf[vfk] %=% TRUE) "ja" else "nei"
+          maaling$anadr[L] <- if (anadrom)  # anadrom elvestrekning?
+                              Vf$anad[vfk]    else ""
         } else {
           uten.id <- c(uten.id, i)
         }
@@ -774,10 +793,10 @@ WFD2ECA <- function(
                                            " måling ble ekskludert fordi den",
                                            " målinger ble ekskludert fordi de"),
                       " ikke kunne knyttes til noen kjent vannlokalitet.", 
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
     } else {
       u <- c(u, skriv("Alle målinger kunne knyttes til en vannlokalitet.", 
-                      linjer.under = 1, ut = TRUE, skjerm = vis))
+                      linjer.under = 1, Ut = TRUE, Skjerm = vis))
     }
     if (length(uten.id)) {
       u <- c(u, skriv(length(uten.id),
@@ -785,10 +804,10 @@ WFD2ECA <- function(
                         " måling ble ekskludert fordi dens vannlokalitet",
                         " målinger ble ekskludert fordi deres vannlokaliteter"),
                       " ikke kunne knyttes til noen typifisert vannforekomst.",
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
     } else {
       u <- c(u, skriv("Alle vannlokaliteter kunne knyttes til en typifisert ",
-                      "vannforekomst.", linjer.under = 1, ut = TRUE, skjerm = vis))
+                      "vannforekomst.", linjer.under = 1, Ut = TRUE, Skjerm = vis))
     }
 
     # Sjekk av målingenes vannkategorier og vanntyper    
@@ -809,11 +828,11 @@ WFD2ECA <- function(
         maaling <- maaling[-feil,]
         u <- c(u, skriv(txt1, " ble ekskludert fordi de", 
                         ifelse(length(feil) %=% 1,"n",""), " ikke ble", txt2, ".", 
-                        pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                        pre = "OBS: ", linjer.under = 1, Ut = TRUE))
         rm(txt1, txt2, feil)
       } else {
         u <- c(u, skriv("Alle målinger ble foretatt i den riktige vannkategorien.", 
-                        linjer.under = 1, ut = TRUE, skjerm = vis))
+                        linjer.under = 1, Ut = TRUE, Skjerm = vis))
       }
       rader <- nrow(maaling)
       if (!is.null(bareInkluder)) {
@@ -836,7 +855,7 @@ WFD2ECA <- function(
                                        " måling ble ekskludert fordi den",
                                        " målinger ble ekskludert fordi de"),
                           " ble foretatt i en vanntype som parameteren ikke kan ",
-                          "brukes i.", pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                          "brukes i.", pre = "OBS: ", linjer.under = 1, Ut = TRUE))
         }
         rm(ta.med, ok, feil)
       }
@@ -852,13 +871,13 @@ WFD2ECA <- function(
                                            " måling ble ekskludert fordi den",
                                            " målinger ble ekskludert fordi de"),
                           " ble foretatt i en vanntype som parameteren ikke kan ",
-                          "brukes i.", pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                          "brukes i.", pre = "OBS: ", linjer.under = 1, Ut = TRUE))
           maaling <- maaling[-fjern, ]
         }
         rm(fjern)
       }
       ikkeInkl <- ikkeInkluder
-      if (nrow(KlasseGrenser) > pi) {
+      if (EQR %!=% FALSE && nrow(KlasseGrenser) > pi) {
         okTyper<-rownames(KlasseGrenser)[which(!apply(is.na(KlasseGrenser),1,any))]
         feil <- which(!(maaling$typ %in% okTyper))
         if (length(feil)) {
@@ -868,18 +887,18 @@ WFD2ECA <- function(
                                           " målinger ble ekskludert fordi de"),
                           " ble foretatt i en vanntype som parameteren ikke har ",
                           "definerte referanseverdier og klassegrenser i.",
-                          pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                          pre = "OBS: ", linjer.under = 1, Ut = TRUE))
         }
       }
       if (nrow(maaling) %=% rader) {
         u <- c(u, skriv("Alle målinger ble foretatt i de riktige vanntypene.", 
-                        linjer.under = 1, ut = TRUE, skjerm = vis))
+                        linjer.under = 1, Ut = TRUE, Skjerm = vis))
       }
     }
     
     # Sjekk om målingene oppfyller parameterspesifikke krav
     if (nrow(maaling)) {
-      sjekkPar <- "sjekk" %+% parameter
+      sjekkPar <- "sjekk" %+% erstatt(parameter, "-", "")
       if (exists(sjekkPar) && is.function(get(sjekkPar))) {
         sjekk <- get(sjekkPar)
         slett <- sjekk(maaling)
@@ -888,11 +907,11 @@ WFD2ECA <- function(
           u <- c(u, skriv(length(slett), " datapunkt måtte fjernes fra datasettet",
                           " fordi de ikke oppfyller de spesifikke kravene ",
                           "som stilles til målinger av ", parameter, ".", 
-                          pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                          pre = "OBS: ", linjer.under = 1, Ut = TRUE))
         } else {
-          u <- c(u , skriv("Alle målinger ser ut til å oppfylle de spesifikke ",
+          u <- c(u , skriv("Alle målinger ser Ut til å oppfylle de spesifikke ",
                            "parameterkravene til ", parameter, ".",
-                           linjer.under = 1, ut = TRUE, skjerm = vis))
+                           linjer.under = 1, Ut = TRUE, Skjerm = vis))
         }
         iI <- attr(slett, "ikkeInkluder")
         if (!is.null(iI)) {
@@ -906,7 +925,7 @@ WFD2ECA <- function(
       } else {
         u <- c(u, skriv("Det foreligger ingen funksjon som kan sjekke eventuelle ",
                         "parameterspesifikke krav for ", parameter, ".",
-                        linjer.under = 1, ut = TRUE, skjerm = vis))
+                        linjer.under = 1, Ut = TRUE, Skjerm = vis))
       }
     }
     
@@ -924,7 +943,7 @@ WFD2ECA <- function(
           u <- c(u, skriv("For rapportåret ",i," foreligger bare målinger fra ",w, 
                           " vannforekomster. Det er dessverre for få, og denne",
                           " rapportperioden må derfor utgå.", 
-                          pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                          pre = "OBS: ", linjer.under = 1, Ut = TRUE))
         }
       }
       if (beggeEnder && length(fjernAar)) {
@@ -937,7 +956,7 @@ WFD2ECA <- function(
               u <- c(u, skriv("Kontrabeskjed - verdier for rapportåret ", i, 
                               " estimeres \"bakfra\" (dvs. med data fra perioden ",
                               i+1, "-", w, ").", pre = "OBS: ", 
-                              linjer.under = 1, ut = TRUE))
+                              linjer.under = 1, Ut = TRUE))
             }
           }
         }
@@ -956,14 +975,14 @@ WFD2ECA <- function(
     } else {
       u <- c(
         u,
-        skriv("Dataene som inngår i modelltilpasninga, inneholder dermed",ut=TRUE),
-        skriv(nrow(maaling), " målinger fra", pre = "- ", ut = TRUE),
-        skriv(length(unique(maaling$lok)), " vannlokaliteter i", pre = "- ", ut=T),
-        skriv(length(unique(maaling$vfo)), " vannforekomster i", pre = "- ", ut=T),
+        skriv("Dataene som inngår i modelltilpasninga, inneholder dermed",Ut=TRUE),
+        skriv(nrow(maaling), " målinger fra", pre = "- ", Ut = TRUE),
+        skriv(length(unique(maaling$lok)), " vannlokaliteter i", pre = "- ", Ut=T),
+        skriv(length(unique(maaling$vfo)), " vannforekomster i", pre = "- ", Ut=T),
         skriv(length(unique(fylke(unlist(strsplit(maaling$fyl, ","))) %A% FYL)), 
-                     " fylker", pre = "- ", ut = TRUE),
+                     " fylker", pre = "- ", Ut = TRUE),
         skriv("mellom ", min(maaling$aar), " og ", max(maaling$aar), ".", 
-              pre = "- ", linjer.under = 1, ut = TRUE)
+              pre = "- ", linjer.under = 1, Ut = TRUE)
       )
       
       # Mer informasjon?
@@ -1008,7 +1027,7 @@ WFD2ECA <- function(
       mEnhet <- " (målt i " %+% enhet %+% "):"
     }
     u <- c(u, skriv("Oppsummering av variabelverdier før skalering", mEnhet,
-                    ut = TRUE))
+                    Ut = TRUE))
     o <- oppsummer(maaling$vrd)
     cat(o[1], "\n")
     cat(o[2], "\n")
@@ -1031,7 +1050,7 @@ WFD2ECA <- function(
     }
     
     # Skalering
-    minV <- Inf
+    minV <- +Inf
     maxV <- -Inf
     if (dim(KlasseGrenser) %=% c(1, 8)) {
       # parametere som har de samme terskelverdiene for alle vanntyper:
@@ -1069,14 +1088,17 @@ WFD2ECA <- function(
     }
     
     u <- c(u, skriv("Oppsummering av variabelverdier etter skalering:", 
-                    linjer.over = 1, ut = TRUE))
+                    linjer.over = 1, Ut = TRUE))
     o <- oppsummer(maaling$vrd)
     cat(o[1], "\n")
     cat(o[2], "\n")
     u <- c(u, o)
   }
-  if (OK & logit) {
+  if (OK & logit %=% TRUE) {
     maaling$vrd <- skaler(maaling$vrd, minV, maxV)
+  }
+  if (OK & (logit %=% "log" | substr(logit, 1, 4) %=% "loga")) {
+    maaling$vrd <- ln(maaling$vrd)
   }
 
   # dett var dett
@@ -1100,18 +1122,20 @@ WFD2ECA <- function(
                       paste("\"" %+% w %+% "\"", collapse=", "), 
                       ". De respektive skårene har blitt satt til 0. ",
                       "Hvis det blir feil, må dette rettes opp!",
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
     }
     
     # Holde styr på variablene og deres mulige verdier
     Variabler <- Variabler %-% tolower(ignorerVariabel)
     RF1 <- append(list(akt = sort(unique(maaling$akt)), smvf = c("ja", "nei")),
                   Vanntyper.nominal)
+    if (anadrom) RF1 <- append(RF1, anadr = c("ja", "nei"))
     RF1 <- RF1.sik <- RF1a <- RF1[-which(!(names(RF1) %in% Variabler))]
     RF2 <- append(list(reg = Vanntyper.ordinal[["reg" %+% vannkategori]]), 
                   Vanntyper.ordinal)
     RF2 <- RF2.sik <- RF2a <- RF2[-which(!(names(RF2) %in% Variabler))]
     VN1 <- c(akt = "Aktivitet", smvf = "SMVF", Typologi.nominal)
+    if (anadrom) VN1 <- c(VN1, anadr = "Anadromi")
     VN2 <- Typologi.ordinal
     VN3 <- Typologi.numerisk
     TV2 <- Tallverdier
@@ -1176,7 +1200,7 @@ WFD2ECA <- function(
           u <- c(u, skriv("Typologifaktoren \"", tolower(Typologi[typ]), 
                           "\" mangla såpass ofte (", length(w), 
                           " ganger) at den ignoreres.", 
-                          pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                          pre = "OBS: ", linjer.under = 1, Ut = TRUE))
         } else {
           if (length(unique(maaling[, typ])) > 2) {
             husk[[typ]] <- maaling[+w, ]
@@ -1184,7 +1208,7 @@ WFD2ECA <- function(
             u <- c(u, skriv(length(w), " målinger ble ekskludert fordi ",
                             "typologifaktoren \"", tolower(Typologi[typ]), 
                             "\" ikke var kjent for dem.", 
-                            pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                            pre = "OBS: ", linjer.under = 1, Ut = TRUE))
           }
         }
       }
@@ -1193,14 +1217,12 @@ WFD2ECA <- function(
     # Sett opp modellformelen
     formel. <- character(0)
     if (length(unique(maaling$per)) > 1) formel. <- c(formel., "per")
-    if (length(unique(maaling$rar)) > 2) formel. <- c(formel., "rar")
+    if (length(unique(maaling$rar)) > 3) formel. <- c(formel., "rar")
     # ad per: test helt i starten om det er mer enn 1 periode! ¤¤¤¤¤¤¤¤¤
     # ad rar: det bør være mulig (og for nayurregnskap kanskje standard)
     #         å droppe (ekskludere/ignorere) "rar"! ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
     if (length(formel.) < 1) {
-      OK <- FALSE
-      skriv("Det er totalt sett for få år med data til å tilpasse en modell!",
-            pre = "FEIL:", linjer.over = 1, linjer.under = 1)
+      formel. <- "1"
     }
     formel. <- paste(c(formel., Variabler), collapse = " + ")
     formel. <- erstatt(formel., "per + rar", "per * rar")
@@ -1224,7 +1246,7 @@ WFD2ECA <- function(
       endring <- FALSE
       RF12 <- list(RF1, RF2)
       u <- c(u, skriv("Modelltilpasning, runde ", runde, ":", 
-                      linjer.over = 1, linjer.under = 1, ut = TRUE, skjerm = vis))
+                      linjer.over = 1, linjer.under = 1, Ut = TRUE, Skjerm = vis))
 
       # tomme variabler ----------------------------------------------
       REKKEF <- RF1
@@ -1249,15 +1271,15 @@ WFD2ECA <- function(
           vrber <- character()
           endra <- TRUE
           u <- c(u, skriv(vnavn, " har blitt droppa fordi alle data var fra én ",
-                          "klasse.", pre = "* ", ut = TRUE, skjerm = vis))
+                          "klasse.", pre = "* ", Ut = TRUE, Skjerm = vis))
         } else {
           if (length(which(vrb. %in% vrber)) < 2 * maalingTyp) {
             formel. <- erstatt(formel., " + " %+% vrb %+% ".", "")
             formel. <- erstatt(formel., vrb %+% "." %+% " + ", "")
             vrber <- character()
             endra <- TRUE
-            u <- c(u, skriv(vnavn, "\ har blitt droppa pga. for lite data.", 
-                            pre = "* ", ut = TRUE, skjerm = vis))
+            u <- c(u, skriv(vnavn, " har blitt droppa pga. for lite data.", 
+                            pre = "* ", Ut = TRUE, Skjerm = vis))
           } else {
             if (!all(vrb. %in% vrber)) {
               natall <- length(which(!(vrb. %in% vrber)))
@@ -1268,7 +1290,7 @@ WFD2ECA <- function(
                 endra <- TRUE
                 u <- c(u, skriv(vnavn, " har blitt droppa fordi variabelen ",
                                 "hadde for mange manglende verdier.", 
-                                pre = "* ", ut = TRUE, skjerm = vis))
+                                pre = "* ", Ut = TRUE, Skjerm = vis))
               } else {
                 vrb.[which(!(vrb. %in% vrber))] <- RF1a[[vrb]] <-
                   names(table(vrb.))[which(table(vrb.) == max(table(vrb.)))]
@@ -1305,7 +1327,7 @@ WFD2ECA <- function(
           vrber <- character()
           endra <- TRUE
           u <- c(u, skriv(vnavn, " har blitt droppa fordi alle data var fra én ",
-                          "klasse.", pre = "* ", ut = TRUE, skjerm = vis))
+                          "klasse.", pre = "* ", Ut = TRUE, Skjerm = vis))
         } else {
           if (length(which(vrb. %in% vrber)) < 2 * maalingTyp) {
             formel. <- erstatt(formel., " + " %+% vrb %+% ".", "")
@@ -1313,7 +1335,7 @@ WFD2ECA <- function(
             vrber <- character()
             endra <- TRUE
             u <- c(u, skriv(vnavn, " har blitt droppa pga. for lite data.", 
-                            pre = "* ", ut = TRUE, skjerm = vis))
+                            pre = "* ", Ut = TRUE, Skjerm = vis))
           } else {
             if (!all(vrb. %in% vrber)) {
               natall <- length(which(!(vrb. %in% vrber)))
@@ -1324,7 +1346,7 @@ WFD2ECA <- function(
                 endra <- TRUE
                 u <- c(u, skriv(vnavn, " har blitt droppa fordi variabelen ",
                                 "hadde for mange manglende verdier.", 
-                                pre = "* ", ut = TRUE, skjerm = vis))
+                                pre = "* ", Ut = TRUE, Skjerm = vis))
               } else {
                 vrb.[which(!(vrb. %in% vrber))] <- RF2a[[vrb]] <-
                   names(table(vrb.))[which(table(vrb.) == max(table(vrb.)))]
@@ -1394,7 +1416,7 @@ WFD2ECA <- function(
               if (nchar(tekst[lav])) {
                 u <- c(u, skriv(vnavn, ": ", tekst[lav],
                           " har blitt slått sammen pga. for lite data.", 
-                          pre = "* ", ut = TRUE, skjerm = vis))
+                          pre = "* ", Ut = TRUE, Skjerm = vis))
               }
             }
           }
@@ -1405,7 +1427,7 @@ WFD2ECA <- function(
           vrber <- character()
           endra <- TRUE
           u <- c(u, skriv(vnavn," har blitt droppa fordi nesten alle data var ",
-                          "fra én klasse.", pre = "* ", ut = TRUE, skjerm = vis))
+                          "fra én klasse.", pre = "* ", Ut = TRUE, Skjerm = vis))
         }
         lengde <- length(unique(vrb.))
         if (lengde > 1 & sum(table(vrb.)) >= 2 * maalingTyp) {
@@ -1417,8 +1439,8 @@ WFD2ECA <- function(
                 formel. <- formel...
                 endra <- TRUE
                 u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
-                                "har blitt droppa igjen.", pre = "* ", ut = TRUE, 
-                                skjerm = vis))
+                                "har blitt droppa igjen.", pre = "* ", Ut = TRUE, 
+                                Skjerm = vis))
               }
             } else {
               assign(vrb %+% ".", vrb.)
@@ -1431,7 +1453,7 @@ WFD2ECA <- function(
                   formel. <- formel...
                   endra <- TRUE
                   u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
-                                  "periode.", pre = "* ", ut = TRUE, skjerm = vis))
+                                  "periode.", pre = "* ", Ut = TRUE, Skjerm = vis))
                 }
               }
             }
@@ -1473,7 +1495,7 @@ WFD2ECA <- function(
                 vrber <- sort(unique(c(vrber, pm12[1] %pluss% pm12[2])))
                 endra <- TRUE
                 u <- c(u, skriv(vnavn, ": ", tekst[lav], " har blitt slått ",
-                                "sammen.", pre = "* ", ut = TRUE, skjerm = vis))
+                                "sammen.", pre = "* ", Ut = TRUE, Skjerm = vis))
               }
             }
             L <- c(length(unique(vrb.)), L)
@@ -1490,13 +1512,13 @@ WFD2ECA <- function(
             tilbake <- rbind(tilbake, husk[[vrb]])
           }
           u <- c(u, skriv(vnavn, " har blitt droppa fordi det ikke var forskjell ",
-                          "mellom klassene.", pre = "* ", ut = TRUE, skjerm = vis))
+                          "mellom klassene.", pre = "* ", Ut = TRUE, Skjerm = vis))
         }
         endring <- endring | endra
         if (!endra) {
           u <- c(u, skriv(vnavn, " har blitt beholdt uendra (med ", 
                           length(unique(vrb.)), " ulike verdier).", 
-                          pre = "* ", ut = TRUE, skjerm = vis))
+                          pre = "* ", Ut = TRUE, Skjerm = vis))
         }
         assign(vrb %+% ".", vrb.)
         maaling[,vrb] <- vrb.
@@ -1536,7 +1558,7 @@ WFD2ECA <- function(
             endra <- TRUE
             u <- c(u, skriv(vnavn, ": ", paste(vrber[1:2], collapse=" og "),
                             " har blitt slått sammen pga. for lite data.", 
-                            pre = "* ", ut = TRUE, skjerm = vis))
+                            pre = "* ", Ut = TRUE, Skjerm = vis))
             vrber[2] <- paste(vrber[1:2], collapse="+")
             vrber <- vrber[-1]
           }
@@ -1548,7 +1570,7 @@ WFD2ECA <- function(
             u <- c(u, skriv(vnavn, ": ", 
                             paste(vrber[length(vrber) - 1:0], collapse=" og "),
                             " har blitt slått sammen pga. for lite data.", 
-                            pre = "* ", ut = TRUE, skjerm = vis))
+                            pre = "* ", Ut = TRUE, Skjerm = vis))
             vrber[length(vrber) - 1] <- paste(vrber[length(vrber) - 1:0], 
                                               collapse = "+")
             vrber <- vrber[-length(vrber)]
@@ -1583,7 +1605,7 @@ WFD2ECA <- function(
               endra <- TRUE
               u <- c(u, skriv(vnavn, ": ", paste(vrber[hvilk1], collapse=" og "),
                               " har blitt slått sammen pga. for lite data.", 
-                              pre = "* ", ut = TRUE, skjerm = vis))
+                              pre = "* ", Ut = TRUE, Skjerm = vis))
               vrber[max(hvilk1)] <- paste(vrber[hvilk1], collapse="+")
               vrber <- vrber[-hvilk1[1:(length(hvilk1) - 1)]]
             } else {
@@ -1592,7 +1614,7 @@ WFD2ECA <- function(
               endra <- TRUE
               u <- c(u, skriv(vnavn, ": ", paste(vrber[hvilk2], collapse=" og "),
                               " har blitt slått sammen pga. for lite data.", 
-                              pre = "* ", ut = TRUE, skjerm = vis))
+                              pre = "* ", Ut = TRUE, Skjerm = vis))
               vrber[hvilk2[1]] <- paste(vrber[hvilk2], collapse="+")
               vrber <- vrber[-hvilk2[2:length(hvilk2)]]
             }
@@ -1604,7 +1626,7 @@ WFD2ECA <- function(
           vrber <- character()
           endra <- TRUE
           u <- c(u, skriv(vnavn," har blitt droppa fordi nesten alle data var ",
-                          "fra én klasse.", pre = "* ", ut = TRUE, skjerm = vis))
+                          "fra én klasse.", pre = "* ", Ut = TRUE, Skjerm = vis))
         }
         lengde <- length(unique(vrb.))
         if (length(vrber) > 1 & length(which(vrb. %in% vrber)) >= 2 * maalingTyp) {
@@ -1616,8 +1638,8 @@ WFD2ECA <- function(
                 formel. <- formel...
                 endra <- TRUE
                 u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
-                                "har blitt droppa igjen.", pre = "* ", ut = TRUE, 
-                                skjerm = vis))
+                                "har blitt droppa igjen.", pre = "* ", Ut = TRUE, 
+                                Skjerm = vis))
               }
             } else {
               assign(vrb %+% ".", vrb.)
@@ -1630,7 +1652,7 @@ WFD2ECA <- function(
                   formel. <- formel...
                   endra <- TRUE
                   u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
-                                  "periode.", pre = "* ", ut = TRUE, skjerm = vis))
+                                  "periode.", pre = "* ", Ut = TRUE, Skjerm = vis))
                 }
               }
             }
@@ -1671,7 +1693,7 @@ WFD2ECA <- function(
                 if (nchar(tekst[lav])) {
                   u <- c(u, skriv(vnavn, ": ", tekst[lav], 
                                   " har blitt slått sammen.", 
-                                  pre = "* ", ut = TRUE, skjerm = vis))
+                                  pre = "* ", Ut = TRUE, Skjerm = vis))
                 }
               }
             }
@@ -1690,11 +1712,11 @@ WFD2ECA <- function(
             }
             if (vrb %in% numVar) {
               u <- c(u, skriv(vnavn, " har blitt omgjort til en numerisk ",
-                              "variabel.", pre = "* ", ut = TRUE, skjerm = vis))
+                              "variabel.", pre = "* ", Ut = TRUE, Skjerm = vis))
             } else {
               u <- c(u, skriv(vnavn, " har blitt erstatta med faktisk ",
                               tolower(VN3[ord2num[vrb]]), ".", 
-                              pre = "* ", ut = TRUE, skjerm = vis))
+                              pre = "* ", Ut = TRUE, Skjerm = vis))
             }
           }
         }
@@ -1710,13 +1732,13 @@ WFD2ECA <- function(
           }
           u <- c(u, skriv(vnavn, " har blitt droppa fordi det ikke var ",
                           "forskjell mellom klassene.",
-                          pre = "* ", ut = TRUE, skjerm = vis))
+                          pre = "* ", Ut = TRUE, Skjerm = vis))
         }
         endring <- endring | endra
         if (!endra) {
           u <- c(u, skriv(vnavn, " har blitt beholdt uendra (med ", 
                           length(unique(vrb.)), " ulike verdier).", 
-                          pre = "* ", ut = TRUE, skjerm = vis))
+                          pre = "* ", Ut = TRUE, Skjerm = vis))
         }
         assign(vrb %+% ".", vrb.)
         maaling[,vrb] <- vrb.
@@ -1746,8 +1768,8 @@ WFD2ECA <- function(
                 formel. <- formel...
                 endra <- TRUE
                 u <- c(u, skriv(vnavn, ": interaksjonen med rapporteringsperiode",
-                                "har blitt droppa igjen.", pre = "* ", ut = TRUE, 
-                                skjerm = vis))
+                                "har blitt droppa igjen.", pre = "* ", Ut = TRUE, 
+                                Skjerm = vis))
               }
             } else {
               formel... <- erstatt(formel., vrb, vrb %+% " * per")
@@ -1756,7 +1778,7 @@ WFD2ECA <- function(
                 formel. <- formel...
                 endra <- TRUE
                 u <- c(u, skriv(vnavn, " har en interaksjon med rapporterings",
-                                "periode.", pre = "* ", ut = TRUE, skjerm = vis))
+                                "periode.", pre = "* ", Ut = TRUE, Skjerm = vis))
               }
             }
           }
@@ -1770,12 +1792,12 @@ WFD2ECA <- function(
             vrber <- character()
             endra <- TRUE
             u <- c(u, skriv(vnavn," har blitt droppa fordi variabelen ikke bidro ",
-                            "nok til modellen.", pre = "* ", ut=TRUE, skjerm=vis))
+                            "nok til modellen.", pre = "* ", Ut=TRUE, Skjerm=vis))
           }
           endring <- endring | endra
           if (!endra) {
             u <- c(u, skriv(vnavn, " har blitt beholdt uendra (som numerisk ", 
-                            "variabel).", pre = "* ", ut = TRUE, skjerm = vis))
+                            "variabel).", pre = "* ", Ut = TRUE, Skjerm = vis))
           }
         }
       }
@@ -1795,7 +1817,7 @@ WFD2ECA <- function(
         u <- c(u, skriv(nrow(tilbake), " målinger som ble ekskludert i sted, ",
                         "er nå tatt med igjen, siden den relevante ",
                         "typologifaktoren ble fjerna.", 
-                        pre = "OBS: ", ut = TRUE, skjerm = vis))
+                        pre = "OBS: ", Ut = TRUE, Skjerm = vis))
       }
     }
     
@@ -1807,17 +1829,17 @@ WFD2ECA <- function(
     modell <- lm(f(formel), data=maaling, weights=vkt)
     sdrag <- summary(modell)
     u <- c(u, skriv("Oppsummering av den tilpassa modellen ...", 
-                    linjer.over = 1, linjer.under = 1,  ut = TRUE))
-    u <- c(u, skriv("Modelltype: ", "lineær regresjon", ut = TRUE))
+                    linjer.over = 1, linjer.under = 1,  Ut = TRUE))
+    u <- c(u, skriv("Modelltype: ", "lineær regresjon", Ut = TRUE))
     skriv(formel, pre = "Modellstruktur: vrd ~ ")
     u <- c(u,           "Modellstruktur: vrd ~ " %+% formel)
-    u <- c(u, skriv("Residualer:", linjer.over = 1,     ut = TRUE))
+    u <- c(u, skriv("Residualer:", linjer.over = 1,     Ut = TRUE))
     o <- oppsummer(sdrag$residuals)
     cat(o[1], "\n")
     cat(o[2], "\n")
     u <- c(u, o)
     u <- c(u, skriv("standardfeil: ", komma(round(sdrag$sigma, 3)), " med ",
-                    sdrag$df[2], " frihetsgrader", ut = TRUE))
+                    sdrag$df[2], " frihetsgrader", Ut = TRUE))
     if (vis) {
       skriv("Koeffisienter:", linjer.over = 1)
       koeff <- sdrag$coefficients
@@ -1826,12 +1848,12 @@ WFD2ECA <- function(
       tabulerKoeffisienter(koeff)
     }
     u <- c(u, skriv("AIC = ", komma(round(AIC(modell), 2)), 
-                    linjer.over = 1, ut = TRUE))
-    u <- c(u, skriv("R² = ", komma(round(sdrag$r.squared, 4)), ut = TRUE))
+                    linjer.over = 1, Ut = TRUE))
+    u <- c(u, skriv("R² = ", komma(round(sdrag$r.squared, 4)), Ut = TRUE))
     Fst <- sdrag$fstatistic
     sifre <- ifelse(Fst[1] > 1000, 0, ifelse(Fst[1] > 100, 1, 2))
     u <- c(u, skriv("F(", Fst[2], ", ", Fst[3], ") = ", 
-                    komma(round(Fst[1], sifre)), ut = TRUE))
+                    komma(round(Fst[1], sifre)), Ut = TRUE))
     pverdi <- pf(Fst[1], Fst[2], Fst[3], lower.tail = FALSE)
     pverdi <- format.pval(pverdi, 2, 1e-12, scientific = 2, decimal.mark = ",",
                           nsmall = ceiling(abs(lg(pverdi + 1e-15))) + 1)
@@ -1842,7 +1864,7 @@ WFD2ECA <- function(
       pverdi <- "p = " %+% pverdi
     }
     pverdi <- erstatt(pverdi, "e", "E")
-    u <- c(u, skriv(pverdi, linjer.under = 1, ut = TRUE))
+    u <- c(u, skriv(pverdi, linjer.under = 1, Ut = TRUE))
   }
   
   if (OK) {
@@ -1857,7 +1879,7 @@ WFD2ECA <- function(
              ifelse(vannkategori %inneholder% "C", "kyst",   NA))
     txt <- paste(na.omit(txt), collapse="- og ")
     u <- c(u, skriv("Det fins ", length(utvalg), " typifiserte ", txt, 
-                    "vannforekomster.", ut = TRUE))
+                    "vannforekomster.", Ut = TRUE))
     if (!is.null(bareInkluder)) {
       ta.med <- numeric(0)
       if (is.list(bareInkluder)) {
@@ -1884,7 +1906,7 @@ WFD2ECA <- function(
     }
     ta.med <- utvalg
     fjern <- numeric(0)
-    if (nrow(KlasseGrenser) > pi) {
+    if (EQR %!=% FALSE && nrow(KlasseGrenser) > pi) {
       ta.med <- which(Vf$typ %in% 
                       rownames(KlasseGrenser)[which(!is.na(KlasseGrenser[, 7]))])
       forskj <- forskj + (length(utvalg) - length(utvalg %A% ta.med))
@@ -1893,7 +1915,7 @@ WFD2ECA <- function(
     if (forskj > 0) {
       u <- c(u, skriv("Av disse har ", length(utvalg), 
                       " vannforekomster en vanntype som parameteren ",
-                      parameter, " er definert for.", ut = TRUE))
+                      parameter, " er definert for.", Ut = TRUE))
     }
     nydata <- matrix("", length(utvalg), length(explv), 
                      dimnames = list(Vf$id[utvalg], explv))
@@ -2228,11 +2250,11 @@ WFD2ECA <- function(
       if (length(beskjed) > 1) {
         for (i in 1:length(beskjed)) {
           u <- c(u, skriv(beskjed[i], ifelse(i == length(beskjed), ".", ";"), 
-                          pre = "- ", ut = TRUE))
+                          pre = "- ", Ut = TRUE))
         }
-        u <- c(u, skriv(sluttbeskjed, ut = TRUE))
+        u <- c(u, skriv(sluttbeskjed, Ut = TRUE))
       } else {
-        u <- c(u, skriv(beskjed[1], ". ", sluttbeskjed, ut = TRUE))
+        u <- c(u, skriv(beskjed[1], ". ", sluttbeskjed, Ut = TRUE))
       }
     }
     if (vis & length(NB)) {
@@ -2240,11 +2262,11 @@ WFD2ECA <- function(
       if (length(NB) > 1) {
         for (i in 1:length(NB)) {
           u <- c(u, skriv(NB[i], ifelse(i == length(NB), ".", ";"), 
-                          pre = "- ", ut = TRUE))
+                          pre = "- ", Ut = TRUE))
         }
-        u <- c(u, skriv(sluttbeskjed, ut = TRUE))
+        u <- c(u, skriv(sluttbeskjed, Ut = TRUE))
       } else {
-        u <- c(u, skriv(NB[1], ". ", sluttbeskjed, ut = TRUE))
+        u <- c(u, skriv(NB[1], ". ", sluttbeskjed, Ut = TRUE))
       }
     }
     
@@ -2254,7 +2276,7 @@ WFD2ECA <- function(
                       length(unique(maaling$vfo)) - felles,
                       " av vannforekomstene som ble fjerna. Disse inngår da ",
                       "heller ikke i ekstrapoleringa.", 
-                      pre = "OBS: ", linjer.under = 1, ut = TRUE))
+                      pre = "OBS: ", linjer.under = 1, Ut = TRUE))
     }
     
     andel <- felles / length(utvalg)
@@ -2262,10 +2284,10 @@ WFD2ECA <- function(
       length(utvalg) %+% ")."
     if (andel < 0.01) {
       u <- c(u, skriv("Det foreligger målinger for under 1 ", tekst, 
-                      linjer.under = 1, ut = TRUE))
+                      linjer.under = 1, Ut = TRUE))
     } else {
       u <- c(u, skriv("Det foreligger altså målinger for ", round(andel * 100), 
-                      tekst, linjer.under = 1, ut = TRUE))
+                      tekst, linjer.under = 1, Ut = TRUE))
     }
   }
   
@@ -2287,7 +2309,7 @@ WFD2ECA <- function(
         u <- c(u, skriv("Noen overvåkingsaktiviteter er ukjent! Disse ble nå ",
                         "tildelt en skår på 0. (Dette gjelder: ", 
                         paste(ukjenteAktiviteter, collapse=", "), ".)",
-                        pre = "OBS OBS! ", linjer.under = 1, ut = TRUE))
+                        pre = "OBS OBS! ", linjer.under = 1, Ut = TRUE))
       }
       if (aktVekting) {
         akter <- strsplit(alist, "[+]")
@@ -2448,7 +2470,7 @@ WFD2ECA <- function(
         skriv("Nå begynner simuleringa. Det er valgt ", 
               format(nsim, scientific=FALSE, big.mark=ifelse(nsim < 1e4, ""," ")), 
               " iterasjoner.", ifelse(nsim > 1000, " Dette vil ta sin tid.", ""),
-              skjerm = vis)
+              Skjerm = vis)
         s <- 0
         while (s < nsim) {
           SIM <- min(1000, nsim - s)
@@ -2607,8 +2629,11 @@ WFD2ECA <- function(
         }
       }
       for (i in 1:length(UT)) {
-        if (logit) {
+        if (logit %=% TRUE) {
           UT[[i]] <- reskaler(UT[[i]], minV, maxV)
+        }
+        if (logit %=% "log" | substr(logit, 1, 4) %=% "loga") {
+          UT[[i]] <- exp(UT[[i]])
         }
         for (j in 1:length(rapportaar)) {
           for (k in 1:dim(UT[[i]])[1]) {
@@ -2669,7 +2694,7 @@ WFD2ECA <- function(
       " til " %+%
       komma(format(round(   max(unlist(UT), na.rm=TRUE), 3), nsm=3, sci=FALSE)) %+%
       "."
-    skriv("Sånn. Da har vi omsider kommet i mål.", linjer.over = 1, skjerm = vis)
+    skriv("Sånn. Da har vi omsider kommet i mål.", linjer.over = 1, Skjerm = vis)
     skriv(sisteTekst, linjer.under = 1)
   } else {
     UT <- NULL

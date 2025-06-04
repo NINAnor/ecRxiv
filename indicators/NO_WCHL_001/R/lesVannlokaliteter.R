@@ -18,7 +18,7 @@ lesVannlokaliteter <- function(vannkategori = c("L", "R", "C"),
     "lokid",
     "lokkod",
     "loknam",
-    #"sjønr",
+    #"sjønr", # mangler i nye eksporter
     "id",
     "kat",
     "X",
