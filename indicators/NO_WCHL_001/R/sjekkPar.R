@@ -60,8 +60,10 @@ sjekkHBI2 <-
   
   
 sjekkKLFA <-
+sjekkNTOT <- 
 sjekkPPBIOMTOVO <- 
 sjekkPPTI <- 
+sjekkPTOT <- 
   function(maaling, slingring, fraMaaned, tilMaaned, antallSyd, antallNor) {
   # Funksjonen fjerner data fra vannforekomster der det ikke er foretatt
   # målinger (omtrent) månedlig gjennom hele vekstsesongen

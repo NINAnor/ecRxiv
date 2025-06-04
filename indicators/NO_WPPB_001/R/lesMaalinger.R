@@ -1,7 +1,7 @@
 ### lesMaalinger
 # Funksjoner til WFD2ECA
 # ved Hanno Sandvik
-# mai 2025
+# juni 2025
 # se https://github.com/NINAnor/NI_vannf #¤?
 ###
 
@@ -9,7 +9,8 @@
 
 lesMaalinger <- function(parameter,
                          filsti = "../data",
-                         kolonnenavn = "navnVM.csv") {
+                         kolonnenavn = "navnVM.csv",
+                         medium = "VF") {
   
   # Funksjonen leser inn målinger av en oppgitt vannforskriftsparameter
   # fra vannmiljø-databasen
@@ -107,6 +108,21 @@ lesMaalinger <- function(parameter,
     }
   }
   
+  # Kontroll av medium
+  if (OK) {
+    if (!is.null(medium) && !is.na(medium) && !(substr(medium, 1, 3) %=% "all")) {
+      w <- which(DATA$medium %in% medium)
+      if (length(w) < nrow(DATA)) {
+        skriv((nrow(DATA) - length(w)), " målinger har blitt droppa fordi de ",
+              "ble foretatt i feil medium (i ", 
+              paste(sort(unique(DATA$medium[-w])), collapse = ", "), 
+              " istedenfor i ", paste(sort(unique(medium)), collapse = ", "), 
+              ").", pre = "OBS: ", linjer.over = 1)
+      }
+      DATA <- DATA[w, ]
+    }
+  }
+  
   # Innlesing av måleenheter
   if (OK) {
     respons <- GET(baseURL %+% ENDunits)
@@ -119,10 +135,8 @@ lesMaalinger <- function(parameter,
       JSONdata <- fromJSON(content(respons, "text"), flatten = TRUE)
       enh   <- as.data.frame(JSONdata)
       enh[] <- lapply(enh, as.character)
-      if (exists("Enheter")) {
-        skriv("Variabelen \"Enheter\" eksisterte fra før og har blitt erstatta!", 
-              pre = "OBS: ", linjer.over = 1)
-      }
+      #if (exists("Enheter")) skriv("Variabelen \"Enheter\" eksisterte fra før ",
+      #    "og har blitt erstatta!", pre = "OBS: ", linjer.over = 1)
       Enheter <<- enh
     }
   }
