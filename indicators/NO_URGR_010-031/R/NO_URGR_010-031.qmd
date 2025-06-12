@@ -1,12 +1,12 @@
 ---
 title: "Urban Green"
 subtitle: |
-  [NO_URGR_010] - Urban green in Local Administrative Units with Corine Land Cover \
-  [NO_URGR_011] - Urban green in Local Administrative Units with Grunnkart \
-  [NO_URGR_020] - Urban green in settlements defined as urban green classes of Corine Land Cover \
-  [NO_URGR_021] - Urban green in settlements defined as urban green classes of Grunnkart \
-  [NO_URGR_030] - Urban green in settlements defined as non-impervious areas from Corine Land Cover \
-  [NO_URGR_031] - Urban green in settlements defined as non-impervious areas from Grunnkart
+  [NO_URGR_013] - Urban green in Local Administrative Units with Grunnkart, including urban green categories \
+  [NO_URGR_022] - Urban green in Urban Clusters of Local Administrative Units with Grunnkart, including urban green categories  \
+  [NO_URGR_023] - Urban green in the settlements of the Local Administrative Unites with Grunnkart, including urban green categories  \
+  [NO_URGR_025] - Urban green in settlements defined as non-impervious areas from the settlements in Local Administrative Units with Grunnkart  \
+  [NO_URGR_030] - Urban green in settlements defined as non-impervious areas from the settlements in Corine Land Cover \
+  [NO_URGR_031] - Urban green in settlements defined as non-impervious areas from the settlements in Grunnkart
 format: 
   html:
     embed-resources: true
@@ -168,10 +168,39 @@ There are 3 major steps in calculating this indicator:
 3. Calculate a percentage by dividing the two previous figures and multiplying the result by 100.
 
 ***How to use and interpret this indicator?*** \
-There are several ways of defining areas of cities and urban green, and different datasets that can be used. That is why, in this document, we present six variations of the indicator based on three different analytical approaches. We recommend to use URGR_030 and URGR_031 as they rely on the most ecologically correct definition. They however do not follow the official guidance from the European Commission. If users need to report this indicator in an official EU reporting, we recommend to use URGR_010 or URGR_011.
+There are several ways of defining areas of cities and urban green, and different datasets that can be used. That is why, in this document, we present six variations of the indicator based on three different analytical approaches. We recommend to use URGR_030 and URGR_031 as they rely on the most ecologically correct definition. They however do not follow the official guidance from the European Commission. If users need to report this indicator in an official EU reporting, we recommend to use URGR_013 or URGR_022.
 
 ## 2. About the underlying data
-Due to the variations around the definition of what an 
+Due to the variations around the definition of what an urban area and an urban green areas are, we had to derive six different indicators. Their definition and associated data are described below:
+
+1. URGR_013
+
+***Definition***
+This indicator is based on the definitions of urban and urban green areas from @cond-gn-eurostat. They can be summarised as follows:
+
+Urban areas are defined as the Local Administrative Units (LAUs) categorised as "Cities" and their adjacent LAUs classified as "Towns and suburbs". Eurostat defines these LAUs based on the variable "DEGURBA" standing for degree of urbanisation. "Cities" correspond to `DEGURBA = 1`, while "Towns and suburbs" correspond to `DEGURBA = 2`.
+
+Urban green areas are defined as any ecosystems that have a green cover in addition to ponds and watercourses. In their guidance (@cond-gn-eurostat) do not list precisely all the ecosystem types from the EU Ecosystem Typology that should be used. We included the following: 1.4 Urban greenspace; 1.5.2 Cemeteries; 2. Cropland; 3. Grassland; 4. Forest and woodlands; 5. Heathland and shrub; 6. Sparsely vegetated ecosystems; 7. Inland wetlands; 8. Rivers and Canals; 9. Lakes and reservoirs; 10. Coastal beaches, dunes and wetlands.
+
+***Datasets used***
+Three data sources were used:
+
+- Grunnkart from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA's internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.
+
+- LAU from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.
+
+- DEGURBA variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO
+
+2. URGR_022
+
+3. URGR_023
+
+4. URGR_025
+
+5. URGR_030
+
+6. URGR_031
+
 <!--# Describe the data you have used in more detail, it's origin, biases, availabilit ect.-->
 
 ### 2.1 Spatial and temporal resolution and extent
@@ -282,7 +311,7 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 
 ## 9. Analyses
 
-### 9.1 URGR_10 - Grunnkart
+### 9.1 URGR_013
 #### 9.1.1 Preparation of the data
 First we need to create separate data sets for each ecosystem types that are relevant to include in "urban green ecosystems". According to the @cond-gn-eurostat, all ecosystem types in the EU Ecosystem Types Typology with a green cover should be included. This means that Marine Ecosystems and Settlements and Other Artificial areas are discarded.  There is however specific mention of including the categories "Urban green" and "Discontinuous urban areas". 
 ```{r}
