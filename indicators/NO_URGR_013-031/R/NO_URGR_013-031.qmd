@@ -211,11 +211,11 @@ Three data sources were used:
 
 **3. URGR_023**
 <u>Definition</u> \
-This indicator is a vraiation from the definitions of urban and urban green areas from @cond-gn-eurostat. They can be summarised as follows:
+This indicator is a variation from the definitions of urban and urban green areas from @cond-gn-eurostat. They can be summarised as follows:
 
 Urban areas are defined as the settlements of the Local Administrative Units (LAUs) categorised as "Cities" and their adjacent LAUs classified as "Towns and suburbs". Eurostat defines these LAUs based on the variable "DEGURBA" standing for degree of urbanisation. "Cities" correspond to `DEGURBA = 1`, while "Towns and suburbs" correspond to `DEGURBA = 2`. The settlements correspond to the ecosystem type 1. Settlements and other artificial areas as defined in the EU Ecosystem Typology.
 
-Urban green areas are defined as URGR_013.
+Urban green areas are defined as for URGR_013.
 
 <u>Datasets used</u> \
 Three data sources were used:
@@ -227,11 +227,25 @@ Three data sources were used:
 - **DEGURBA** variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO
 
 
+**4. URGR_025**
+<u>Definition</u> \
+This indicator is a variation of URGR_023. It can be summarised as follows:
 
+Urban areas are defined as for URGR_023.
 
+Urban green areas are defined as the non-impervious areas within the settlements of the Local Administrative Units. These "non-impervious" areas are defined using the Imperviousness Copernicus layer.
 
+<u>Datasets used</u> \
+Three data sources were used:
 
-4. URGR_025
+- **Corine Land Cover** from the EEA. Available from the EEA: https://land.copernicus.eu/en/products/corine-land-cover?tab=datasets. Or available from NINA's internal repository: /data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018.
+
+- **LAU** from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.
+
+- **DEGURBA** variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO
+
+- **Imperviousness** layer from Copernicus. Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA's internal repository here: P-Prosjekter2/412413_2023_no_egd/GIS/Data/Infrastructure/IMD_2018_010m_no_03035_v020/DATA/
+
 
 5. URGR_030
 
@@ -832,10 +846,10 @@ lau <- rbind(lau_1, lau_2_adj)
 #| eval: false
 #| code-summary: "Upload LAUs from NINA's internal repository"
 
-# path to the data
+# Path to the data
 path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_URGR/"
 
-# load the data
+# Load the data
 lau <- st_read(paste0(path_lau, "LAUs_URGR.shp"))
 ```
 
@@ -1240,14 +1254,14 @@ lau <- rbind(lau_1, lau_2_adj)
 #| eval: false
 #| code-summary: "Upload LAUs from NINA's internal repository"
 
-# path to the data
+# Path to the data
 path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_URGR/"
 
-# load the data
+# Load the data
 lau <- st_read(paste0(path_lau, "LAUs_URGR.shp"))
 ```
 
-Finally, to define the settlements of the LAUs, we need the category "1. Settlements and other articifial areas" (SOAA) defined by EU Ecosystem Typology. We take this class from the Grunnkart.
+Finally, to define the settlements of the LAUs, we need the category "1. Settlements and other artificial areas" (SOAA) defined by EU Ecosystem Typology. We take this class from the Grunnkart.
 ```{r}
 #| eval: false
 #| code-summary: "Create a SOAA layer"
@@ -1259,6 +1273,343 @@ soaa <- gdb_files %>%
           compact() %>%  
           bind_rows()
 ```
+
+
+#### 9.3.2 Data cleaning
+Not all of our data have the same CRS, we need to check so we know if we have to re-project in the subsequent analyses.
+```{r}
+#| eval: false
+#| code-summary: "Check CRS"
+
+# ETs from Grunnkart (we take one as they have all the same CRS)
+cemeteries_crs <- crs(et_list[[1]])
+
+# LAUs
+lau_crs <- crs(lau)
+
+# SOAA
+soaa_crs <- crs(soaa)
+
+# Check they are the same
+cemeteries_crs == lau_crs
+cemeteries_crs == soaa_crs
+```
+
+Once we have done that, we can perform the geometrical and topological checks of the data, and fix any issues that might arise.
+```{r}
+#| eval: false
+#| code-summary: "Geometry and topology - check and fix"
+# Check for empty geometry
+for(i in 1:length(et_list)){
+  empty_test <- which(st_is_empty(et_list[[i]]) == TRUE)
+  print(empty_test)
+}
+
+urb_domn_lau_32_empty <- which(st_is_empty(urb_domn_lau_32) == TRUE)
+
+# Check validity
+for(i in 1:length(et_list)){
+  validity_test <- which(st_is_valid(et_list[[i]]) == FALSE)
+  print(length(validity_test))
+}
+
+urb_domn_lau_32_invalid <- which(st_is_valid(urb_domn_lau_32) == FALSE)
+
+# Clean geometry of ETs with st_make_valid()
+et_clean_list <- list()
+for(i in c(seq(1,6,1), seq(8,11,1))){
+  et_clean <- st_make_valid(et_list[[i]])
+  et_clean_list[[i]] <- et_clean
+}
+
+et_clean_list[[7]] <- st_buffer(et_list[[7]], 0) %>%
+                        filter(!st_is_empty(.)) %>%
+                        st_make_valid()
+
+names(et_final) <- names(et_list)
+
+# Check cleaning geometry worked
+for(i in 1:length(et_clean_list)){
+  geometry_check <- which(st_is_valid(et_clean_list[[i]]) == FALSE)
+  print(length(geometry_check))
+}
+
+# Check for empty geometry
+for(i in 1:length(et_clean_list)){
+  empty_test <- which(st_is_empty(et_clean_list[[i]]) == TRUE)
+  print(empty_test)
+}
+```
+
+
+As for URGR_013, we only select the polygons and discard points and linestrings.
+```{r}
+#| eval: false
+#| code-summary: "Final dataset of ecosystem type"
+
+# Keep only polygon features
+et_final <- et_clean_list %>%
+                map(\(.) st_collection_extract(.,
+                                              type = c("POLYGON"), 
+                                             warn = FALSE))
+
+names(et_final) <- names(et_clean_list)
+
+
+soaa_final <- st_collection_extract(soaa_cln,
+                                    type = c("POLYGON"), 
+                                    warn = FALSE)
+```
+
+Now that the SOAA data have been cleaned, we can create the boundaries of urban areas that we will use for the analyses. For this we first have to re-project the LAU layer to the same CRS as SOAA. Then we can intersect the two layers, and finally dissolve the polygons to only have one overall SOAA polygon per LAU.
+```{r}
+#| eval: false
+#| code-summary: "Create the SOAA boundary for analyses"
+
+# Re-project LAUs in Grunnkart CRS
+lau_32 <- st_transform(lau, cemeteries_crs)
+
+# Intersection lau_32 and sooa_urb_cln 
+soaa_lau_32 <- st_intersection(soaa_final, lau_32)
+
+# Dissolve soaa_lau_32 boundaries
+soaa_poly_final <- soaa_lau_32 %>%
+                      group_by(cty_grp, LAU_ID, LAUNAMN, DEGURBA)%>%
+                      summarise() %>%
+                      as.data.frame() %>%
+                      st_as_sf()
+```
+
+The resulting data are quite heavy, it is important to clean the R Environment to free memory space.
+```{r}
+#| eval: false
+#| code-summary: "Clean R Environment"
+
+# Remove non-essential R objects-
+rm(list=setdiff(ls(), c("et_clean_list",
+                        "soaa_final",
+                        "soaa_poly_final")))
+
+```
+
+
+#### 9.3.3 Data analyses
+We first run an intersection between the settlements within the LAUs (`soaa_poly_final`) and the ecosystem types (`et_clean_list`).
+```{r}
+#| eval: false
+#| code-summary: "Intersection ecosystem types and the settlemenst within LAUs"
+
+et_soaa <- et_final%>%
+            map(\(.) st_intersection(., soaa_poly_final))
+```
+
+Now we can calculate the tottal area of settlements within LAUs.
+```{r}
+#| eval: false
+#| code-summary: "Total area of settlements within LAUs"
+
+soaa_total_area <- soaa_poly_final %>%
+                        mutate(., soaa_area_m2 = unclass(st_area(.))) %>%
+                        st_drop_geometry() %>%
+                        select(LAU_ID, soaa_area_m2) %>%
+                        group_by(LAU_ID) %>%
+                        summarise(soaa_total_area_m2 = sum(soaa_area_m2))
+```
+
+Then, we calculate the total area of settlements within LAU aggregated at the level of four clusters (referred to as "city group" below): Trondheim, Oslo, Stavanger, and Bergen.
+```{r}
+#| eval: false
+#| code-summary: "Group settlemenst within LAUs into four clusters"
+
+city_group_names <- c("Trondheim", "Oslo", "Stavanger", "Bergen")
+city_group_area <- soaa_poly_final %>%
+                    mutate(., grp_area_m2 = unclass(st_area(.))) %>%
+                    st_drop_geometry() %>%
+                    select(cty_grp, grp_area_m2) %>%
+                    group_by(cty_grp) %>%
+                    summarise(cty_grp_total_area_m2 = sum(grp_area_m2)) %>%
+                    cbind(., city_group_names)
+                    
+```
+
+Finally, we can calculate summary tables for URGR_023:
+```{r}
+#| eval: false
+#| code-summary: "Create summary tables"
+
+# Summary table detailed per LAUs
+urgr_023_tab <- et_soaa%>%
+                  compact() %>%
+                  bind_rows() %>%
+                  mutate(et_area_m2 = unclass(st_area(.))) %>%
+                  st_drop_geometry() %>%
+                  select(LAUNAMN, DEGURBA, LAU_ID, cty_grp,
+                         okosystemtype_1, okosystemtype_2,
+                         okosystemtype_3, okosystemtype_kode,
+                         et_area_m2) %>%
+                  group_by(cty_grp, LAU_ID, LAUNAMN, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
+                  summarise(total_area_et_m2 = sum (et_area_m2))%>%
+                  left_join(., soaa_total_area, by = "LAU_ID")
+
+# Summary table aggregated per "city group"
+urgr_023_tab_city_gr <- urgr_023_tab %>%
+                          group_by(cty_grp, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
+                          select(!soaa_total_area_m2) %>%
+                          summarise(total_area_et_m2 = sum(total_area_et_m2)) %>%
+                          left_join(., city_group_area, by = "cty_grp")
+```
+
+These table have been exported to the internal repository and will be used in the Results section to create an overall summary table comparing all URGR indicators.
+
+### 9.4 URGR_025
+#### 9.4.1 Load and prepare the data
+We start by loading the Corine Land Cover data and filter the categories that correspond to the Eu Ecosystem Typology class 1. Settlements and other artificial areas (SOAA).
+```{r}
+#| eval: false
+#| code-summary: "Create Ecosystem Types datasets"
+
+# Read CLC2018
+path_clc <- "/data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018/"
+clc18 <- st_read(paste0(path_clc, "0000_32632_corine2018_8d4abc_SHAPE.shp"))
+
+# Extract Settlements and Other Artificial Areas
+clc18_soaaa <- clc18_89 %>%
+                filter(clc18_kode == 111 |
+                clc18_kode == 112 |
+                clc18_kode == 121 |
+                clc18_kode == 122 |
+                clc18_kode == 123 |
+                clc18_kode == 131 |
+                clc18_kode == 132 |
+                clc18_kode == 133 |
+                clc18_kode == 141 |
+                clc18_kode == 142 )
+
+```
+
+
+To compile URGR_025, we need the Norwegian Local Administrative Units (LAUs) from Eurostat. According to the @cond-gn-eurostat, only LAUs whcih are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat to select the citites (DEGURBA = 1) and towns and suburbs (DEGURBA = 2) that were adjacent to these cities. Below are two codes: (i) one to create the dataset from scratch, and (ii) one that reads the dataset already created and available from NINA's internal repository.
+
+```{r}
+#| eval: false
+#| code-summary: "Create LAUs dataset"
+
+# Read excel file with Degurba variable and select Norway
+path_lau <- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_DEGURBA_Eurostat/"
+degurba_lau_no <- read_excel(paste0(path_lau, "EU-27-LAU-2024-NUTS-2024.xlsx"), sheet = "NO")
+
+# Select cities towns and suburbs
+cities_sub_no <- degurba_lau_no %>%
+                  select("LAU NAME NATIONAL", "DEGURBA") %>%
+                  filter(DEGURBA == 1 | DEGURBA == 2) %>%
+                  as.data.frame()
+
+# Read shapefile and select Norway
+path_lau <- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_Eurostat/"
+lau_eu <- st_read(paste0(path_lau, "LAU_RG_01M_2023_3035.shp"))
+lau_no <- lau_eu %>%
+           filter(CNTR_CODE == "NO")
+
+
+# Join cities_sub_no with lau_no
+byer_lau <- inner_join(cities_sub_no, 
+                       lau_no, 
+                       by = join_by("LAU NAME NATIONAL" == "LAU_NAME")) %>%
+              st_as_sf()
+
+# Select LAUs with DEGURBA == 1
+lau_1 <- byer_lau %>%
+          filter(DEGURBA == 1) %>%
+          mutate(city_group = c(1, 2, 2, 2, 2, 2, 3, 3, 4))
+
+# Select LAUs with DEGURBA == 2 which are adjacent to lau_1
+lau_2 <- byer_lau %>%
+          filter(DEGURBA == 2)
+
+lau2_adj_id <- st_touches(lau_1, lau_2) %>%
+                unlist() %>%
+                unique()
+
+lau_2_adj <- lau_2[lau2_adj_id, ]
+
+# Create a variable to group the four cities and their suburbs
+city_group <- vector()
+  
+for(i in 1:nrow(lau_2_adj)){
+  
+  if(st_touches(lau_1[1,], lau_2_adj[i,], sparse = FALSE)[,1] == TRUE){
+    city_group[i] <- 1
+  } 
+  else if(TRUE %in% st_touches(lau_1[c(2,3,4,5,6),], lau_2_adj[i,], sparse = FALSE)[,1]){
+    city_group[i] <- 2
+  }
+  else if(TRUE %in% st_touches(lau_1[c(7,8),], lau_2_adj[i,], sparse = FALSE)[,1]){
+    city_group[i] <- 3
+  }
+  else if(st_touches(lau_1[9,], lau_2_adj[i,], sparse = FALSE)[,1] == TRUE){
+    city_group[i] <- 4
+  } else {city_group[i] <- NA}
+}
+
+# Add group variable to LAU adatset
+lau_2_adj <- mutate(lau_2_adj, city_group = city_group)
+
+# Final LAUs dataset
+lau <- rbind(lau_1, lau_2_adj)
+
+```
+
+```{r}
+#| eval: false
+#| code-summary: "Upload LAUs from NINA's internal repository"
+
+# Path to the data
+path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_URGR/"
+
+# Load the data
+lau <- st_read(paste0(path_lau, "LAUs_URGR.shp"))
+```
+
+Finally, to define the urban green areas of the settlements within the LAUs, we need the Imperviousness layer from Copernicus. The rationale is that any areas that are not impervious within the settlements of LAUs, are green or blue urban areas. Impervious Copernicus layer is however constituted of tiles, which need to be assemble into a virtual raster to be used for analyses. Below, we present two codes: (i) create the Imperviousness Copernicus virtual raster from scratch, and (ii) read the Imperviousness Copernicus virtual raster directly from NINA's internal repository.
+```{r}
+#| eval: false
+#| code-summary: "Create the Imperviousness Copernicus virtutal raster"
+
+# Create a list of the Copernicus raster tiles
+path_cop <- "/data/P-Prosjekter2/412413_2023_no_egd/GIS/Data/Infrastructure/IMD_2018_010m_no_03035_v020/DATA"
+filename_list_imp <- list.files(path = path_cop, pattern = '.tif$', 
+                                all.files = TRUE, full.names = TRUE)
+
+# Create the virtual raster
+path_imp <-  "/data/Egenutvikling/61546-01_fu_intern_sylvie_clappe/ecRixv_urbangreen/data/imperviousness_copernicus_vrt"
+imper_cop_vrt <- vrt(filename_list_imp, 
+                     filename = paste0(path_imp, "/imper_cop.vrt")) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #### 9.2.2 Data cleaning
@@ -1446,7 +1797,6 @@ urgr_023_tab_city_gr <- urgr_023_tab %>%
 ```
 
 These table have been exported to the internal repository and will be used in the Results section to create an overall summary table comparing all URGR indicators.
-
 
 <!--# 
 
