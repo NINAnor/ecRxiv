@@ -1389,89 +1389,58 @@ et_soaa <- et_final%>%
             map(\(.) st_intersection(., soaa_poly_final))
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Now we can calculate the areas of ecosystem types per urban domain within each LAUs.
+Now we can calculate the tottal area of settlements within LAUs.
 ```{r}
 #| eval: false
-#| code-summary: "Calculate areas of ecosystems within LAU - urban domains"
+#| code-summary: "Total area of settlements within LAUs"
 
-et_list_urb_domn <- et_final %>%
-                      map(\(.) st_intersection(., urb_domn_lau_32))
-
-names(et_list_urb_domn) <- names(et_final)
-
-et_list_urb_domn_ex <- et_list_urb_domn %>%
-                        compact() %>%
-                        bind_rows()
-```
-
-Then, we calculate the total area of urban domains within each LAU.
-```{r}
-#| eval: false
-#| code-summary: "Total area of  LAU - urban domains"
-
-urb_domn_total_area <- urb_domn_lau_32 %>%
-                        mutate(., urb_domn_area_m2 = unclass(st_area(.))) %>%
+soaa_total_area <- soaa_poly_final %>%
+                        mutate(., soaa_area_m2 = unclass(st_area(.))) %>%
                         st_drop_geometry() %>%
-                        select(LAU_ID, urb_domn_area_m2) %>%
+                        select(LAU_ID, soaa_area_m2) %>%
                         group_by(LAU_ID) %>%
-                        summarise(urb_domn_total_area = sum(urb_domn_area_m2))
+                        summarise(soaa_total_area_m2 = sum(soaa_area_m2))
 ```
 
-Calculate the total area of urban domain within LAU aggregated at the level of four clusters (referred to as "city group" below): Trondheim, Oslo, Stavanger, and Bergen.
+Then, we calculate the total area of settlements within LAU aggregated at the level of four clusters (referred to as "city group" below): Trondheim, Oslo, Stavanger, and Bergen.
 ```{r}
 #| eval: false
-#| code-summary: "Group LAU - urban domains into four clusters"
+#| code-summary: "Group settlemenst within LAUs into four clusters"
 
 city_group_names <- c("Trondheim", "Oslo", "Stavanger", "Bergen")
-city_group_area <- urb_domn_lau_32 %>%
+city_group_area <- soaa_poly_final %>%
                     mutate(., grp_area_m2 = unclass(st_area(.))) %>%
                     st_drop_geometry() %>%
                     select(cty_grp, grp_area_m2) %>%
                     group_by(cty_grp) %>%
-                    summarise(cty_grp_area = sum(grp_area_m2)) %>%
+                    summarise(cty_grp_total_area_m2 = sum(grp_area_m2)) %>%
                     cbind(., city_group_names)
                     
 ```
 
-Finally, we can calculate summary tables for URGR_022:
+Finally, we can calculate summary tables for URGR_023:
 ```{r}
 #| eval: false
 #| code-summary: "Create summary tables"
 
 # Summary table detailed per LAUs
-urgr_022_tab <- et_urbdmn_area %>%
+urgr_023_tab <- et_soaa%>%
                   compact() %>%
                   bind_rows() %>%
+                  mutate(et_area_m2 = unclass(st_area(.))) %>%
                   st_drop_geometry() %>%
                   select(LAUNAMN, DEGURBA, LAU_ID, cty_grp,
                          okosystemtype_1, okosystemtype_2,
                          okosystemtype_3, okosystemtype_kode,
                          et_area_m2) %>%
                   group_by(cty_grp, LAU_ID, LAUNAMN, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
-                  summarise(total_area_et_m2 = sum (et_area_m2)) %>%
-                  left_join(., urb_domn_total_area, by = "LAU_ID")
+                  summarise(total_area_et_m2 = sum (et_area_m2))%>%
+                  left_join(., soaa_total_area, by = "LAU_ID")
 
 # Summary table aggregated per "city group"
-urgr_022_tab_city_gr <- urgr_022_tab %>%
+urgr_023_tab_city_gr <- urgr_023_tab %>%
                           group_by(cty_grp, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
-                          select(!urb_domn_total_area) %>%
+                          select(!soaa_total_area_m2) %>%
                           summarise(total_area_et_m2 = sum(total_area_et_m2)) %>%
                           left_join(., city_group_area, by = "cty_grp")
 ```
