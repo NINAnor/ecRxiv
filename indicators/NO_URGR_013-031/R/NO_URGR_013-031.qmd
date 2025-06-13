@@ -195,9 +195,9 @@ Three data sources were used:
 ***Definition***
 This indicator is based on the definitions of urban and urban green areas from @cond-gn-eurostat. They can be summarised as follows:
 
-Urban areas are defined as the Local Administrative Units (LAUs) categorised as "Cities" and their adjacent LAUs classified as "Towns and suburbs". Eurostat defines these LAUs based on the variable "DEGURBA" standing for degree of urbanisation. "Cities" correspond to `DEGURBA = 1`, while "Towns and suburbs" correspond to `DEGURBA = 2`.
+Urban areas are defined as the "urban domain" of the Local Administrative Units (LAUs) categorised as "Cities" and their adjacent LAUs classified as "Towns and suburbs". Eurostat defines these LAUs based on the variable "DEGURBA" standing for degree of urbanisation. "Cities" correspond to `DEGURBA = 1`, while "Towns and suburbs" correspond to `DEGURBA = 2`. "Urban domains" are defined with the Global Human Settlement Layer SMOD developed through teh Copernicus programme.
 
-Urban green areas are defined as any ecosystems that have a green cover in addition to ponds and watercourses. In their guidance (@cond-gn-eurostat) do not list precisely all the ecosystem types from the EU Ecosystem Typology that should be used. We included the following: 1.4 Urban greenspace; 1.5.2 Cemeteries; 2. Cropland; 3. Grassland; 4. Forest and woodlands; 5. Heathland and shrub; 6. Sparsely vegetated ecosystems; 7. Inland wetlands; 8. Rivers and Canals; 9. Lakes and reservoirs; 11. Coastal beaches, dunes and wetlands.
+Urban green areas are defined as URGR_013.
 
 ***Datasets used***
 Three data sources were used:
@@ -207,6 +207,8 @@ Three data sources were used:
 - **LAU** from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.
 
 - **DEGURBA** variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO
+
+- **Global Human Settlement Layer - SMOD** from Copernicus. Raw data are available here: https://human-settlement.emergency.copernicus.eu/download.php?ds=smod. SMOD data filtered fro Norway are available on NIN's internal repository: /data/P-Prosjekter2/412413_2023_no_egd/git_data/SMOD_2018.
 
 
 3. URGR_023
@@ -338,7 +340,7 @@ First we need to create separate data sets for each ecosystem types that are rel
 # path to the Grunnkart data
 gdb_folder <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format"
 
-# list the gdb files
+# List the gdb files
 gdb_files <- list.files(gdb_folder, pattern = "_gdb\\.gdb$", 
                         full.names = TRUE)
 
@@ -392,7 +394,7 @@ names(query_string_list) <- c("Cemeteries",
                               "Forest and woodlands",
                               "Heathland and shrub")
 
-# run SQL query and store results in a list
+# Run SQL query and store results in a list
 for (i in 1: length(query_string_list)){
 query_string <- query_string_list[[i]] 
 
@@ -480,10 +482,10 @@ lau <- rbind(lau_1, lau_2_adj)
 #| eval: false
 #| code-summary: "Upload LAUs from NINA's internal repository"
 
-# path to the data
+# Path to the data
 path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_URGR/"
 
-# load the data
+# Load the data
 lau <- st_read(paste0(path_lau, "LAUs_URGR.shp"))
 ```
 
@@ -634,7 +636,7 @@ Finally, we can calculate summary tables for URGR_013:
 #| eval: false
 #| code-summary: "Create summary tables"
 
-# SUmmary table detailed per LAUs
+# Summary table detailed per LAUs
 urgr_013_tab <- et_lau_area %>%
                   compact() %>%
                   bind_rows() %>%
@@ -647,7 +649,7 @@ urgr_013_tab <- et_lau_area %>%
                   summarise(total_area_et_m2 = sum (et_area_m2)) %>%
                   left_join(., lau_total_area, by = "LAU_ID")
 
-#Summary table aggregated per "city group"
+# Summary table aggregated per "city group"
 urgr_013_tab_city_gr <- urgr_013_tab %>%
                           group_by(cty_grp, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
                           select(!lau_area_m2) %>%
@@ -668,10 +670,10 @@ As for URGR_013, we start by loading all the ecosystem types of interest to defi
 #| code-summary: "Create Ecosystem Types datasets"
 
 # Code co-created by Sylvie Clappe and Jennifer E. Hansen
-# path to the Grunnkart data
+# Path to the Grunnkart data
 gdb_folder <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format"
 
-# list the gdb files
+# List the gdb files
 gdb_files <- list.files(gdb_folder, pattern = "_gdb\\.gdb$", 
                         full.names = TRUE)
 
@@ -725,7 +727,7 @@ names(query_string_list) <- c("Cemeteries",
                               "Forest and woodlands",
                               "Heathland and shrub")
 
-# run SQL query and store results in a list
+# Run SQL query and store results in a list
 for (i in 1: length(query_string_list)){
 query_string <- query_string_list[[i]] 
 
@@ -820,181 +822,255 @@ path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_URGR/"
 lau <- st_read(paste0(path_lau, "LAUs_URGR.shp"))
 ```
 
-Finally, to define the "urban domains" of the LAUs, we need to load the Global Human Settlement Layer data called SMOD. We downloaded the tiles that corresponded to Norway. Based on this we can creat a virtual raster that we can work with in the subsequent analyses.
+Finally, to define the "urban domains" of the LAUs, we need to load the Global Human Settlement Layer data called SMOD. SMOD is provided as tiles that correspond to Norway. Based on this one can create a virtual raster that can be used in the subsequent analyses. We provided two codes below: (i) code tor create the SMOD virtual raster from scratch, and (ii) read in the virtual raster from NINA's internal repository.
 ```{r}
 #| eval: false
-#| code-summary: "Upload SMOD data from NINA's internal repository"
+#| code-summary: "Creat a SMOD virtual raster for Norway"
 
-# create a list of the SMOD raster tiles
+# Create a list of the SMOD raster tiles
 path_smod <- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/SMOD_2018/"
 filename_list_smod <- list.files(path = path_smod, pattern = '.tif$', 
                                  all.files = TRUE, full.names = TRUE)
 
-# create the virtual raster
-imper_cop_vrt <- vrt(filename_list_smod,
+# Create the virtual raster
+smod_18 <- vrt(filename_list_smod,
                      filename = paste0(path_smod, "SMOD_2018.vrt"))
+```
+
+```{r}
+#| eval: false
+#| code-summary: "Upload SMOD data from NINA's internal repository"
+
+# Create a list of the SMOD raster tiles
+path_smod <- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/SMOD_2018/"
+
+# Load in the data
+smod_18 <- rast(paste0(path_smod, "/SMOD_2018.vrt"))
 ```
 
 
 #### 9.2.2 Data cleaning
-We decided to use the same Coordiante Reference System (CRS) than used for URGR_010. So we decided to project Corine Land Cover and the administrative boundaries in the grunnkart projection. We also checked for geometrical and topological issues.
+Not all of our data have the same CRS, we need to check so we know if we have to re-project in the subsequent analyses.
 ```{r}
 #| eval: false
-#| code-summary: "Projection"
+#| code-summary: "Check CRS"
 
-# CRS Grunnkart
-# File path to Grunnkart
-gdb_folder <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format"
-
-# Pattern for stored gdb
-gdb_files <- list.files(gdb_folder, pattern = "_gdb\\.gdb$", 
-                        full.names = TRUE)
-
-# Define CRS of the first layer (most common CRS of the gdb files)
-gk_crs <- st_read(gdb_files[1]) %>%
-            crs()
-
-# CLC CRS
-clc18_green_crs <- crs(clc18_green)
+# ETs from Grunnkart (we take one as they have all the same CRS)
+cemeteries_crs <- crs(cemeteries)
 
 # LAUs
 lau_crs <- crs(lau)
 
-# Region and fylke boundaries
-region_no_crs <- crs(region_no)
-fylke_no_crs <- crs(fylke_no)
+# SMOD
+smod_crs <- crs(smod_18)
 
 # Check they are the same
-clc18_green_crs == gk_crs
-clc18_green_crs == region_no_crs
-clc18_green_crs == lau_crs
-region_no_crs == lau_crs
-gk_crs == lau_crs
-region_no_crs == gk_crs
-
-
-# Re-project boundaries (they are less heavy!)
-clc18_green_32 <- st_transform(clc18_green, gk_crs)
-lau_32 <- st_transform(lau, gk_crs)
-region_no_32 <- st_transform(region_no, gk_crs)
+cemeteries_crs == lau_crs
+cemeteries_crs == smod_crs
 ```
+
+The next step is to create the boundaries of the urban areas we will use for the analyses. For this, we take the SMOD data and mask then with the LAUs to have a raster of urban settlements for the LAUs. Then we need to select only the pixel whose values are strictly superior to 21 to define the "urban domain" within LAUs (see page 51 of the SMOD metadata for more information).
 
 ```{r}
 #| eval: false
-#| code-summary: "Geometry and topology check"
+#| code-summary: "Create LAU - urban domains layer"
 
+# Re-project boundaries to the raster crs
+lau_wm <- st_transform(lau, smod_crs)
+
+# Mask SMOD with LAUs
+smod_lau <- terra:::crop(smod_18, lau_wm, mask = TRUE)
+
+#mapview(smod_lau)
+
+# Aggregate classes 30/23/22/21 to form the "urban domain" (page 51 of SMOD metadata)  
+lau_urb_domain <- app(smod_lau, fun=function(x){ x[x < 21] <- NA; return(x)})
+names(lau_urb_domain) <- "SMOD_18"
+```
+
+To perform the subsequent analyses, we then need to re-project `lau_urb_domain` in the CRS of the Grunnkart.
+```{r}
+#| eval: false
+#| code-summary: "Reproject LAU - urban domains layer"
+# Polygonise so it can be re-projected
+urban_domains_poly <- as.polygons(lau_urb_domain) %>%
+                        st_as_sf()
+
+# Re-project urban domains to the Grunnkart CRS
+urban_domains_32 <- st_transform(urban_domains_poly, cemeteries_crs)
+
+# Re-project LAUs
+lau_32 <- st_transform(lau, cemeteries_crs)
+```
+
+Finally, to be cleaner, we intersect this layer with the LAU layer with `lau_urb_domain` to smooth the outwards edges of the urban domain so they fit the LAUs boundaries. At present `lau_urb_domain` is a polygonised raster, which means that the area is a bit bigger than the area of the LAUs, hence this smoothing step.
+```{r}
+#| eval: false
+#| code-summary: "Smooth outwards boundaries of LAU - urban domains layer"
+urb_domn_lau_32 <- st_intersection(urban_domains_32, lau_32)
+```
+
+Once we have done that, we can perform the geometrical and topological checks of the data, and fix any issues that might arise.
+```{r}
+#| eval: false
+#| code-summary: "Geometry and topology - check and fix"
 # Check for empty geometry
-clc18_green_empty <- which(st_is_empty(clc18_green_32) == TRUE)
-lau_32_empty <- which(st_is_empty(lau_32) == TRUE)
-region_32_empty <- which(st_is_empty(region_no_32) == TRUE)
+for(i in 1:length(et_list)){
+  empty_test <- which(st_is_empty(et_list[[i]]) == TRUE)
+  print(empty_test)
+}
+
+urb_domn_lau_32_empty <- which(st_is_empty(urb_domn_lau_32) == TRUE)
 
 # Check validity
-clc18_green_invalid <- which(st_is_valid(clc18_green_32) == FALSE)
-lau_32_invalid <- which(st_is_valid(lau_32) == FALSE)
-region_32_invalid <- which(st_is_valid(region_no_32) == FALSE)
+for(i in 1:length(et_list)){
+  validity_test <- which(st_is_valid(et_list[[i]]) == FALSE)
+  print(length(validity_test))
+}
+
+urb_domn_lau_32_invalid <- which(st_is_valid(urb_domn_lau_32) == FALSE)
+
+# Clean geometry of ETs with st_make_valid()
+et_clean_list <- list()
+for(i in c(seq(1,6,1), seq(8,11,1))){
+  et_clean <- st_make_valid(et_list[[i]])
+  et_clean_list[[i]] <- et_clean
+}
+
+et_clean_list[[7]] <- st_buffer(et_list[[7]], 0) %>%
+                        filter(!st_is_empty(.)) %>%
+                        st_make_valid()
+
+names(et_final) <- names(et_list)
+
+# Check cleaning geometry worked
+for(i in 1:length(et_clean_list)){
+  geometry_check <- which(st_is_valid(et_clean_list[[i]]) == FALSE)
+  print(length(geometry_check))
+}
+
+# Check for empty geometry
+for(i in 1:length(et_clean_list)){
+  empty_test <- which(st_is_empty(et_clean_list[[i]]) == TRUE)
+  print(empty_test)
+}
 ```
 
-Then we clean our R environment before the analyses.
+
+As for URGR_013, we only select the polygons and discard points and linestrings.
 ```{r}
 #| eval: false
-#| code-summary: "Clean R environment"
+#| code-summary: "Final dataset of ecosystem type"
 
-# Remove non-essential R objects
-rm(list=setdiff(ls(), c("clc18_green_32",
-                        "region_no_32",
-                        "lau_32")))
+# Keep only polygon features
+et_final <- et_clean_list %>%
+              map(\(.) st_collection_extract(.,
+                                             type = c("POLYGON"), 
+                                             warn = FALSE))
+
+names(et_final) <- names(et_clean_list)
+```
+
+The resulting data are quite heavy, it is important to clean the R Environment to free memory space.
+```{r}
+#| eval: false
+#| code-summary: "Clean R Environment"
+
+# Remove non-essential R objects-
+rm(list=setdiff(ls(), c("et_final",
+                        "et_clean_list",
+                        "urb_domn_lau_32")))
+
 ```
 
 #### 9.2.3 Data analyses
-##### URGR_011 - National
-First we need to do an intersection between Corine Land Cover and the LAUs administrative boundaries.
+We first run an intersection between the urban domains with the LAUs (`urb_domn_lau_32`) and the ecosystem types (`et_clean_list`).
 ```{r}
 #| eval: false
-#| code-summary: "Intersecting Corine Land Cover and LAUs"
+#| code-summary: "Intersection ecosystem types and LAU - urban domains"
 
-# Calculate intersection between ETs and LAUs
-et_lau_inter <-  st_intersection(clc18_green_32, lau_32)
+et_list_urb_domn <- et_final %>%
+                      map(\(.) st_intersection(., urb_domn_lau_32))
+
+names(et_list_urb_domn) <- names(et_final)
+
+et_list_urb_domn_ex <- et_list_urb_domn %>%
+                        compact() %>%
+                        bind_rows()
 ```
 
-Then we calculate the areas of green ecosystem types per LAUs and the total areas of the LAUs.
+Now we can calculate the areas of of ecosystem types per urban domain within each LAUs.
 ```{r}
 #| eval: false
-#| code-summary: "Calculate areas"
+#| code-summary: "Calculate areas of ecosystems within LAU - urban domains"
 
-# Calculate areas of ETs in LAUs
-et_lau_area <- et_lau_inter %>%
-                  mutate(., area_m2  = st_area(.))
+et_list_urb_domn <- et_final %>%
+                      map(\(.) st_intersection(., urb_domn_lau_32))
 
+names(et_list_urb_domn) <- names(et_final)
 
-# Calculate areas of ETs in LAUs
-et_lau_tot_area <- et_lau_area %>% 
+et_list_urb_domn_ex <- et_list_urb_domn %>%
+                        compact() %>%
+                        bind_rows()
+```
+
+Then, we calculate the total area of urban domains within each LAU.
+```{r}
+#| eval: false
+#| code-summary: "Total area of  LAU - urban domains"
+
+urb_domn_total_area <- urb_domn_lau_32 %>%
+                        mutate(., urb_domn_area_m2 = unclass(st_area(.))) %>%
+                        st_drop_geometry() %>%
+                        select(LAU_ID, urb_domn_area_m2) %>%
+                        group_by(LAU_ID) %>%
+                        summarise(urb_domn_total_area = sum(urb_domn_area_m2))
+```
+
+Calculate the total area of urban domain within LAU aggregated at the level of four clusters (referred to as "city group" below): Trondheim, Oslo, Stavanger, and Bergen.
+```{r}
+#| eval: false
+#| code-summary: "Group LAU - urban domains into four clusters"
+
+city_group_names <- c("Trondheim", "Oslo", "Stavanger", "Bergen")
+city_group_area <- urb_domn_lau_32 %>%
+                    mutate(., grp_area_m2 = unclass(st_area(.))) %>%
                     st_drop_geometry() %>%
-                    select(clc18_kode, area_m2, LAU_ID) %>%             
-                    group_by(LAU_ID) %>%
-                    summarise(total_area = sum(area_m2))
-
-#Calculate the total areas of ecosystem types within LAUs
-area_lau_green_ets <- et_lau_tot_area$total_area %>%
-                        unclass() %>%
-                        sum()
-              
-
-# Calculate the total areas of the LAUs           
-area_lau <- lau_32 %>%
-              mutate(area_m2 = st_area(.)) %>%
-              st_drop_geometry() %>%
-              group_by(LAU_ID) %>%
-              summarise(total_area = sum(area_m2))
+                    select(cty_grp, grp_area_m2) %>%
+                    group_by(cty_grp) %>%
+                    summarise(cty_grp_area = sum(grp_area_m2)) %>%
+                    cbind(., city_group_names)
+                    
 ```
 
-Once we have the areas, the URGR_011 index can be calculated as per (total area of green ecosystem types within LAUs)/(total areas of the LAUs) * 100.
+Finally, we can calculate summary tables for URGR_022:
 ```{r}
 #| eval: false
-#| code-summary: "Compile National URGR_011"
+#| code-summary: "Create summary tables"
 
-urgr_011_nat <- sum(area_lau_green_ets) / sum(unclass(area_lau$total_area)) * 100
+# Summary table detailed per LAUs
+urgr_022_tab <- et_urbdmn_area %>%
+                  compact() %>%
+                  bind_rows() %>%
+                  st_drop_geometry() %>%
+                  select(LAUNAMN, DEGURBA, LAU_ID, cty_grp,
+                         okosystemtype_1, okosystemtype_2,
+                         okosystemtype_3, okosystemtype_kode,
+                         et_area_m2) %>%
+                  group_by(cty_grp, LAU_ID, LAUNAMN, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
+                  summarise(total_area_et_m2 = sum (et_area_m2)) %>%
+                  left_join(., urb_domn_total_area, by = "LAU_ID")
+
+# Summary table aggregated per "city group"
+urgr_022_tab_city_gr <- urgr_022_tab %>%
+                          group_by(cty_grp, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
+                          select(!urb_domn_total_area) %>%
+                          summarise(total_area_et_m2 = sum(total_area_et_m2)) %>%
+                          left_join(., city_group_area, by = "cty_grp")
 ```
 
-##### URGR_011 - Regional
-The first step is to do an intersection between the LAUs and the regions to attribute the LAUs to a region.
-```{r}
-#| eval: false
-#| code-summary: "Intersecting LAUs and regions"
+These table have been exported to the internal repository and will be used in the Results section to create an overall summary table comparing all URGR indicators.
 
-# Calculate Intersection LAUs and Regions
-lau_region_inter <- st_intersection(lau_32, region_no_32)
-```
-
-From there, we can just join this new layer with the areas calculated before so the region information is brought along and attributed to LAUs total areas and total areas of green ecosystem types per LAUs.
-```{r}
-#| eval: false
-#| code-summary: "Total areas of green ecosystem types and LAUs per regions"
-
-# Join Regions and LAUs with 
-green_area_rgn <- lau_region_inter %>%
-                    st_drop_geometry %>%
-                    select(LAU_ID, regn_nm) %>%
-                    inner_join(., et_lau_tot_area, by = "LAU_ID") %>%
-                    group_by(regn_nm) %>%
-                    summarise(total_green_area = sum(total_area))
-              
-lau_area_rgn <- lau_region_inter %>%
-                  st_drop_geometry %>%
-                  select(LAU_ID, regn_nm) %>%
-                  inner_join(., area_lau, by = "LAU_ID") %>%
-                  group_by(regn_nm) %>%
-                  summarise(total_area_lau_rgn = sum(total_area))
-```
-
-We can then calculate URGR_011 at regional level, the same way we calculated it at national level.
-```{r}
-#| eval: false
-#| code-summary: "Compile Regional URGR_011"
-
-urgr_011_rgn <- lau_area_rgn %>% 
-                  inner_join(., green_area_rgn, by = "regn_nm") %>%
-                  mutate(urgr_010 = total_green_area /  total_area_lau_rgn * 100)
-```
 
 
 <!--# 
