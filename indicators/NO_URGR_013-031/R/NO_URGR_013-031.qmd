@@ -244,12 +244,31 @@ Three data sources were used:
 
 - **DEGURBA** variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO
 
-- **Imperviousness** layer from Copernicus. Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA's internal repository here: P-Prosjekter2/412413_2023_no_egd/GIS/Data/Infrastructure/IMD_2018_010m_no_03035_v020/DATA/
+- **Imperviousness** layer from Copernicus. Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/
 
 
-5. URGR_030
+**5. URGR_030**
+<u>Definition</u> \
+This indicator uses deifinitions of urban areas and urban green areas that are different from @cond-gn-eurostat. They can be summarised as follows:
 
-6. URGR_031
+Urban areas are defined as the EU Ecosystem Typology class 1. Settlements and other artificial areas occuring at national scale. This indicator is not restricted to Norwegian Local Administrative Units only.
+
+Urban green areas are defined as in URGR_025.
+
+<u>Datasets used</u> \
+Three data sources were used:
+
+- **Grunnkart** from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA's internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.
+
+- **Imperviousness** layer from Copernicus. Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/GIS/Data/Infrastructure/IMD_2018_010m_no_03035_v020/DATA/
+
+- **Administrative boundaries for Fylke** from NINA's internal repository: /data/R/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/Processed/Norge_kystlinje_fylker_2024.shp. Or can also be accessed here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/NO_Regions_Fylke
+
+
+- **Administravtive boundaries for Regions** from Kartverkert. Available here: 
+
+
+**6. URGR_031**
 
 <!--# Describe the data you have used in more detail, it's origin, biases, availabilit ect.-->
 
@@ -1576,14 +1595,14 @@ Finally, to define the urban green areas of the settlements within the LAUs, we 
 #| code-summary: "Create the Imperviousness Copernicus virtutal raster"
 
 # Create a list of the Copernicus raster tiles
-path_cop <- "/data/P-Prosjekter2/412413_2023_no_egd/GIS/Data/Infrastructure/IMD_2018_010m_no_03035_v020/DATA"
+path_cop <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/"
 filename_list_imp <- list.files(path = path_cop, pattern = '.tif$', 
                                 all.files = TRUE, full.names = TRUE)
 
 # Create the virtual raster
-path_imp <-  "/data/Egenutvikling/61546-01_fu_intern_sylvie_clappe/ecRixv_urbangreen/data/imperviousness_copernicus_vrt"
+path_imp <-  "/data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/"
 imper_cop_vrt <- vrt(filename_list_imp, 
-                     filename = paste0(path_imp, "/imper_cop.vrt")) 
+                     filename = paste0(path_imp, "imper_cop.vrt")) 
 ```
 
 ```{r}
@@ -1591,10 +1610,10 @@ imper_cop_vrt <- vrt(filename_list_imp,
 #| code-summary: "Upload the Imperviousness Copernicus virtual raster"
 
 # Path to the data
-path_imp <-  "/data/Egenutvikling/61546-01_fu_intern_sylvie_clappe/ecRixv_urbangreen/data/imperviousness_copernicus_vrt"
+path_imp <-  "/data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/"
 
 # Load the data
-imper_cop_vrt <- rast(paste0(path_imp, "/imper_cop.vrt"))
+imper_cop_vrt <- rast(paste0(path_imp, "imper_cop.vrt"))
 ```
 
 #### 9.4.2 Data cleaning
