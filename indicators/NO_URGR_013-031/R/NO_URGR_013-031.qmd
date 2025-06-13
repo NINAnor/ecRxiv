@@ -47,7 +47,6 @@ code-links:
 library(knitr)
 library(tidyverse)
 library(kableExtra)
-library(here)
 library(terra)
 library(sf)
 library(exactextractr)
@@ -180,16 +179,16 @@ This indicator is based on the definitions of urban and urban green areas from @
 
 Urban areas are defined as the Local Administrative Units (LAUs) categorised as "Cities" and their adjacent LAUs classified as "Towns and suburbs". Eurostat defines these LAUs based on the variable "DEGURBA" standing for degree of urbanisation. "Cities" correspond to `DEGURBA = 1`, while "Towns and suburbs" correspond to `DEGURBA = 2`.
 
-Urban green areas are defined as any ecosystems that have a green cover in addition to ponds and watercourses. In their guidance (@cond-gn-eurostat) do not list precisely all the ecosystem types from the EU Ecosystem Typology that should be used. We included the following: 1.4 Urban greenspace; 1.5.2 Cemeteries; 2. Cropland; 3. Grassland; 4. Forest and woodlands; 5. Heathland and shrub; 6. Sparsely vegetated ecosystems; 7. Inland wetlands; 8. Rivers and Canals; 9. Lakes and reservoirs; 10. Coastal beaches, dunes and wetlands.
+Urban green areas are defined as any ecosystems that have a green cover in addition to ponds and watercourses. In their guidance (@cond-gn-eurostat) do not list precisely all the ecosystem types from the EU Ecosystem Typology that should be used. We included the following: 1.4 Urban greenspace; 1.5.2 Cemeteries; 2. Cropland; 3. Grassland; 4. Forest and woodlands; 5. Heathland and shrub; 6. Sparsely vegetated ecosystems; 7. Inland wetlands; 8. Rivers and Canals; 9. Lakes and reservoirs; 11. Coastal beaches, dunes and wetlands.
 
 ***Datasets used***
 Three data sources were used:
 
-- Grunnkart from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA's internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.
+- **Grunnkart** from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA's internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.
 
-- LAU from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.
+- **LAU** from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.
 
-- DEGURBA variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO
+- **DEGURBA** variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA's internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO
 
 2. URGR_022
 
@@ -313,7 +312,7 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 
 ### 9.1 URGR_013
 #### 9.1.1 Preparation of the data
-First we need to create separate data sets for each ecosystem types that are relevant to include in "urban green ecosystems". According to the @cond-gn-eurostat, all ecosystem types in the EU Ecosystem Types Typology with a green cover should be included. This means that Marine Ecosystems and Settlements and Other Artificial areas are discarded.  There is however specific mention of including the categories "Urban green" and "Discontinuous urban areas". 
+First we need to create separate data sets for each ecosystem types that are relevant to include in "urban green ecosystems". According to the @cond-gn-eurostat, all ecosystem types in the EU Ecosystem Types Typology with a green cover should be included. This means that, in the EU Ecosystem Typology, we only discard: 10. Marine inlets and transitional waters, 12. Marine Ecosystems,  and 1. Settlements and Other Artificial areas except classes 1.4 Urban greenspace and 1.5.2 Cemeteries. Note that the new Grunnkart has several tiles and not all of them have the same projection.
 ```{r}
 #| eval: false
 #| code-summary: "Create Ecosystem Types datasets"
@@ -326,11 +325,11 @@ gdb_folder <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/Grun
 gdb_files <- list.files(gdb_folder, pattern = "_gdb\\.gdb$", 
                         full.names = TRUE)
 
-# read the first file and stor its Coordinate Reference System (CRS)
-gk_crs <- st_read(gdb_files[1]) %>%
+# Define CRS of the first layer (most common CRS of the gdb files)
+gk_crs <- st_read(gdb_files[1], query = "SELECT * FROM arealregnskap LIMIT 500") %>%
             crs()
 
-# create a function to read the gdb files and re-project them n a common CRS
+# Function to read a single filtered file
 read_gdb <- function(gdb_path, projection_crs) {
   tryCatch({
     layer <- st_read(dsn = gdb_path, layer = "arealregnskap", query = query_string)
@@ -348,32 +347,32 @@ read_gdb <- function(gdb_path, projection_crs) {
   }
 }
 
-# create a list of SQL queries and name them: one per ecosystem type
+# Create a list of SQL queries: one per ecosystem type
 query_string_list <- list()
 
-query_string_list[[1]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Discontinuous settlement area'"
+query_string_list[[1]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_3 = 'Cemeteries'"
 query_string_list[[2]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Urban greenspace'"
-query_string_list[[3]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_2 = 'Cropland'"
-query_string_list[[4]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Grassland'"
-query_string_list[[5]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Heathland and shrub'"
+query_string_list[[3]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Lakes and reservoirs'"
+query_string_list[[4]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Cropland'"
+query_string_list[[5]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Grassland'"
 query_string_list[[6]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Inland wetlands'"
-query_string_list[[7]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Lakes and ponds'"
+query_string_list[[7]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Sparsely vegetated ecosystems'"
 query_string_list[[8]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Rivers and canals'"
-query_string_list[[9]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Sparsely vegetated ecosystems'"
-query_string_list[[10]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Coastal beaches, dunes and wetlands'"
-query_string_list[[11]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Forest and woodlands'"
+query_string_list[[9]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Coastal beaches, dunes and wetlands'"
+query_string_list[[10]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Forest and woodlands'"
+query_string_list[[11]] <- "SELECT * FROM arealregnskap WHERE okosystemtype_1 = 'Heathland and shrub'"
 
 
-names(query_string_list) <- c("Discontinuous settlement area",
+names(query_string_list) <- c("Cemeteries",
                               "Urban greenspace",
-                              "Lakes and ponds",
+                              "Lakes and reservoirs",
                               "Cropland",
                               "Grassland",
                               "Inland wetland",
                               "Sparsely vegetated ecosystems",
-                              "Rivers and canals",
+                              "Rives and canals",
                               "Coastal beaches, sand dunes and wetlands",
-                              "Forest and woodland",
+                              "Forest and woodlands",
                               "Heathland and shrub")
 
 # run SQL query and store results in a list
@@ -389,19 +388,86 @@ et_data <- gdb_files %>%
 ```
 
 
-To compile URGR_10, we need the Norwegian Local Administrative units. We already prepared that file and stored it on our project folder. This shapefile does not contain all LAUs in Norway. According to the @cond-gn-eurostat, only LAUs whcih are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat to select the citites (DEGURBA = 1) and towns and surbbs (DEGURBA = 2) that were adjacent to these cities.  Moreover, URGR_010 will be calculated at national and regional scales, we also need to upload the administrative boundaries data for Norwegian regions.
+To compile URGR_013, we need the Norwegian Local Administrative Units (LAUs) from Eurostat. According to the @cond-gn-eurostat, only LAUs whcih are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat to select the citites (DEGURBA = 1) and towns and surbbs (DEGURBA = 2) that were adjacent to these cities. Below are two codes: (i) one to create the dataset from scratch, and (ii) one that reads the dataset already created and available from NINA's internal repository.
 
 ```{r}
 #| eval: false
-#| code-summary: "Upload administrative boundaries"
+#| code-summary: "Create LAUs dataset"
+
+# Read excel file with Degurba variable and select Norway
+path_lau <- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_DEGURBA_Eurostat/"
+degurba_lau_no <- read_excel(paste0(path_lau, "EU-27-LAU-2024-NUTS-2024.xlsx"), sheet = "NO")
+
+# Select cities towns and suburbs
+cities_sub_no <- degurba_lau_no %>%
+                  select("LAU NAME NATIONAL", "DEGURBA") %>%
+                  filter(DEGURBA == 1 | DEGURBA == 2) %>%
+                  as.data.frame()
+
+# Read shapefile and select Norway
+path_lau <- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_Eurostat/"
+lau_eu <- st_read(paste0(path_lau, "LAU_RG_01M_2023_3035.shp"))
+lau_no <- lau_eu %>%
+           filter(CNTR_CODE == "NO")
+
+
+# Join cities_sub_no with lau_no
+byer_lau <- inner_join(cities_sub_no, 
+                       lau_no, 
+                       by = join_by("LAU NAME NATIONAL" == "LAU_NAME")) %>%
+              st_as_sf()
+
+# Select LAUs with DEGURBA == 1
+lau_1 <- byer_lau %>%
+          filter(DEGURBA == 1) %>%
+          mutate(city_group = c(1, 2, 2, 2, 2, 2, 3, 3, 4))
+
+# Select LAUs with DEGURBA == 2 which are adjacent to lau_1
+lau_2 <- byer_lau %>%
+          filter(DEGURBA == 2)
+
+lau2_adj_id <- st_touches(lau_1, lau_2) %>%
+                unlist() %>%
+                unique()
+
+lau_2_adj <- lau_2[lau2_adj_id, ]
+
+# Create a variable to group the four cities and their suburbs
+city_group <- vector()
+  
+for(i in 1:nrow(lau_2_adj)){
+  
+  if(st_touches(lau_1[1,], lau_2_adj[i,], sparse = FALSE)[,1] == TRUE){
+    city_group[i] <- 1
+  } 
+  else if(TRUE %in% st_touches(lau_1[c(2,3,4,5,6),], lau_2_adj[i,], sparse = FALSE)[,1]){
+    city_group[i] <- 2
+  }
+  else if(TRUE %in% st_touches(lau_1[c(7,8),], lau_2_adj[i,], sparse = FALSE)[,1]){
+    city_group[i] <- 3
+  }
+  else if(st_touches(lau_1[9,], lau_2_adj[i,], sparse = FALSE)[,1] == TRUE){
+    city_group[i] <- 4
+  } else {city_group[i] <- NA}
+}
+
+# Add group variable to LAU adatset
+lau_2_adj <- mutate(lau_2_adj, city_group = city_group)
+
+# Final LAUs dataset
+lau <- rbind(lau_1, lau_2_adj)
+
+```
+
+```{r}
+#| eval: false
+#| code-summary: "Upload LAUs from NINA's internal repository"
 
 # path to the data
-path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/"
+path_boundaries<- "/data/P-Prosjekter2/412413_2023_no_edg/git_data/LAU_URGR/"
 
 # load the data
-lau <- st_read(paste0(path_lau, "LAUs_URGR_010.shp"))
-region_no <- st_read(paste0(path_boundaries, "Norway_Regions_2024.shp"))
-
+lau <- st_read(paste0(path_lau, "LAUs_URGR.shp"))
 ```
 
 
