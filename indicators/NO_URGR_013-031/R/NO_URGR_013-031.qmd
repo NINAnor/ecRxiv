@@ -1915,94 +1915,79 @@ Contrary to the other indicators using the Grunnkart, we don't need to select th
 # Remove non-essential R objects-
 rm(list=setdiff(ls(), c("clc18_soaa",
                         "fylke",
-                        "imper_cop_vrt")))
+                        "imper_cop_vrt",
+                        "admin_bd")))
 
 ```
 
 
 #### 9.6.3 Data analyses
-We first re-project the SOAA `clc18_soaa` to match the CRS of the Imperviousnes Copernicus layer `imper_cop_vrt`. Note that it is good practice to avoid re-projecting rasters as it leads to biases in areas.
+We first re-project the SOAA `clc18_soaa` and fylke boundaries `fylke` to match the CRS of the Imperviousness Copernicus layer `imper_cop_vrt`. Note that it is good practice to avoid re-projecting rasters as it leads to biases in areas.
 ```{r}
 #| eval: false
-#| code-summary: "Re-project the SOAA boundary"
+#| code-summary: "Re-project the SOAA and fylke boundary"
 
 clc18_soaa_89 <- st_transform(clc18_soaa, crs(imper_cop_vrt))
+
+fylke_89 <- st_transform(fylke, crs(imper_cop_vrt))
 ```
 
+Now we can perform an intersection between `clc18_soaa` and `fylke`to have the results disaggregated at fylke level.
+```{r}
+#| eval: false
+#| code-summary: "Intersection SOAA and fylke boundary"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+fylke_soaa_89 <- st_intersection(clc18_soaa_89, fylke_89)
+```
 
 Now we can use `exact_extract()` to extract the pixels from the Imperviousness Copernicus layer that overlap with our SOAA boundary. Note that `exact_extract()` does not output spatial data but a summary dataframe. That is why we calculate the areas of all SOAA polygons before, and then export a dataframe that summarises the mean percentage of imperviousness per polygon. Both piece of information will later allow to calculate the impervious and non-impervious areas.
 ```{r}
 #| eval: false
 #| code-summary: "Calculate SOAA area and extract mean % imperviousness"
 
-clc18_soaa_imper_final <- clc18_soaa_89 %>%
-                            mutate(soaa_area_m2 = unclass(st_area(.))) %>%
-                            exact_extract(imper_cop_vrt,
-                                          .,
-                                          fun = c("mean"),
-                                          append_cols = TRUE)
+fylke_soaa_imper <- fylke_soaa_89 %>%
+                      mutate(soaa_area_m2 = unclass(st_area(.))) %>%
+                      exact_extract(imper_cop_vrt,
+                                    .,
+                                    fun = c("mean"),
+                                    append_cols = TRUE)
 ```
 
-Now we can calculate the impervious and non-impervious areas of SOAA within the LAUs. The impervious area is compiled by multiplying the area of the SOAA polygons by their corresponding mean percentage of imperviousness. The non-impervious areas are calculated as: 1 - impervious area.
+Now we can calculate the impervious and non-impervious areas of SOAA within fylke. The impervious area is compiled by multiplying the area of the SOAA polygons by their corresponding mean percentage of imperviousness. The non-impervious areas are calculated as: 1 - impervious area.
 ```{r}
 #| eval: false
 #| code-summary: "Calculate SOAA impervious and non-impervious areas"
 
-soaa_imper_area_lau <- soaa_lau_imper_final %>%
-                        mutate(imper_area_mean = soaa_area_m2 * mean/100,
-                        non_imper_area_mean = soaa_area_m2 - imper_area_mean)
+fylke_soaa_imper_area <- fylke_soaa_imper %>%
+                          mutate(imper_area_mean = soaa_area_m2 * mean/100,
+                          non_imper_area_mean = soaa_area_m2 - imper_area_mean)
 ```
 
-Finally, we can produce some summary tables for URGR_025. Note that two tables are produced: (i) one per LAUs; (ii) one per cluster of LAUs (referred to as "city group" below) comprising Trondheim, Oslo, Stavanger, and Bergen.
+Finally, we can produce some summary tables for URGR_31. Note that two tables are produced: (i) one per fylke; (ii) one per region.
 
 ```{r}
 #| eval: false
 #| code-summary: "Create summary tables"
 
-# Calculate summary table per LAUs
-urgr_025_tab <- soaa_imper_area_lau %>%
-                  select(LAUNAMN, DEGURBA, LAU_ID, cty_grp,
-                         clc18_kode, soaa_area_m2, imper_area_mean, non_imper_area_mean) %>%
-                  group_by(cty_grp, LAU_ID, LAUNAMN) %>%
-                  summarise(total_imper_area_m2 = sum(imper_area_mean),
-                            total_non_imper_area_m2 = sum(non_imper_area_mean),
-                            total_soaa_area_m2 = sum(soaa_area_m2))
+# Calculate summary table per fylke
+urgr_031_tab_fylke <- fylke_soaa_imper_area %>%
+                        select(fylkesnumm, fylkesnavn, clc18_kode, soaa_area_m2,
+                                imper_area_mean, non_imper_area_mean) %>%
+                        group_by(fylkesnumm, fylkesnavn) %>%
+                        summarise(total_imper_area_m2 = sum(imper_area_mean),
+                                  total_non_imper_area_m2 = sum(non_imper_area_mean),
+                                  total_soaa_area_m2 = sum(soaa_area_m2))
 
-# Calculate summary table per city group
-city_group_names <- c("Trondheim", "Oslo", "Stavanger", "Bergen")
-urgr_025_tab_city_gr <- urgr_025_tab %>%
-                          group_by(cty_grp) %>%
+# Calculate summary table per region
+urgr_031_tab_fylke$fylkesnumm <- as.numeric(urgr_031_tab_fylke$fylkesnumm)
+urgr_031_tab_region <- urgr_031_tab_fylke %>%
+                          left_join(., 
+                                    admin_bd[, c("fylke_nr", "region_name")], 
+                                    join_by(fylkesnumm == fylke_nr)) %>%
+                          group_by(region_name) %>%
                           summarise(total_imper_area_m2 = sum(total_imper_area_m2),
                                     total_non_imper_area_m2 = sum(total_non_imper_area_m2),
-                                    total_cty_grp_area_m2 = sum(total_soaa_area_m2)) %>%
-                          cbind(., city_group_names)
+                                    total_cty_grp_area_m2 = sum(total_soaa_area_m2))
 ```
 
 
