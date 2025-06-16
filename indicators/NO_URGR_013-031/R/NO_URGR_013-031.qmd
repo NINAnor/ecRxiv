@@ -1507,7 +1507,7 @@ path_clc <- "/data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/C
 clc18 <- st_read(paste0(path_clc, "0000_32632_corine2018_8d4abc_SHAPE.shp"))
 
 # Extract Settlements and Other Artificial Areas
-clc18_soaaa <- clc18_89 %>%
+clc18_soaa <- clc18 %>%
                 filter(clc18_kode == 111 |
                 clc18_kode == 112 |
                 clc18_kode == 121 |
@@ -1522,7 +1522,7 @@ clc18_soaaa <- clc18_89 %>%
 ```
 
 
-To compile URGR_025, we need the Norwegian Local Administrative Units (LAUs) from Eurostat. According to the @cond-gn-eurostat, only LAUs whcih are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat to select the citites (DEGURBA = 1) and towns and suburbs (DEGURBA = 2) that were adjacent to these cities. Below are two codes: (i) one to create the dataset from scratch, and (ii) one that reads the dataset already created and available from NINA's internal repository.
+To compile URGR_025, we need the Norwegian Local Administrative Units (LAUs) from Eurostat. According to the @cond-gn-eurostat, only LAUs whcih are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat to select the cities (DEGURBA = 1) and towns and suburbs (DEGURBA = 2) that were adjacent to these cities. Below are two codes: (i) one to create the dataset from scratch, and (ii) one that reads the dataset already created and available from NINA's internal repository.
 
 ```{r}
 #| eval: false
@@ -1610,13 +1610,13 @@ Finally, to define the urban green areas of the settlements within the LAUs, we 
 #| code-summary: "Create the Imperviousness Copernicus virtutal raster"
 
 # Create a list of the Copernicus raster tiles
-path_cop <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/"
+path_cop <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA"
 filename_list_imp <- list.files(path = path_cop, pattern = '.tif$', 
                                 all.files = TRUE, full.names = TRUE)
 
 # Create the virtual raster
 imper_cop_vrt <- vrt(filename_list_imp, 
-                     filename = paste0(path_imp, "imper_cop.vrt")) 
+                     filename = paste0(path_imp, "/imper_cop.vrt")) 
 ```
 
 ```{r}
@@ -1750,22 +1750,10 @@ urgr_025_tab_city_gr <- urgr_025_tab %>%
 
 These table have been exported to the internal repository and will be used in the Results section to create an overall summary table comparing all URGR indicators.
 
+### 9.5 URGR_030
+TBA
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### 9.6 URGR_030
+### 9.6 URGR_031
 #### 9.6.1 Load and prepare the data
 We start by loading the Corine Land Cover data and filter the categories that correspond to the EU Ecosystem Typology class 1. Settlements and other artificial areas (SOAA).
 ```{r}
@@ -1777,7 +1765,7 @@ path_clc <- "/data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/C
 clc18 <- st_read(paste0(path_clc, "0000_32632_corine2018_8d4abc_SHAPE.shp"))
 
 # Extract Settlements and Other Artificial Areas
-clc18_soaaa <- clc18_89 %>%
+clc18_soaa <- clc18 %>%
                 filter(clc18_kode == 111 |
                 clc18_kode == 112 |
                 clc18_kode == 121 |
@@ -1864,13 +1852,13 @@ Finally, to define the urban green areas of the SOAA, we need the Imperviousness
 #| code-summary: "Create the Imperviousness Copernicus virtutal raster"
 
 # Create a list of the Copernicus raster tiles
-path_cop <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/"
+path_cop <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA"
 filename_list_imp <- list.files(path = path_cop, pattern = '.tif$', 
                                 all.files = TRUE, full.names = TRUE)
 
 # Create the virtual raster
 imper_cop_vrt <- vrt(filename_list_imp, 
-                     filename = paste0(path_imp, "imper_cop.vrt")) 
+                     filename = paste0(path_imp, "/imper_cop.vrt")) 
 ```
 
 ```{r}
@@ -1890,8 +1878,8 @@ Not all of our data have the same CRS, we need to check so we know if we have to
 #| eval: false
 #| code-summary: "Check CRS"
 
-# LAUs
-lau_crs <- crs(lau)
+# Fylke
+fylke_crs <- crs(fylke)
 
 # SOAA
 soaa_crs <- crs(clc18_soaa)
@@ -1900,9 +1888,9 @@ soaa_crs <- crs(clc18_soaa)
 imper_vrt_crs <- crs(imper_cop_vrt)
 
 # Check they are the same
-imper_vrt_crs == lau_crs
+imper_vrt_crs == fylke_crs
 imper_vrt_crs == soaa_crs
-soaa_crs == lau_crs
+soaa_crs == fylke_crs
 ```
 
 Once we have done that, we can perform the geometrical and topological checks of the data, and fix any issues that might arise.
@@ -1912,23 +1900,11 @@ Once we have done that, we can perform the geometrical and topological checks of
 
 # Check for empty geometry
 soaa_clc_empty <- which(st_is_empty(clc18_soaa) == TRUE)
-lau_empty <- which(st_is_empty(lau) == TRUE)
+fylke_empty <- which(st_is_empty(fylke) == TRUE)
 
 # Check validity
 soaa_clc_invalid <- which(st_is_valid(clc18_soaa) == FALSE)
-lau_invalid <- which(st_is_valid(lau) == FALSE)
-```
-
-Now we can create the boundaries for the urban areas by intersecting the LAUs layer with the settlements layer from Corine Land Cover. THis will result in a layer of settelemenst per LAUs and will be the final boundary to be used in the subsequent analyses.
-```{r}
-#| eval: false
-#| code-summary: "Create SOAA boundary for analyses"
-
-# Re-project LAUs in CLC CRS
-lau_32 <- st_transform(lau, soaa_crs)
-
-# Intersection lau_32 and sooa_urb_cln 
-soaa_lau_32 <- st_intersection(clc18_soaa, lau_32)
+fylke_invalid <- which(st_is_valid(fylke) == FALSE)
 ```
 
 Contrary to the other indicators using the Grunnkart, we don't need to select the polygons and discard points and linestrings. Corine Land Cover data are only composed of polygons. As previously, good practice is to clean the R Environment to free memory space.
@@ -1937,28 +1913,56 @@ Contrary to the other indicators using the Grunnkart, we don't need to select th
 #| code-summary: "Clean R Environment"
 
 # Remove non-essential R objects-
-rm(list=setdiff(ls(), c("et_clean_list",
-                        "soaa_lau_32",
+rm(list=setdiff(ls(), c("clc18_soaa",
+                        "fylke",
                         "imper_cop_vrt")))
 
 ```
 
 
-#### 9.4.3 Data analyses
-We first re-project the boundary `soaa_lau_32` to match the CRS of the Imperviousnes Copernicus layer `imper_cop_vrt`. Note that it is good practice to avoid re-projecting rasters as it leads to biases in areas.
+#### 9.6.3 Data analyses
+We first re-project the SOAA `clc18_soaa` to match the CRS of the Imperviousnes Copernicus layer `imper_cop_vrt`. Note that it is good practice to avoid re-projecting rasters as it leads to biases in areas.
 ```{r}
 #| eval: false
 #| code-summary: "Re-project the SOAA boundary"
 
-soaa_lau_89 <- st_transform(soaa_lau_32, crs(imper_cop_vrt))
+clc18_soaa_89 <- st_transform(clc18_soaa, crs(imper_cop_vrt))
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Now we can use `exact_extract()` to extract the pixels from the Imperviousness Copernicus layer that overlap with our SOAA boundary. Note that `exact_extract()` does not output spatial data but a summary dataframe. That is why we calculate the areas of all SOAA polygons before, and then export a dataframe that summarises the mean percentage of imperviousness per polygon. Both piece of information will later allow to calculate the impervious and non-impervious areas.
 ```{r}
 #| eval: false
 #| code-summary: "Calculate SOAA area and extract mean % imperviousness"
 
-soaa_lau_imper_final <- soaa_lau_89 %>%
+clc18_soaa_imper_final <- clc18_soaa_89 %>%
                             mutate(soaa_area_m2 = unclass(st_area(.))) %>%
                             exact_extract(imper_cop_vrt,
                                           .,
