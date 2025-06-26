@@ -3344,11 +3344,7 @@ border-right: 1px solid #e0e0e0;
   </ul></li>
   <li><a href="#uncertainties" id="toc-uncertainties" class="nav-link" data-scroll-target="#uncertainties">5. Uncertainties</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">6. References</a></li>
-  <li><a href="#datasets" id="toc-datasets" class="nav-link" data-scroll-target="#datasets">7. Datasets</a>
-  <ul class="collapse">
-  <li><a href="#dataset-a" id="toc-dataset-a" class="nav-link" data-scroll-target="#dataset-a">7.1 Dataset A</a></li>
-  <li><a href="#dataset-b" id="toc-dataset-b" class="nav-link" data-scroll-target="#dataset-b">7.2. Dataset B</a></li>
-  </ul></li>
+  <li><a href="#datasets" id="toc-datasets" class="nav-link" data-scroll-target="#datasets">7. Datasets</a></li>
   <li><a href="#spatial-units" id="toc-spatial-units" class="nav-link" data-scroll-target="#spatial-units">8. Spatial units</a></li>
   <li><a href="#analyses" id="toc-analyses" class="nav-link" data-scroll-target="#analyses">9. Analyses</a>
   <ul class="collapse">
@@ -3359,7 +3355,11 @@ border-right: 1px solid #e0e0e0;
   <li><a href="#urgr_030" id="toc-urgr_030" class="nav-link" data-scroll-target="#urgr_030">9.5 URGR_030</a></li>
   <li><a href="#urgr_031" id="toc-urgr_031" class="nav-link" data-scroll-target="#urgr_031">9.6 URGR_031</a></li>
   </ul></li>
-  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">10. Results</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">10. Results</a>
+  <ul class="collapse">
+  <li><a href="#national-results" id="toc-national-results" class="nav-link" data-scroll-target="#national-results">National results</a></li>
+  <li><a href="#regional-results" id="toc-regional-results" class="nav-link" data-scroll-target="#regional-results">Regional results</a></li>
+  </ul></li>
   <li><a href="#export-file" id="toc-export-file" class="nav-link" data-scroll-target="#export-file">11. Export file</a></li>
   </ul>
 <div class="quarto-code-links"><h2>Code Links</h2><ul><li><a href="https://github.com/NINAnor/ecRxiv"><i class="bi bi-github"></i>Add a review</a></li></ul></div></nav>
@@ -3582,73 +3582,251 @@ This indicator is based on the definitions of urban and urban green areas from <
 <p>Urban areas are defined as the Local Administrative Units (LAUs) categorised as “Cities” and their adjacent LAUs classified as “Towns and suburbs”. Eurostat defines these LAUs based on the variable “DEGURBA” standing for degree of urbanisation. “Cities” correspond to <code>DEGURBA = 1</code>, while “Towns and suburbs” correspond to <code>DEGURBA = 2</code>.</p>
 <p>Urban green areas are defined as any ecosystems that have a green cover in addition to ponds and watercourses. In their guidance (<span class="citation" data-cites="cond-gn-eurostat">@cond-gn-eurostat</span>) do not list precisely all the ecosystem types from the EU Ecosystem Typology that should be used. We included the following: 1.4 Urban greenspace; 1.5.2 Cemeteries; 2. Cropland; 3. Grassland; 4. Forest and woodlands; 5. Heathland and shrub; 6. Sparsely vegetated ecosystems; 7. Inland wetlands; 8. Rivers and Canals; 9. Lakes and reservoirs; 11. Coastal beaches, dunes and wetlands.</p>
 <p><u>Datasets used</u><br>
-Three data sources were used:</p>
-<ul>
-<li><p><strong>Grunnkart</strong> from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.</p></li>
-<li><p><strong>LAU</strong> from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.</p></li>
-<li><p><strong>DEGURBA</strong> variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO</p></li>
-</ul>
+Three data sources were used (see more details in the following section):<br>
+</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 34%">
+<col style="width: 19%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Origin</th>
+<th>Used for</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Grunnkart</strong></td>
+<td>NIBIO</td>
+<td>Extract urban green areas</td>
+<td>Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.</td>
+</tr>
+<tr class="even">
+<td><strong>Administrative boundaries - Local Administrative Units</strong></td>
+<td>European Commission</td>
+<td>Delineate Local Adminstrative Units in Norway</td>
+<td>Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.</td>
+</tr>
+<tr class="odd">
+<td><strong>Administrative boundaries - DEGURBA</strong></td>
+<td>European Commission</td>
+<td>Used to select the Local Administrative Units classified as “cities” (<code>DEGURBA = 1</code>) and the adjacent Local Adminstrative Units classified as “towns and suburbs” (<code>DEGURBA = 2</code>)</td>
+<td>Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Administrative_boundaries_NO</td>
+</tr>
+</tbody>
+</table>
 <p><strong>2. URGR_022</strong><br>
 <u>Definition</u><br>
 This indicator is based on the definitions of urban and urban green areas from <span class="citation" data-cites="cond-gn-eurostat">@cond-gn-eurostat</span>. They can be summarised as follows:</p>
 <p>Urban areas are defined as the “urban domain” of the Local Administrative Units (LAUs) categorised as “Cities” and their adjacent LAUs classified as “Towns and suburbs”. Eurostat defines these LAUs based on the variable “DEGURBA” standing for degree of urbanisation. “Cities” correspond to <code>DEGURBA = 1</code>, while “Towns and suburbs” correspond to <code>DEGURBA = 2</code>. “Urban domains” are defined with the Global Human Settlement Layer SMOD developed through teh Copernicus programme.</p>
 <p>Urban green areas are defined as URGR_013.</p>
 <p><u>Datasets used</u><br>
-Three data sources were used:</p>
-<ul>
-<li><p><strong>Grunnkart</strong> from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.</p></li>
-<li><p><strong>LAU</strong> from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.</p></li>
-<li><p><strong>DEGURBA</strong> variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO</p></li>
-<li><p><strong>Global Human Settlement Layer - SMOD</strong> from Copernicus. Raw data are available here: https://human-settlement.emergency.copernicus.eu/download.php?ds=smod. SMOD data filtered fro Norway are available on NINA’s internal repository: /data/P-Prosjekter2/412413_2023_no_egd/git_data/SMOD_2018.</p></li>
-</ul>
+Three data sources were used:<br>
+</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 34%">
+<col style="width: 19%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Origin</th>
+<th>Used for</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Grunnkart</strong></td>
+<td>NIBIO</td>
+<td>Extract urban green areas</td>
+<td>Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.</td>
+</tr>
+<tr class="even">
+<td><strong>Administrative boundaries - Local Administrative Units</strong></td>
+<td>European Commission</td>
+<td>Delineate Local Adminstrative Units in Norway</td>
+<td>Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.</td>
+</tr>
+<tr class="odd">
+<td><strong>Administrative boundaries - DEGURBA</strong></td>
+<td>European Commission</td>
+<td>Used to select the Local Administrative Units classified as “cities” (<code>DEGURBA = 1</code>) and the adjacent Local Adminstrative Units classified as “rowns and suburbs” (<code>DEGURBA = 2</code>)</td>
+<td>Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Administrative_boundaries_NO</td>
+</tr>
+<tr class="even">
+<td><strong>Global Human Settlement Layer - SMOD</strong></td>
+<td>European Commission - Joint Research Center</td>
+<td>Used to delineate urban domains within Local Administrative Units</td>
+<td>Raw data are available here: https://human-settlement.emergency.copernicus.eu/download.php?ds=smod. SMOD data filtered for Norway are available on NINA’s internal repository: /data/P-Prosjekter2/412413_2023_no_egd/git_data/SMOD_2018</td>
+</tr>
+</tbody>
+</table>
 <p><strong>3. URGR_023</strong><br>
 <u>Definition</u><br>
 This indicator is a variation from the definitions of urban and urban green areas from <span class="citation" data-cites="cond-gn-eurostat">@cond-gn-eurostat</span>. They can be summarised as follows:</p>
 <p>Urban areas are defined as the settlements of the Local Administrative Units (LAUs) categorised as “Cities” and their adjacent LAUs classified as “Towns and suburbs”. Eurostat defines these LAUs based on the variable “DEGURBA” standing for degree of urbanisation. “Cities” correspond to <code>DEGURBA = 1</code>, while “Towns and suburbs” correspond to <code>DEGURBA = 2</code>. The settlements correspond to the ecosystem type 1. Settlements and other artificial areas as defined in the EU Ecosystem Typology.</p>
 <p>Urban green areas are defined as for URGR_013.</p>
 <p><u>Datasets used</u><br>
-Three data sources were used:</p>
-<ul>
-<li><p><strong>Grunnkart</strong> from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.</p></li>
-<li><p><strong>LAU</strong> from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.</p></li>
-<li><p><strong>DEGURBA</strong> variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO</p></li>
-</ul>
+The datasets used for URGR_023 were the same than for URGR_013. THis time, not ethat the Grunnkart was used both to extract the urban green areas, but also the urban areas themselves.</p>
 <p><strong>4. URGR_025</strong><br>
 <u>Definition</u><br>
 This indicator is a variation of URGR_023. It can be summarised as follows:</p>
 <p>Urban areas are defined as for URGR_023.</p>
 <p>Urban green areas are defined as the non-impervious areas within the settlements of the Local Administrative Units. These “non-impervious” areas are defined using the Imperviousness Copernicus layer.</p>
 <p><u>Datasets used</u><br>
-Three data sources were used:</p>
-<ul>
-<li><p><strong>Corine Land Cover 2018</strong> from the EEA. Available from the EEA: https://land.copernicus.eu/en/products/corine-land-cover?tab=datasets. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018.</p></li>
-<li><p><strong>LAU</strong> from Eurostat. Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.</p></li>
-<li><p><strong>DEGURBA</strong> variable for LAUs from Eurostat. Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO</p></li>
-<li><p><strong>Imperviousness</strong> layer from Copernicus. Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/</p></li>
-</ul>
+Three data sources were used:<br>
+</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 34%">
+<col style="width: 19%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Origin</th>
+<th>Used for</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Corine Land Cover 2018</strong></td>
+<td>Copernicus</td>
+<td>Extract urban areas within Local Administrative Units</td>
+<td>Available from the EEA: https://land.copernicus.eu/en/products/corine-land-cover?tab=datasets. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018.</td>
+</tr>
+<tr class="even">
+<td><strong>Administrative boundaries - Local Administrative Units</strong></td>
+<td>European Commission</td>
+<td>Delineate Local Adminstrative Units in Norway</td>
+<td>Raw data available from Eurostat here: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO. Data already prepared for URGR_013 here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO.</td>
+</tr>
+<tr class="odd">
+<td><strong>Administrative boundaries - DEGURBA</strong></td>
+<td>European Commission</td>
+<td>Used to select the Local Administrative Units classified as “cities” (<code>DEGURBA = 1</code>) and the adjacent Local Adminstrative Units classified as “rowns and suburbs” (<code>DEGURBA = 2</code>)</td>
+<td>Raw file available from Eurostat here: https://ec.europa.eu/eurostat/web/nuts/local-administrative-units. Or from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Administrative_boundaries_NO</td>
+</tr>
+<tr class="even">
+<td><strong>Imperviousness</strong></td>
+<td>Copernicus</td>
+<td>Used to calculate areas of non impervious areas (= urban green and blue spaces)</td>
+<td>Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/</td>
+</tr>
+</tbody>
+</table>
 <p><strong>5. URGR_030</strong><br>
 <u>Definition</u><br>
 This indicator uses definitions of urban areas and urban green areas that are different from <span class="citation" data-cites="cond-gn-eurostat">@cond-gn-eurostat</span>. They can be summarised as follows:</p>
 <p>Urban areas are defined as the EU Ecosystem Typology class 1. Settlements and other artificial areas occurring at national scale. This indicator is not restricted to Norwegian Local Administrative Units only.</p>
 <p>Urban green areas are defined as in URGR_025.</p>
 <p><u>Datasets used</u><br>
-Three data sources were used:</p>
-<ul>
-<li><p><strong>Grunnkart</strong> from NIBIO. Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.</p></li>
-<li><p><strong>Imperviousness</strong> layer from Copernicus. Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/GIS/Data/Infrastructure/IMD_2018_010m_no_03035_v020/DATA/</p></li>
-<li><p><strong>Administrative boundaries for Fylke</strong> from Kartverkert. Available on Geonorge: https://kartkatalog.geonorge.no/metadata/administrative-enheter-fylker/6093c8a8-fa80-11e6-bc64-92361f002671. Or available on NINA’s internal repository: /data/R/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/Processed/Norge_kystlinje_fylker_2024.shp. Or can also be accessed here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/NO_Regions_Fylke</p></li>
-<li><p><strong>Administrative boundaries for Regions - Regions and Fylke identifiers</strong> from Kartvertkert available here:https://www.kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar</p></li>
-</ul>
+Three data sources were used:<br>
+</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 34%">
+<col style="width: 19%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Origin</th>
+<th>Used for</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Grunnkart</strong></td>
+<td>NIBIO</td>
+<td>Extract urban areas at national level</td>
+<td>Available from NIBIO: https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format.</td>
+</tr>
+<tr class="even">
+<td><strong>Administrative boundaries for Fylke</strong></td>
+<td>Kartverkert</td>
+<td>Delineate Fylke to disaggregate the results</td>
+<td>Available on Geonorge: https://kartkatalog.geonorge.no/metadata/administrative-enheter-fylker/6093c8a8-fa80-11e6-bc64-92361f002671. Or available on NINA’s internal repository: /data/R/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/Processed/Norge_kystlinje_fylker_2024.shp. Or can also be accessed here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/NO_Regions_Fylke</td>
+</tr>
+<tr class="odd">
+<td><strong>Administrative boundaries for Regions - Regions and Fylke identifiers</strong></td>
+<td>Kartverkert</td>
+<td>Used to aggregate the Fylke results by regions</td>
+<td>Available from Kartverkert here:https://www.kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar</td>
+</tr>
+<tr class="even">
+<td><strong>Imperviousness</strong></td>
+<td>Copernicus</td>
+<td>Used to calculate areas of non impervious areas (= urban green and blue spaces)</td>
+<td>Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/</td>
+</tr>
+</tbody>
+</table>
 <p><strong>6. URGR_031</strong><br>
 <u>Definition</u><br>
 Same definition than URGR_030, but using Corine Land Cover 2018, instead of the Grunnkart.</p>
 <p><u>Datasets used</u><br>
-Three data sources were used:</p>
+Three data sources were used:<br>
+</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 34%">
+<col style="width: 19%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Origin</th>
+<th>Used for</th>
+<th>Link</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Corine Land Cover 2018</strong></td>
+<td>Copernicus</td>
+<td>Extract urban areas at national level</td>
+<td>Available from the EEA: https://land.copernicus.eu/en/products/corine-land-cover?tab=datasets. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018.</td>
+</tr>
+<tr class="even">
+<td><strong>Administrative boundaries for Fylke</strong></td>
+<td>Kartverkert</td>
+<td>Delineate Fylke to disaggregate the results</td>
+<td>Available on Geonorge: https://kartkatalog.geonorge.no/metadata/administrative-enheter-fylker/6093c8a8-fa80-11e6-bc64-92361f002671. Or available on NINA’s internal repository: /data/R/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/Processed/Norge_kystlinje_fylker_2024.shp. Or can also be accessed here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/NO_Regions_Fylke</td>
+</tr>
+<tr class="odd">
+<td><strong>Administrative boundaries for Regions - Regions and Fylke identifiers</strong></td>
+<td>Kartverkert</td>
+<td>Used to aggregate the Fylke results by regions</td>
+<td>Available from Kartverkert here:https://www.kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar</td>
+</tr>
+<tr class="even">
+<td><strong>Imperviousness</strong></td>
+<td>Copernicus</td>
+<td>Used to calculate areas of non impervious areas (= urban green and blue spaces)</td>
+<td>Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/IMD_2018_010m_no_03035_v020/DATA/</td>
+</tr>
+</tbody>
+</table>
 <ul>
-<li><p><strong>Corine Land Cover 2018</strong> from the EEA. Available from the EEA: https://land.copernicus.eu/en/products/corine-land-cover?tab=datasets. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018.</p></li>
-<li><p><strong>Imperviousness</strong> layer from Copernicus. Available from Copernicus here: https://land.copernicus.eu/en/products/high-resolution-layer-imperviousness. Or available from NINA’s internal repository here: /data/P-Prosjekter2/412413_2023_no_egd/GIS/Data/Infrastructure/IMD_2018_010m_no_03035_v020/DATA/</p></li>
-<li><p><strong>Administrative boundaries for Fylke</strong> from Kartverkert. Available on Geonorge: https://kartkatalog.geonorge.no/metadata/administrative-enheter-fylker/6093c8a8-fa80-11e6-bc64-92361f002671. Or available on NINA’s internal repository: /data/R/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/Processed/Norge_kystlinje_fylker_2024.shp. Or can also be accessed here: /data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/NO_Regions_Fylke</p></li>
-<li><p><strong>Administrative boundaries for Regions - Regions and Fylke identifiers</strong> from Kartvertkert available here:https://www.kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar</p></li>
+<li><strong>Corine Land Cover 2018</strong> from the EEA. Available from the EEA: https://land.copernicus.eu/en/products/corine-land-cover?tab=datasets. Or available from NINA’s internal repository: /data/R/GeoSpatialData/LandCover/Norway_CORINE_Landcover/Original/CORINE_2018.</li>
 </ul>
 <!--# Describe the data you have used in more detail, it's origin, biases, availabilit ect.-->
 <section id="spatial-and-temporal-resolution-and-extent" class="level3">
@@ -3811,7 +3989,7 @@ Three data sources were used:</p>
 <td><strong>Global Human Settlement Layer - SMOD</strong></td>
 <td>European Commission - Joint Research Center</td>
 <td>2020</td>
-<td></td>
+<td>raster</td>
 </tr>
 <tr class="odd">
 <td><strong>Administrative boundaries - Local Administrative Units</strong></td>
@@ -3906,15 +4084,16 @@ Three data sources were used:</p>
 <h2 class="anchored" data-anchor-id="indicator-properties">3. Indicator properties</h2>
 <section id="ecosystem-condition-typology-class-ect" class="level3">
 <h3 class="anchored" data-anchor-id="ecosystem-condition-typology-class-ect">3.1 Ecosystem Condition Typology Class (ECT)</h3>
-<!--# 
+<p>The percentage of urban green spaces in urban ecosystems is part of B2 - Structural State as it describes the physical structure of urban ecosystems. <!--# 
 
 Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
 This doesnt need to be very long. Maybe just a single sentence. 
 
--->
+--></p>
 </section>
 <section id="ecosystem-condition-characteristic" class="level3">
 <h3 class="anchored" data-anchor-id="ecosystem-condition-characteristic">3.2 Ecosystem condition characteristic</h3>
+<p>The share of urban green spaces in urban ecosystems indicates the level of nature that is present in an urban environment. Urban green spaces provide important ecosystem services that are essential to the wellbeing of the human communities living in urban settlements. The presence of green spaces also ensures habitats for wildlife with urban areas.</p>
 <!--# 
 
 Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
@@ -3924,14 +4103,18 @@ For example, and indicator called 'Trenching in mires' could be made to represen
 </section>
 <section id="other-standards" class="level3">
 <h3 class="anchored" data-anchor-id="other-standards">3.3 Other standards</h3>
+<p>In this documentation, we present different variations of the urban green indicator. We recommend to use URGR_030 and URGR_031 as they rely on the most ecologically correct definition. They however do not follow the official guidance from the European Commission for national reporting under EU Regulation 2024/3024 (<span class="citation" data-cites="eu-2024-3024">@eu-2024-3024</span>). If users need to report this indicator in an official EU reporting, we recommend to use URGR_013 or URGR_022.</p>
 <!--# Optional: Add text about other spesific standards, e.g. national standards, and how the indicator relates to these -->
 </section>
 <section id="collinearities-with-other-indicators" class="level3">
 <h3 class="anchored" data-anchor-id="collinearities-with-other-indicators">3.4 Collinearities with other indicators</h3>
+<p>Indicators such as Tree cover density in urban ecosystem will be highly correlated to the share of urban green spaces.</p>
 <!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
 </section>
 <section id="impact-factors" class="level3">
 <h3 class="anchored" data-anchor-id="impact-factors">3.5 Impact factors</h3>
+<p>The share of urban green spaces is impacted by a number of factors. The main anthropogenic factors influencing the extent of green spaces in urban areas are urban planning and land-use policies. More natural factors can also impact green spaces such as climate change and water availability which can limit the growth and development of some species.</p>
+<p>BALIN TO COMPLETE/REVIEW?</p>
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
 </section>
 </section>
@@ -3939,11 +4122,13 @@ For example, and indicator called 'Trenching in mires' could be made to represen
 <h2 class="anchored" data-anchor-id="reference-condition-and-levels">4. Reference condition and levels</h2>
 <section id="reference-condition" class="level3">
 <h3 class="anchored" data-anchor-id="reference-condition">4.1 Reference condition</h3>
+<p>Urban areas are, by nature, anthropogenic. It is difficult to establish a reference condition for this indicator.</p>
+<p>BALIN TO COMPLETE</p>
 <!--# Define the reference condition (or refer to where it is defined). Note the destinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
 </section>
 <section id="reference-levels" class="level3">
 <h3 class="anchored" data-anchor-id="reference-levels">4.2 Reference levels</h3>
-<!--# 
+<p>BALIN TO COMPLETE <!--# 
 
 If relevant (i.e. if you have normalised a variable), describe the reference levels used to normalise the variable. 
 
@@ -3951,36 +4136,37 @@ Use the terminology where X~0~ referes to the referece level (the variable value
 
 Why was the current option chosen and how were the reference levels quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here.
 
- -->
+ --></p>
 <section id="spatial-resolution-and-validity" class="level4">
 <h4 class="anchored" data-anchor-id="spatial-resolution-and-validity">4.2.1 Spatial resolution and validity</h4>
-<!--# 
+<p>BALIN TO COMPLETE <!--# 
 
 Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
 
- -->
+ --></p>
 </section>
 </section>
 </section>
 <section id="uncertainties" class="level2">
 <h2 class="anchored" data-anchor-id="uncertainties">5. Uncertainties</h2>
+<p>There are two categories of uncertainties that can be considered with the development of this indicator and its subsequent use (<span class="citation" data-cites="uncertainty">@uncertainty</span>):</p>
+<ul>
+<li><p><u>Model uncertainty</u>: the data used to compile the urban green indicator all present a degree of uncertainty including spatial and temporal accuracies, the modelling approaches done to obtain the spatial layers especially the Grunnkart, the Imperviousness and Corine Land Cover datasets. In addition, URGR_030 and URGR_031 rely on the mean percentage of imperviousness per polygon of urban ecosystems, which may introduce some uncertainties.</p></li>
+<li><p><u>Decision uncertainty</u>: the indicators presented in this document have been compiled in accordance with different interpretations of the urban green indicator defined by Eurostat for the EU Regulation 2024/3024 (<span class="citation" data-cites="eu-2024-3024">@eu-2024-3024</span>). There are uncertainties due to the interpretations of the indicator and the methodological choices that resulted to calculate them. For example URGR_030 and URGR_031 rely on the assumption that what is not impervious is urban green or blue spaces. While URGR_13 relies on the assumption that urban areas can be summarised by the extent of Local Administrative Units for which the variable DEGURBA equals 1 and 2. All these interpretations and choices results in variability in the results of the different indicators. Finally, one have to consider the interpretation and applications of the results given in this document by the users. The translation of these indicators into decision-making will inherently present some uncertainties as it relies on the users’ own experience, expertise and goals, which will influence the understanding of the indicators.</p></li>
+</ul>
 <!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">6. References</h2>
+<p>European Commission (2025). Ecosystem Condition Accounts - Guidance Note 6^{th} Draft. https://circabc.europa.eu/ui/group/922b4700-1c83-4099-b550-763badab3ec0/library/5074c555-99ea-4931-ace8-9351fa174f8b</p>
+<p>European Council and Parliament (2024). Regulation (EU) 2024/3024 of the European Parliament and of the Council of 27 November 2024 amending Regulation (EU) No 691/2011 as regards introducing new environmental economic account modules. https://eur-lex.europa.eu/eli/reg/2024/3024/oj/eng</p>
+<p>United Nations, (2024). System of Environmental Economic Accounting - Ecosystem Accounting.</p>
+<p>Walther Franziska, Barton David N., Schwaab Jonas, Kato-Huerta Jarumi, Immerzeel Bart, Adamescu Mihai, Andersen Erling, Arámbula Coyote Martha Verónica, Arany Ildikó, Balzan Mario, Bruggeman Adriana, Carvalho-Santos Claudia, Cazacu Constantin, Geneletti Davide, Giuca Relu, Inácio Miguel, Lagabrielle Erwann, Lange Sabine, Clec’h Solen Le, Vanessa Lim Zhi Yi, Mörtberg Ulla, Nedkov Stoyan, Portela Ana Paula, Porucznik Anna, Racoviceanu Tudor, Rendón Paula, Ribeiro Daniela, Seguin Joana, Hribar Mateja Šmid, Stoycheva Vanya, Vejre Henrik, Zoumides Christos, Grêt-Regamey Adrienne, (2025). Uncertainties in ecosystem services assessments and their implications for decision support – A semi-systematic literature review. Ecosystem Services 73, 101714. https://doi.org/10.1016/j.ecoser.2025.101714</p>
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
 </section>
 <section id="datasets" class="level2">
 <h2 class="anchored" data-anchor-id="datasets">7. Datasets</h2>
-<!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
-<section id="dataset-a" class="level3">
-<h3 class="anchored" data-anchor-id="dataset-a">7.1 Dataset A</h3>
-<!--# Describe the main dataset, typicaly the one containing the variable of (most) interest. Change the header from Dataset A to the name of the actuall dataset. -->
-</section>
-<section id="dataset-b" class="level3">
-<h3 class="anchored" data-anchor-id="dataset-b">7.2. Dataset B</h3>
-<!--# Describe additional datasets in a similar was as above. Deleteor add ned subheaders as needed. -->
-</section>
+<p>All the datasets used to compile the different versions of the URGR indicators have been thoroughly describe din the previous sections, link sto them are also provided for more information.</p>
 </section>
 <section id="spatial-units" class="level2">
 <h2 class="anchored" data-anchor-id="spatial-units">8. Spatial units</h2>
@@ -5788,6 +5974,391 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">10. Results</h2>
+<section id="national-results" class="level3">
+<h3 class="anchored" data-anchor-id="national-results">National results</h3>
+<div class="cell">
+<details class="code-fold">
+<summary>Code to create a comparative URGR table</summary>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the results files</span></span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>path_res <span class="ot">&lt;-</span> <span class="st">&quot;/data/P-Prosjekter2/412413_2023_no_egd/Results/&quot;</span></span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>urgr13 <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_013_detailed_results_24MAY25.xlsx&quot;</span>))</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>urgr22 <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_022_detailed_results_24MAY25.xlsx&quot;</span>))</span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>urgr23 <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_023_detailed_results_27MAY2025.csv&quot;</span>))</span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>urgr25 <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_025_detailed_results_26MAY2025.csv&quot;</span>))</span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>urgr30 <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_030_detailed_results_26JUNE2025.csv&quot;</span>))</span>
+<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>urgr31 <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_031_fylke_results_18JUNE_25.xlsx&quot;</span>))</span>
+<span id="cb80-9"><a href="#cb80-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-10"><a href="#cb80-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate URGR indicators</span></span>
+<span id="cb80-11"><a href="#cb80-11" aria-hidden="true" tabindex="-1"></a>urgr13_national <span class="ot">&lt;-</span> <span class="fu">sum</span>(urgr13<span class="sc">$</span>total_area_et_m2) <span class="sc">/</span> <span class="fu">sum</span>(urgr13<span class="sc">$</span>lau_area_m2) <span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb80-12"><a href="#cb80-12" aria-hidden="true" tabindex="-1"></a>urgr22_national <span class="ot">&lt;-</span> <span class="fu">sum</span>(urgr22<span class="sc">$</span>total_area_et_m2) <span class="sc">/</span> <span class="fu">sum</span>(urgr22<span class="sc">$</span>urb_domn_total_area) <span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb80-13"><a href="#cb80-13" aria-hidden="true" tabindex="-1"></a>urgr23_national <span class="ot">&lt;-</span> <span class="fu">sum</span>(urgr23<span class="sc">$</span>total_area_et_m2) <span class="sc">/</span> <span class="fu">sum</span>(urgr23<span class="sc">$</span>soaa_total_area_m2) <span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb80-14"><a href="#cb80-14" aria-hidden="true" tabindex="-1"></a>urgr25_national <span class="ot">&lt;-</span> <span class="fu">sum</span>(urgr25<span class="sc">$</span>total_non_imper_area_m2) <span class="sc">/</span> <span class="fu">sum</span>(urgr25<span class="sc">$</span>total_soaa_area_m2) <span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb80-15"><a href="#cb80-15" aria-hidden="true" tabindex="-1"></a>urgr30_national <span class="ot">&lt;-</span> <span class="fu">sum</span>(urgr30<span class="sc">$</span>total_non_imper_area_m2) <span class="sc">/</span> <span class="fu">sum</span>(urgr30<span class="sc">$</span>total_soaa_area_m2) <span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb80-16"><a href="#cb80-16" aria-hidden="true" tabindex="-1"></a>urgr31_national <span class="ot">&lt;-</span> <span class="fu">sum</span>(urgr31<span class="sc">$</span>total_non_imper_area_m2) <span class="sc">/</span> <span class="fu">sum</span>(urgr31<span class="sc">$</span>total_soaa_area_m2) <span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb80-17"><a href="#cb80-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-18"><a href="#cb80-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the table of outputs</span></span>
+<span id="cb80-19"><a href="#cb80-19" aria-hidden="true" tabindex="-1"></a>urgr_vec_national <span class="ot">&lt;-</span> <span class="fu">c</span>(urgr13_national,</span>
+<span id="cb80-20"><a href="#cb80-20" aria-hidden="true" tabindex="-1"></a>                       urgr22_national,</span>
+<span id="cb80-21"><a href="#cb80-21" aria-hidden="true" tabindex="-1"></a>                       urgr23_national,</span>
+<span id="cb80-22"><a href="#cb80-22" aria-hidden="true" tabindex="-1"></a>                       urgr25_national,</span>
+<span id="cb80-23"><a href="#cb80-23" aria-hidden="true" tabindex="-1"></a>                       urgr30_national,</span>
+<span id="cb80-24"><a href="#cb80-24" aria-hidden="true" tabindex="-1"></a>                       urgr31_national)</span>
+<span id="cb80-25"><a href="#cb80-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-26"><a href="#cb80-26" aria-hidden="true" tabindex="-1"></a>names_vec_national <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;URGR 13&quot;</span>,</span>
+<span id="cb80-27"><a href="#cb80-27" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;URGR 22&quot;</span>,</span>
+<span id="cb80-28"><a href="#cb80-28" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;URGR 23&quot;</span>,</span>
+<span id="cb80-29"><a href="#cb80-29" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;URGR 25&quot;</span>,</span>
+<span id="cb80-30"><a href="#cb80-30" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;URGR 30&quot;</span>,</span>
+<span id="cb80-31"><a href="#cb80-31" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;URGR 31&quot;</span>)</span>
+<span id="cb80-32"><a href="#cb80-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-33"><a href="#cb80-33" aria-hidden="true" tabindex="-1"></a>res_national <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">rep</span>(<span class="st">&quot;Share of urban green areas&quot;</span>, <span class="dv">6</span>),</span>
+<span id="cb80-34"><a href="#cb80-34" aria-hidden="true" tabindex="-1"></a>                           names_vec_national, </span>
+<span id="cb80-35"><a href="#cb80-35" aria-hidden="true" tabindex="-1"></a>                           <span class="fu">rep</span>(<span class="st">&quot;Norway&quot;</span>, <span class="dv">6</span>), </span>
+<span id="cb80-36"><a href="#cb80-36" aria-hidden="true" tabindex="-1"></a>                           <span class="fu">rep</span>(<span class="dv">2018</span>, <span class="dv">6</span>),</span>
+<span id="cb80-37"><a href="#cb80-37" aria-hidden="true" tabindex="-1"></a>                           urgr_vec_national)</span>
+<span id="cb80-38"><a href="#cb80-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-39"><a href="#cb80-39" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(res_national) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Indicator&quot;</span>,</span>
+<span id="cb80-40"><a href="#cb80-40" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;ID&quot;</span>,</span>
+<span id="cb80-41"><a href="#cb80-41" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;Accounting area&quot;</span>,</span>
+<span id="cb80-42"><a href="#cb80-42" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;Accounting period&quot;</span>,</span>
+<span id="cb80-43"><a href="#cb80-43" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;Variable value (%)&quot;</span>)</span>
+<span id="cb80-44"><a href="#cb80-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-45"><a href="#cb80-45" aria-hidden="true" tabindex="-1"></a><span class="fu">kbl</span>(res_national)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Indicator</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Accounting area</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Accounting period</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Variable value (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 13</td>
+<td style="text-align: left;">Norway</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">5.3018849</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 22</td>
+<td style="text-align: left;">Norway</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">2.7454162</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 23</td>
+<td style="text-align: left;">Norway</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">0.3282515</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 25</td>
+<td style="text-align: left;">Norway</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">66.8361133</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 30</td>
+<td style="text-align: left;">Norway</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">83.5791243</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 31</td>
+<td style="text-align: left;">Norway</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">74.8108222</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</section>
+<section id="regional-results" class="level3">
+<h3 class="anchored" data-anchor-id="regional-results">Regional results</h3>
+<div class="cell">
+<details class="code-fold">
+<summary>Code to create a comparative URGR table</summary>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the results files</span></span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>path_res <span class="ot">&lt;-</span> <span class="st">&quot;/data/P-Prosjekter2/412413_2023_no_egd/Results/&quot;</span></span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>urgr13 <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_013_detailed_results_24MAY25.xlsx&quot;</span>))</span>
+<span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a>urgr22 <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_022_detailed_results_24MAY25.xlsx&quot;</span>))</span>
+<span id="cb81-5"><a href="#cb81-5" aria-hidden="true" tabindex="-1"></a>urgr23 <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_023_detailed_results_27MAY2025.csv&quot;</span>))</span>
+<span id="cb81-6"><a href="#cb81-6" aria-hidden="true" tabindex="-1"></a>urgr25 <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_025_detailed_results_26MAY2025.csv&quot;</span>))</span>
+<span id="cb81-7"><a href="#cb81-7" aria-hidden="true" tabindex="-1"></a>urgr30 <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_030_detailed_results_26JUNE2025.csv&quot;</span>))</span>
+<span id="cb81-8"><a href="#cb81-8" aria-hidden="true" tabindex="-1"></a>urgr31 <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="fu">paste0</span>(path_res, <span class="st">&quot;URGR_031_fylke_results_18JUNE_25.xlsx&quot;</span>))</span>
+<span id="cb81-9"><a href="#cb81-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-10"><a href="#cb81-10" aria-hidden="true" tabindex="-1"></a>path_region <span class="ot">&lt;-</span> <span class="st">&quot;/data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/NO_Fylke/&quot;</span></span>
+<span id="cb81-11"><a href="#cb81-11" aria-hidden="true" tabindex="-1"></a>regions <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="fu">paste0</span>(path_region, <span class="st">&quot;kommune_fylke_region_NO_2024.xlsx&quot;</span>))</span>
+<span id="cb81-12"><a href="#cb81-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-13"><a href="#cb81-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate URGR indicators</span></span>
+<span id="cb81-14"><a href="#cb81-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Note that LAUD dataset uses the kommune codes from 2023</span></span>
+<span id="cb81-15"><a href="#cb81-15" aria-hidden="true" tabindex="-1"></a>regions<span class="sc">$</span>kommune_nr_2023 <span class="ot">&lt;-</span> <span class="fu">as.character</span>(regions<span class="sc">$</span>kommune_nr_2023)</span>
+<span id="cb81-16"><a href="#cb81-16" aria-hidden="true" tabindex="-1"></a>regions<span class="sc">$</span>kommune_nr_2023[regions<span class="sc">$</span>kommune_nr_2023 <span class="sc">==</span> <span class="dv">301</span>] <span class="ot">&lt;-</span> <span class="st">&quot;0301&quot;</span></span>
+<span id="cb81-17"><a href="#cb81-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-18"><a href="#cb81-18" aria-hidden="true" tabindex="-1"></a>urgr13_regional <span class="ot">&lt;-</span> urgr13 <span class="sc">%&gt;%</span></span>
+<span id="cb81-19"><a href="#cb81-19" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">left_join</span>(., regions, <span class="fu">join_by</span>(LAU_ID <span class="sc">==</span> kommune_nr_2023)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-20"><a href="#cb81-20" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">group_by</span>(region_name) <span class="sc">%&gt;%</span></span>
+<span id="cb81-21"><a href="#cb81-21" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">summarise</span>(<span class="at">urban_green_area_m2 =</span> <span class="fu">sum</span>(total_area_et_m2),</span>
+<span id="cb81-22"><a href="#cb81-22" aria-hidden="true" tabindex="-1"></a>                              <span class="at">total_urban_area_m2 =</span> <span class="fu">sum</span>(lau_area_m2)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-23"><a href="#cb81-23" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">mutate</span>(<span class="at">indicator =</span> <span class="fu">rep</span>(<span class="st">&quot;URGR 13&quot;</span>, <span class="fu">nrow</span>(.)),</span>
+<span id="cb81-24"><a href="#cb81-24" aria-hidden="true" tabindex="-1"></a>                           <span class="at">urgr_regional =</span> urban_green_area_m2 <span class="sc">/</span> total_urban_area_m2 <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-25"><a href="#cb81-25" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">select</span>(region_name, indicator, urgr_regional)</span>
+<span id="cb81-26"><a href="#cb81-26" aria-hidden="true" tabindex="-1"></a>                   </span>
+<span id="cb81-27"><a href="#cb81-27" aria-hidden="true" tabindex="-1"></a>urgr22_regional <span class="ot">&lt;-</span> urgr22 <span class="sc">%&gt;%</span></span>
+<span id="cb81-28"><a href="#cb81-28" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">left_join</span>(., regions, <span class="fu">join_by</span>(LAU_ID <span class="sc">==</span> kommune_nr_2023)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-29"><a href="#cb81-29" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">group_by</span>(region_name) <span class="sc">%&gt;%</span></span>
+<span id="cb81-30"><a href="#cb81-30" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">summarise</span>(<span class="at">urban_green_area_m2 =</span> <span class="fu">sum</span>(total_area_et_m2),</span>
+<span id="cb81-31"><a href="#cb81-31" aria-hidden="true" tabindex="-1"></a>                              <span class="at">total_urban_area_m2 =</span> <span class="fu">sum</span>(urb_domn_total_area)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-32"><a href="#cb81-32" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">mutate</span>(<span class="at">indicator =</span> <span class="fu">rep</span>(<span class="st">&quot;URGR 22&quot;</span>, <span class="fu">nrow</span>(.)),</span>
+<span id="cb81-33"><a href="#cb81-33" aria-hidden="true" tabindex="-1"></a>                           <span class="at">urgr_regional=</span> urban_green_area_m2 <span class="sc">/</span> total_urban_area_m2 <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-34"><a href="#cb81-34" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">select</span>(region_name, indicator, urgr_regional)</span>
+<span id="cb81-35"><a href="#cb81-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-36"><a href="#cb81-36" aria-hidden="true" tabindex="-1"></a>regions<span class="sc">$</span>kommune_nr_2023 <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(regions<span class="sc">$</span>kommune_nr_2023) </span>
+<span id="cb81-37"><a href="#cb81-37" aria-hidden="true" tabindex="-1"></a>regions<span class="sc">$</span>kommune_nr_2023[regions<span class="sc">$</span>kommune_nr_2023 <span class="sc">==</span> <span class="dv">0301</span>] <span class="ot">&lt;-</span> <span class="dv">301</span></span>
+<span id="cb81-38"><a href="#cb81-38" aria-hidden="true" tabindex="-1"></a>urgr23_regional <span class="ot">&lt;-</span> urgr23 <span class="sc">%&gt;%</span></span>
+<span id="cb81-39"><a href="#cb81-39" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">left_join</span>(., regions, <span class="fu">join_by</span>(LAU_ID <span class="sc">==</span> kommune_nr_2023)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-40"><a href="#cb81-40" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">group_by</span>(region_name) <span class="sc">%&gt;%</span></span>
+<span id="cb81-41"><a href="#cb81-41" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">summarise</span>(<span class="at">urban_green_area_m2 =</span> <span class="fu">sum</span>(total_area_et_m2),</span>
+<span id="cb81-42"><a href="#cb81-42" aria-hidden="true" tabindex="-1"></a>                              <span class="at">total_urban_area_m2 =</span> <span class="fu">sum</span>(soaa_total_area_m2)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-43"><a href="#cb81-43" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">mutate</span>(<span class="at">indicator =</span> <span class="fu">rep</span>(<span class="st">&quot;URGR 23&quot;</span>, <span class="fu">nrow</span>(.)),</span>
+<span id="cb81-44"><a href="#cb81-44" aria-hidden="true" tabindex="-1"></a>                           <span class="at">urgr_regional =</span> urban_green_area_m2 <span class="sc">/</span> total_urban_area_m2 <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-45"><a href="#cb81-45" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">select</span>(region_name, indicator, urgr_regional)  </span>
+<span id="cb81-46"><a href="#cb81-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-47"><a href="#cb81-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-48"><a href="#cb81-48" aria-hidden="true" tabindex="-1"></a>urgr25_regional <span class="ot">&lt;-</span> urgr25 <span class="sc">%&gt;%</span></span>
+<span id="cb81-49"><a href="#cb81-49" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">left_join</span>(., regions, <span class="fu">join_by</span>(LAU_ID <span class="sc">==</span> kommune_nr_2023)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-50"><a href="#cb81-50" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">group_by</span>(region_name) <span class="sc">%&gt;%</span></span>
+<span id="cb81-51"><a href="#cb81-51" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">summarise</span>(<span class="at">urban_green_area_m2 =</span> <span class="fu">sum</span>(total_non_imper_area_m2),</span>
+<span id="cb81-52"><a href="#cb81-52" aria-hidden="true" tabindex="-1"></a>                              <span class="at">total_urban_area_m2 =</span> <span class="fu">sum</span>(total_soaa_area_m2)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-53"><a href="#cb81-53" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">mutate</span>(<span class="at">indicator =</span> <span class="fu">rep</span>(<span class="st">&quot;URGR 25&quot;</span>, <span class="fu">nrow</span>(.)),</span>
+<span id="cb81-54"><a href="#cb81-54" aria-hidden="true" tabindex="-1"></a>                           <span class="at">urgr_regional =</span> urban_green_area_m2 <span class="sc">/</span> total_urban_area_m2 <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-55"><a href="#cb81-55" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">select</span>(region_name, indicator, urgr_regional)  </span>
+<span id="cb81-56"><a href="#cb81-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-57"><a href="#cb81-57" aria-hidden="true" tabindex="-1"></a>urgr30_regional <span class="ot">&lt;-</span> urgr30 <span class="sc">%&gt;%</span></span>
+<span id="cb81-58"><a href="#cb81-58" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">left_join</span>(., regions, <span class="fu">join_by</span>(fylkesnumm <span class="sc">==</span> fylke_nr)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-59"><a href="#cb81-59" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">group_by</span>(region_name) <span class="sc">%&gt;%</span></span>
+<span id="cb81-60"><a href="#cb81-60" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">summarise</span>(<span class="at">urban_green_area_m2 =</span> <span class="fu">sum</span>(total_non_imper_area_m2),</span>
+<span id="cb81-61"><a href="#cb81-61" aria-hidden="true" tabindex="-1"></a>                              <span class="at">total_urban_area_m2 =</span> <span class="fu">sum</span>(total_soaa_area_m2)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-62"><a href="#cb81-62" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">mutate</span>(<span class="at">indicator =</span> <span class="fu">rep</span>(<span class="st">&quot;URGR 30&quot;</span>, <span class="fu">nrow</span>(.)),</span>
+<span id="cb81-63"><a href="#cb81-63" aria-hidden="true" tabindex="-1"></a>                           <span class="at">urgr_regional =</span> urban_green_area_m2 <span class="sc">/</span> total_urban_area_m2 <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-64"><a href="#cb81-64" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">select</span>(region_name, indicator, urgr_regional)  </span>
+<span id="cb81-65"><a href="#cb81-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-66"><a href="#cb81-66" aria-hidden="true" tabindex="-1"></a>urgr31_regional <span class="ot">&lt;-</span> urgr31 <span class="sc">%&gt;%</span></span>
+<span id="cb81-67"><a href="#cb81-67" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">left_join</span>(., regions, <span class="fu">join_by</span>(fylkesnumm <span class="sc">==</span> fylke_nr)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-68"><a href="#cb81-68" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">group_by</span>(region_name) <span class="sc">%&gt;%</span></span>
+<span id="cb81-69"><a href="#cb81-69" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">summarise</span>(<span class="at">urban_green_area_m2 =</span> <span class="fu">sum</span>(total_non_imper_area_m2),</span>
+<span id="cb81-70"><a href="#cb81-70" aria-hidden="true" tabindex="-1"></a>                              <span class="at">total_urban_area_m2 =</span> <span class="fu">sum</span>(total_soaa_area_m2)) <span class="sc">%&gt;%</span></span>
+<span id="cb81-71"><a href="#cb81-71" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">mutate</span>(<span class="at">indicator =</span> <span class="fu">rep</span>(<span class="st">&quot;URGR 31&quot;</span>, <span class="fu">nrow</span>(.)),</span>
+<span id="cb81-72"><a href="#cb81-72" aria-hidden="true" tabindex="-1"></a>                           <span class="at">urgr_regional =</span> urban_green_area_m2 <span class="sc">/</span> total_urban_area_m2 <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-73"><a href="#cb81-73" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">select</span>(region_name, indicator, urgr_regional) </span>
+<span id="cb81-74"><a href="#cb81-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-75"><a href="#cb81-75" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the table of outputs</span></span>
+<span id="cb81-76"><a href="#cb81-76" aria-hidden="true" tabindex="-1"></a>urgr_df_regional <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(urgr13_regional,</span>
+<span id="cb81-77"><a href="#cb81-77" aria-hidden="true" tabindex="-1"></a>                              urgr22_regional,</span>
+<span id="cb81-78"><a href="#cb81-78" aria-hidden="true" tabindex="-1"></a>                              urgr23_regional,</span>
+<span id="cb81-79"><a href="#cb81-79" aria-hidden="true" tabindex="-1"></a>                              urgr25_regional,</span>
+<span id="cb81-80"><a href="#cb81-80" aria-hidden="true" tabindex="-1"></a>                              urgr30_regional,</span>
+<span id="cb81-81"><a href="#cb81-81" aria-hidden="true" tabindex="-1"></a>                              urgr31_regional)</span>
+<span id="cb81-82"><a href="#cb81-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-83"><a href="#cb81-83" aria-hidden="true" tabindex="-1"></a>res_regional <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">rep</span>(<span class="st">&quot;Share of urban green areas&quot;</span>, <span class="fu">nrow</span>(urgr_df_regional)),</span>
+<span id="cb81-84"><a href="#cb81-84" aria-hidden="true" tabindex="-1"></a>                           urgr_df_regional<span class="sc">$</span>indicator, </span>
+<span id="cb81-85"><a href="#cb81-85" aria-hidden="true" tabindex="-1"></a>                           urgr_df_regional<span class="sc">$</span>region_name,</span>
+<span id="cb81-86"><a href="#cb81-86" aria-hidden="true" tabindex="-1"></a>                           <span class="fu">rep</span>(<span class="dv">2018</span>, <span class="fu">nrow</span>(urgr_df_regional)),</span>
+<span id="cb81-87"><a href="#cb81-87" aria-hidden="true" tabindex="-1"></a>                           urgr_df_regional<span class="sc">$</span>urgr_regional)</span>
+<span id="cb81-88"><a href="#cb81-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-89"><a href="#cb81-89" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(res_regional) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Indicator&quot;</span>,</span>
+<span id="cb81-90"><a href="#cb81-90" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;ID&quot;</span>,</span>
+<span id="cb81-91"><a href="#cb81-91" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;Accounting area&quot;</span>,</span>
+<span id="cb81-92"><a href="#cb81-92" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;Accounting period&quot;</span>,</span>
+<span id="cb81-93"><a href="#cb81-93" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&quot;Variable value (%)&quot;</span>)</span>
+<span id="cb81-94"><a href="#cb81-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-95"><a href="#cb81-95" aria-hidden="true" tabindex="-1"></a><span class="fu">kbl</span>(res_regional)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Indicator</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Accounting area</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Accounting period</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Variable value (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 13</td>
+<td style="text-align: left;">midt_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">5.2602817</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 13</td>
+<td style="text-align: left;">ostlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">5.2176769</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 13</td>
+<td style="text-align: left;">vestlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">5.3651152</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 22</td>
+<td style="text-align: left;">midt_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">2.4565494</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 22</td>
+<td style="text-align: left;">ostlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">2.7477647</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 22</td>
+<td style="text-align: left;">vestlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">2.8213700</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 23</td>
+<td style="text-align: left;">midt_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">0.3880562</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 23</td>
+<td style="text-align: left;">ostlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">0.3862162</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 23</td>
+<td style="text-align: left;">vestlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">0.2376067</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 25</td>
+<td style="text-align: left;">midt_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">67.4641899</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 25</td>
+<td style="text-align: left;">ostlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">68.5751528</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 25</td>
+<td style="text-align: left;">vestlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">64.0295622</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 30</td>
+<td style="text-align: left;">midt_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">87.3133996</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 30</td>
+<td style="text-align: left;">nord_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">87.4555487</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 30</td>
+<td style="text-align: left;">ostlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">87.3862598</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 30</td>
+<td style="text-align: left;">solandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">83.9037973</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 30</td>
+<td style="text-align: left;">vestlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">81.0084679</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 31</td>
+<td style="text-align: left;">midt_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">73.1038996</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 31</td>
+<td style="text-align: left;">nord_norge</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">76.2056733</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 31</td>
+<td style="text-align: left;">ostlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">80.0522347</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 31</td>
+<td style="text-align: left;">solandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">75.9322639</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Share of urban green areas</td>
+<td style="text-align: left;">URGR 31</td>
+<td style="text-align: left;">vestlandet</td>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">70.8492443</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
 <!--# 
 
 Repeat the final results here. Typically this is a map or table of indicator values.
@@ -5796,8 +6367,21 @@ This is typically where people will harvest data from, so make sure to include a
 
 -->
 </section>
+</section>
 <section id="export-file" class="level2">
 <h2 class="anchored" data-anchor-id="export-file">11. Export file</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code to export the result tables above</summary>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a><span class="co">#CSV</span></span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write.table</span>(res_national, <span class="st">&quot;URGR_NO_national_2018.csv&quot;</span>)</span>
+<span id="cb82-3"><a href="#cb82-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write.table</span>(res_regional, <span class="st">&quot;URGR_NO_regional_2018.csv&quot;</span>)</span>
+<span id="cb82-4"><a href="#cb82-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb82-5"><a href="#cb82-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Excel</span></span>
+<span id="cb82-6"><a href="#cb82-6" aria-hidden="true" tabindex="-1"></a><span class="fu">write_xlsx</span>(res_national, <span class="st">&quot;URGR_NO_national_2018.xlsx&quot;</span>)</span>
+<span id="cb82-7"><a href="#cb82-7" aria-hidden="true" tabindex="-1"></a><span class="fu">write_xlsx</span>(res_regional, <span class="st">&quot;URGR_NO_regional_2018.xlsx&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
 <!--# 
 
 Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
