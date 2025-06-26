@@ -436,7 +436,7 @@ Walther Franziska, Barton David N., Schwaab Jonas, Kato-Huerta Jarumi, Immerzeel
 
 ## 7. Datasets
 
-All the datasets use dto compile the different versions of the URGR indicators have been thoroughly describe din the previous sections, link sto them are also provided for more information.
+All the datasets used to compile the different versions of the URGR indicators have been thoroughly describe din the previous sections, link sto them are also provided for more information.
 
 ## 8. Spatial units
 
@@ -2339,6 +2339,164 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 ## 10. Results
 
+### National results
+```{r}
+#| eval: true
+#| code-summary: "Code to create a comparative URGR table"
+
+# Load the results files
+path_res <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/"
+urgr13 <- read_excel(paste0(path_res, "URGR_013_detailed_results_24MAY25.xlsx"))
+urgr22 <- read_excel(paste0(path_res, "URGR_022_detailed_results_24MAY25.xlsx"))
+urgr23 <- read.table(paste0(path_res, "URGR_023_detailed_results_27MAY2025.csv"))
+urgr25 <- read.table(paste0(path_res, "URGR_025_detailed_results_26MAY2025.csv"))
+urgr30 <- read.table(paste0(path_res, "URGR_030_detailed_results_26JUNE2025.csv"))
+urgr31 <- read_excel(paste0(path_res, "URGR_031_fylke_results_18JUNE_25.xlsx"))
+
+# Calculate URGR indicators
+urgr13_national <- sum(urgr13$total_area_et_m2) / sum(urgr13$lau_area_m2) *100
+urgr22_national <- sum(urgr22$total_area_et_m2) / sum(urgr22$urb_domn_total_area) *100
+urgr23_national <- sum(urgr23$total_area_et_m2) / sum(urgr23$soaa_total_area_m2) *100
+urgr25_national <- sum(urgr25$total_non_imper_area_m2) / sum(urgr25$total_soaa_area_m2) *100
+urgr30_national <- sum(urgr30$total_non_imper_area_m2) / sum(urgr30$total_soaa_area_m2) *100
+urgr31_national <- sum(urgr31$total_non_imper_area_m2) / sum(urgr31$total_soaa_area_m2) *100
+
+# Create the table of outputs
+urgr_vec_national <- c(urgr13_national,
+                       urgr22_national,
+                       urgr23_national,
+                       urgr25_national,
+                       urgr30_national,
+                       urgr31_national)
+
+names_vec_national <- c("URGR 13",
+                        "URGR 22",
+                        "URGR 23",
+                        "URGR 25",
+                        "URGR 30",
+                        "URGR 31")
+
+res_national <- data.frame(rep("Share of urban green areas", 6),
+                           names_vec_national, 
+                           rep("Norway", 6), 
+                           rep(2018, 6),
+                           urgr_vec_national)
+
+colnames(res_national) <- c("Indicator",
+                            "ID",
+                            "Accounting area",
+                            "Accounting period",
+                            "Variable value (%)")
+
+kbl(res_national)
+
+```
+
+### Regional results
+```{r}
+#| eval: true
+#| warning: false
+#| code-summary: "Code to create a comparative URGR table"
+
+# Load the results files
+path_res <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/"
+urgr13 <- read_excel(paste0(path_res, "URGR_013_detailed_results_24MAY25.xlsx"))
+urgr22 <- read_excel(paste0(path_res, "URGR_022_detailed_results_24MAY25.xlsx"))
+urgr23 <- read.table(paste0(path_res, "URGR_023_detailed_results_27MAY2025.csv"))
+urgr25 <- read.table(paste0(path_res, "URGR_025_detailed_results_26MAY2025.csv"))
+urgr30 <- read.table(paste0(path_res, "URGR_030_detailed_results_26JUNE2025.csv"))
+urgr31 <- read_excel(paste0(path_res, "URGR_031_fylke_results_18JUNE_25.xlsx"))
+
+path_region <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/NO_Fylke/"
+regions <- read_excel(paste0(path_region, "kommune_fylke_region_NO_2024.xlsx"))
+
+# Calculate URGR indicators
+# Note that LAUD dataset uses the kommune codes from 2023
+regions$kommune_nr_2023 <- as.character(regions$kommune_nr_2023)
+regions$kommune_nr_2023[regions$kommune_nr_2023 == 301] <- "0301"
+
+urgr13_regional <- urgr13 %>%
+                    left_join(., regions, join_by(LAU_ID == kommune_nr_2023)) %>%
+                    group_by(region_name) %>%
+                    summarise(urban_green_area_m2 = sum(total_area_et_m2),
+                              total_urban_area_m2 = sum(lau_area_m2)) %>%
+                    mutate(indicator = rep("URGR 13", nrow(.)),
+                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                    select(region_name, indicator, urgr_regional)
+                   
+urgr22_regional <- urgr22 %>%
+                    left_join(., regions, join_by(LAU_ID == kommune_nr_2023)) %>%
+                    group_by(region_name) %>%
+                    summarise(urban_green_area_m2 = sum(total_area_et_m2),
+                              total_urban_area_m2 = sum(urb_domn_total_area)) %>%
+                    mutate(indicator = rep("URGR 22", nrow(.)),
+                           urgr_regional= urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                    select(region_name, indicator, urgr_regional)
+
+regions$kommune_nr_2023 <- as.numeric(regions$kommune_nr_2023) 
+regions$kommune_nr_2023[regions$kommune_nr_2023 == 0301] <- 301
+urgr23_regional <- urgr23 %>%
+                    left_join(., regions, join_by(LAU_ID == kommune_nr_2023)) %>%
+                    group_by(region_name) %>%
+                    summarise(urban_green_area_m2 = sum(total_area_et_m2),
+                              total_urban_area_m2 = sum(soaa_total_area_m2)) %>%
+                    mutate(indicator = rep("URGR 23", nrow(.)),
+                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                    select(region_name, indicator, urgr_regional)  
+
+
+urgr25_regional <- urgr25 %>%
+                    left_join(., regions, join_by(LAU_ID == kommune_nr_2023)) %>%
+                    group_by(region_name) %>%
+                    summarise(urban_green_area_m2 = sum(total_non_imper_area_m2),
+                              total_urban_area_m2 = sum(total_soaa_area_m2)) %>%
+                    mutate(indicator = rep("URGR 25", nrow(.)),
+                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                    select(region_name, indicator, urgr_regional)  
+
+urgr30_regional <- urgr30 %>%
+                    left_join(., regions, join_by(fylkesnumm == fylke_nr)) %>%
+                    group_by(region_name) %>%
+                    summarise(urban_green_area_m2 = sum(total_non_imper_area_m2),
+                              total_urban_area_m2 = sum(total_soaa_area_m2)) %>%
+                    mutate(indicator = rep("URGR 30", nrow(.)),
+                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                    select(region_name, indicator, urgr_regional)  
+
+urgr31_regional <- urgr31 %>%
+                    left_join(., regions, join_by(fylkesnumm == fylke_nr)) %>%
+                    group_by(region_name) %>%
+                    summarise(urban_green_area_m2 = sum(total_non_imper_area_m2),
+                              total_urban_area_m2 = sum(total_soaa_area_m2)) %>%
+                    mutate(indicator = rep("URGR 31", nrow(.)),
+                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                    select(region_name, indicator, urgr_regional) 
+
+# Create the table of outputs
+urgr_df_regional <- bind_rows(urgr13_regional,
+                              urgr22_regional,
+                              urgr23_regional,
+                              urgr25_regional,
+                              urgr30_regional,
+                              urgr31_regional)
+
+res_regional <- data.frame(rep("Share of urban green areas", nrow(urgr_df_regional)),
+                           urgr_df_regional$indicator, 
+                           urgr_df_regional$region_name,
+                           rep(2018, nrow(urgr_df_regional)),
+                           urgr_df_regional$urgr_regional)
+
+colnames(res_regional) <- c("Indicator",
+                            "ID",
+                            "Accounting area",
+                            "Accounting period",
+                            "Variable value (%)")
+
+kbl(res_regional)
+
+```
+
+
 <!--# 
 
 Repeat the final results here. Typically this is a map or table of indicator values.
@@ -2348,13 +2506,21 @@ This is typically where people will harvest data from, so make sure to include a
 -->
 
 ## 11. Export file
+```{r export}
+#| eval: false
+#| code-summary: "Code to export the result tables above"
 
+#CSV
+write.table(res_national, "URGR_NO_national_2018.csv")
+write.table(res_regional, "URGR_NO_regional_2018.csv")
+
+#Excel
+write_xlsx(res_national, "URGR_NO_national_2018.xlsx")
+write_xlsx(res_regional, "URGR_NO_regional_2018.xlsx")
+
+```
 <!--# 
 
 Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
 
 -->
-
-```{r export}
-#| eval: false
-```
