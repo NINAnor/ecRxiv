@@ -51,7 +51,9 @@ library(jsonlite)
 library(duckdb)
 library(glue)
 library(tictoc)
+library(duckdb)
 library(duckdbfs)
+library(duckspatial)
 library(purrr)
 library(stringr)
 library(exactextractr)
@@ -350,9 +352,12 @@ kom_nb <- read_excel(path_kom_nb) %>%
 kom_nb$kommune_nr_2023[which(kom_nb$kommune_nr_2023 == "301")] <- "0301"
 
 haram_2024 <- st_intersection(har_al_lau, har_al_kom[2,]) %>%
-                select(colnames(lau_no)) %>%
+                select(c(colnames(lau_no), kommunenavn)) %>%
+                select(!c(LAU_NAME)) %>%
+                rename(LAU_NAME = kommunenavn) %>%
                 left_join(., kom_nb, by = join_by("LAU_ID" == "kommune_nr_2023")) %>%
                 select(LAU_NAME, fylke_nr, kommune_nr_2024, region_name, geometry)
+haram_2024$kommune_nr_2024 <- 1580
 
 alesund_2024 <- st_intersection(har_al_lau, har_al_kom[1,]) %>%
                 select(colnames(lau_no)) %>%
@@ -384,7 +389,7 @@ degurba_lau_no$`LAU CODE`[which(degurba_lau_no$`LAU CODE` == 0301)] <- 301
 # Join lau_no_2024 with DEGURBA
 lau_dgurb <- inner_join(lau_no_2024,
                         degurba_lau_no,
-                       by = join_by("kommune_nr_2024" == "LAU CODE")) %>%
+                        by = join_by("kommune_nr_2024" == "LAU CODE")) %>%
               select(LAU_NAME, DEGURBA, fylke_nr, kommune_nr_2024, region_name, geometry) %>%
               st_as_sf()
 
@@ -399,7 +404,8 @@ rm(list = setdiff(ls(),
                     "path_kom_nb",
                     "path_lau",
                     "path_lau_folder",
-                    "path_grunnkart")))
+                    "path_grunnkart",
+                    "lau_dgurb")))
 
 ```
 
@@ -413,13 +419,11 @@ Defining SOAA within LAUs requires the LAUs and the extent of the SOAA ecosystem
 
 ## Path to data
 # Grunnkart
-path_grunnkart <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format/"
 gdb_files <- list.files(path_grunnkart, pattern = "_gdb\\.gdb$", 
                         full.names = TRUE)
 
-# LAUs shapefile from Eurostat
-path_lau_folder <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_boundaries_NO/LAU_Eurostat/LAU_EUROSTAT_2024.shp"
-
+# LAUs 2024
+path_lau_2024 <- paste0(path_lau_folder, "LAU_EUROSTAT_2024.shp")
 
 ## Clean Grunnkart tile 34
 # Clean
@@ -627,7 +631,6 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
     
     # Drop the grunnkart register tables
-    dbExecute(db_connexion, "DROP VIEW grunnkart")
     dbExecute(db_connexion, "DROP VIEW lau_fylke")
     dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
     dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
@@ -646,26 +649,142 @@ fylke_nb_gdb_vec <- map(seq_along(gdb_files), ~ numextract(gdb_files[.x])) %>%
                       as.numeric()
 
 # Perform the intersection
-soaa_lau_inter <- map(seq_along(fylke_nb), 
-                      ~ do_intersection(conn, fylke_nb[.x], gdb_files, fylke_nb_gdb_vec))
+soaa_lau_inter <- map(seq_along(fylke_nb_gdb_vec), 
+                      ~ do_intersection(conn, fylke_nb_gdb_vec[.x], gdb_files, fylke_nb_gdb_vec, path_lau_2024))
 
 
 # Close the connection to duckdb database (remove in-memory dB)
 dbDisconnect(conn)
+
+# Clean the R environment
+rm(list = setdiff(ls(), 
+                  c("path_degurba",
+                    "path_kom",
+                    "path_kom_nb",
+                    "path_lau",
+                    "path_lau_folder",
+                    "path_grunnkart",
+                    "soaa_lau_inter",
+                    "lau_dgurb")))
 ```
 
 
-#### PM2.5 concentration
-We can now read in the PM2.5 concentration maps for each of the municipalities. As the PM2.5 maps are available from Miljødirektoratet website using an API, we first create a list of the maps that should be accessed before retrieving the data through the API.
+### PM2.5 concentration
+#### Load the data
+We can now read in the PM2.5 concentration maps for each of the municipalities. As the PM2.5 maps are available from Miljødirektoratet website using an API, we first create a list of the maps that should be accessed before retrieving the data through the API. The PM2.5 maps are retrieved in .tif format. Note that the data have to be called through the API and written on the disk. Due to their format, they couldn't be loaded in the R environment.
 ```{r}
 #| eval: false
-#| code-summary: "Load Pm2.5 concentration maps"
+#| code-summary: "Load PM2.5 concentration maps and store them on disk"
+
+## Create list of urls
+
+# Base url
+begin_url <- "https://airquality-expert.met.no/airqualityexpert/0.2/map/"
+end_url <- "/pm25_concentration_annualmean.tiff"
+
+# List of municipalities numbers
+path_lau_2024 <- paste0(path_lau_folder, "LAU_EUROSTAT_2024.shp")
+lau_2024 <- st_read(path_lau_2024)
+
+lau_nb <- unique(lau_2024$k__2024) %>%
+            as.character()
+lau_nb[35] <- "0301"
+
+# List the years of interest
+yrs <- seq(2016, 2023, 1)
+
+# Create the urls
+url_list <- map(seq_along(yrs), 
+                ~ map_chr(seq_along(lau_nb), 
+                          function(y) {paste0(begin_url,
+                                       lau_nb[y],
+                                       "/",
+                                       yrs[.x],
+                                       end_url)}
+                          )
+                )
 
 
+## Write API query function: retrieve the data and write them on the disk
+api_fetch_data <- function(year_vec, municipality_vec, year, municipality, res_path){
 
+idx_year <- which(year_vec == year)
+idx_municip <- which(municipality_vec == municipality)
+
+# Create a request
+req <- request(url_list[[idx_year]][idx_municip])
+
+# Perform the request
+fetch_data <- req %>% 
+               req_perform()
+
+# Write data in GIS folder
+resp_body_raw(fetch_data) %>% 
+  writeBin(., paste0(res_path, year, "/PM25_", year, "_", municipality, ".tif"))
+}
+
+
+## Retrive and write the PM2.5 data on the disk
+map(seq_along(yrs), 
+    ~ map(seq_along(lau_nb), function(y) {
+      api_fetch_data(yrs, 
+                     lau_nb, 
+                     yrs[.x], 
+                     lau_nb[y], 
+                     res_path = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/")}
+      
+      )
+          )
 
 ```
 
+#### Extract PM2.5 concentration in urban areas
+Urban areas are define din two ways in this project: (1) the total area of the LAU; or (2) the total area of the class "Settlements and other artificial areas" (SOAA), from the EU Ecosystem Typology, within the LAUs. The mean concentration of PM2.5for case (1) is easy to get as it can be calculated based on the entire PM2.5 concentration maps that we downloaded above. For case (2) however, further manipulations are needed as we need to only extract the raster cells of the PM2.5 concentration maps that overlap with the SOAA polygons. This is what we do in the code below. Note that the function used for this (`exact_extract()`) only works if the geometry type is polygon or multipolygon. Hence, we first need to clean the SOAA maps that we created before to only extract the polygons.
+
+```{r}
+#| eval: false
+#| code-summary: "Compile PM2.5 concentration in urban areas"
+
+## Read the data
+map()
+
+
+
+
+
+# Read the data
+img <- rast("/data/Egenutvikling/61546-01_fu_intern_sylvie_clappe/ecRxiv_URAQ/test/img.tif")
+
+# LAU
+kom <- soaa_lau %>% filter(k__2024 == "1806")
+
+#Extract PM2.5 cells
+# Keep only polygon features
+soaa_lau_poly <- kom %>% 
+                  st_collection_extract(.,
+                                        type = c("POLYGON"), 
+                                        warn = FALSE) %>%
+                  st_transform(., crs(img))
+
+#Check crs
+crs(img) == crs(soaa_lau_poly)
+
+# Extract
+soaa_lau_pm25 <- soaa_lau_poly %>%
+                  mutate(soaa_area_m2 = unclass(st_area(.))) %>%
+                  exact_extract(img,
+                                .,
+                                fun = c("mean"),
+                                append_cols = TRUE)
+# Cleaning
+# the PM2.5 raster are slightly smaller than the LAU borders so all polygons 
+# in the border were not necessarily covered by a pixel so it created NAs
+# so the NAs need to be cleaned
+pm25_final <- soaa_lau_pm25 %>% 
+                filter(!is.na(mean) == TRUE)
+
+
+```
 
 ### Summary table to derive URAQ
 Now we can build an overall table that we will be able to use to calculate all the versions of the URAQ indicator in the Results section below.
@@ -680,6 +799,8 @@ Now, we can load the particulate matter 2.5 (PM2.5) data directly using an API. 
 ```{r}
 #| eval: false
 #| code-summary: "Create PM2.5 geodatabase"
+
+
 
 
 ```
