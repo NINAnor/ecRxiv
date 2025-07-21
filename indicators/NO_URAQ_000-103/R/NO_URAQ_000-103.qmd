@@ -649,7 +649,7 @@ fylke_nb_gdb_vec <- map(seq_along(gdb_files), ~ numextract(gdb_files[.x])) %>%
                       as.numeric()
 
 # Perform the intersection
-soaa_lau_inter <- map(seq_along(fylke_nb_gdb_vec), 
+soaa_lau_inter <- map(seq_along(fylke_nb_gdb_vec)[1:2], 
                       ~ do_intersection(conn, fylke_nb_gdb_vec[.x], gdb_files, fylke_nb_gdb_vec, path_lau_2024))
 
 
@@ -680,7 +680,7 @@ We can now read in the PM2.5 concentration maps for each of the municipalities. 
 
 # Base url
 begin_url <- "https://airquality-expert.met.no/airqualityexpert/0.2/map/"
-end_url <- "/pm25_concentration_annualmean.tiff"
+end_url <- "/pm25_concentration_annualmean.tif"
 
 # List of municipalities numbers
 path_lau_2024 <- paste0(path_lau_folder, "LAU_EUROSTAT_2024.shp")
@@ -706,7 +706,7 @@ url_list <- map(seq_along(yrs),
 
 
 ## Write API query function: retrieve the data and write them on the disk
-api_fetch_data <- function(year_vec, municipality_vec, year, municipality, res_path){
+api_fetch_data <- function(year_vec, municipality_vec, year, municipality, res_path, url_list){
 
 idx_year <- which(year_vec == year)
 idx_municip <- which(municipality_vec == municipality)
@@ -731,58 +731,80 @@ map(seq_along(yrs),
                      lau_nb, 
                      yrs[.x], 
                      lau_nb[y], 
-                     res_path = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/")}
+                     res_path = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                     url_list = url_list)}
       
       )
           )
 
+## Clean the R environment
+rm(list = setdiff(ls(), 
+                  c("path_degurba",
+                    "path_kom",
+                    "path_kom_nb",
+                    "path_lau",
+                    "path_lau_folder",
+                    "path_grunnkart",
+                    "soaa_lau_inter",
+                    "lau_dgurb",
+                    "yrs",
+                    "lau_nb")))
 ```
 
 #### Extract PM2.5 concentration in urban areas
-Urban areas are define din two ways in this project: (1) the total area of the LAU; or (2) the total area of the class "Settlements and other artificial areas" (SOAA), from the EU Ecosystem Typology, within the LAUs. The mean concentration of PM2.5for case (1) is easy to get as it can be calculated based on the entire PM2.5 concentration maps that we downloaded above. For case (2) however, further manipulations are needed as we need to only extract the raster cells of the PM2.5 concentration maps that overlap with the SOAA polygons. This is what we do in the code below. Note that the function used for this (`exact_extract()`) only works if the geometry type is polygon or multipolygon. Hence, we first need to clean the SOAA maps that we created before to only extract the polygons.
+Urban areas are define din two ways in this project: (1) the total area of the LAU; or (2) the total area of the class "Settlements and other artificial areas" (SOAA), from the EU Ecosystem Typology, within the LAUs. The mean concentration of PM2.5for case (1) is easy to get as it can be calculated based on the entire PM2.5 concentration maps that we downloaded above. For case (2) however, further manipulations are needed as we need to only extract the raster cells of the PM2.5 concentration maps that overlap with the SOAA polygons. This is what we do in the code below. Note that the function used for this (`exact_extract()`) only works if the geometry type is polygon or multipolygon. Hence, we first need to clean the SOAA maps that we created before to only extract the polygons. 
+
+During the extraction of the raster cell values, there will be the creation of "NA" values. This means that some polygon will have a PM2.5 concentration of "NA". This is an artifact due to the raster format of the PM2.5 concentration maps. While comparing them with the polygon of the municipalities, we noticed that some municipal raster maps were smaller than their associated municipal polygon.Hence, some polygons of settelements sadly fall outside of the PM2.5 concentration map while beging int he municicpal polygon. This leads to the creation of "NA" values. We added a step of cleaning in the code below to remove these "NA" values.
 
 ```{r}
 #| eval: false
 #| code-summary: "Compile PM2.5 concentration in urban areas"
 
-## Read the data
-map()
+## Clean SOAA: keep only polygons
+soaa_lau <- soaa_lau_inter %>%
+              map(~ st_collection_extract(.,
+                    type = c("POLYGON"), 
+                    warn = FALSE)) %>%
+              compact() %>%  
+              bind_rows()
+  
 
+## Create function to read the raster and extract the raster cells corresponding to SOOA
+extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
+  
+  # Read in data
+  municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
+  soaa_bd <- soaa_shp %>%
+              filter(k__2024 == as.numeric(municipality)) %>%
+              st_transform(., crs(municip_rast)) %>%
+              mutate(soaa_area_m2 = unclass(st_area(.))) 
+  
+  # Extract raster cells
+  soaa_lau_pm25 <- soaa_bd %>%
+                    exact_extract(municip_rast,
+                                  .,
+                                  fun = c("mean"),
+                                  append_cols = TRUE) %>%
+                    filter(!is.na(mean) == TRUE)  # Cleaning step
+}
 
+## Extract PM2.5 mean concentration per SOAA polygon
 
+soaa_pm25 <- map(seq_along(yrs), 
+                 ~ map(seq_along(lau_nb2), function(y) {extract_rast(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                                                                         soaa_shp = soaa_lau, municipality = lau_nb2[y], year = yrs[.x])}
+                       )
+                 )
+                
 
+names(soaa_pm25) <- as.character(yrs)
+```
 
-# Read the data
-img <- rast("/data/Egenutvikling/61546-01_fu_intern_sylvie_clappe/ecRxiv_URAQ/test/img.tif")
-
-# LAU
-kom <- soaa_lau %>% filter(k__2024 == "1806")
-
-#Extract PM2.5 cells
-# Keep only polygon features
-soaa_lau_poly <- kom %>% 
-                  st_collection_extract(.,
-                                        type = c("POLYGON"), 
-                                        warn = FALSE) %>%
-                  st_transform(., crs(img))
-
-#Check crs
-crs(img) == crs(soaa_lau_poly)
-
-# Extract
-soaa_lau_pm25 <- soaa_lau_poly %>%
-                  mutate(soaa_area_m2 = unclass(st_area(.))) %>%
-                  exact_extract(img,
-                                .,
-                                fun = c("mean"),
-                                append_cols = TRUE)
-# Cleaning
-# the PM2.5 raster are slightly smaller than the LAU borders so all polygons 
-# in the border were not necessarily covered by a pixel so it created NAs
-# so the NAs need to be cleaned
-pm25_final <- soaa_lau_pm25 %>% 
-                filter(!is.na(mean) == TRUE)
-
+#### Compile mean PM2.5 concentration in urban areas
+Now that we have the PM2.5 concentration for the whole municipalities (PM2.5 raster maps), and within the SOAA of municipalities (see section above), we can calculate the mean concentration over both these areas. These 
+```{r}
+#| eval: false
+#| code-summary: "Mean PM2.5 concentration in urban areas"
 
 ```
 
