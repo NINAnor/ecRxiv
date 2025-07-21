@@ -319,6 +319,9 @@ path_kom_nb <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_bo
 # Grunnkart
 path_grunnkart <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format/"
 
+# Path to write results
+res_path <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/"
+
 ```
 
 ### Define urban areas
@@ -649,7 +652,7 @@ fylke_nb_gdb_vec <- map(seq_along(gdb_files), ~ numextract(gdb_files[.x])) %>%
                       as.numeric()
 
 # Perform the intersection
-soaa_lau_inter <- map(seq_along(fylke_nb_gdb_vec)[1:2], 
+soaa_lau_inter <- map(seq_along(fylke_nb_gdb_vec)[], 
                       ~ do_intersection(conn, fylke_nb_gdb_vec[.x], gdb_files, fylke_nb_gdb_vec, path_lau_2024))
 
 
@@ -785,33 +788,110 @@ extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
                                   .,
                                   fun = c("mean"),
                                   append_cols = TRUE) %>%
-                    filter(!is.na(mean) == TRUE)  # Cleaning step
+                    filter(!is.na(mean) == TRUE) %>%  # Cleaning step
+                    mutate(., year = year)
 }
 
 ## Extract PM2.5 mean concentration per SOAA polygon
 
-soaa_pm25 <- map(seq_along(yrs), 
-                 ~ map(seq_along(lau_nb2), function(y) {extract_rast(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-                                                                         soaa_shp = soaa_lau, municipality = lau_nb2[y], year = yrs[.x])}
+soaa_pm25 <- map(seq_along(yrs[1:2]), 
+                 ~ map(seq_along(lau_nb), function(y) {extract_rast(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                                                                         soaa_shp = soaa_lau, municipality = lau_nb[y], year = yrs[.x])}
                        )
                  )
-                
 
 names(soaa_pm25) <- as.character(yrs)
+
+
+## Clean the R environment
+rm(list = setdiff(ls(), 
+                  c("path_degurba",
+                    "path_kom",
+                    "path_kom_nb",
+                    "path_lau",
+                    "path_lau_folder",
+                    "path_grunnkart",
+                    "soaa_lau_inter",
+                    "lau_dgurb",
+                    "yrs",
+                    "lau_nb",
+                    "soaa_pm25")))
 ```
 
 #### Compile mean PM2.5 concentration in urban areas
-Now that we have the PM2.5 concentration for the whole municipalities (PM2.5 raster maps), and within the SOAA of municipalities (see section above), we can calculate the mean concentration over both these areas. These 
+Now that we have the PM2.5 concentration for the whole municipalities (PM2.5 raster maps), and within the SOAA of municipalities (see section above), we can calculate the mean concentration over both these areas.
 ```{r}
 #| eval: false
 #| code-summary: "Mean PM2.5 concentration in urban areas"
+
+## Average PM2.5 in the municipality
+# Create an averaging function
+read_and_compile_pm25 <- function(path_rast_folder, year, municipality){
+  
+  # Read in data
+  municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
+  
+  # Average
+  av_pm25_municip <- values(municip_rast) %>% 
+                      .[!is.na(.)] %>%
+                      mean()
+  
+  # Return a vector of results
+  res <- data.frame(mean_pm25_municip = av_pm25_municip, 
+                    year = year, 
+                    kommune_nummer = as.numeric(municipality))
+  
+  return(res)
+                      
+}
+
+# Run the averaging function
+municip_pm25 <- map(seq_along(yrs[1:2]), 
+                    ~ map(seq_along(lau_nb2), function(y) {read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                                                                                year = yrs[.x], municipality = lau_nb2[y])}
+                       )
+                 )
+
+municip_pm25 <- map(seq_along(municip_pm25), 
+                      ~ map(seq_along(lau_nb2), function (y) {names(municip_pm25[[.x]][[y]]) = lau_nb2[y]}))
+
+names(municip_pm25) <- c(yrs[1:2])
+
+municip_pm25_av <- map(seq_along(yrs[1:2]), 
+                    ~ map(seq_along(lau_nb2), function(y) {read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                                                                                year = yrs[.x], municipality = lau_nb2[y])}
+                       )
+                 ) %>%
+                    compact() %>%
+                    bind_rows()
+
+
+
+## Average PM2.5 in the SOAA of the municipality
+soaa_pm25_av <- soaa_pm25 %>%
+                  compact() %>%
+                  bind_rows() %>%
+                  rename(kommune_nummer = k__2024) %>%
+                  group_by(year, fylk_nr, kommune_nummer) %>%
+                  summarise(mean_soaa_pm25_ug_m3 = mean(mean),
+                            total_soaa_area_m2 = sum(soaa_area_m2))
 
 ```
 
 ### Summary table to derive URAQ
 Now we can build an overall table that we will be able to use to calculate all the versions of the URAQ indicator in the Results section below.
 
+```{r}
+#| eval: false
+#| code-summary: "Summary table"
+## Create tables of results
+res_table_pm25 <- inner_join(soaa_pm25_av, municip_pm25_av, by = c("year", "kommune_nummer")) %>%
+                    select(year, fylk_nr, kommune_nummer, mean_pm25_municip, mean_soaa_pm25_ug_m3, total_soaa_area_m2)
+                    
 
+## Export tables of results
+write.table(res_table_pm25, paste0(res_path, "URAQ_summary_table.csv"), sep = ";")
+```
 
 
 
