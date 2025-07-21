@@ -846,20 +846,9 @@ read_and_compile_pm25 <- function(path_rast_folder, year, municipality){
 }
 
 # Run the averaging function
-municip_pm25 <- map(seq_along(yrs[1:2]), 
+municip_pm25_av <- map(seq_along(yrs), 
                     ~ map(seq_along(lau_nb2), function(y) {read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-                                                                                year = yrs[.x], municipality = lau_nb2[y])}
-                       )
-                 )
-
-municip_pm25 <- map(seq_along(municip_pm25), 
-                      ~ map(seq_along(lau_nb2), function (y) {names(municip_pm25[[.x]][[y]]) = lau_nb2[y]}))
-
-names(municip_pm25) <- c(yrs[1:2])
-
-municip_pm25_av <- map(seq_along(yrs[1:2]), 
-                    ~ map(seq_along(lau_nb2), function(y) {read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-                                                                                year = yrs[.x], municipality = lau_nb2[y])}
+                                                                                year = yrs[.x], municipality = lau_nb[y])}
                        )
                  ) %>%
                     compact() %>%
@@ -875,7 +864,6 @@ soaa_pm25_av <- soaa_pm25 %>%
                   group_by(year, fylk_nr, kommune_nummer) %>%
                   summarise(mean_soaa_pm25_ug_m3 = mean(mean),
                             total_soaa_area_m2 = sum(soaa_area_m2))
-
 ```
 
 ### Summary table to derive URAQ
