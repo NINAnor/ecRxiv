@@ -50,6 +50,7 @@ library(tictoc)
 library(duckdb)
 library(duckdbfs)
 library(duckspatial)
+library(mirai)
 library(purrr)
 library(stringr)
 library(exactextractr)
@@ -950,29 +951,6 @@ res_table_pm25 <- inner_join(soaa_pm25_av, municip_pm25_av, by = c("year", "komm
 ## Export tables of results
 write.table(res_table_pm25, paste0(res_path, "URAQ_summary_table.csv"), sep = ";")
 ```
-
-
-
-
-### TEXT FOR OTHER INDICATORS
-Now, we can load the particulate matter 2.5 (PM2.5) data directly using an API. This data are individual maps for all municipalities so we need to create a geodatabase to regroup all of them. The reason we create a geodatabase instead of just working with the data directly obtained through the API is that we will perform spatial intersections with the `duckdb` package. Our spatial intersections are computing intensive and using the `duckdb` package allows to significantly decrease the computing time. `duckdb` however works directly with the databases through SQL commands, hence the need to create our geodatabase first.
-```{r}
-#| eval: false
-#| code-summary: "Create PM2.5 geodatabase"
-
-
-
-
-```
-
-
-
-
-
-
-
-
-
 
 <!--# 
 
