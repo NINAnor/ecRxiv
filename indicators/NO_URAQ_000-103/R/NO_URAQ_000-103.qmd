@@ -161,7 +161,7 @@ meta |>
 Urban air quality can be defined as the degree to which the air in urban areas (*e.g.,* cities, towns, suburbs) is free from pollutants. 
 
 ***How to measure air quality in an urban area?*** \
-Air quality can be measured by the presence of various pollutants in the air. In this report, we focused on the concentration of two pollutants: particulate matter 2.5 and ozone. There are 3 major steps in calculating this indicator:
+Air quality can be measured by the presence of various pollutants in the air. In this report, we focused on the concentration of particulate matter 2.5. There are 2 major steps in calculating this indicator:
 
 1. Identify the total area of urban areas.
 2. Within this area, calculate the average yearly concentration of particulate matter 2.5 and ozone.
@@ -508,7 +508,7 @@ ddbs_write_vector(conn, grunnkart_34, "grunnkart_valid_34")
 
 
 
-# Check that the table weas registered
+# Check that the table was registered
 ddbs_list_tables(conn)
 
 
@@ -816,7 +816,7 @@ Urban areas are define din two ways in this project: (1) the total area of the L
 
 During the extraction of the raster cell values, there will be the creation of "NA" values. This means that some polygon will have a PM2.5 concentration of "NA". This is an artifact due to the raster format of the PM2.5 concentration maps. While comparing them with the polygon of the municipalities, we noticed that some municipal raster maps were smaller than their associated municipal polygon.Hence, some polygons of settlements sadly fall outside of the PM2.5 concentration map while being in the municipal polygon. This leads to the creation of "NA" values. We added a step of cleaning in the code below to remove these "NA" values.
 
-One last note on the code below: to speed up the computation time, parallel computing has been used through the new `in_parallel()` function from the `purrr` package. This requires to make some adjustments in the code to make sure that the `workers`, or jobs running in parallel, have the objects present in  the R environment and the packages. Indeed, when using `in_parallel()`, all packages and R objects of the environment are invisible to the `workers` if not explicitly stated in the in_parallel()` function.
+One last note on the code below: to speed up the computation time, parallel computing has been used through the new `in_parallel()` function from the `purrr` package. This requires to make some adjustments in the code to make sure that the `workers`, or jobs running in parallel, have the objects present in  the R environment and the packages. Indeed, when using `in_parallel()`, all packages and R objects of the environment are invisible to the `workers` if not explicitly stated in the `in_parallel()` function.
 
 ```{r}
 #| eval: false
@@ -853,10 +853,10 @@ extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
   library(dplyr)
   library(sf)
   library(terra)
-  library(exactextract)
+  library(exactextractr)
   
   # Read in data
-  municip_rast <- ast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
+  municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
   soaa_bd <- soaa_shp %>%
               filter(k__2024 == as.numeric(municipality)) %>%
               st_transform(., crs(municip_rast)) %>%
@@ -875,16 +875,25 @@ extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
 
 ## Extract PM2.5 mean concentration per SOAA polygon
 daemons(10)
-soaa_pm25 <- map(seq_along(yrs[1]), 
-                 ~ map(seq_along(lau_nb[1:10]), in_parallel(function(y,i) {extract_rast(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-                                                                         soaa_shp = soaa_lau, municipality = lau_nb[y], year = yrs[i])}, 
-                                                            extract_rast = extract_rast,
-                                                            soaa_lau = soaa_lau,
-                                                            lau_nb = lau_nb,
-                                                            yrs = yrs,
-                                                            i = .x)
+
+all_combinations <- expand.grid(seq_yrs = seq_along(yrs[1]), seq_lau_nb = seq_along(lau_nb[1:10]))
+
+soaa_pm25 <- map2(x = all_combinations$seq_yrs, y = all_combinations$seq_lau_nb,
+                   in_parallel(function(x, y){
+                     extract_rast(
+                       path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                       soaa_shp = soaa_lau,
+                       municipality = lau_nb[y],
+                       year = yrs[x]
                        )
-                 )
+                     }, 
+                     extract_rast = extract_rast, 
+                     soaa_lau = soaa_lau, 
+                     lau_nb = lau_nb, 
+                     yrs = yrs
+                     )
+                   )
+
 daemons(0)
 
 names(soaa_pm25) <- as.character(yrs)
@@ -916,6 +925,10 @@ Now that we have the PM2.5 concentration for the whole municipalities (PM2.5 ras
 # Create an averaging function
 read_and_compile_pm25 <- function(path_rast_folder, year, municipality){
   
+  # Load libraries for workers
+  library(terra)
+  library(dplyr)
+  
   # Read in data
   municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
   
@@ -934,13 +947,31 @@ read_and_compile_pm25 <- function(path_rast_folder, year, municipality){
 }
 
 # Run the averaging function
-municip_pm25_av <- map(seq_along(yrs), 
-                    ~ map(seq_along(lau_nb2), function(y) {read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-                                                                                year = yrs[.x], municipality = lau_nb[y])}
-                       )
-                 ) %>%
-                    compact() %>%
-                    bind_rows()
+daemons(10)
+
+all_combinations <- expand.grid(seq_yrs = seq_along(yrs[1]), seq_lau_nb = seq_along(lau_nb[1:10]))
+
+municip_pm25_av <- map2(x = all_combinations$seq_yrs, y = all_combinations$seq_lau_nb,
+                   in_parallel(function(x, y){
+                     read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                                           year = yrs[x], 
+                                           municipality = lau_nb[y]
+                                           )
+                                        }
+                              ),
+                     read_and_compile_pm25 = read_and_compile_pm25,
+                     lau_nb = lau_nb, 
+                     yrs = yrs
+                     )
+                   )
+
+# municip_pm25_av <- map(seq_along(yrs), 
+#                     ~ map(seq_along(lau_nb), function(y) {read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+#                                                                                 year = yrs[.x], municipality = lau_nb[y])}
+#                        )
+#                  ) %>%
+#                     compact() %>%
+#                     bind_rows()
 
 
 
