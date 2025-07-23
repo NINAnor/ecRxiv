@@ -54,6 +54,7 @@ library(mirai)
 library(purrr)
 library(stringr)
 library(exactextractr)
+library(carrier)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -156,7 +157,7 @@ meta |>
 <!--# Document you work below.  -->
 
 ## 1. Summary
-***What is the urban quality indicators?*** \
+***What is the urban air quality indicators?*** \
 Urban air quality can be defined as the degree to which the air in urban areas (*e.g.,* cities, towns, suburbs) is free from pollutants. 
 
 ***How to measure air quality in an urban area?*** \
@@ -706,7 +707,7 @@ fylke_nb_gdb_vec <- map(seq_along(gdb_files), ~ numextract(gdb_files[.x])) %>%
                       as.numeric()
 
 # Perform the intersection
-soaa_lau_inter <- map(seq_along(fylke_nb_gdb_vec)[], 
+soaa_lau_inter <- map(seq_along(fylke_nb_gdb_vec), 
                       ~ do_intersection(conn, fylke_nb_gdb_vec[.x], gdb_files, fylke_nb_gdb_vec, path_lau_2024))
 
 
@@ -813,7 +814,9 @@ rm(list = setdiff(ls(),
 #### Extract PM2.5 concentration in urban areas
 Urban areas are define din two ways in this project: (1) the total area of the LAU; or (2) the total area of the class "Settlements and other artificial areas" (SOAA), from the EU Ecosystem Typology, within the LAUs. The mean concentration of PM2.5for case (1) is easy to get as it can be calculated based on the entire PM2.5 concentration maps that we downloaded above. For case (2) however, further manipulations are needed as we need to only extract the raster cells of the PM2.5 concentration maps that overlap with the SOAA polygons. This is what we do in the code below. Note that the function used for this (`exact_extract()`) only works if the geometry type is polygon or multipolygon. Hence, we first need to clean the SOAA maps that we created before to only extract the polygons. 
 
-During the extraction of the raster cell values, there will be the creation of "NA" values. This means that some polygon will have a PM2.5 concentration of "NA". This is an artifact due to the raster format of the PM2.5 concentration maps. While comparing them with the polygon of the municipalities, we noticed that some municipal raster maps were smaller than their associated municipal polygon.Hence, some polygons of settelements sadly fall outside of the PM2.5 concentration map while beging int he municicpal polygon. This leads to the creation of "NA" values. We added a step of cleaning in the code below to remove these "NA" values.
+During the extraction of the raster cell values, there will be the creation of "NA" values. This means that some polygon will have a PM2.5 concentration of "NA". This is an artifact due to the raster format of the PM2.5 concentration maps. While comparing them with the polygon of the municipalities, we noticed that some municipal raster maps were smaller than their associated municipal polygon.Hence, some polygons of settlements sadly fall outside of the PM2.5 concentration map while being in the municipal polygon. This leads to the creation of "NA" values. We added a step of cleaning in the code below to remove these "NA" values.
+
+One last note on the code below: to speed up the computation time, parallel computing has been used through the new `in_parallel()` function from the `purrr` package. This requires to make some adjustments in the code to make sure that the `workers`, or jobs running in parallel, have the objects present in  the R environment and the packages. Indeed, when using `in_parallel()`, all packages and R objects of the environment are invisible to the `workers` if not explicitly stated in the in_parallel()` function.
 
 ```{r}
 #| eval: false
@@ -832,19 +835,28 @@ lau_nb[35] <- "0301"
 yrs <- seq(2016, 2023, 1)
 
 ## Clean SOAA: keep only polygons
-soaa_lau <- soaa_lau_inter %>%
-              map(~ st_collection_extract(.,
-                    type = c("POLYGON"), 
-                    warn = FALSE)) %>%
+daemons(15)
+soaa_lau <-  soaa_lau_inter %>%
+              map(., in_parallel(~ sf:::st_collection_extract(.x,
+                    type = "POLYGON", 
+                    warn = FALSE))) %>%
               compact() %>%  
               bind_rows()
+
+daemons(0)
   
 
 ## Create function to read the raster and extract the raster cells corresponding to SOOA
 extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
   
+  # Load packages so they are available in environement fo the worker for paralelle computing
+  library(dplyr)
+  library(sf)
+  library(terra)
+  library(exactextract)
+  
   # Read in data
-  municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
+  municip_rast <- ast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
   soaa_bd <- soaa_shp %>%
               filter(k__2024 == as.numeric(municipality)) %>%
               st_transform(., crs(municip_rast)) %>%
@@ -864,8 +876,13 @@ extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
 ## Extract PM2.5 mean concentration per SOAA polygon
 daemons(10)
 soaa_pm25 <- map(seq_along(yrs[1]), 
-                 ~ map(seq_along(lau_nb[1:10]), in_paralell(function(y) {extract_rast(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-                                                                    soaa_shp = soaa_lau, municipality = lau_nb[y], year = yrs[.x]))}
+                 ~ map(seq_along(lau_nb[1:10]), in_parallel(function(y,i) {extract_rast(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+                                                                         soaa_shp = soaa_lau, municipality = lau_nb[y], year = yrs[i])}, 
+                                                            extract_rast = extract_rast,
+                                                            soaa_lau = soaa_lau,
+                                                            lau_nb = lau_nb,
+                                                            yrs = yrs,
+                                                            i = .x)
                        )
                  )
 daemons(0)
