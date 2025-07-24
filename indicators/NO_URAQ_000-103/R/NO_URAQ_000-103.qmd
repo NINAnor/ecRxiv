@@ -55,6 +55,8 @@ library(purrr)
 library(stringr)
 library(exactextractr)
 library(carrier)
+library(DT)
+library(numform)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -873,8 +875,9 @@ extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
 }
 
 ## Extract PM2.5 mean concentration per SOAA polygon
-daemons(4)
-sooa_pm25 <- map(seq_along(lau_nb[1]), function(municipality_idx){
+daemons(8)
+
+soaa_pm25 <- map(seq_along(lau_nb), function(municipality_idx){
   
   # Filter municipality
   municipality_code <- lau_nb[municipality_idx]
@@ -898,6 +901,7 @@ sooa_pm25 <- map(seq_along(lau_nb[1]), function(municipality_idx){
   return(pm25_cells)
   
   })
+
 daemons(0)
 
 # Using future_map() from furrr
@@ -933,7 +937,7 @@ rm(list = setdiff(ls(),
                     "path_lau_folder",
                     "path_grunnkart",
                     "res_path",
-                    "soaa_lau_inter",
+                    "soaa_lau",
                     "lau_dgurb",
                     "yrs",
                     "lau_nb",
@@ -961,9 +965,13 @@ read_and_compile_pm25 <- function(path_rast_folder, year, municipality){
   av_pm25_municip <- values(municip_rast) %>% 
                       .[!is.na(.)] %>%
                       mean()
+  sd_pm25_municip <- values(municip_rast) %>% 
+                      .[!is.na(.)] %>%
+                      sd()
   
   # Return a vector of results
-  res <- data.frame(mean_pm25_municip = av_pm25_municip, 
+  res <- data.frame(mean_pm25_municip_ug_m3 = av_pm25_municip, 
+                    sd_pm25_municip_ug_m3 = sd_pm25_municip,
                     year = year, 
                     kommune_nummer = as.numeric(municipality))
   
@@ -982,31 +990,26 @@ municip_pm25_av <- map2(all_combinations$seq_yrs, all_combinations$seq_lau_nb,
                                            year = yrs[x], 
                                            municipality = lau_nb[y]
                                            )
-                                        }
-                              ),
+                                          },
                      read_and_compile_pm25 = read_and_compile_pm25,
                      lau_nb = lau_nb, 
                      yrs = yrs
-                     )
+                          )
+                   )
 daemons(0)
 
-# municip_pm25_av <- map(seq_along(yrs), 
-#                     ~ map(seq_along(lau_nb), function(y) {read_and_compile_pm25(path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-#                                                                                 year = yrs[.x], municipality = lau_nb[y])}
-#                        )
-#                  ) %>%
-#                     compact() %>%
-#                     bind_rows()
-
-
+municip_pm25_df <- municip_pm25_av %>%
+                    compact() %>%
+                    bind_rows()
 
 ## Average PM2.5 in the SOAA of the municipality
 soaa_pm25_av <- soaa_pm25 %>%
                   compact() %>%
                   bind_rows() %>%
                   rename(kommune_nummer = k__2024) %>%
-                  group_by(year, fylk_nr, kommune_nummer) %>%
+                  group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
                   summarise(mean_soaa_pm25_ug_m3 = mean(mean),
+                            sd_soaa_pm25_ug_m3 = sd(mean),
                             total_soaa_area_m2 = sum(soaa_area_m2))
 ```
 
@@ -1017,12 +1020,12 @@ Now we can build an overall table that we will be able to use to calculate all t
 #| eval: false
 #| code-summary: "Summary table"
 ## Create tables of results
-res_table_pm25 <- inner_join(soaa_pm25_av, municip_pm25_av, by = c("year", "kommune_nummer")) %>%
-                    select(year, fylk_nr, kommune_nummer, mean_pm25_municip, mean_soaa_pm25_ug_m3, total_soaa_area_m2)
+res_table_pm25 <- inner_join(soaa_pm25_av, municip_pm25_df, by = c("year", "kommune_nummer")) %>%
+                    select(year, fylk_nr, kommune_nummer, DEGURBA, mean_pm25_municip_ug_m3, sd_pm25_municip_ug_m3, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3, total_soaa_area_m2)
                     
 
 ## Export tables of results
-write.table(res_table_pm25, paste0(res_path, "URAQ_summary_table.csv"), sep = ";")
+write.table(res_table_pm25, paste0(res_path, "URAQ_summary_table.csv"), sep = ";", row.names = FALSE)
 ```
 
 <!--# 
@@ -1036,6 +1039,153 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 -->
 
 ## 10. Results
+From the summary table that we exported previously, we create a summary table with the following indicators:
+
+* **URAQ_000**: Average PM2.5 concentration in the municipalities considered as "cities" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 1`)
+
+* **URAQ_001**: Average PM2.5 concentration in the urban areas (class Settlements and other artificial areas of the EU Ecosystem Typology) within the municipalities considered as "cities" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 1`)
+
+* **URAQ_002**: Average PM2.5 concentration in the municipalities considered as "towns and suburbs" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 2`)
+
+* **URAQ_003**: Average PM2.5 concentration in the municipalities considered as "rural areas" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 3`)
+
+* **URAQ_004**: Average PM2.5 concentration in the urban areas of Norway (class Settlements and other artificial areas of the EU Ecosystem Typology) 
+
+Below, we present two kinds of summary table: one national, and one presenting a breakdown by municipalities.
+
+### National Results
+```{r}
+#| eval: true
+#| code-summary: "National summary table"
+
+# Read exported table
+res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/URAQ_summary_table.csv", sep = ";", head = TRUE)
+
+# Compile the different URAQ indicators at national level
+uraq_000 <- res_raw %>%
+              select(year, mean_pm25_municip_ug_m3) %>%
+              group_by(year) %>%
+              summarise(mean_pm25 = round2(mean(mean_pm25_municip_ug_m3), 2),
+                        sd_pm25 = round2(sd(mean_pm25_municip_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 000") 
+
+uraq_001 <- res_raw %>%
+              select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
+              filter(DEGURBA == 1) %>%
+              group_by(year) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                        sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 001")
+
+uraq_002 <- res_raw %>%
+              select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
+              filter(DEGURBA == 2) %>%
+              group_by(year) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                        sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 002")
+
+uraq_003 <- res_raw %>%
+              select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
+              filter(DEGURBA == 3) %>%
+              group_by(year) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                        sd_pm25= round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 003")
+
+uraq_004 <- res_raw %>%
+              select(year, mean_soaa_pm25_ug_m3) %>%
+              group_by(year) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                        sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 004")
+
+res_national <- bind_rows(uraq_000,
+                         uraq_001,
+                         uraq_002,
+                         uraq_003,
+                         uraq_004) %>%
+              mutate(Indicator = "Urban Air Quality",
+                     Accounting_area = "Norway") %>%
+              select(Indicator, ID, Accounting_area, year, mean_pm25, sd_pm25)
+
+colnames(res_national) <- c("Inidcator",
+                            "ID",
+                            "Accounting area",
+                            "Accounting period",
+                            "Average PM2.5 concentration µg/m3",
+                            "Standard devaiation")
+
+datatable(res_national)
+```
+
+### Municipality level
+```{r}
+#| eval: true
+#| message : false
+#| code-summary: "National summary table"
+
+# Read exported table
+res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/URAQ_summary_table.csv", sep = ";", head = TRUE)
+
+# Compile the different URAQ indicators at national level
+uraq_000 <- res_raw %>%
+              select(year, kommune_nummer, mean_pm25_municip_ug_m3, sd_pm25_municip_ug_m3) %>%
+              group_by(year, kommune_nummer, sd_pm25_municip_ug_m3) %>%
+              summarise(mean_pm25 = round2(mean(mean_pm25_municip_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 000") %>%
+              rename(sd_pm25 = sd_pm25_municip_ug_m3)
+
+uraq_001 <- res_raw %>%
+              select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+              filter(DEGURBA == 1) %>%
+              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 001") %>%
+              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+
+uraq_002 <- res_raw %>%
+              select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+              filter(DEGURBA == 2) %>%
+              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 002") %>%
+              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+
+uraq_003 <- res_raw %>%
+              select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+              filter(DEGURBA == 3) %>%
+              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 003") %>%
+              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+
+uraq_004 <- res_raw %>%
+              select(year, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+              mutate(ID = "URAQ 004") %>%
+              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+
+res_municip <- bind_rows(uraq_000,
+                         uraq_001,
+                         uraq_002,
+                         uraq_003,
+                         uraq_004) %>%
+              mutate(Indicator = "Urban Air Quality") %>%
+              select(Indicator, ID, kommune_nummer, year, mean_pm25, sd_pm25)
+      
+colnames(res_municip) <- c("Inidcator",
+                            "ID",
+                            "Accounting area",
+                            "Accounting period",
+                            "Average PM2.5 concentration µg/m3",
+                            "Standard deviation")
+res_municip$`Standard deviation` <- round2(res_municip$`Standard deviation`)
+
+datatable(res_municip)
+```
+
 
 <!--# 
 
@@ -1046,13 +1196,21 @@ This is typically where people will harvest data from, so make sure to include a
 -->
 
 ## 11. Export file
+```{r export}
+#| eval: false
+#| code-summary: "Code to export the result tables above"
 
+#CSV
+write.table(res_national, "URAQ_NO_national_2016_2023.csv")
+write.table(res_municip, "URAQ_NO_regional_2016_2023.csv")
+
+#Excel
+write_xlsx(res_national, "URAQ_NO_national_2016_2023.xlsx")
+write_xlsx(res_municip, "URAQ_NO_regional_2016_2023.xlsx")
+
+```
 <!--# 
 
 Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
 
 -->
-
-```{r export}
-#| eval: false
-```
