@@ -847,32 +847,6 @@ daemons(0)
   
 
 ## Create function to read the raster and extract the raster cells corresponding to SOOA
-# extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
-# 
-#   # Load packages so they are available in environement fo the worker for parallel computing
-#   library(dplyr)
-#   library(sf)
-#   library(terra)
-#   library(exactextractr)
-# 
-#   # Read in data
-#   municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
-#   soaa_bd <- soaa_shp %>%
-#               filter(k__2024 == as.numeric(municipality)) %>%
-#               st_transform(., crs(municip_rast)) %>%
-#               mutate(soaa_area_m2 = unclass(st_area(.)))
-# 
-#   # Extract raster cells
-#   soaa_lau_pm25 <- soaa_bd %>%
-#                     exact_extract(municip_rast,
-#                                   .,
-#                                   fun = c("mean"),
-#                                   append_cols = TRUE) %>%
-#                     filter(!is.na(mean) == TRUE) %>%  # Cleaning step
-#                     mutate(., year = year)
-#   return(soaa_lau_pm25)
-# }
-
 extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
 
   # Load packages so they are available in environment fo the worker for parallel computing
