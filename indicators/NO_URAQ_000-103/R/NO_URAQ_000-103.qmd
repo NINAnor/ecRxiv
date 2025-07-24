@@ -512,7 +512,7 @@ ddbs_write_vector(conn, grunnkart_34, "grunnkart_valid_34")
 ddbs_list_tables(conn)
 
 
-## Wirte SQL queries to re-project the grunnkart and make its geometry valid
+## Write SQL queries to re-project the grunnkart and make its geometry valid
 query_valid <-glue("
 CREATE TABLE grunnkart_valid AS
 SELECT
@@ -847,21 +847,46 @@ daemons(0)
   
 
 ## Create function to read the raster and extract the raster cells corresponding to SOOA
+# extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
+# 
+#   # Load packages so they are available in environement fo the worker for parallel computing
+#   library(dplyr)
+#   library(sf)
+#   library(terra)
+#   library(exactextractr)
+# 
+#   # Read in data
+#   municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
+#   soaa_bd <- soaa_shp %>%
+#               filter(k__2024 == as.numeric(municipality)) %>%
+#               st_transform(., crs(municip_rast)) %>%
+#               mutate(soaa_area_m2 = unclass(st_area(.)))
+# 
+#   # Extract raster cells
+#   soaa_lau_pm25 <- soaa_bd %>%
+#                     exact_extract(municip_rast,
+#                                   .,
+#                                   fun = c("mean"),
+#                                   append_cols = TRUE) %>%
+#                     filter(!is.na(mean) == TRUE) %>%  # Cleaning step
+#                     mutate(., year = year)
+#   return(soaa_lau_pm25)
+# }
+
 extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
-  
-  # Load packages so they are available in environement fo the worker for paralelle computing
+
+  # Load packages so they are available in environment fo the worker for parallel computing
   library(dplyr)
   library(sf)
   library(terra)
   library(exactextractr)
-  
+
   # Read in data
   municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
   soaa_bd <- soaa_shp %>%
-              filter(k__2024 == as.numeric(municipality)) %>%
               st_transform(., crs(municip_rast)) %>%
-              mutate(soaa_area_m2 = unclass(st_area(.))) 
-  
+              mutate(soaa_area_m2 = unclass(st_area(.)))
+
   # Extract raster cells
   soaa_lau_pm25 <- soaa_bd %>%
                     exact_extract(municip_rast,
@@ -874,29 +899,55 @@ extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
 }
 
 ## Extract PM2.5 mean concentration per SOAA polygon
-daemons(10)
-
-all_combinations <- expand.grid(seq_yrs = seq_along(yrs), seq_lau_nb = seq_along(lau_nb))
-
-soaa_pm25 <- map2(all_combinations$seq_yrs, all_combinations$seq_lau_nb,
-                   in_parallel(function(x, y){
-                     extract_rast(
-                       path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-                       soaa_shp = soaa_lau,
-                       municipality = lau_nb[y],
-                       year = yrs[x]
-                       )
-                     }, 
-                     extract_rast = extract_rast, 
-                     soaa_lau = soaa_lau, 
-                     lau_nb = lau_nb, 
-                     yrs = yrs
-                     )
-                   )
-
+daemons(4)
+sooa_pm25 <- map(seq_along(lau_nb[1]), function(municipality_idx){
+  
+  # Filter municipality
+  municipality_code <- lau_nb[municipality_idx]
+  soaa_filtered <- soaa_lau %>%
+                    filter(k__2024 == as.numeric(municipality_code))
+  
+  # Parallelise the extraction of PM2.5 cells for each year
+  
+  pm25_cells <- map(seq_along(yrs), in_parallel(function(j){
+      extract_rast(
+      path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+      soaa_shp = soaa_filtered,
+      municipality = municipality_code,
+      year = yrs[j]
+    )
+    }, extract_rast = extract_rast,
+    soaa_filtered = soaa_filtered,
+    municipality_code = municipality_code,
+    yrs = yrs))
+  
+  return(pm25_cells)
+  
+  })
 daemons(0)
 
-names(soaa_pm25) <- as.character(yrs)
+# Using future_map() from furrr
+# plan(multisession, workers = 4)
+# sooa_pm25 <- map(seq_along(lau_nb[1]), function(municipality_idx){
+#   
+#   # Filter municipality
+#   municipality_code <- lau_nb[municipality_idx]
+#   soaa_filtered <- soaa_lau %>%
+#                     filter(k__2024 == as.numeric(municipality_code))
+#   
+#   # Parallelise the extraction of PM2.5 cells for each year
+#   
+#   pm25_cells <- future_map(seq_along(yrs), function(j){
+#       extract_rast(
+#       path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
+#       soaa_shp = soaa_filtered,
+#       municipality = municipality_code,
+#       year = yrs[j]
+#     )}, .options = furrr_options(seed = TRUE))
+#   
+#   return(pm25_cells)
+#   
+#   })
 
 
 ## Clean the R environment
