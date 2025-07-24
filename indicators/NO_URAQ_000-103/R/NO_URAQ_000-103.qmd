@@ -1062,59 +1062,59 @@ Below, we present two kinds of summary table: one national, and one presenting a
 res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/URAQ_summary_table.csv", sep = ";", head = TRUE)
 
 # Compile the different URAQ indicators at national level
-uraq_000 <- res_raw %>%
-              select(year, mean_pm25_municip_ug_m3) %>%
-              group_by(year) %>%
-              summarise(mean_pm25 = round2(mean(mean_pm25_municip_ug_m3), 2),
-                        sd_pm25 = round2(sd(mean_pm25_municip_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 000") 
+uraq_000_nat <- res_raw %>%
+                select(year, mean_pm25_municip_ug_m3) %>%
+                group_by(year) %>%
+                summarise(mean_pm25 = round2(mean(mean_pm25_municip_ug_m3), 2),
+                          sd_pm25 = round2(sd(mean_pm25_municip_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 000") 
 
-uraq_001 <- res_raw %>%
-              select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
-              filter(DEGURBA == 1) %>%
-              group_by(year) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
-                        sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 001")
+uraq_001_nat <- res_raw %>%
+                select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
+                filter(DEGURBA == 1) %>%
+                group_by(year) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                          sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 001")
 
-uraq_002 <- res_raw %>%
-              select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
-              filter(DEGURBA == 2) %>%
-              group_by(year) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
-                        sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 002")
+uraq_002_nat <- res_raw %>%
+                select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
+                filter(DEGURBA == 2) %>%
+                group_by(year) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                          sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 002")
 
-uraq_003 <- res_raw %>%
-              select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
-              filter(DEGURBA == 3) %>%
-              group_by(year) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
-                        sd_pm25= round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 003")
+uraq_003_nat <- res_raw %>%
+                select(year, DEGURBA, mean_soaa_pm25_ug_m3) %>%
+                filter(DEGURBA == 3) %>%
+                group_by(year) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                          sd_pm25= round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 003")
 
-uraq_004 <- res_raw %>%
-              select(year, mean_soaa_pm25_ug_m3) %>%
-              group_by(year) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
-                        sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 004")
+uraq_004_nat <- res_raw %>%
+                select(year, mean_soaa_pm25_ug_m3) %>%
+                group_by(year) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2),
+                          sd_pm25 = round2(sd(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 004")
 
-res_national <- bind_rows(uraq_000,
-                         uraq_001,
-                         uraq_002,
-                         uraq_003,
-                         uraq_004) %>%
-              mutate(Indicator = "Urban Air Quality",
-                     Accounting_area = "Norway") %>%
-              select(Indicator, ID, Accounting_area, year, mean_pm25, sd_pm25)
+res_national <- bind_rows(uraq_000_nat,
+                          uraq_001_nat,
+                          uraq_002_nat,
+                          uraq_003_nat,
+                          uraq_004_nat) %>%
+                mutate(Indicator = "Urban Air Quality",
+                       Accounting_area = "Norway") %>%
+                select(Indicator, ID, Accounting_area, year, mean_pm25, sd_pm25)
 
 colnames(res_national) <- c("Inidcator",
                             "ID",
                             "Accounting area",
                             "Accounting period",
                             "Average PM2.5 concentration µg/m3",
-                            "Standard devaiation")
+                            "Standard deviation")
 
 datatable(res_national)
 ```
@@ -1123,64 +1123,65 @@ datatable(res_national)
 ```{r}
 #| eval: true
 #| message : false
-#| code-summary: "National summary table"
+#| code-summary: "Municipal summary table"
 
 # Read exported table
 res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/URAQ_summary_table.csv", sep = ";", head = TRUE)
 
 # Compile the different URAQ indicators at national level
-uraq_000 <- res_raw %>%
-              select(year, kommune_nummer, mean_pm25_municip_ug_m3, sd_pm25_municip_ug_m3) %>%
-              group_by(year, kommune_nummer, sd_pm25_municip_ug_m3) %>%
-              summarise(mean_pm25 = round2(mean(mean_pm25_municip_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 000") %>%
-              rename(sd_pm25 = sd_pm25_municip_ug_m3)
+uraq_000_mun <- res_raw %>%
+                select(year, kommune_nummer, mean_pm25_municip_ug_m3, sd_pm25_municip_ug_m3) %>%
+                group_by(year, kommune_nummer, sd_pm25_municip_ug_m3) %>%
+                summarise(mean_pm25 = round2(mean(mean_pm25_municip_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 000") %>%
+                rename(sd_pm25 = sd_pm25_municip_ug_m3)
 
-uraq_001 <- res_raw %>%
-              select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
-              filter(DEGURBA == 1) %>%
-              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 001") %>%
-              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+uraq_001_mun <- res_raw %>%
+                select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+                filter(DEGURBA == 1) %>%
+                group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 001") %>%
+                rename(sd_pm25 = sd_soaa_pm25_ug_m3)
 
-uraq_002 <- res_raw %>%
-              select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
-              filter(DEGURBA == 2) %>%
-              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 002") %>%
-              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+uraq_002_mun <- res_raw %>%
+                select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+                filter(DEGURBA == 2) %>%
+                group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 002") %>%
+                rename(sd_pm25 = sd_soaa_pm25_ug_m3)
 
-uraq_003 <- res_raw %>%
-              select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
-              filter(DEGURBA == 3) %>%
-              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 003") %>%
-              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+uraq_003_mun <- res_raw %>%
+                select(year, DEGURBA, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+                filter(DEGURBA == 3) %>%
+                group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 003") %>%
+                rename(sd_pm25 = sd_soaa_pm25_ug_m3)
 
-uraq_004 <- res_raw %>%
-              select(year, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
-              group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
-              summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
-              mutate(ID = "URAQ 004") %>%
-              rename(sd_pm25 = sd_soaa_pm25_ug_m3)
+uraq_004_mun <- res_raw %>%
+                select(year, kommune_nummer, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3) %>%
+                group_by(year, kommune_nummer, sd_soaa_pm25_ug_m3) %>%
+                summarise(mean_pm25 = round2(mean(mean_soaa_pm25_ug_m3), 2)) %>%
+                mutate(ID = "URAQ 004") %>%
+                rename(sd_pm25 = sd_soaa_pm25_ug_m3)
 
-res_municip <- bind_rows(uraq_000,
-                         uraq_001,
-                         uraq_002,
-                         uraq_003,
-                         uraq_004) %>%
+res_municip <- bind_rows(uraq_000_mun,
+                         uraq_001_mun,
+                         uraq_002_mun,
+                         uraq_003_mun,
+                         uraq_004_mun) %>%
               mutate(Indicator = "Urban Air Quality") %>%
               select(Indicator, ID, kommune_nummer, year, mean_pm25, sd_pm25)
       
 colnames(res_municip) <- c("Inidcator",
-                            "ID",
-                            "Accounting area",
-                            "Accounting period",
-                            "Average PM2.5 concentration µg/m3",
-                            "Standard deviation")
+                           "ID",
+                           "Accounting area",
+                           "Accounting period",
+                           "Average PM2.5 concentration µg/m3",
+                           "Standard deviation")
+
 res_municip$`Standard deviation` <- round2(res_municip$`Standard deviation`)
 
 datatable(res_municip)
