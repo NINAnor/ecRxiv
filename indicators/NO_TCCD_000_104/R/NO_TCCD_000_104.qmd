@@ -56,6 +56,7 @@ library(purrr)
 library(stringr)
 library(exactextractr)
 library(carrier)
+library(hdar)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -329,7 +330,78 @@ res_path <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/"
 
 ### TCCD_000 - Tree canopy cover density in forests
 
+#### Prepare and load the tree cover denisty data
+We prepared the Tree Canopy Cover Density rasters, they are available on the internal NINA repository indicated above. For transparency we provid ethe code below to download and prepare the data. Tree canopy cover density layers have been downloaded from from Copernicus for the years 2018 to 2021. This can be down using an API query through the WEkEO website (https://help.wekeo.eu/en/articles/6416936-how-to-download-wekeo-data#h_4d7de19c7c) and the `hdar` package. Note that the request through API requires the username and password from the WEkEO website. The API query uses a bounding box but it is quire large, resulting in heavy rasters of 6GB each. That is why a subsequent step of cleaning has been done to mask the cells that were not in Norway, hence decreasing the size of the rasters. These processed rasters are the one we made available on the inetrnal NINA repository.
 
+```{r}
+#| eval: false
+#| code-summary: "Load and save Copernicus Tree Cover Density data"
+
+## Download data
+# Set credentials and save them in ~/.hdarc for future use
+username <- "your_username"
+password <-"your_password"
+client <- Client$new(username, password, save_credentials = TRUE)
+
+# Initialise Client
+client <- Client$new()
+
+# Review and accept Terms & Condition before downloading the data
+client$show_terms()
+client$terms_and_conditions(term_id = 'all')
+
+# Create API queries
+# Note: use the WEkEO Data viewer that will create an automatic API
+# Note: Use "SetAOI" to set your bounding box
+yrs <- seq(2018, 2021, 1)
+
+api_list <- map(seq_along(yrs), function(i){
+  paste0('{
+  "dataset_id": "EO:EEA:DAT:HRL:TCF",
+  "product_type": "Tree Cover Density",
+  "resolution": "10m",', '\n', '"year": "', as.character(yrs[i]),
+ '",', '\n', '"bbox": [
+    3.896921397870557,
+    57.74146916326935,
+    31.304658996871815,
+    71.29317180330607
+  ],
+  "itemsPerPage": 200,
+  "startIndex": 0
+}'
+  )
+  }
+) %>% 
+  unlist()
+
+api_origin <- '{
+  "dataset_id": "EO:EEA:DAT:HRL:TCF",
+  "product_type": "Tree Cover Density",
+  "resolution": "10m",
+  "year": "2018",
+  "bbox": [
+    3.896921397870557,
+    57.74146916326935,
+    31.304658996871815,
+    71.29317180330607
+  ],
+  "itemsPerPage": 200,
+  "startIndex": 0
+}'
+
+# Search and dowloda the datasets
+matches <- map(seq_along(api_list), ~ client$search(api_list[.x]))
+
+output_directory <- "/data/scratch/tmp_sylvie/TCD_Copernicus"
+
+map(seq_along(matches), function(i){
+  matches[[1]]$download(output_directory)
+})
+
+## Clean data
+
+
+```
 
 
 ### TCCD_100 to 104 - Tree canopy cover density in urban areas
