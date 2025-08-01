@@ -461,7 +461,7 @@ rm(list = setdiff(ls(),
 ### TCCD_000 - Tree canopy cover density in forests
 
 #### Load and prepare the tree cover density data
-We prepared the Tree Canopy Cover Density rasters, they are available on the internal NINA repository indicated above. For transparency we provid ethe code below to download and prepare the data. Tree canopy cover density layers have been downloaded from from Copernicus for the years 2018 to 2021. This can be down using an API query through the WEkEO website (https://help.wekeo.eu/en/articles/6416936-how-to-download-wekeo-data#h_4d7de19c7c) and the `hdar` package. Note that the request through API requires the username and password from the WEkEO website. The API query uses a bounding box but it is quire large, resulting in heavy rasters of 6GB each. That is why a subsequent step of cleaning has been done to mask the cells that were not in Norway, hence decreasing the size of the rasters. These processed rasters are the one we made available on the inetrnal NINA repository.
+We prepared the Tree Canopy Cover Density rasters, they are available on the internal NINA repository indicated above. For transparency we provide the code below to download and prepare the data. Tree canopy cover density layers have been downloaded from from Copernicus for the years 2018 to 2021. This can be down using an API query through the WEkEO website (https://help.wekeo.eu/en/articles/6416936-how-to-download-wekeo-data#h_4d7de19c7c) and the `hdar` package. Note that the request through API requires the username and password from the WEkEO website. The API query uses a bounding box but it is quire large, resulting in heavy rasters of 6GB each. That is why a subsequent step of cleaning has been done to mask the cells that were not in Norway, hence decreasing the size of the rasters. These processed rasters are the one we made available on the internal NINA repository.
 
 ```{r}
 #| eval: false
@@ -504,36 +504,146 @@ api_list <- map(seq_along(yrs), function(i){
 ) %>% 
   unlist()
 
-api_origin <- '{
-  "dataset_id": "EO:EEA:DAT:HRL:TCF",
-  "product_type": "Tree Cover Density",
-  "resolution": "10m",
-  "year": "2018",
-  "bbox": [
-    3.896921397870557,
-    57.74146916326935,
-    31.304658996871815,
-    71.29317180330607
-  ],
-  "itemsPerPage": 200,
-  "startIndex": 0
-}'
 
 # Search and dowloda the datasets
 matches <- map(seq_along(api_list), ~ client$search(api_list[.x]))
 
-output_directory <- "/data/scratch/tmp_sylvie/TCD_Copernicus"
+output_directory <- "/data/scratch/tmp_sylvie/TCD_Copernicus/2020"
 
 map(seq_along(matches), function(i){
-  matches[[1]]$download(output_directory)
+  matches[[i]]$download(output_directory)
 })
 
 ## Clean data
+# Path the the raster data
+path_tcd_raw_list <- map(seq_along(yrs),  
+                         ~paste0("/data/scratch/tmp_sylvie/TCD_Copernicus/",
+                                 as.character(yrs[.x]),
+                                 "/"))
+
+# Create a function to create a list of file names to read
+files_list_fn <- function(path){
+  files_names <- list.files(path, pattern = "\\.zip$", 
+                        full.names = FALSE) %>%
+                  map_vec(., ~gsub('.zip','',.))
+
+  tcd_files <- list.files(path, pattern = "\\.zip$", 
+                        full.names = TRUE)
+              
+  tcd_files_to_read <- map_vec(seq_along(tcd_files), function(i){paste0("/vsizip/{", tcd_files[i], "}/", files_names[i], ".tif")})
+  
+  return(list(tcd_files_to_read, files_names))
+}
+
+
+files_to_read <- map(path_tcd_raw_list, ~files_list_fn(.x))
+
+
+# Create a function to read the rasters, mask Norway and export the result
+process_raster_fn <- function(path_read, norway_mask, path_write, files_names){
+  
+  # Load libraries for parallel computing
+  library(terra)
+  library(sf)
+
+  # Read
+  tcd_rast <- rast(path_read)
+  
+  # Re-project norway boundary
+  norway_mask_pj <- st_transform(norway_mask, crs = crs(tcd_rast))
+  
+  # Test overlap, crop and export 
+  ext_tcd_rast <- ext(tcd_rast)
+  ext_no <- ext(norway_mask_pj)
+  test_intersect <- intersect(ext_tcd_rast, ext_no)
+  if(is.null(test_intersect) == TRUE){
+    return("Not in Norway")
+  } else{
+    # Mask
+    tcd_no_mask <- crop(tcd_rast, norway_mask_pj, mask = TRUE)
+  
+    # Clean values 0 and 255
+    rclfy_mx <- matrix(c(0, 255,
+                        NaN, NaN), 
+                       nrow = 2, 
+                       ncol = 2)
+    tcd_reclfy <- classify(tcd_no_mask, rclfy_mx)
+    levels(tcd_reclfy) <- levels(tcd_rast)[[1]]
+    
+    # Export
+    writeRaster(tcd_reclfy, paste0(path_write, files_names, "_NOcln.tif"))
+    
+    return("Successfully written")
+    }
+
+}
+
+# Create Norway country boundary based on Eurostat's LAUs
+no_eurostat <- st_read(path_lau_2024) %>%
+                mutate(union = rep("Norway", nrow(.))) %>%
+                group_by(union) %>%
+                summarise()
+
+# Create list of folder to write the final raster on NINA's internal repository
+path_write_list <- map(seq_along(yrs),  
+                         ~paste0("/data/P-Prosjekter2/412413_2023_no_egd/git_data/TCD/",
+                                 as.character(yrs[.x]),
+                                 "/"))
+
+# Run the processing function
+all_combinations <- expand.grid(seq_yrs = seq_along(files_to_read)[1], seq_files = seq_along(files_to_read[[1]][[1]]))
+
+daemons(10)
+map2(all_combinations$seq_yrs, all_combinations$seq_files,
+             in_parallel(~ process_raster_fn(path_read = files_to_read[[.x]][[1]][.y],
+                                norway_mask = no_eurostat,
+                                path_write = path_write_list[[.x]],
+                                files_names = files_to_read[[.x]][[2]][.y]),
+                         process_raster_fn = process_raster_fn,
+                         files_to_read = files_to_read,
+                         no_eurostat= no_eurostat,
+                         path_write_list = path_write_list
+             )
+)
+
+daemons(0)
+
+# Clean R environment
+rm(list = setdiff(ls(), 
+                  c("path_degurba",
+                    "path_kom",
+                    "path_kom_nb",
+                    "path_lau",
+                    "path_lau_folder",
+                    "path_lau_2024",
+                    "path_grunnkart",
+                    "res_path",
+                    "lau_dgurb",
+                    "path_write_list")))
 
 
 ```
 
+Now that we have the cleaned the rasters for the Tree Cover Density. We can create a virtual raster for each year that will be used in the subsequent analyses.
+```{r}
+#| eval: false
+#| code-summary: "Create virtual raster of Copernicus Tree Cover Density data"
 
+## Create a virtual raster for each year
+# Create a list of the SMOD raster tiles
+filename_list_vrt <- map(seq_along(path_write_list),
+                          ~list.files(path = path_write_list[[.x]], pattern = '\\.tif$', 
+                                 all.files = TRUE, full.names = TRUE)) 
+
+filename_vrt_cln <- map(seq_along(filename_list_vrt),
+                        ~normalizePath(filename_list_vrt[[.x]]))
+
+# Create the virtual raster
+tcd_vrt <- map(seq_along(filename_list_vrt),
+               ~vrt(filename_list_vrt[[.x]]))
+
+
+```
 
 #### Load and prepare the forest data
 To allow for a breakdown at municipal level, we start by intersection Eurostat Local Administrative Units with the class "Forest and woodlands" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on. /
@@ -541,7 +651,7 @@ To allow for a breakdown at municipal level, we start by intersection Eurostat L
 Spatial intersections between municipalities and Grunnkart are computing intensive. To reduce the time, we use the `duckdb` package. Note that tile 33 of the Grunnkart, had to be cleaned separately as functions in `duckdb` couldn't make the geometry valid but functions in `sf` package could.
 ```{r}
 #| eval: false
-#| code-summary: "Settlements per LAUs"
+#| code-summary: "Forests per LAUs"
 # Code by Jennifer Hansen & Sylvie Clappe
 
 ## Path to data
@@ -882,15 +992,19 @@ rm(list = setdiff(ls(),
                     "path_kom",
                     "path_kom_nb",
                     "path_lau",
-                    "path_grunnkart",
+                    "path_lau_folder",
                     "path_lau_2024",
+                    "path_grunnkart",
                     "res_path",
-                    "forest_lau_inter",
-                    "lau_dgurb")))
+                    "lau_dgurb",
+                    "tcd_vrt",
+                    "forest_lau_inter")))
 ```
 
 #### Extract tree cover density percentage
-Now that we have the forest are
+Now that we have the forest area within each municipalities, we can extract the raster cells of tree cover density corresponding the forest polygons within each municipalities.
+
+
 
 
 ### TCCD_100 to 104 - Tree canopy cover density in urban areas
