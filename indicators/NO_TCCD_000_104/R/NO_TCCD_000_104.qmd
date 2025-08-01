@@ -622,26 +622,27 @@ rm(list = setdiff(ls(),
 
 ```
 
-Now that we have the cleaned the rasters for the Tree Cover Density. We can create a virtual raster for each year that will be used in the subsequent analyses.
-```{r}
-#| eval: false
-#| code-summary: "Create virtual raster of Copernicus Tree Cover Density data"
+THese files will be used to create virtual rasters during the analyses. We do not create these rasters now as we will paralellise the ananlyses. When parallelising, the transfer of the pointers stored in the virtual rasters do not transfer well between the different workers. That is why they will be created within each worker later on rather than creating one for all workers that would be stored on NINA's internal repository.
+<!-- Now that we have the cleaned the rasters for the Tree Cover Density. We can create a virtual raster for each year that will be used in the subsequent analyses. -->
+<!-- ```{r} -->
+<!-- #| eval: false -->
+<!-- #| code-summary: "Create virtual raster of Copernicus Tree Cover Density data" -->
 
-## Create a virtual raster for each year
-# Create a list of the SMOD raster tiles
-filename_list_vrt <- map(seq_along(path_write_list),
-                          ~list.files(path = path_write_list[[.x]], pattern = '\\.tif$', 
-                                 all.files = TRUE, full.names = TRUE)) 
+<!-- ## Create a virtual raster for each year -->
+<!-- # Create a list of the SMOD raster tiles -->
+<!-- filename_list_vrt <- map(seq_along(path_write_list), -->
+<!--                           ~list.files(path = path_write_list[[.x]], pattern = '\\.tif$',  -->
+<!--                                  all.files = TRUE, full.names = TRUE))  -->
 
-filename_vrt_cln <- map(seq_along(filename_list_vrt),
-                        ~normalizePath(filename_list_vrt[[.x]]))
+<!-- filename_vrt_cln <- map(seq_along(filename_list_vrt), -->
+<!--                         ~normalizePath(filename_list_vrt[[.x]])) -->
 
-# Create the virtual raster
-tcd_vrt <- map(seq_along(filename_list_vrt),
-               ~vrt(filename_list_vrt[[.x]]))
+<!-- # Create the virtual raster -->
+<!-- tcd_vrt <- map(seq_along(filename_vrt_cln), -->
+<!--                ~vrt(filename_vrt_cln[[.x]])) -->
 
 
-```
+<!-- ``` -->
 
 #### Load and prepare the forest data
 To allow for a breakdown at municipal level, we start by intersecting Eurostat Local Administrative Units with the class "Forest and woodlands" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on. /
@@ -995,7 +996,6 @@ rm(list = setdiff(ls(),
                     "path_grunnkart",
                     "res_path",
                     "lau_dgurb",
-                    "tcd_vrt",
                     "forest_lau_inter")))
 ```
 
@@ -1255,19 +1255,179 @@ rm(list = setdiff(ls(),
                     "path_grunnkart",
                     "res_path",
                     "lau_dgurb",
-                    "tcd_vrt",
                     "forest_lau_inter",
                     "soaa_lau_inter")))
 ```
 
-
 ### Extract tree cover density percentage
-Now that we have the forest area within each municipalities, we can extract the raster cells of tree cover density corresponding the forest polygons within each municipalities.
+Now that we have the forest and the urban areas within each municipalities, we can extract the raster cells of tree cover density corresponding the forest or urban polygons within each municipalities. Note that for this we use the `exact_extract()` function which works only with polygons. This means that we need to first clean the forest and urban layers created previously to only keep the polygons.
+
+```{r}
+#| eval: false
+#| code-summary: "Extract Tree Cover Density percentatges in forest and urban areas"
+
+## Iteration variables
+# List of municipalities numbers 
+lau_2024 <- st_read(path_lau_2024)
+
+lau_nb <- unique(lau_2024$k__2024) %>%
+            as.character()
+lau_nb[35] <- "0301"
+
+# List the years of interest
+yrs <- seq(2018, 2021, 1)
+
+## Clean SOAA: keep only polygons
+daemons(15)
+soaa_lau <-  soaa_lau_inter %>%
+              map(., in_parallel(~ sf:::st_collection_extract(.x,
+                                                              type = "POLYGON", 
+                                                              warn = FALSE))) %>%
+              compact() %>%  
+              bind_rows()
+
+forest_lau <-  forest_lau_inter %>%
+                 map(., in_parallel(~ sf:::st_collection_extract(.x,
+                                                                 type = "POLYGON", 
+                                                                 warn = FALSE))) %>%
+                compact() %>%  
+                bind_rows()
+
+daemons(0)
+  
+
+## Create function to extract tcd raster cells corresponding to polygons
+extract_rast <- function(bd_shp, year){
+
+  # Load packages so they are available in environment fo the worker for parallel computing
+  library(dplyr)
+  library(sf)
+  library(terra)
+  library(exactextractr)
+
+  # Create the Tree Cover Density virtual raster
+  path_write <- paste0("/data/P-Prosjekter2/412413_2023_no_egd/git_data/TCD/",
+                                 as.character(year),"/")
+  
+  filename_vrt <- list.files(path = path_write, pattern = '\\.tif$', 
+                                 all.files = TRUE, full.names = TRUE)
+
+  filename_vrt_cln <- normalizePath(filename_vrt)
+  
+  tcd_vrt <- vrt(filename_vrt_cln)
+  
+  
+  # Read in boundary data (forest or urban)
+  crs_tcd <- rast(filename_vrt_cln[1]) %>%
+              crs()
+  boundaries <- bd_shp %>%
+                  st_transform(., crs = crs_tcd) %>%
+                  mutate(soaa_area_m2 = unclass(st_area(.)))
+
+  # Extract raster cells
+  tcd_cells_ex <- boundaries %>%
+                    exact_extract(tcd_vrt,
+                                  .,
+                                  fun = c("mean"),
+                                  append_cols = TRUE) %>%
+                    filter(!is.na(mean) == TRUE) %>%  # Cleaning step
+                    mutate(., year = year)
+  return(tcd_cells_ex)
+}
+
+## Extract tcd mean percentage per forest or urban polygons
+daemons(5)
+
+soaa_tcd <- map(seq_along(lau_nb), function(municipality_idx){
+  
+  # Filter municipality
+  municipality_code <- lau_nb[municipality_idx]
+  soaa_filtered <- soaa_lau %>%
+                    filter(k__2024 == as.numeric(municipality_code))
+  
+  # Parallelise the extraction of raster cells for each year
+  
+  soaa_tcd_cells <- map(seq_along(yrs), 
+                        in_parallel(function(j){
+                          extract_rast(bd_shp = soaa_filtered,
+                                       year = yrs[j]
+                                       )
+                          }, extract_rast = extract_rast,
+                          soaa_filtered = soaa_filtered,
+                          yrs = yrs))
+  return(soaa_tcd_cells)
+  }
+  )
+
+forest_tcd <- map(seq_along(lau_nb), function(municipality_idx){
+  
+  # Filter municipality
+  municipality_code <- lau_nb[municipality_idx]
+  forest_filtered <- forest_lau %>%
+                    filter(k__2024 == as.numeric(municipality_code))
+  
+  # Parallelise the extraction of raster cells for each year
+  
+  forest_tcd_cells <- map(seq_along(yrs), 
+                        in_parallel(function(j){
+                          extract_rast(bd_shp = forest_filtered,
+                                       year = yrs[j]
+                                       )
+                          }, extract_rast = extract_rast,
+                          forest_filtered = forest_filtered,
+                          yrs = yrs))
+  return(forest_tcd_cells)
+  }
+  )
+
+lau_tcd <- map(seq_along(lau_nb), function(municipality_idx){
+  
+  # Filter municipality
+  municipality_code <- lau_nb[municipality_idx]
+  lau_filtered <- lau_2024 %>%
+                    filter(k__2024 == as.numeric(municipality_code))
+  
+  # Parallelise the extraction of raster cells for each year
+  
+  lau_tcd_cells <- map(seq_along(yrs), 
+                        in_parallel(function(j){
+                          extract_rast(bd_shp = lau_filtered,
+                                       year = yrs[j]
+                                       )
+                          }, extract_rast = extract_rast,
+                          lau_filtered = lau_filtered,
+                          yrs = yrs))
+  return(lau_tcd_cells)
+  }
+  )
+
+daemons(0)
 
 
+## Clean the R environment
+rm(list = setdiff(ls(), 
+                  c("path_degurba",
+                    "path_kom",
+                    "path_kom_nb",
+                    "path_lau",
+                    "path_lau_folder",
+                    "path_lau_2024",
+                    "path_grunnkart",
+                    "res_path",
+                    "lau_dgurb",
+                    "tcd_vrt",
+                    "forest_lau_inter",
+                    "soaa_lau_inter",
+                    "soaa_lau",
+                    "forest_lau",
+                    "soaa_tcd",
+                    "forest_tcd",
+                    "lau_tcd")))
+```
+
+Now that the mean tree cover density has been extracted from the Tree Cover Density rasters for each polygon of eah municipality and each year (2018-2021), for both urban and forests areas, we need to compile a summary table that will give the mean tree cover density per municipality.
 
 
-### TCCD_100 to 104 - Tree canopy cover density in urban areas
 
 
 <!--# 
