@@ -1322,13 +1322,13 @@ extract_rast <- function(bd_shp, year){
               crs()
   boundaries <- bd_shp %>%
                   st_transform(., crs = crs_tcd) %>%
-                  mutate(soaa_area_m2 = unclass(st_area(.)))
+                  mutate(area_m2 = unclass(st_area(.)))
 
   # Extract raster cells
   tcd_cells_ex <- boundaries %>%
                     exact_extract(tcd_vrt,
                                   .,
-                                  fun = c("mean"),
+                                  fun = c("mean", "stdev"), # kept only for lau_tcd
                                   append_cols = TRUE) %>%
                     filter(!is.na(mean) == TRUE) %>%  # Cleaning step
                     mutate(., year = year)
@@ -1426,8 +1426,79 @@ rm(list = setdiff(ls(),
 ```
 
 Now that the mean tree cover density has been extracted from the Tree Cover Density rasters for each polygon of eah municipality and each year (2018-2021), for both urban and forests areas, we need to compile a summary table that will give the mean tree cover density per municipality.
+```{r}
+#| eval: false
+#| code-summary: "Mean Tree Cover Density in forest and urban areas per municipalities"
+
+## Average Tree Cover Density in the SOAA of the municipality
+soaa_tcd_av <- soaa_tcd %>%
+                  compact() %>%
+                  bind_rows() %>%
+                  rename(kommune_nummer = k__2024) %>%
+                  group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
+                  summarise(mean_soaa_tcd_perc = mean(mean),
+                            sd_soaa_tcd_perc = sd(mean),
+                            total_soaa_area_m2 = sum(area_m2))
+
+forest_tcd_av <- forest_tcd %>%
+                  compact() %>%
+                  bind_rows() %>%
+                  rename(kommune_nummer = k__2024) %>%
+                  group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
+                  summarise(mean_forest_tcd_perc = mean(mean),
+                            sd_forest_tcd_perc = sd(mean),
+                            total_forest_area_m2 = sum(area_m2))
 
 
+lau_tcd_av <- lau_tcd %>%
+                  compact() %>%
+                  bind_rows() %>%
+                  rename(kommune_nummer = k__2024) %>%
+                  group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
+                  summarise(mean_lau_tcd_perc = mean(mean),
+                            sd_lau_tcd_perc = stdev,
+                            total_lau_area_m2 = sum(area_m2))
+
+## Clean the R environment
+rm(list = setdiff(ls(), 
+                  c("path_degurba",
+                    "path_kom",
+                    "path_kom_nb",
+                    "path_lau",
+                    "path_lau_folder",
+                    "path_lau_2024",
+                    "path_grunnkart",
+                    "res_path",
+                    "lau_dgurb",
+                    "tcd_vrt",
+                    "forest_lau_inter",
+                    "soaa_lau_inter",
+                    "soaa_lau",
+                    "forest_lau",
+                    "soaa_tcd",
+                    "forest_tcd",
+                    "lau_tcd",
+                    "soaa_tcd_av",
+                    "forest_tcd_av",
+                    "lau_tcd_av")))
+```
+
+### Summary table to derive TCCD
+Now we can build an overall table that we will be able to use to calculate all the versions of the TCCD indicator in the Results section below.
+
+```{r}
+#| eval: false
+#| code-summary: "Summary table"
+## Create tables of results
+res_table_tcd_urb <- inner_join(soaa_tcd_av, lau_tcd_av, by = c("year", "kommune_nummer")) %>%
+                      select(year, fylk_nr.x, kommune_nummer, DEGURBA.x, mean_lau_tcd_perc, sd_lau_tcd_perc, 
+                             total_lau_area_m2, mean_soaa_tcd_perc, sd_soaa_tcd_perc, total_soaa_area_m2) %>%
+                      rename(fylk_nr = fylk_nr.x, DEGURBA = DEGURBA.x)
+
+## Export tables of results
+write.table(res_table_tcd_urb, paste0(res_path, "TCCD_summary_table_urban.csv"), sep = ";", row.names = FALSE)
+write.table(forest_tcd_av, paste0(res_path, "TCCD_summary_table_forest.csv"), sep = ";", row.names = FALSE)
+```
 
 
 <!--# 
