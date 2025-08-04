@@ -1,7 +1,8 @@
 ---
 title: "Tree Canopy Cover Density"
-subtitle: "[NO_TCCD_000] - Tree Canopy Cover Density indicator in forests" /
-"[NO_TCCD_100 to NO_TCCD_104] - Tree Canopy Cover Density in urban areas"
+subtitle: |
+  [NO_TCCD_000] - Tree Canopy Cover Density indicator in forests  \
+  [NO_TCCD_100 to NO_TCCD_104] - Tree Canopy Cover Density in urban areas 
 format: 
   html:
     embed-resources: true
@@ -57,6 +58,7 @@ library(stringr)
 library(exactextractr)
 library(carrier)
 library(hdar)
+library(DT)
 library(numform)
 
 knitr::opts_chunk$set(echo = TRUE)
@@ -160,15 +162,14 @@ meta |>
 <!--# Document you work below.  -->
 
 ## 1. Summary
-## 1. Summary
 ***What is the tree canopy cover density indicator?*** \
-Tree canopy cover is proportion of ground surface that is covered by tree crowns when viewed from above. It measures how much of the land is covered by tree foliage. / 
+Tree canopy cover is proportion of ground surface that is covered by tree crowns when viewed from above. It measures how much of the land is covered by tree foliage. 
 
 The tree canopy cover density is the density of tree canopy within a given area.
 
 
 ***How to measure air quality in an urban area?*** \
-The tree canopy cover density is measured by the tree canopy cover that is visible from satellite imagery within a given area. There are 2 major steps in calculating this indicator: /
+The tree canopy cover density is measured by the tree canopy cover that is visible from satellite imagery within a given area. There are 2 major steps in calculating this indicator:
 
 1. Identify the total area of interest (forest and urban areas).
 2. Within this area, extract the percentage of tree canopy cover density.
@@ -1601,7 +1602,7 @@ res_national <- bind_rows(tccd_000_nat,
                        Accounting_area = "Norway") %>%
                 select(Indicator, ID, Accounting_area, year, mean_tcd_national, sd_tcd_national)
 
-colnames(res_national) <- c("Inidcator",
+colnames(res_national) <- c("Indicator",
                             "ID",
                             "Accounting area",
                             "Accounting period",
@@ -1670,9 +1671,9 @@ res_municip <- bind_rows(tccd_001_mun,
               mutate(Indicator = "Tree Canopy Cover Density") %>%
               select(Indicator, ID, kommune_nummer, year, mean_tcd_municipal, sd_tcd_municipal)
       
-colnames(res_municip) <- c("Inidcator",
+colnames(res_municip) <- c("Indicator",
                            "ID",
-                           "Accounting area",
+                           "Accounting area (municipality number)",
                            "Accounting period",
                            "Average Tree Canopy Cover Density(%)",
                            "Standard deviation")
@@ -1708,7 +1709,3 @@ write_xlsx(res_municip, "TCCD_NO_regional_2018_2021.xlsx")
 Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
 
 -->
-
-```{r export}
-#| eval: false
-```
