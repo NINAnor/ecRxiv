@@ -1519,7 +1519,9 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 ## 10. Results
 From the summary table that we exported previously, we create a summary table with the following indicators:
 
-* **TCCD_000**: Average Tree Cover Density in the forest areas of Nowray (class Forest and woodlands of the EU Ecosystem Typology)
+* **TCCD_000**: Average Tree Cover Density in the forest areas of Norway (class Forest and woodlands of the EU Ecosystem Typology)
+
+* **TCCD_001**: Average Tree Cover Density in the forest areas of municipalities in Norway (class Forest and woodlands of the EU Ecosystem Typology)
 
 * **TCCD_100**: Average Tree Cover Density in the municipalities considered as "cities" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 1`)
 
@@ -1609,6 +1611,77 @@ colnames(res_national) <- c("Inidcator",
 
 datatable(res_national)
 ```
+
+### Municipality level
+```{r}
+#| eval: true
+#| message : false
+#| code-summary: "Municipal summary table"
+
+# Read exported table
+forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_summary_table_forest.csv", sep = ";", head = TRUE)
+urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_summary_table_urban.csv", sep = ";", head = TRUE)
+
+# Compile the different URAQ indicators at national level
+tccd_001_mun <- forest_res_raw %>%
+                  select(year, kommune_nummer, mean_forest_tcd_perc, sd_forest_tcd_perc) %>%
+                  group_by(year, kommune_nummer) %>%
+                  summarise(mean_tcd_municipal = round2(mean_forest_tcd_perc, 2),
+                            sd_tcd_municipal = round2(sd_forest_tcd_perc, 2)) %>%
+                  mutate(ID = "TCCD_001")
+
+tccd_100_mun <- urban_res_raw %>%
+                  filter(DEGURBA == 1) %>%
+                  select(year, kommune_nummer, mean_lau_tcd_perc, sd_lau_tcd_perc) %>%
+                  group_by(year, kommune_nummer) %>%
+                  summarise(mean_tcd_municipal = round2(mean_lau_tcd_perc, 2),
+                            sd_tcd_municipal = round2(sd_lau_tcd_perc, 2)) %>%
+                  mutate(ID = "TCCD_100")
+
+
+tccd_101_mun <- urban_res_raw %>%
+                  filter(DEGURBA == 1) %>%
+                  select(year, kommune_nummer, mean_soaa_tcd_perc, sd_soaa_tcd_perc) %>%
+                  group_by(year, kommune_nummer) %>%
+                  summarise(mean_tcd_municipal = round2(mean_soaa_tcd_perc, 2),
+                            sd_tcd_municipal = round2(sd_soaa_tcd_perc, 2)) %>%
+                  mutate(ID = "TCCD_101")
+
+tccd_102_mun <- urban_res_raw %>%
+                  filter(DEGURBA == 2) %>%
+                  select(year, kommune_nummer, mean_soaa_tcd_perc, sd_soaa_tcd_perc) %>%
+                  group_by(year, kommune_nummer) %>%
+                  summarise(mean_tcd_municipal = round2(mean_soaa_tcd_perc, 2),
+                            sd_tcd_municipal = round2(sd_soaa_tcd_perc, 2)) %>%
+                  mutate(ID = "TCCD_102")
+
+tccd_103_mun <- urban_res_raw %>%
+                  filter(DEGURBA == 3) %>%
+                  select(year, kommune_nummer, mean_soaa_tcd_perc, sd_soaa_tcd_perc) %>%
+                  group_by(year, kommune_nummer) %>%
+                  summarise(mean_tcd_municipal = round2(mean_soaa_tcd_perc, 2),
+                            sd_tcd_municipal = round2(sd_soaa_tcd_perc, 2)) %>%
+                  mutate(ID = "TCCD_103")
+
+res_municip <- bind_rows(tccd_001_mun,
+                         tccd_100_mun,
+                         tccd_101_mun,
+                         tccd_102_mun,
+                         tccd_103_mun) %>%
+              mutate(Indicator = "Tree Canopy Cover Density") %>%
+              select(Indicator, ID, kommune_nummer, year, mean_tcd_municipal, sd_tcd_municipal)
+      
+colnames(res_municip) <- c("Inidcator",
+                           "ID",
+                           "Accounting area",
+                           "Accounting period",
+                           "Average Tree Canopy Cover Density(%)",
+                           "Standard deviation")
+
+datatable(res_municip)
+```
+
+
 <!--# 
 
 Repeat the final results here. Typically this is a map or table of indicator values.
