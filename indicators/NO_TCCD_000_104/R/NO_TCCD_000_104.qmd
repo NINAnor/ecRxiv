@@ -367,7 +367,7 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 ### Paths to data sources
 Before starting any of the analyses, we store the path in which the data will be found. If readers wish to download the data and run this code, they can just change the paths below to their local paths for the rest of the code to function.
 ```{r}
-#| eval: false
+#| eval: true
 #| code-summary: "Paths to the data"
 
 # DEGURBA from Eurostat
@@ -396,7 +396,7 @@ res_path <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/"
 To ensure breakdown of the results at municipal level, we use the Eurostat Local Administrative Units shapefile from 2023 updated to 2024. The main reason behind this choice is to keep being comparable with other indicator for which this shapefile had to be used to define urban areas such as URGR, URAQ and TCCD for urban ecosystems. Another more pragmatic reason is that this shapefile is limited to the terrestrial area, while the national data source for municipal administrative boundaries include the marine territory for all coastal municipalities. As our condition indicators are limited to the terrestrial ecosystems (forest and urban ecosystems), we preferred the use of the Eurostat municipal boundaries, also called Local Administrative Units. However, this file needed to be updated manually to 2024 as the last available version was from 2023. This update was necessary as municipalities numbers in Norway underwent significant change sin 2024. Also Ålesund municipalities was divided in two. These changes are presented in the code below but the final shapefile can also be downloaded from NINA' internal repository following the path presented above `path_lau_2024`.
 ```{r}
 #| eval: false
-#| code-summary: "Update Eurotate LAUs to 2024"
+#| code-summary: "Update Eurostat LAUs to 2024"
 
 # Read shapefile and select Norway
 lau_no <- st_read(path_lau) %>%
@@ -666,7 +666,7 @@ THese files will be used to create virtual rasters during the analyses. We do no
 <!-- ``` -->
 
 #### Load and prepare the forest data
-To allow for a breakdown at municipal level, we start by intersecting Eurostat Local Administrative Units with the class "Forest and woodlands" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on. /
+To allow for a breakdown at municipal level, we start by intersecting Eurostat Local Administrative Units with the class "Forest and woodlands" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on. 
 
 Spatial intersections between municipalities and Grunnkart are computing intensive. To reduce the time, we use the `duckdb` package. Note that tiles 33, 34 and 55 of the Grunnkart, had to be cleaned separately as functions in `duckdb` couldn't make the geometry valid but functions in `sf` package could.
 ```{r}
@@ -1021,7 +1021,7 @@ rm(list = setdiff(ls(),
 ```
 
 #### Load and prepare the urban area data
-To allow for a breakdown at municipal level, we intersect Eurostat Local Administrative Units with the class "Settlements and other artificial areas" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on. /
+To allow for a breakdown at municipal level, we intersect Eurostat Local Administrative Units with the class "Settlements and other artificial areas" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on.
 
 As previously, we use use the `duckdb` package to reduce computing time. Note that tile 34 of the Grunnkart, had to be cleaned separately as functions in `duckdb` couldn't make the geometry valid but functions in `sf` package could.
 ```{r}
@@ -1634,12 +1634,16 @@ datatable(res_national)
 ### Municipality level
 ```{r}
 #| eval: true
-#| message : false
+#| message: false
 #| code-summary: "Municipal summary table"
 
 # Read exported table
 forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_summary_table_forest.csv", sep = ";", head = TRUE)
+
 urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_summary_table_urban.csv", sep = ";", head = TRUE)
+
+municip_names <- read_excel(path_degurba, sheet = "NO")
+municip_names$`LAU CODE` <- as.numeric(municip_names$`LAU CODE`)
 
 # Compile the different URAQ indicators at national level
 tccd_001_mun <- forest_res_raw %>%
@@ -1687,15 +1691,18 @@ res_municip <- bind_rows(tccd_001_mun,
                          tccd_101_mun,
                          tccd_102_mun,
                          tccd_103_mun) %>%
+              left_join(., municip_names, join_by("kommune_nummer" == "LAU CODE")) %>%
               mutate(Indicator = "Tree Canopy Cover Density") %>%
-              select(Indicator, ID, kommune_nummer, year, mean_tcd_municipal, sd_tcd_municipal)
+              select(Indicator, ID, kommune_nummer, "LAU NAME NATIONAL", year, mean_tcd_municipal, sd_tcd_municipal) 
+              
       
 colnames(res_municip) <- c("Indicator",
                            "ID",
                            "Accounting area (municipality number)",
+                           "Accounting area (municipality name)",
                            "Accounting period",
                            "Average Tree Canopy Cover Density(%)",
-                           "Standard deviation")
+                           "Standard deviation (%)")
 
 datatable(res_municip)
 ```
