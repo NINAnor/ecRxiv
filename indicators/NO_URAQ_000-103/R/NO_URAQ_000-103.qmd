@@ -356,7 +356,7 @@ Describe the spatial units that you rely on in your analyses. Highlight the spat
 ### Paths to data sources
 Before starting any of the analyses, we store the path in which the data will be found. If readers wish to download the data and run this code, they can just change the paths below to their local paths for the rest of the code to function.
 ```{r}
-#| eval: false
+#| eval: true
 #| code-summary: "Paths to the data"
 
 # DEGURBA from Eurostat
@@ -1128,6 +1128,9 @@ datatable(res_national)
 # Read exported table
 res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/URAQ_summary_table.csv", sep = ";", head = TRUE)
 
+municip_names <- read_excel(path_degurba, sheet = "NO")
+municip_names$`LAU CODE` <- as.numeric(municip_names$`LAU CODE`)
+
 # Compile the different URAQ indicators at national level
 uraq_000_mun <- res_raw %>%
                 select(year, kommune_nummer, mean_pm25_municip_ug_m3, sd_pm25_municip_ug_m3) %>%
@@ -1172,17 +1175,19 @@ res_municip <- bind_rows(uraq_000_mun,
                          uraq_002_mun,
                          uraq_003_mun,
                          uraq_004_mun) %>%
+              left_join(., municip_names, join_by("kommune_nummer" == "LAU CODE")) %>%
               mutate(Indicator = "Urban Air Quality") %>%
-              select(Indicator, ID, kommune_nummer, year, mean_pm25, sd_pm25)
+              select(Indicator, ID, kommune_nummer,"LAU NAME NATIONAL", year, mean_pm25, sd_pm25)
       
 colnames(res_municip) <- c("Indicator",
                            "ID",
-                           "Accounting area",
+                           "Accounting area (municipality number)",
+                           "Accounting area (municipality name)",
                            "Accounting period",
-                           "Average PM2.5 concentration µg/m3",
-                           "Standard deviation")
+                           "Average PM2.5 concentration (µg/m3)",
+                           "Standard deviation (µg/m3)")
 
-res_municip$`Standard deviation` <- round2(res_municip$`Standard deviation`)
+res_municip$`Standard deviation` <- round2(res_municip$`Standard deviation (µg/m3)`)
 
 datatable(res_municip)
 ```
