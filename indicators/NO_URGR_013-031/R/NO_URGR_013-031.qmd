@@ -53,6 +53,7 @@ library(exactextractr)
 library(dplyr)
 library(purrr)
 library(readxl)
+library(numform)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -2357,12 +2358,17 @@ urgr30 <- read.table(paste0(path_res, "URGR_030_detailed_results_26JUNE2025.csv"
 urgr31 <- read_excel(paste0(path_res, "URGR_031_fylke_results_18JUNE_25.xlsx"))
 
 # Calculate URGR indicators
-urgr13_national <- sum(urgr13$total_area_et_m2) / sum(unique(urgr13$lau_area_m2)) *100
-urgr22_national <- sum(urgr22$total_area_et_m2) / sum(unique(urgr22$urb_domn_total_area)) *100
-urgr23_national <- sum(urgr23$total_area_et_m2) / sum(unique(urgr23$soaa_total_area_m2)) *100
-urgr25_national <- sum(urgr25$total_non_imper_area_m2) / sum(urgr25$total_soaa_area_m2) *100
-urgr30_national <- sum(urgr30$total_non_imper_area_m2) / sum(urgr30$total_soaa_area_m2) *100
-urgr31_national <- sum(urgr31$total_non_imper_area_m2) / sum(urgr31$total_soaa_area_m2) *100
+urgr13_national <- round2(sum(urgr13$total_area_et_m2) / sum(unique(urgr13$lau_area_m2)) *100, 2)
+
+urgr22_national <- round2(sum(urgr22$total_area_et_m2) / sum(unique(urgr22$urb_domn_total_area)) *100, 2)
+
+urgr23_national <- round2(sum(urgr23$total_area_et_m2) / sum(unique(urgr23$soaa_total_area_m2)) *100, 2)
+
+urgr25_national <- round2(sum(urgr25$total_non_imper_area_m2) / sum(urgr25$total_soaa_area_m2) *100, 2)
+
+urgr30_national <- round2(sum(urgr30$total_non_imper_area_m2) / sum(urgr30$total_soaa_area_m2) *100, 2)
+
+urgr31_national <- round2(sum(urgr31$total_non_imper_area_m2) / sum(urgr31$total_soaa_area_m2) *100, 2)
 
 # Create the table of outputs
 urgr_vec_national <- c(urgr13_national,
@@ -2424,7 +2430,7 @@ urgr13_regional <- urgr13 %>%
                     summarise(urban_green_area_m2 = sum(total_area_et_m2),
                               total_urban_area_m2 = sum(unique(lau_area_m2))) %>%
                     mutate(indicator = rep("URGR 13", nrow(.)),
-                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                           urgr_regional = round2(urban_green_area_m2 / total_urban_area_m2 * 100, 2)) %>%
                     select(region_name, indicator, urgr_regional)
                    
 urgr22_regional <- urgr22 %>%
@@ -2433,7 +2439,7 @@ urgr22_regional <- urgr22 %>%
                     summarise(urban_green_area_m2 = sum(total_area_et_m2),
                               total_urban_area_m2 = sum(unique(urb_domn_total_area))) %>%
                     mutate(indicator = rep("URGR 22", nrow(.)),
-                           urgr_regional= urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                           urgr_regional= round2(urban_green_area_m2 / total_urban_area_m2 * 100, 2)) %>%
                     select(region_name, indicator, urgr_regional)
 
 regions$kommune_nr_2023 <- as.numeric(regions$kommune_nr_2023) 
@@ -2444,7 +2450,7 @@ urgr23_regional <- urgr23 %>%
                     summarise(urban_green_area_m2 = sum(total_area_et_m2),
                               total_urban_area_m2 = sum(unique(soaa_total_area_m2))) %>%
                     mutate(indicator = rep("URGR 23", nrow(.)),
-                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                           urgr_regional = round2(urban_green_area_m2 / total_urban_area_m2 * 100, 2)) %>%
                     select(region_name, indicator, urgr_regional)  
 
 
@@ -2454,7 +2460,7 @@ urgr25_regional <- urgr25 %>%
                     summarise(urban_green_area_m2 = sum(total_non_imper_area_m2),
                               total_urban_area_m2 = sum(total_soaa_area_m2)) %>%
                     mutate(indicator = rep("URGR 25", nrow(.)),
-                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                           urgr_regional = round2(urban_green_area_m2 / total_urban_area_m2 * 100, 2)) %>%
                     select(region_name, indicator, urgr_regional)  
 
 urgr30_regional <- urgr30 %>%
@@ -2463,7 +2469,7 @@ urgr30_regional <- urgr30 %>%
                     summarise(urban_green_area_m2 = sum(total_non_imper_area_m2),
                               total_urban_area_m2 = sum(total_soaa_area_m2)) %>%
                     mutate(indicator = rep("URGR 30", nrow(.)),
-                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                           urgr_regional = round2(urban_green_area_m2 / total_urban_area_m2 * 100, 2)) %>%
                     select(region_name, indicator, urgr_regional)  
 
 urgr31_regional <- urgr31 %>%
@@ -2472,7 +2478,7 @@ urgr31_regional <- urgr31 %>%
                     summarise(urban_green_area_m2 = sum(total_non_imper_area_m2),
                               total_urban_area_m2 = sum(total_soaa_area_m2)) %>%
                     mutate(indicator = rep("URGR 31", nrow(.)),
-                           urgr_regional = urban_green_area_m2 / total_urban_area_m2 * 100) %>%
+                           urgr_regional = round2(urban_green_area_m2 / total_urban_area_m2 * 100, 2)) %>%
                     select(region_name, indicator, urgr_regional) 
 
 # Create the table of outputs
@@ -2482,6 +2488,7 @@ urgr_df_regional <- bind_rows(urgr13_regional,
                               urgr25_regional,
                               urgr30_regional,
                               urgr31_regional)
+                    
 
 res_regional <- data.frame(rep("Share of urban green areas", nrow(urgr_df_regional)),
                            urgr_df_regional$indicator, 
