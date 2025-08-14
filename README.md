@@ -17,14 +17,6 @@ On this site (this GitHub repository) you can submit technical documentation and
 
 As a minimum requirement, the documentation must be renderable as an html, and you must submit a separate metadata file (excel template is provided). However, we encourage, and facilitate, the publication of fully reproducible workflows in the form of quarto files and associated data files.
 
-### How to review an indicator
-Indicator reviews are handles though GitHub Issues. Got to the issues tab and select *New Issue*. 
-If you are adding a complete review, similar to peer reviewing a scientific article, use the *Indicator review - checklist* template.
-If you just want to add a comment and a more simple review, use the *Indicator feedback* template.
-
-### How to review a PR and update the shiny app (for admins)
-This is for ecRxiv administrators who first come incontact with a new PR. 
-Open a new issue on GitHub and chose the *PR review - checklist* template. Follow the instructions there.
 
 ### How to submitt indicator documentation to ecRxiv
 
@@ -33,7 +25,7 @@ Open a new issue on GitHub and chose the *PR review - checklist* template. Follo
 The submission and publication of indicator documentation is also described in the numbered workflow below.
 
 1.  **Fork the main branch of this repository (repo)**. The main branch contains a lot of data files, but creating a fork does not cause create copies of the files themselves, and does not lead to higher data storage requirements. Note that personal users can only fork a repo once (at a time). Organisational users can fork as many times they want, so you can for example have one fork per indicator. An alternative is to have one fork on your personal user, where you ruitinely syncronise the main branch, and use other branched for individual indicators.  
-2.  **Make a partial clone your forked repo**. Although it is possible to edit the files in your fork directly through GitHub in the web browser, most users will prefer to make a local copy of the repo and edit files in a separate software, such as RStudio. To avoid copying all the data files and git history for all the other indicators on ecRxiv, we highly recommend making a partial clone, and not a full (normal) clone. To do this you need to talk to git via the command line (don't be scared!). As a general solution, open the folder where you want to clone the repo into, right click, and open Git Bash. Alternatively, if working in RStudio, you can write directly in the terminal window:
+2.  **Make a partial clone of your forked repo**. Although it is possible to edit the files in your fork directly through GitHub in the web browser, most users will prefer to make a local copy of the repo and edit files in a separate software, such as RStudio or Positron. To avoid copying all the data files and git history for all the indicators already on ecRxiv, we highly recommend making a partial clone, and not a full (normal) clone. To do this you need to talk to git via the command line (don't be scared!). As a general solution, open the folder where you want to clone the repo into, right click, and open Git Bash. Alternatively, if working in RStudio, you can write directly in the terminal window:
   
   `git clone --filter=blob:none --no-checkout https://github.com/<USER>/<REPO>`
 
@@ -65,5 +57,16 @@ If you are starting to work on a new indicator (not updating an existing indicat
 10.  The publicly available documentation is now subject to voluntary review, for which there are separate guidelines.
 11.  The PR authors can revise their documentation as many time as needed, and in response to review by peers. Major revisions may result in the creation of a new version number for the original indicator.
 
+### What if I have questions or suggestions?
+There is a [Q&A](https://github.com/NINAnor/ecRxiv/discussions/categories/q-a) where you can ask questions if you get stuck. If you already know there is a bug, or you have suggestsion for improving ecRxiv, you may raise an [issue](https://github.com/NINAnor/ecRxiv/issues). We are grateful for any contributions, feedback and questions. 
+
+### How to review an indicator
+Indicator reviews are handles through GitHub Issues. Got to the [issues tab](https://github.com/NINAnor/ecRxiv/issues) and select *New Issue*. 
+If you are adding a complete review, similar to peer reviewing a scientific article, use the *Indicator review - checklist* template.
+If you just want to add a comment and a more simple review, use the *Indicator feedback* template.
+
+### How to review a PR and update the shiny app (for admins)
+This is for ecRxiv administrators who first come incontact with a new PR. 
+Open a new issue on GitHub and chose the *PR review - checklist* template. Follow the instructions there.
 
 
