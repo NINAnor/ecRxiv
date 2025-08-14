@@ -17,7 +17,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research
-date: June 4, 2025 
+date: August 12, 2025 
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -44,6 +44,7 @@ library(sf)
 library(readxl)
 library(httr)
 library(jsonlite)
+library(sp)
 ```
 
 ```{r source}
@@ -136,6 +137,7 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 4 May 2025 - Version 001.000 started
+- 12 Aug 2025 - Version 001.000 ready for code review
 :::
 
 
@@ -145,7 +147,7 @@ meta |>
 
 ## 1. Summary
 
-Freshwater ecosystems are negatively affected by anthropogenic activities that change the chemical composition of the water, such as pollution or run-off causing eutrophication. 
+Lake ecosystems are negatively affected by anthropogenic activities that change the chemical composition of the water, such as pollution or run-off causing eutrophication. 
 PTI ("Phytoplankton Trophic Index") is a measure of the sensitivity of phytoplankton to the availability of phosphates. 
 PTI is estimated by calculating the average sensitivity scores of the phytoplankton species sampled in a given location ([Ptacnik et al. 2009](#pta09)). 
 Lakes characterised by phytoplankton communities with low sensitivity to high phosphate concentration indicate a functional shift towards more disturbed ecosystems.
@@ -156,7 +158,7 @@ In Norway, the WFD is implemented by means of [*Vannforskriften*](#vannf), and r
 The data collected are archived and made available in the [*Vannmiljø*](https://vannmiljo.miljodirektoratet.no/) database. 
 
 These WFD data can be used in other contexts, including ecological condition assessments. 
-The procedure implemented here follows a dataflow that has been described and documented earlier ([Sandvik 2019](#san19), [Sandvik 2024](#san24)) and that consists of the following steps (for details, see [section 9.5](#estimating-the-indicator-values-and-their-uncertainty)):
+The procedure implemented here follows a dataflow that has been described and documented earlier ([Sandvik 2019](#san19), [Sandvik 2025](#san25)) and that consists of the following steps:
 
 * Selecting measurements from the relevant time period.
 * Removing measurements that do not fulfil the requirements for the specific indicator.
@@ -203,6 +205,8 @@ Some water bodies are sampled regularly (e.g., every fifth year).
 For most water bodies, however, no such fixed surveillance schemes exist. 
 Still, the total amount of measurements for many WFD indicators is sufficient to estimate annual values that are spatially aggregated to the national and regional level.
 
+A specific requirement for PTI is that the indicator value for a given water body in a given year is to be based on annual averages of measurements that are taken at least monthly throughout the growing season (June--September in Northern Norway and May--October in the rest of Norway; [DGVF 2025](#veil2)).
+
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
 
 ### 2.2 Original units
@@ -244,7 +248,7 @@ For example, and indicator called 'Trenching in mires' could be made to represen
 
 In the Norwegian classification of ecological characteristics (*økologiske egenskaper*) according to Nybø & Evju ([2017](#nyb17), p. 35), the indicator represents **abiotic conditions** (*abiotiske forhold*).
 
-In the WFD's distinction between **quality elements**, the indicator represents **phytoplankton** (WFD, Annex V).
+In the WFD's distinction between **quality elements**, the indicator represents **phytoplankton** (WFD, Annex&nbsp;V).
 
 The WFD enforces the environmental **objectives** that water bodies shall not have an indicator value below X~60~, and that water bodies already obtaining an indicator value above X~80~ shall not drop below this threshold (WFD, Article 4; cf. *Vannforskriften* §&nbsp;4).
 
@@ -252,7 +256,7 @@ The WFD enforces the environmental **objectives** that water bodies shall not ha
 
 ### 3.4 Collinearities with other indicators
 
-PTI is correlated to [total phosphorus](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WTPX_001) and may be broadly correlated to other measures of lake eutrophication, specifically [chlorophyll&nbsp;*a*](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WCHL_001) and [phytoplankton biomass](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WPPB_001).
+PTI is correlated to [total phosphorus](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WTPX_001_002) and may be broadly correlated to other measures of lake eutrophication, specifically [chlorophyll&nbsp;*a*](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WCHL_001) and [phytoplankton biomass](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WPPB_001).
 <!--# links will not work before the respective indicators are pulled to the ecRxiv main branch -->
 
 <!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
@@ -279,12 +283,12 @@ Water bodies judged to be in the reference condition are referred to as *referen
 
 According to the WFD, reference levels are defined for X~0~, X~20~, X~40~, X~60~, X~80~, and X~100~. 
 These are used to classify the "ecological status" of water bodies as "bad" (X~0~ &le; X &le; X~20~), "poor" (X~20~ < X &le; X~40~), "moderate" (X~40~ < X &le; X~60~), "good" (X~60~ < X &le; X~80~), and "high" (X~80~ < X &le; X~100~). 
-The WFD (Annex V, section 1.2) provides the following normative definition of "high status": 
+The WFD (Annex&nbsp;V, section&nbsp;1.2) provides the following normative definition of "high status": 
 "The values of the biological quality elements for the surface water body reflect those normally associated with that type under undisturbed conditions, and show no, or only very minor, evidence of distortion."
 An approach used for many WFD indicators, including this one, is to define X~100~ as the median of the variable values measured in reference water bodies.
 
 Reference levels for PTI are provided in Tables 4.2 and 4.4 of DGVF ([2025](#veil2)). 
-A more detailed description of the calculation of AIP can be found in Table V4.1.1. 
+A more detailed description of the calculation of PTI can be found in Table V4.1.1. 
 
 According to these tables, possible variable values range from 1.16 to 4.99, corresponding to a continuum from maximum eutrophication tolerance to maximum eutrophication sensitivity of the phytoplankton species sampled. 
 
@@ -299,7 +303,7 @@ Why was the current option chosen and how were the reference levels quantified? 
 #### 4.2.1 Spatial resolution and validity
 
 The spatial resolution of WFD reference levels is the water body. 
-Reference levels of PIT differ between lake water types. 
+Reference levels of PTI differ between lake water body types. 
 Depending on several typology factors (height above sea level, calcium concentration, humus concentration, and depth), lake water bodies are grouped in nine categories, each with their own set of reference levels ([DGVF 2025](#veil2), Tables 4.2--4.4).
 
 <!--# 
@@ -342,7 +346,7 @@ The approach has been described (in Norwegian) by Sandvik ([2019](#san19): pp. 1
 
 <span id="san19">Sandvik H.</span> 2019. Ferskvann i vannforskriften og naturindeksen. Forslag til samordning og dataflyt. *NINA Rapp* **1723**: 1&ndash;38. [[hdl:11250/2631056](http://hdl.handle.net/11250/2631056)]
 
-<span id="san24">Sandvik H.</span> 2024. NI_vannf: dataflyt fra vannforskriften til naturindeks. <https://github.com/NINAnor/NI_vannf> [[doi:10.5281/zenodo.10278000](https://doi.org/10.5281/zenodo.10278000)]
+<span id="san25">Sandvik H.</span> 2025. WFD2ECA: Dataflyt fra vannforskriften til økologisk tilstandsregnskap og naturindeks, version 2.0. <https://github.com/NINAnor/WFD2ECA> [[doi:10.5281/zenodo.10278000](https://doi.org/10.5281/zenodo.10278000)]
 
 <span id="seeaea">**SEEA EA**:</span> United Nations et al. 2024. *System of Environmental-Economic Accounting -- Ecosystem Accounting.* UN, New York. <https://seea.un.org/ecosystem-accounting>
 
@@ -443,6 +447,7 @@ At the outset, we define two variables containing the official abbreviations (i.
 
 ```{r}
 indikator <- "PPTI"
+tittel <- "PTI"
 vannkategori <- "L"
 ```
 
@@ -451,10 +456,10 @@ We start by downloading the functions and data files from archived version 1.5 o
 
 ```{r}
 if(!file.exists("../data/VF.RData")) {
-  download.file("https://zenodo.org/records/15276139/files/NINAnor/NI_vannf-v1.5.zip", 
-                "../data/NI_vannf.zip")
-  folder <- "../data/NI_vannf"
-  unzip("../data/NI_vannf.zip", exdir = folder)
+  download.file("https://zenodo.org/records/16811526/files/NINAnor/WFD2ECA-v2.0.zip",
+                "../data/WFD2ECA.zip")
+  folder <- "../data/WFD2ECA"
+  unzip("../data/WFD2ECA.zip", exdir = folder)
   while (length(list.files(folder)) == 1) {
     folder <- paste0(folder, "/", list.files(folder))
   }
@@ -466,6 +471,7 @@ if(!file.exists("../data/VF.RData")) {
     "navnVM.csv",
     "navnVN.csv",
     "NVE.RData",
+    "Norge.map",
     paste0("V-", vannkategori, ".csv"),
     "VF.RData",
     "VM-aktiv.xlsx",
@@ -483,8 +489,8 @@ if(!file.exists("../data/VF.RData")) {
   dummy <- file.copy(from = list.files(paste0(folder, "/R/"), full.names = TRUE),
                      to   = ".",
                      overwrite = FALSE)
-  dummy <- file.remove("../data/NI_vannf.zip")
-  unlink("../data/NI_vannf", recursive = TRUE)
+  dummy <- file.remove("../data/WFD2ECA.zip")
+  unlink("../data/WFD2ECA", recursive = TRUE)
 }
 ```
 
@@ -499,38 +505,18 @@ for (filnavn in list.files(".", full.names = TRUE)) {
 }
 ```
 
-### 9.2. Reading registrations and other information from Vannmiljø
-
-Now that the preliminaries are in place, we first read the measurements of the specified indicator from the *Vannmiljø* API.
-
-```{r}
-DATA <- lesMaalinger(indikator, filsti = "../data")
-```
-
-The output informs us that the operation was successful and how many registrations have been read.
-
-A list of water localities (*vannlokaliteter*) is likewise read from the *Vannmiljø* API. 
-The main function argument is the water category.
-
-```{r}
-VL <- lesVannlokaliteter(vannkategori, filsti = "../data")
-```
-
-The output informs us that the operation was successful and how many water localities there are.
-
-### 9.3. Reading data on water bodies
+### 9.2. Reading data on water bodies
 
 The preparation of the list of water bodies (*vannforekomster*) requires two files: 
 one containing the water body typology, which needs to be downloaded from *Vann-nett* and named "V-L.csv" (for **L**ake water bodies); 
 and another containing a geodatabase of all water bodies, named "VF.gdb".
 
 ```{r, eval=FALSE, echo=TRUE}
-V <- lesVannforekomster(vannkategori, filsti = "../data")
+V <- lesVannforekomster(vannkategori)
 ```
 ```{r, eval=TRUE, echo=FALSE}
 # The geodatabase is too huge for GitHub, so a cached version is used instead
-V <- lesVannforekomster(vannkategori, filsti = "../data",
-                        CACHE = "VF.RData")
+V <- lesVannforekomster(vannkategori, CACHE = "VF.RData")
 ```
 
 The output informs us of several adjustments made to the data, but that the operation was successful and how many water bodies (of the relevant water category) there are.
@@ -538,12 +524,11 @@ The output informs us of several adjustments made to the data, but that the oper
 The export from *Innsjødatabase* needs to be read, too.
 
 ```{r, eval=FALSE, echo=TRUE}
-nve <- lesInnsjodatabasen("Innsjo_Innsjo.dbf", filsti = "../data")
+nve <- lesInnsjodatabasen("Innsjo_Innsjo.dbf")
 ```
 ```{r, eval=TRUE, echo=FALSE}
 # The shapefile is too huge for GitHub, so a cached version is used instead
-nve <- lesInnsjodatabasen("Innsjo_Innsjo.dbf", filsti = "../data",
-                          CACHE = "NVE.RData")
+nve <- lesInnsjodatabasen("Innsjo_Innsjo.dbf", CACHE = "NVE.RData")
 ```
 
 The output informs us of a few adjustments made to the data, but that the operation was successful.
@@ -557,6 +542,87 @@ V <- oppdaterVannforekomster(V, nve)
 
 Again, the output informs us of some adjustments made to the data, but that the operation was successful.
 
+### 9.3. Reading registrations and other information from Vannmiljø
+
+Now we read the measurements of the specified indicator from the *Vannmiljø* API.
+
+```{r}
+DATA <- lesMaalinger(indikator)
+```
+
+The output informs us that the operation was successful and how many registrations have been read.
+
+A list of water localities (*vannlokaliteter*) is likewise read from the *Vannmiljø* API. 
+The main function argument is the water category.
+
+```{r}
+VL <- lesVannlokaliteter(vannkategori)
+```
+
+The output informs us that the operation was successful and how many water localities there are.
+
+We can show the raw (unfiltered and unscaled) measurements on a map.
+
+```{r}
+#| lab: measurement-map
+#| fig-cap: "Map of Norway with points for all water bodies in which the indicator has been recorded. Colour indicates the average unscaled variable value for the water body."
+
+{
+  xaxis <- 1:5
+  dig <- 0
+  snudd <- TRUE
+  
+  ml <- V[which(V$id %in% 
+               VL$id[which(VL$lokid %in% 
+                         DATA$lokid[which(DATA$verdi %mellom% range(xaxis))])]), ]
+  ml$maaling <- NA
+  for (i in 1:nrow(ml)) {
+    ml$maaling[i] <- mean(DATA$verdi[which(DATA$lokid %in% 
+                                             VL$lokid[which(VL$id == ml$id[i])])])
+  }
+  z <- 2
+  fjern <- c()
+  while (length(which(ml$maaling < xaxis[z])) == 0) {
+    fjern <- c(fjern, z - 1)
+    z <- z + 1
+  }
+  z <- length(xaxis) - 1
+  while (length(which(ml$maaling > xaxis[z])) == 0) {
+    fjern <- c(fjern, z + 1)
+    z <- z - 1
+  }
+  if (length(fjern)) xaxis <- xaxis[-fjern]
+  if (snudd) xaxis <- rev(xaxis)
+  xlim <- range(xaxis)
+  ml$maaling <- sapply(sapply(ml$maaling, max, xlim[1]), min, xlim[2])
+  ml <- ml[order(ml$maaling, decreasing = !snudd), ]
+  
+  load("../data/Norge.map")
+  par(mai = rep(0, 4))
+  plot(Norge.kontur, xlim = c(3.5, 31.5), ylim = c(57.5, 71.5), 
+       xaxs = "i", yaxs = "i", asp = 2, col = grey(0.84), border = NA)
+  points(ml$long, ml$lat, pch = 20, cex = 0.6, col = if (snudd)
+         farve(ml$maaling, xlim[2], xlim[1]) else 
+         farve(ml$maaling, xlim[1], xlim[2]))
+  text(6, 70, tittel, cex = 1.5, font = 2)
+  for (i in seq(0, 0.999, 0.001)) {
+    rect(24, 59+i*8, 26, 59+(i+0.001)*8, border = NA,
+         col = if (snudd) farve(i, 1, 0) else farve(i, 0, 1))
+  }
+  rect(24, 59, 26, 67, lwd = 2)
+  for (i in xaxis) {
+    lines(c(24.0,23.6), rep(59 + 8 * (i-xlim[1]) / (xlim[2]-xlim[1]), 2), lwd=2)
+  }
+  text(23.6, 59 + 8 * (xaxis - xlim[1]) / (xlim[2] - xlim[1]), 
+       erstatt(formatC((xaxis), dig, format = "f"), "-", "−"), pos = 2)
+  if (length(unique(DATA$enhet)) %=% 1 & 
+             unique(DATA$enhet) %!=% "3" & exists("Enheter")) {
+    text(25, 58.5, Enheter[which(Enheter[, 1] == unique(DATA$enhet)), 2])
+  }
+}
+```
+
+
 ### 9.4. Calculating mEQRs using reference levels
 
 According to the WFD and DGVF ([2025](#veil2)), measurements of WFD variables are transformed into so-called nEQR values ("normalised Ecological Quality Ratios") between 0 and 1, which correspond to indicator values sensu [SEEA EA](#seeaea). 
@@ -568,7 +634,7 @@ This is normally done using the following steps:
 
 Truncation, however, removes information about variation in ecological condition that is important for estimating (modelling and extrapolating) the indicator value and its uncertainty. 
 Therefore, the dataflow from WFD to an Ecological Condition Account should be based on values that are *scaled and transformed but not truncated*.
-This is implemented in the current context by modifying the order of the steps from truncation&ndash;scaling&ndash;transformation to scaling&ndash;transformation&ndash;aggregation&ndash;truncation (following [Sandvik 2019](#san19): pp. 13--15, [Sandvik 2024](#san24)):
+This is implemented in the current context by modifying the order of the steps from truncation&ndash;scaling&ndash;transformation to scaling&ndash;transformation&ndash;aggregation&ndash;truncation (following [Sandvik 2019](#san19): pp. 13--15, [Sandvik 2025](#san25)):
 
 1. *Scaling.* The *un*truncated variable values are linearly scaled so that X~0~ becomes 0 and X~100~ becomes 1. Note that the resulting values may be negative (if X is poorer than X~0~) or larger than 1 (if X is better than X~100~).
 2. *Transformation.* The scaled values are transformed in a stepwise-linear manner in accordance with the threshold values defined by the WFD. The resulting indicator values are here referred to as **mEQR**s ("modified EQRs"). This step requires an adjustment in cases were the minimum and/or maximum values of X can be much lower or higher than X~0~ or X~100~. The approach chosen here ensures that no indicator value can be below &minus;0.2 or above 1.2.
@@ -594,7 +660,7 @@ if (nrow(klassegrenser) > 1) {
 print(m)
 ```
 
-Since reference values differ between water types, their ranges are shown above. 
+Since reference values differ between water body types, their ranges are shown above. 
 
 The following graph shows the scaling and transformation of the indicator (using the WFD colour coding for ecological status classes).
 
@@ -612,7 +678,8 @@ if (unique(DATA$enhet) %!=% "3" & exists("Enheter")) {
   forklar <- forklar %+% " (" %+% 
     Enheter[which(Enheter[, 1] == unique(DATA$enhet)), 2] %+% ")"
 }
-plot(x, y, ty = "l", main = "PTI",
+par(mai = c(0.96, 0.84, 0.84, 0.12))
+plot(x, y, ty = "l", main = tittel,
      xlim = xlim,         xaxs = "r", xaxt = "n", xlab = forklar,
      ylim = c(-0.2, 1.2), yaxs = "r", yaxt = "n", ylab = "mEQR values",
      cex.main = 1.5, cex.lab = 1.2)
@@ -644,23 +711,7 @@ Variable values may also be somewhat poorer (larger) than X~0~ (red line).
 ### 9.5. Estimating the indicator values and their uncertainty
 
 With the necessary files in place, the calculations can start. 
-This is done using the function WFD2ECA ("Water Framework Directive to Ecological Condition Account"), which carries out the following steps (cf. [Sandvik 2019](#san19), [Sandvik 2024](#san24)):
-
-* *Removing measurements that have been taken outside the specified accounting periods.* Accounting times are assumed to be every third year. The value for 2024 is based on measurements taken in 2022, 2023 and 2024. In order to increase the sample available for modelling, earlier time periods are included as well. Accounting years chosen are 2012, 2015, 2018 and 2021, each of them representing the three years up to and including the accounting year. Measurements taken before 2010 are thus excluded.
-* *Removing measurements with values that lie outside the interval for which the indicator is defined.* The *Vannmiljø* database may contain values that are incompatible with the definition of the indicator. These must have been mismeasured or misreported and need to be excluded. In addition, other measurements taken by the same operator at the same date are excluded.
-* *Identifying the water locality for each measurement.* Measurements taken in an unknown water locality are excluded.
-* *Identifying the water body for each water locality.* Measurements taken in an unknown water body are excluded.
-* *Removing measurements that are taken in a water category for which the indicator is not defined.* For example, if a WFD indicator that is defined for rivers is measured in a lake, this measurement is excluded.
-* *Removing measurements that are taken in a water body type for which the indicator is not defined.* For example, if a WFD indicator that is defined for lime-poor lakes is measured in a lime-rich lake, this measurement is excluded.
-* *Removing measurements that do not fulfil specific requirements for the indicator.* Some WFD indicators need to be measured in certain months or to be derived from a certain minimum number of measurements per season. These requirements are described in DGVF ([2025](#veil2)). Where it is possible to test whether these requirements are met based on data from *Vannmiljø*, this is done by the function.
-* *Removing measurements for reporting periods with too little data.* A certain minimum sample size is needed to estimate the status for a given reporting period. If the actual sample size is smaller than this threshold, the respective reporting period is omitted, and the measurements taken during this period are excluded. The default threshold used here is 100 measurements per reporting period.
-* *Scaling measurements to untruncated nEQR values ("mEQR" values).* This step is explained [above](#calculating-meqrs-using-reference-levels).
-* *Fitting a linear model to the measurements.* A linear model is fitted to the mEQR values, with explanatory variables being reporting periods, typology factors and surveillance activities. *Typology factors* of water bodies are described in DGVF ([2025](#veil2), especially Table 3.4) and include altitudinal zone, size class, lime content and organic matter content, among others. *Surveillance activities* describe the management target of each measurement (see [Vannmiljø](https://vannmiljokoder.miljodirektoratet.no/activity)). Measurements taken under the WFD can be expected to be biased towards poorer status than the average. Therefore, each measurement is here weighted by the representativeness of its surveillance activity, so as to partially correct for the bias in the data available (see [Sandvik 2019](#san19): pp. 17--19, [Framstad et al. 2023](#fra23): pp. 121--122). Model selection is based on AIC ([Akaikes Information Criterion](https://en.wikipedia.org/wiki/Akaike_information_criterion)).
-* *Averaging measurements taken in the same water body.* If more than one measurement has been taken in the same water body within the same reporting period, the unweighted mean of these measurements is used to represent the water body.
-* *Extrapolating mEQR values to water bodies that lack data.* If no measurement has been taken in a water body, the most likely indicator value is predicted for this water body, based on the model fitted previously.
-* *Using simulations to estimate confidence and prediction intervals.* Based on the model fitted and a re-sampling procedure, the uncertainty surrounding the estimates obtained in the previous steps is quantified using confidence intervals for water bodies that have been sampled, and prediction intervals for water bodies that have not been sampled. This is a time-consuming step. For illustration purposes, the number of iterations is here limited to 1,000. With so few iterations, the estimates of uncertainty are unreliable, however. For reporting one should, therefore, use more iterations, at least 10,000 (and preferably 100,000).
-* *Aggregating estimates geographically.* The values obtained for water bodies are aggregated for administrative units (municipalities, counties, regions and/or the whole country). Aggregation takes the form of averages weighted by area (for lake water bodies) or length (for river water bodies). Note that this step deviates from the WFD, which does not practice aggregation. (Rather, summary statistics following the WFD are provided as the number or proportion of water bodies that fulfil the objectives of the WFD.)
-
+This is done using the function WFD2ECA ("Water Framework Directive to Ecological Condition Account"), which is [documented in the WFD2ECA repository](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/dataflow.md) ([Sandvik 2025](#san25)).
 The function produces summaries of the steps performed (for the time being, the information is provided in Norwegian only).
 
 ```{r, eval=FALSE, echo=TRUE}
@@ -717,17 +768,6 @@ cat("Range of values prior to truncation (mEQR): " %+%
     format(round(max(utmating$landsdel, na.rm=TRUE), 4), nsm=4, sci=FALSE) %+% "\n")
 tomrom <- ifelse(nchar(format(round(min(utmating$landsdel, na.rm=TRUE), 4), 
                               nsm=4, sci=FALSE)) %=% 7, " ", "")
-trunker <- function(x) {
-  if (is.list(x) & length(x) > 0) {
-    for (i in 1:length(x)) {
-      x[[i]] <- trunker(x[[i]])
-    }
-  } else {
-    x[] <- ifelse(x[] > 1, 1, x[])
-    x[] <- ifelse(x[] < 0, 0, x[])
-  }
-  return(x)
-}
 utmating <- trunker(utmating)
 cat("Range of values _after_  truncation (nEQR): " %+% tomrom %+%
     format(round(min(utmating$landsdel, na.rm=TRUE), 4), nsm=4, sci=FALSE) %+%
@@ -757,7 +797,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 ## 10. Results
 
-As reference values of PTI differ between water types and the scaling function used is non-linear, aggregated averages of *unscaled* values (*variable* values sensu SEEA EA) are not informative. 
+As reference values of PTI differ between water body types and the scaling function used is non-linear, aggregated averages of *unscaled* values (*variable* values sensu SEEA EA) are not informative. 
 Therefore, this indicator is reported in terms of *scaled* values only (nEQR sensu WFD; *indicator* values sensu SEEA EA).
 
 The results are here tabulated (a) for the whole country and different years, and (b) for regions in 2024. 
@@ -773,7 +813,7 @@ These estimates are based on 10,000 iterations and therefore differ from the one
 | 2018 | 0.718         | 0.711          | 0.725          |
 | 2015 | 0.685         | 0.678          | 0.692          |
 
-: PTI indicator values for Norway in different years {.striped .hover}
+: PTI indicator values for Norwegian lakes in different years {.striped .hover}
 
 &nbsp;
 
@@ -785,7 +825,7 @@ These estimates are based on 10,000 iterations and therefore differ from the one
 | Midt-Norge | 0.908         | 0.895          | 0.920          |
 | Nord-Norge | 0.888         | 0.879          | 0.897          |
 
-: PTI indicator values for regions of Norway in 2024 {.striped .hover}
+: PTI indicator values in lakes for regions of Norway in 2024 {.striped .hover}
 
 <!--# 
 Repeat the final results here. Typically this is a map or table of indicator values.
