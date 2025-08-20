@@ -47,11 +47,12 @@ Open the PR and check the following:
 
 -   [ ] **Modified files:** the number of new files is correct; there are no unreasonably big files or too many files (e.g. html_files, old drafts or cashed files folders). Are any non-relevant files modified? For help with removing files from PR, see below.
 -   [ ] **File structure**: The folders and files are names correctly and have the right structure (they are not moved around compared to `indicators/template/`)
--   [ ] **Meta data:** the metadata file (metadata.xlsx) filled out
+-   [ ] **Meta data:** the metadata file (metadata.xlsx) filled out.
 -   [ ] **Data permission**: Do the authors have permission to use the data; is the data propoerly cited, and; in case the data is not openly available - do the authors describe how it can be accessed?
 -   [ ] **Document structure:** look at the quarto file and check that the document structure is reasonably according to the template, including headers and the yaml header.
--   [ ] **References:** is there a bibliography file? If not, should there be? (note: hyperlinks break over time)
--   [ ] **HTML included:** the HTML is included and looks good. To view it, open the html from the PR and view it online by pasting this string to the start of the URL: `http://htmlpreview.github.io/?`
+-   [ ] **References:** is there a bibliography file? If not, should there be? (note: hyperlinks break over time).
+-   [ ] **HTML included:** the HTML is included and looks good. To view it, open the html from the PR and view it online by pasting this string to the start of the URL: `http://htmlpreview.github.io/?`.
+-   [ ] **Authorship:** the names of authors in the `.qml` and the ``metadata.xlsx`` files match up and appear sensible (the Vancouver criteria should be followed, but this is the authors responsibility).
 
 ### Too many modified files
 
