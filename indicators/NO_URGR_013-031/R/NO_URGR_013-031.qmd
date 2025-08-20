@@ -518,13 +518,14 @@ names(query_string_list) <- c("Cemeteries",
                               "Heathland and shrub")
 
 # Run SQL query and store results in a list
+et_list <- list()
 for (i in 1: length(query_string_list)){
-query_string <- query_string_list[[i]] 
+query_string_i <- query_string_list[[i]] 
 
-et_data <- gdb_files %>% 
-            map(\(.) read_gdb(., projection_crs = gk_crs))  %>% 
-            compact() %>%  
-            bind_rows()
+et_list[[i]] <- gdb_files %>% 
+                 map(\(.) read_gdb(., projection_crs = gk_crs, query_string = query_string_i)) %>% 
+                 compact() %>%  
+                 bind_rows()
 }
 
 ```
@@ -620,17 +621,17 @@ To have correct spatial analyses, all spatial data loaded before must have the s
 #| code-summary: "Check CRS and reproject"
 
 # ETs from Grunnkart (we take one as they have all the same CRS)
-cemeteries_crs <- crs(et_list[[1]])
+gk_crs <- crs(et_list[[1]])
 
 # LAUs
 lau_crs <- crs(lau)
 
 # Check they are the same
-cemeteries_crs == lau_crs
+gk_crs == lau_crs
 
 
 # Re-project boundaries
-lau_32 <- st_transform(lau, cemeteries_crs)
+lau_32 <- st_transform(lau, gk_crs)
 ```
 
 The next step is to check for geometrical and topological issues and fix them if there are. Note that we use the `st_make_valid()` function from the `sf` package. This function did not work for Sparsely vegetated ecosystems so we used `st_buffer (x, 0, 0)` instead.
@@ -850,13 +851,14 @@ names(query_string_list) <- c("Cemeteries",
                               "Heathland and shrub")
 
 # Run SQL query and store results in a list
+et_list <- list()
 for (i in 1: length(query_string_list)){
-query_string <- query_string_list[[i]] 
+query_string_i <- query_string_list[[i]] 
 
-et_data <- gdb_files %>% 
-            map(\(.) read_gdb(., projection_crs = gk_crs))  %>% 
-            compact() %>%  
-            bind_rows()
+et_list[[i]] <- gdb_files %>% 
+                 map(\(.) read_gdb(., projection_crs = gk_crs, query_string = query_string_i)) %>% 
+                 compact() %>%  
+                 bind_rows()
 }
 
 ```
@@ -977,8 +979,8 @@ Not all of our data have the same CRS, we need to check so we know if we have to
 #| eval: false
 #| code-summary: "Check CRS"
 
-# ETs from Grunnkart (we take one as they have all the same CRS)
-cemeteries_crs <- crs(cemeteries)
+# ETs from Grunnkart
+gk_crs <- crs(et_list[[1]])
 
 # LAUs
 lau_crs <- crs(lau)
@@ -987,8 +989,8 @@ lau_crs <- crs(lau)
 smod_crs <- crs(smod_18)
 
 # Check they are the same
-cemeteries_crs == lau_crs
-cemeteries_crs == smod_crs
+gk_crs == lau_crs
+gk_crs == smod_crs
 ```
 
 The next step is to create the boundaries of the urban areas we will use for the analyses. For this, we take the SMOD data and mask then with the LAUs to have a raster of urban settlements for the LAUs. Then we need to select only the pixel whose values are strictly superior to 21 to define the "urban domain" within LAUs (see page 51 of the SMOD metadata for more information).
@@ -1212,7 +1214,7 @@ gk_crs <- st_read(gdb_files[1], query = "SELECT * FROM arealregnskap LIMIT 500")
             crs()
 
 # Function to read a single filtered file
-read_gdb <- function(gdb_path, projection_crs) {
+read_gdb <- function(gdb_path, projection_crs, query_string) {
   tryCatch({
     layer <- st_read(dsn = gdb_path, layer = "arealregnskap", query = query_string)
   }, error = function(e) {
@@ -1258,13 +1260,14 @@ names(query_string_list) <- c("Cemeteries",
                               "Heathland and shrub")
 
 # Run SQL query and store results in a list
+et_list <- list()
 for (i in 1: length(query_string_list)){
-query_string <- query_string_list[[i]] 
+query_string_i <- query_string_list[[i]] 
 
-et_data <- gdb_files %>% 
-            map(\(.) read_gdb(., projection_crs = gk_crs))  %>% 
-            compact() %>%  
-            bind_rows()
+et_list[[i]] <- gdb_files %>% 
+                 map(\(.) read_gdb(., projection_crs = gk_crs, query_string = query_string_i)) %>% 
+                 compact() %>%  
+                 bind_rows()
 }
 
 ```
@@ -1372,8 +1375,8 @@ Not all of our data have the same CRS, we need to check so we know if we have to
 #| eval: false
 #| code-summary: "Check CRS"
 
-# ETs from Grunnkart (we take one as they have all the same CRS)
-cemeteries_crs <- crs(et_list[[1]])
+# ETs from Grunnkart
+gk_crs <- crs(et_list[[1]])
 
 # LAUs
 lau_crs <- crs(lau)
@@ -1382,8 +1385,8 @@ lau_crs <- crs(lau)
 soaa_crs <- crs(soaa)
 
 # Check they are the same
-cemeteries_crs == lau_crs
-cemeteries_crs == soaa_crs
+gk_crs == lau_crs
+gk_crs == soaa_crs
 ```
 
 Once we have done that, we can perform the geometrical and topological checks of the data, and fix any issues that might arise.
