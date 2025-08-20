@@ -1,4 +1,4 @@
-![alt text](https://github.com/NINAnor/ecRxiv/blob/main/docs/_ecrxiv_logo_hovedlogo_tekst_under.png?raw=true)
+[![web application](https://github.com/NINAnor/ecRxiv/blob/main/docs/_ecrxiv_logo_hovedlogo_tekst_under.png?raw=true)](https://view.nina.no/ecRxiv/)
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
@@ -18,13 +18,13 @@ On this site (this GitHub repository) you can submit technical documentation and
 As a minimum requirement, the documentation must be renderable as an html, and you must submit a separate metadata file (excel template is provided). However, we encourage, and facilitate, the publication of fully reproducible workflows in the form of quarto files and associated data files.
 
 
-### How to submitt indicator documentation to ecRxiv
+### How to submit indicator documentation to ecRxiv
 
 [![Tutorial video](https://img.youtube.com/vi/wLYnORKZ1ZQ/0.jpg)](https://www.youtube.com/watch?v=wLYnORKZ1ZQ)
 
 The submission and publication of indicator documentation is also described in the numbered workflow below.
 
-1.  **Fork the main branch of this repository (repo)**. The main branch contains a lot of data files, but creating a fork does not cause create copies of the files themselves, and does not lead to higher data storage requirements. Note that personal users can only fork a repo once (at a time). Organisational users can fork as many times they want, so you can for example have one fork per indicator. An alternative is to have one fork on your personal user, where you ruitinely syncronise the main branch, and use other branched for individual indicators.  
+1.  **Fork the main branch of this repository (repo)**. The main branch contains a lot of data files, but creating a fork does not cause create copies of the files themselves, and does not lead to higher data storage requirements. Note that personal users can only fork a repo once (at a time). Organisational users can fork as many times they want, so you can for example have one fork per indicator. An alternative is to have one fork on your personal user, where you ruitinely synchronise the main branch, and use other branched for individual indicators.  
 2.  **Make a partial clone of your forked repo**. Although it is possible to edit the files in your fork directly through GitHub in the web browser, most users will prefer to make a local copy of the repo and edit files in a separate software, such as RStudio or Positron. To avoid copying all the data files and git history for all the indicators already on ecRxiv, we highly recommend making a partial clone, and not a full (normal) clone. To do this you need to talk to git via the command line (don't be scared!). As a general solution, open the folder where you want to clone the repo into, right click, and open Git Bash. Alternatively, if working in RStudio, you can write directly in the terminal window:
   
   `git clone --filter=blob:none --no-checkout https://github.com/<USER>/<REPO>`
@@ -49,7 +49,7 @@ If you are starting to work on a new indicator (not updating an existing indicat
 
 3.  Copy the `template_copy_folder_then_rename` folder and name the new folder, and files and folders inside it, according to our [naming convention](https://github.com/NINAnor/ecRxiv/wiki#naming-convention). Make sure not to simply rename the `template` folder - make a real copy.
 4.  Update the sparse checkout. The sparse checkout is set up to read only the `template_copy_folder_then_rename` folder, but you now want to work in the new folder you just created. Bring up the git bash window again and type `git sparse-checkout set <indicators>/<NEW_FOLDER_NAME>` where NEW_FOLDER_NAME will be the indicator ID(s).
-5.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` (don't rename this file as it is automatically read and used to populate tables in the quarto file). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recomended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
+5.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` (don't rename this file as it is automatically read and used to populate tables in the quarto file). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recommended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
 6.  Render the quarto file to html
 7.  Do a pull request (PR) from your forked repo to the `main` branch in this repo.
 8.  Administrators of this repo will check that the submission (the PR) is done properly and that all files have been named in the correct way. If you have submitted data and code, this review will also include checking that the code is able to locate the data and run, and that proper code annotation is provided. Revise the PR until it reached the requirements set by the administrators.
