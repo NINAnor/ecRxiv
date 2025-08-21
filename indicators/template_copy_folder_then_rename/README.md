@@ -1,0 +1,2 @@
+This folder contains the documentation for the ecological condition indicator **<ENTER\-INDICATOR\-ID>**. 
+For a readable description of the indicator, [see here](https://raw.githack.com/NINAnor/ecRxiv/main/indicators/<ENTER\-INDICATOR\-ID>/R/<ENTER\-INDICATOR\-ID>.html) or look it up in the [ecRxiv web app](https://view.nina.no/ecRxiv/).
