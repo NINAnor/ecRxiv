@@ -135,27 +135,16 @@ meta |>
 
 ## 1. Summary
 
-```{=html}
-<!--# 
-
-With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. It is a good idea to include a bullet point list of the specific steps in the workflow. Include a mention of the following aspects:
-
-What does the metric represent?
-Why is this relevant for describing ecosystem condition in this ecosystem?
-What are the main anthropogenig impact factors?
-What kind of data is used? 
-Shortly, how is the data customized (modified, estimated, integrated) to fit its purpose as an indicator?
-What is the current status of  the metric (can it be used or is it still in development)?
-How should the metric be used and interpreted, and how should it not be used/interpretted?
-
- -->
-```
 
 Bumblebees represent a conspicuous aspect of biodiversity, as well as indicators of habitat quality and important ecosystem functions, such as pollination. As a community they are dependent on a varied herbaceous flora. Bumblebee community structure can become disturbed by human activities, such as intensive agriculture and land-use change, and is therefore a key indicator of ecosystem condition.
 
 Here we calculate nationally aggregated indicator estimates for all of Norway, for both the forest and the semi-natural meadow ecosystems. The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB) [@åström2024]. This is a transect based survey using a representative sample of grassland localities in four regions of Norway (northern Norway is not included, but is expected to become included in the near future). The indicator is based on the number of bumblebees in each locality, which is then compared to expert elicited reference communities that show the expected number of each bumblebee species.
 
 The workflow for calculating indicator values, and for storing data, is integrated into an R-package called [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv). The indicator is fully operational and used in several national reporting settings. The indicator is very similar to the indicator *Butterflies* \[NO_BFLY_001 and 002\] [@åström].
+
+> ### Interpretation
+An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species.
+
 
 ## 2. About the underlying data
 
@@ -167,7 +156,7 @@ NMBB is designed to be area representative, within the respective habitat types 
 
 The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), to western Norway (Vestland) in 2022, and Northern Norway in 2025. The spatial resolution aligns with these 4 regions (data from Northern Norway not yet available), and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region.
 
-There are in total 71 sampling locations as of 2024, divided between the forests and the grassland ecosystem. The four regions have approx. the same sample size, yet they cover quite different extents (\@fig-regions). Therefore, the values from the central regions contributes a lot more in the area weighted national estimate (about 10 times as much weight as the values from the east region; \@tbl-wgt). In this sense, the dataset is perhaps more suited, or at least more better designed, to analysing regional difference, rather than to look at national means.
+There are in total 71 sampling locations as of 2024, divided between the forests and the grassland ecosystem. The four regions have approx. the same sample size, yet they cover quite different extents (@fig-regions). Therefore, the values from the central regions contributes a lot more in the area weighted national estimate (about 10 times as much weight as the values from the east region; @tbl-wgt). In this sense, the dataset is perhaps more suited, or at least more better designed, to analysing regional difference, rather than to look at national means.
 
 Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
 
@@ -200,7 +189,7 @@ Intakt biotic communities.
 
 ### 3.3 Other standards
 
-In the Norwegian \*fagsystem [@nybø2017]\*, the indicator fits with the \*Biologisk mangfold\* characteristic.
+In the Norwegian _fagsystem_ [@nybø2017], the indicator fits with the _Biologisk mangfold_ characteristic.
 
 ### 3.4 Collinearities with other indicators
 
@@ -533,15 +522,14 @@ First we get the area weights. The localities are stratified to four regions of 
 
 ```{r tbl-wgt}
 #| fig-cap: 'Area weights'
-regTable <- counties |>
+counties |>
   filter(!is.na(Region)) |>
   mutate(area_km2 = round(units::drop_units(st_area(geom))/1e6),
   area_weight = round(area_km2/max(area_km2), 3)) |>
   st_drop_geometry() |>
-  select(Region, area_km2, area_weight)
-
-regTable |>
-  kable() 
+  select(Region, area_km2, area_weight) |>  
+  kbl() |>
+  kable_paper()
 ```
 
 We use bootstrapping for getting the errors, but we use area-weighted arithmetic mean to get the point estimate.
