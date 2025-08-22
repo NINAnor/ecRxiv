@@ -54,7 +54,7 @@ source(here::here("_common.R"))
 
 ```{r}
 #| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
+meta <- readxl::read_xlsx(here::here("indicators/NO_BUMB_001_002/metadata.xlsx"))
 st <- meta |>
   filter(Variable == "status") |>
   pull(Value)
@@ -100,7 +100,7 @@ status(st)
 ```
 
 ::: {layout-ncol="2"}
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: https://view.nina.no/ecRxiv/", sep="")`
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 > **Version**: `r version`
 :::
@@ -298,32 +298,30 @@ source(here::here("_pw.R"))
 # connect
 bombLepiSurv::humlesommerfConnect(
   username = BOMB_USER,
-  password = BOMB_PASSWORD,
-  host = "ninradardata01.nina.no"
+  password = BOMB_PASSWORD
 )
 ```
 
-Download data from 2023 as an example. 2024 data is not yet published (although it is made availble in a developement branch on GitHub).
+Download data from 2024 as an example. 
 
 ```{r}
 #| eval: false
-allBumbGressmark2023 <- 
-  getAllData(type = "bumblebees", 
-    habitat = "gressmark",
-    year = 2023,
-    language = "norsk") |>
+allBumbGressmark2024 <- 
+  getAllData(type = "Bumblebees", 
+    habitat = "Gressmark",
+    year = 2024) |>
   mutate_if(bit64::is.integer64, as.numeric)
 
 ggsave(
-  here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2023.png"),
-  surveyBarplot(allBumbGressmark2023),
+  here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2024.png"),
+  surveyBarplot(allBumbGressmark2024),
   width = 10,
   height = 5)
 ```
 
-```{r fig-allBumbGressmark2023}
-#| fig-cap: 'Bumblebees in grasslands 2023.'
-knitr::include_graphics(here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2023.png"))
+```{r fig-allBumbGressmark2024}
+#| fig-cap: 'Bumblebees in grasslands 2024.'
+knitr::include_graphics(here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2024.png"))
 ```
 
 Indicator data is already processed for the years 2009 to 2022 and we can get them from the R package like this:
@@ -347,154 +345,42 @@ data(package = "bombLepiSurv", list = dat)
 
 The indicator data is stored in the environment as one dataframe per year/region/habitat.
 
-We need to calculate the indicator values for the years 2023 (and later also 2024) and store them in the same way.
-
-```{r}
-# List datasets
-dat <- CursoRopen::list_github_files(
-  "bombLepiSurv", 
-  path = "data/", 
-  owner = "NINAnor", 
-  regexp = "hInd") # add regexp = "Gress" to filter for just grasslands
-
-# remove the first part of the path
-dat <- str_remove(dat, "data/")
-# and the second part
-dat <- str_remove(dat, ".rda")
-
-# read in all the data (as promise)
-data(package = "bombLepiSurv", list = dat)
-```
-
-The indicator data is stored in the environment as one dataframe per year/region/habitat.
-
-We need to calculate the indicator values for the years 2023 (and later also 2024) and store them in the same way.
-
-```{r calculateIndicatorValues}
-#| eval: false
-nIter = 999
-
-hInd2023TrondGress <- calcInd(
-  type = "Humler",    
-  region_short = "Trond", # Trøndelag region
-  habitat = "Gressmark",  # Grasslands
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-hInd2023SorGress <- calcInd(
-  type = "Humler",    
-  region_short = "Sor", # South region
-  habitat = "Gressmark",  # Grasslands
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-hInd2023OstGress <- calcInd(
-  type = "Humler",    
-  region_short = "Ost", # East region
-  habitat = "Gressmark",  # Grasslands
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-hInd2023VestGress <- calcInd(
-  type = "Humler",    
-  region_short = "Vest", # West region
-  habitat = "Gressmark",  # Grasslands
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-save(hInd2023TrondGress, 
-     hInd2023SorGress, 
-     hInd2023OstGress, 
-     hInd2023VestGress, 
-     file = here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023.RData"))
-
-# Same for forest
-hInd2023TrondSkog <- calcInd(
-  type = "Humler",    
-  region_short = "Trond", 
-  habitat = "Skogsmark",  
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-hInd2023SorSkog <- calcInd(
-  type = "Humler",     
-  region_short = "Sor", 
-  habitat = "Skogsmark",  
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-hInd2023OstSkog <- calcInd(
-  type = "Humler",     
-  region_short = "Ost", 
-  habitat = "Skogsmark",  
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-hInd2023VestSkog <- calcInd(
-  type = "Humler",    
-  region_short = "Vest", 
-  habitat = "Skogsmark",  
-  year = 2023,
-  nIter = nIter,
-  save.draws = T)
-
-save(
-  hInd2023TrondSkog, 
-  hInd2023SorSkog, 
-  hInd2023OstSkog, 
-  hInd2023VestSkog, 
-  file = here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023Skog.RData"))
-```
-
-```{r}
-#| echo: false
-load(here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023.RData"))
-load(here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023Skog.RData"))
-```
-
-Then we compile the indicator values for the years 2009 to 2023.
+Then we compile the indicator values for the years 2009 to 2024.
 
 ```{r fig-linegraph}
 #| fig-cap: 'Indicator values for bumblebees in grasslands from 2009 to 2022'
-hGressIndVals <- collectIndData(taxa = "bumblebees", 
-                                habitat = "gressmark",
-                                years = 2009:2023)
+hGressIndVals <- collectIndData(type = "Bumblebees", 
+                                habitat = "Gressmark",
+                                years = 2009:2024)
 
 indPlot(input = hGressIndVals,
         confLevel = "95%",
         lineWidth = 1,
         dodge = 0.5,
         pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2023)+
+  scale_x_continuous(breaks = 2009:2024)+
   ylim(c(0,1))
 ```
 
 ```{r fig-linegraph2}
 #| fig-cap: 'Indicator values for bumblebees in forests from 2009 to 2022'
-hSkogIndVals <- collectIndData(taxa = "bumblebees", 
-                                habitat = "skogsmark",
-                                years = 2009:2023)
+hSkogIndVals <- collectIndData(type = "Bumblebees", 
+                                habitat = "Skogsmark",
+                                years = 2009:2024)
 
 indPlot(input = hSkogIndVals,
         confLevel = "95%",
         lineWidth = 1,
         dodge = 0.5,
         pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2023)+
+  scale_x_continuous(breaks = 2009:2024)+
     ylim(c(0,1))
 ```
 
 The data objects contain point estimates and some percentiles. However, in certain ecosystem accounting contexts, we may want the SD. We can get the symmetrical SD from the vector of randomized draws of community indices, like this:
 
 ```{r}
-hInd2023OstGress$`Randomization draws, community` |>
+hInd2024OstGress$`Randomization draws, community` |>
   sd()
 ```
 
@@ -503,20 +389,20 @@ However, the errors or extremely skewed. We shall therefore use the 50% confiden
 Here is the summary data for one region and one year, for illustration:
 
 ```{r}
-hInd2023OstGress$`Community indicator estimates, with percentiles` |>
+hInd2024OstGress$`Community indicator estimates, with percentiles` |>
   kable()
 ```
 
 I can get the correct 2.5 and 97.5 percentiles by using the `quantile` function.
 
 ```{r}
-hInd2023OstGress$`Randomization draws, community` |>
+hInd2024OstGress$`Randomization draws, community` |>
   quantile(probs = c(0.025, 0.5, 0.975))
 ```
 
 But notice that the point estimate is not the median of the distribution. Nor is it the mean. The point estimate is rather taken from the actual sample (not a random draw) of sampling locations.
 
-This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. We don't have data from 2024, but I will aggregate the data from year 2022 and 2023 to produce the value for the year 2024. We are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregating spatially over regions.
+This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. I will aggregate the data from year 2022 to 2024 and produce the value for the closing year 2024. We are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregating spatially over regions.
 
 First we get the area weights. The localities are stratified to four regions of very different sizes.
 
@@ -546,6 +432,12 @@ ost23 <- hInd2023OstGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
+
+ost24 <- hInd2024OstGress$`Community indicator estimates, with percentiles` |>
+  enframe() |>
+  filter(name == "Point estimate") |>
+  pull("value")
+
 
 west22 <- hInd2022VestGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
