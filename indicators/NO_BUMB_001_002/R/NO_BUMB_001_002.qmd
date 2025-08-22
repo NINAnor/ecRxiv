@@ -39,6 +39,11 @@ library(knitr)
 library(tidyverse)
 library(kableExtra)
 library(here)
+library(tmap)
+library(sf)
+library(NinaR)
+library(CursoRopen)
+library(bombLepiSurv)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -180,6 +185,9 @@ This indicator was developed for the Nature Index of Norway back in 2010 [@öber
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
 
+The version of the data used here is only only stored at NINA, but will be made available upon request. 
+Most of the data is, however, available on GBIF [@dataset].
+
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
@@ -218,7 +226,7 @@ For the bumblebee indicator, the communities are small enough and well-known eno
 
 We have not specified a value for good ecological condition (X~60~) as of yet, since we lack a straightforward empirical basis to do so. By default then, the values is set to 0.6 , following the general framework.
 
-The indicator summarize the state of a bumbelbee community by estimating the difference from a reference community. Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC).
+The indicator summarize the state of a bumblebee community by estimating the difference from a reference community. Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC).
 
 $$CI = \frac{SR-SC}{SR}$$
 
@@ -255,118 +263,31 @@ The `bombLepiSurv` package has convenience functions to fetch data from the inte
 
 ### 7.2. Dataset B - Regions
 
-We here import the   delineations used in this monitoring program. Note that this delineation different from the more standard definitions used in ecosystem accounting Norway.
+We here import the delineations used in this monitoring program. Note that this delineation different from the more standard definitions used in ecosystem accounting Norway.
 
-```{r}
-#| eval: false
+```{r readReg}
+readRDS(here::here("indicators/NO_BUMB_001_002/data/regions.rds")) -> counties
 
-# Path to counties pre 2020 merge
-path <- here("indicators/NO_BFLY_001/data/Basisdata_0000_Norge_25833_Fylker2019_FGDB.gdb")
-
-# print layer names
-#st_layers(path)
-
-# Get the names to the codes
-# temp <- read_sf(path, layer = "administrativenhetnavn")
-
-# read data and group counties
-counties <- sf::read_sf(path,
-    layer = "fylke") 
-
-# The file is a combination of multipolygons and multisurfaces.
-# I used this post to fix the problem: https://gis.stackexchange.com/questions/389814/r-st-centroid-geos-error-unknown-wkb-type-12
-
-library(gdalUtilities)
-
-ensure_multipolygons <- function(X) {
-    tmp1 <- tempfile(fileext = ".gpkg")
-    tmp2 <- tempfile(fileext = ".gpkg")
-    st_write(X, tmp1)
-    ogr2ogr(tmp1, tmp2, f = "GPKG", nlt = "MULTIPOLYGON")
-    Y <- st_read(tmp2)
-    st_sf(st_drop_geometry(X), geom = st_geometry(Y))
-}
-
-counties2 <- ensure_multipolygons(counties)
-sf::st_geometry_type(counties2) #OK
-
-# Plot in interactive mode to get correct county numbers
-tmap::tmap_mode("view")
-tm_shape(counties2) + 
-  tm_polygons()
-
-# Classify
-
-counties3 <- counties2 |>
-  mutate(Region = case_when(
-    fylkesnummer %in% c("50", "15") ~ "Midt",
-        fylkesnummer %in% c("12", "14") ~ "Vest",
-        fylkesnummer %in% c("10", "11") ~ "Sør",
-        fylkesnummer %in% c("01","07") ~ "Øst",
-        .default = NA_character_
-      ))
-tmap::tmap_mode("plot")
-tm_shape(counties3) + 
-  tm_polygons(col = "Region") 
-
-# Merge counties from same region
-
-counties4 <- counties3 |>
-  group_by(Region) |>
-  summarize(geom = st_union(geom))
-
-# Take out the marine areas
-# import outline of Norway
-nor <- sf::st_read(here::here("indicators/NO_BFLY_001/data/outlineOfNorway_EPSG25833.shp"),
-  quiet = TRUE)
-# remove marine areas
-counties <- sf::st_intersection(counties4, nor)
-
-tm_shape(counties) + 
-  tm_polygons(col = "Region") 
-
-# Save
-saveRDS(counties, here::here("indicators/NO_BFLY_001/data/regions.rds"))
 ```
 
 ```{r fig-regions}
 #| fig-cap: 'Regions in Norway'
-
-readRDS(here::here("indicators/NO_BFLY_001_002/data/regions.rds")) -> counties
 tm_shape(counties) + 
   tm_polygons(col = "Region") +
   tm_layout(legend.position = c("right", "bottom"))
+
 ```
 
 ## 8. Spatial units
 
-```{=html}
-<!--# 
-
-Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpretted at. Potential spatial delineation data should eb introduced under 7.1. Datasets. We recomend using the SEEA EA terminology opf Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). 
-
--->
-```
 
 Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold, and the south region contain Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal.
 
 Ecosystem accounting area: Norway (although N-Norway and several sub-regions are missing).
 
-Data needs to be aggregated to EA level before interpretation. In addition, only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases.
+Data needs to be aggregated to EA level before interpretation. In addition, only locations with complete sampling (three replicated per season) should be included to avoid seasonal biases.
 
 ## 9. Analyses
-
-```{=html}
-<!--# 
-
-Use this header for documenting the analyses. Put code in seperate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
-
-Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
-
-Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
-
--->
-```
 
 These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
 
@@ -397,23 +318,23 @@ Download data from 2023 as an example. 2024 data is not yet published (although 
 
 ```{r}
 #| eval: false
-allLepiGressmark2023 <- 
-  getAllData(type = "butterflies", 
-habitat = "gressmark",
+allBumbGressmark2023 <- 
+  getAllData(type = "bumblebees", 
+    habitat = "gressmark",
     year = 2023,
     language = "norsk") |>
-      mutate_if(bit64::is.integer64, as.numeric)
+  mutate_if(bit64::is.integer64, as.numeric)
 
 ggsave(
-  here::here("indicators/NO_BFLY_001_002/img/fig_allLepiGressmark2023.png"),
-  surveyBarplot(allLepiGressmark2023),
+  here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2023.png"),
+  surveyBarplot(allBumbGressmark2023),
   width = 10,
   height = 5)
 ```
 
-```{r fig-allLepiGressmark2023}
-#| fig-cap: 'Butterflies in grasslands 2023.'
-knitr::include_graphics(here::here("indicators/NO_BFLY_001_002/img/fig_allLepiGressmark2023.png"))
+```{r fig-allBumbGressmark2023}
+#| fig-cap: 'Bumblebees in grasslands 2023.'
+knitr::include_graphics(here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2023.png"))
 ```
 
 Indicator data is already processed for the years 2009 to 2022 and we can get them from the R package like this:
@@ -439,128 +360,152 @@ The indicator data is stored in the environment as one dataframe per year/region
 
 We need to calculate the indicator values for the years 2023 (and later also 2024) and store them in the same way.
 
+```{r}
+# List datasets
+dat <- CursoRopen::list_github_files(
+  "bombLepiSurv", 
+  path = "data/", 
+  owner = "NINAnor", 
+  regexp = "hInd") # add regexp = "Gress" to filter for just grasslands
+
+# remove the first part of the path
+dat <- str_remove(dat, "data/")
+# and the second part
+dat <- str_remove(dat, ".rda")
+
+# read in all the data (as promise)
+data(package = "bombLepiSurv", list = dat)
+```
+
+The indicator data is stored in the environment as one dataframe per year/region/habitat.
+
+We need to calculate the indicator values for the years 2023 (and later also 2024) and store them in the same way.
+
 ```{r calculateIndicatorValues}
 #| eval: false
 nIter = 999
 
-sInd2023TrondGress <- calcInd(
-  type = "Sommerfugl",    # butterflies
+hInd2023TrondGress <- calcInd(
+  type = "Humler",    
   region_short = "Trond", # Trøndelag region
   habitat = "Gressmark",  # Grasslands
   year = 2023,
   nIter = nIter,
   save.draws = T)
 
-sInd2023SorGress <- calcInd(
-  type = "Sommerfugl",    # butterflies
+hInd2023SorGress <- calcInd(
+  type = "Humler",    
   region_short = "Sor", # South region
   habitat = "Gressmark",  # Grasslands
   year = 2023,
   nIter = nIter,
   save.draws = T)
 
-sInd2023OstGress <- calcInd(
-  type = "Sommerfugl",    # butterflies
+hInd2023OstGress <- calcInd(
+  type = "Humler",    
   region_short = "Ost", # East region
   habitat = "Gressmark",  # Grasslands
   year = 2023,
   nIter = nIter,
   save.draws = T)
 
-sInd2023VestGress <- calcInd(
-  type = "Sommerfugl",    # butterflies
+hInd2023VestGress <- calcInd(
+  type = "Humler",    
   region_short = "Vest", # West region
   habitat = "Gressmark",  # Grasslands
   year = 2023,
   nIter = nIter,
   save.draws = T)
 
-save(sInd2023TrondGress, 
-     sInd2023SorGress, 
-     sInd2023OstGress, 
-     sInd2023VestGress, 
-     file = here::here("indicators", "NO_BFLY_001", "data", "sInd2023.RData"))
+save(hInd2023TrondGress, 
+     hInd2023SorGress, 
+     hInd2023OstGress, 
+     hInd2023VestGress, 
+     file = here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023.RData"))
 
 # Same for forest
-sInd2023TrondSkog <- calcInd(
-  type = "Sommerfugl",    # 
-  region_short = "Trond", # Trøndelag region
-  habitat = "Skogsmark",  # 
+hInd2023TrondSkog <- calcInd(
+  type = "Humler",    
+  region_short = "Trond", 
+  habitat = "Skogsmark",  
   year = 2023,
   nIter = nIter,
   save.draws = T)
 
-  sInd2023SorSkog <- calcInd(
-    type = "Sommerfugl",    # 
-    region_short = "Sor", # South region
-    habitat = "Skogsmark",  # 
-    year = 2023,
-    nIter = nIter,
-    save.draws = T)
+hInd2023SorSkog <- calcInd(
+  type = "Humler",     
+  region_short = "Sor", 
+  habitat = "Skogsmark",  
+  year = 2023,
+  nIter = nIter,
+  save.draws = T)
 
-  sInd2023OstSkog <- calcInd(
-    type = "Sommerfugl",    # 
-    region_short = "Ost", # East region
-    habitat = "Skogsmark",  # 
-    year = 2023,
-    nIter = nIter,
-    save.draws = T)
+hInd2023OstSkog <- calcInd(
+  type = "Humler",     
+  region_short = "Ost", 
+  habitat = "Skogsmark",  
+  year = 2023,
+  nIter = nIter,
+  save.draws = T)
 
-  sInd2023VestSkog <- calcInd(
-    type = "Sommerfugl",    # 
-    region_short = "Vest", # West region
-    habitat = "Skogsmark",  # 
-    year = 2023,
-    nIter = nIter,
-    save.draws = T)
+hInd2023VestSkog <- calcInd(
+  type = "Humler",    
+  region_short = "Vest", 
+  habitat = "Skogsmark",  
+  year = 2023,
+  nIter = nIter,
+  save.draws = T)
 
-  save(sInd2023TrondSkog, 
-      sInd2023SorSkog, 
-      sInd2023OstSkog, 
-      sInd2023VestSkog, 
-      file = here::here("indicators", "NO_BFLY_001", "data", "sInd2023Skog.RData"))
+save(
+  hInd2023TrondSkog, 
+  hInd2023SorSkog, 
+  hInd2023OstSkog, 
+  hInd2023VestSkog, 
+  file = here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023Skog.RData"))
 ```
 
 ```{r}
 #| echo: false
-load(here::here("indicators", "NO_BFLY_001_002", "data", "sInd2023.RData"))
-load(here::here("indicators", "NO_BFLY_001_002", "data", "sInd2023Skog.RData"))
+load(here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023.RData"))
+load(here::here("indicators", "NO_BUMB_001_002", "data", "hInd2023Skog.RData"))
 ```
 
 Then we compile the indicator values for the years 2009 to 2023.
 
 ```{r fig-linegraph}
-#| fig-cap: 'Indicator values for butterflies in grasslands from 2009 to 2022'
-bGressIndVals <- collectIndData(taxa = "butterflies", 
+#| fig-cap: 'Indicator values for bumblebees in grasslands from 2009 to 2022'
+hGressIndVals <- collectIndData(taxa = "bumblebees", 
                                 habitat = "gressmark",
                                 years = 2009:2023)
 
-indPlot(input = bGressIndVals,
+indPlot(input = hGressIndVals,
         confLevel = "95%",
         lineWidth = 1,
         dodge = 0.5,
         pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2023)
+  scale_x_continuous(breaks = 2009:2023)+
+  ylim(c(0,1))
 ```
 
 ```{r fig-linegraph2}
-#| fig-cap: 'Indicator values for butterflies in forests from 2009 to 2022'
-bSkogIndVals <- collectIndData(taxa = "butterflies", 
+#| fig-cap: 'Indicator values for bumblebees in forests from 2009 to 2022'
+hSkogIndVals <- collectIndData(taxa = "bumblebees", 
                                 habitat = "skogsmark",
                                 years = 2009:2023)
 
-indPlot(input = bSkogIndVals,
+indPlot(input = hSkogIndVals,
         confLevel = "95%",
         lineWidth = 1,
         dodge = 0.5,
         pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2023)
+  scale_x_continuous(breaks = 2009:2023)+
+    ylim(c(0,1))
 ```
 
 The data objects contain point estimates and some percentiles. However, in certain ecosystem accounting contexts, we may want the SD. We can get the symmetrical SD from the vector of randomized draws of community indices, like this:
 
 ```{r}
-sInd2023OstGress$`Randomization draws, community` |>
+hInd2023OstGress$`Randomization draws, community` |>
   sd()
 ```
 
@@ -569,19 +514,20 @@ However, the errors or extremely skewed. We shall therefore use the 50% confiden
 Here is the summary data for one region and one year, for illustration:
 
 ```{r}
-sInd2023OstGress
+hInd2023OstGress$`Community indicator estimates, with percentiles` |>
+  kable()
 ```
 
 I can get the correct 2.5 and 97.5 percentiles by using the `quantile` function.
 
 ```{r}
-sInd2023OstGress$`Randomization draws, community` |>
+hInd2023OstGress$`Randomization draws, community` |>
   quantile(probs = c(0.025, 0.5, 0.975))
 ```
 
 But notice that the point estimate is not the median of the distribution. Nor is it the mean. The point estimate is rather taken from the actual sample (not a random draw) of sampling locations.
 
-This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. We don't have data from 2024, but I will aggregate the data from year 2022 and 2023 to produce the value for the year 2024. We are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregation spatially over regions.
+This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. We don't have data from 2024, but I will aggregate the data from year 2022 and 2023 to produce the value for the year 2024. We are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregating spatially over regions.
 
 First we get the area weights. The localities are stratified to four regions of very different sizes.
 
@@ -595,8 +541,7 @@ regTable <- counties |>
   select(Region, area_km2, area_weight)
 
 regTable |>
-  kbl() |>
-  kable_paper() 
+  kable() 
 ```
 
 We use bootstrapping for getting the errors, but we use area-weighted arithmetic mean to get the point estimate.
@@ -604,45 +549,45 @@ We use bootstrapping for getting the errors, but we use area-weighted arithmetic
 First the point estimate for grasslands.
 
 ```{r}
-ost22 <- sInd2022OstGress$`Community indicator estimates, with percentiles` |>
+ost22 <- hInd2022OstGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-ost23 <- sInd2023OstGress$`Community indicator estimates, with percentiles` |>
+ost23 <- hInd2023OstGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-west22 <- sInd2022VestGress$`Community indicator estimates, with percentiles` |>
+west22 <- hInd2022VestGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
 
-west23 <- sInd2023VestGress$`Community indicator estimates, with percentiles` |>
+west23 <- hInd2023VestGress$`Community indicator estimates, with percentiles` |>
   enframe() |>  
   filter(name == "Point estimate") |>
   pull("value")
 
-south22 <- sInd2022SorGress$`Community indicator estimates, with percentiles` |>
+south22 <- hInd2022SorGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
 
-south23 <- sInd2023SorGress$`Community indicator estimates, with percentiles` |>
+south23 <- hInd2023SorGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-mid22 <- sInd2022TrondGress$`Community indicator estimates, with percentiles` |>
+mid22 <- hInd2022TrondGress$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
 
-mid23 <- sInd2023TrondGress$`Community indicator estimates, with percentiles` |>
+mid23 <- hInd2023TrondGress$`Community indicator estimates, with percentiles` |>
   enframe() |>  
   filter(name == "Point estimate") |>
   pull("value")
@@ -670,42 +615,42 @@ pointEstimateNorway
 And then for forests:
 
 ```{r}
-ost22s <- sInd2022OstSkog$`Community indicator estimates, with percentiles` |>
+ost22s <- hInd2022OstSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-ost23s <- sInd2023OstSkog$`Community indicator estimates, with percentiles` |>
+ost23s <- hInd2023OstSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-west22s <- sInd2022VestSkog$`Community indicator estimates, with percentiles` |>
+west22s <- hInd2022VestSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-west23s <- sInd2023VestSkog$`Community indicator estimates, with percentiles` |>
+west23s <- hInd2023VestSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>  
   filter(name == "Point estimate") |>
   pull("value")
 
-south22s <- sInd2022SorSkog$`Community indicator estimates, with percentiles` |>
+south22s <- hInd2022SorSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-south23s <- sInd2023SorSkog$`Community indicator estimates, with percentiles` |>
+south23s <- hInd2023SorSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-mid22s <- sInd2022TrondSkog$`Community indicator estimates, with percentiles` |>
+mid22s <- hInd2022TrondSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>
   filter(name == "Point estimate") |>
   pull("value")
 
-mid23s <- sInd2023TrondSkog$`Community indicator estimates, with percentiles` |>
+mid23s <- hInd2023TrondSkog$`Community indicator estimates, with percentiles` |>
   enframe() |>  
   filter(name == "Point estimate") |>
   pull("value")
@@ -733,14 +678,14 @@ pointEstimateNorway_s
 Then the errors. We first combine the data from 2022 and 2023 and sample from these with *n* corresponding to the area weights
 
 ```{r}
-east <- c(sInd2022OstGress$`Randomization draws, community`,
-  sInd2023OstGress$`Randomization draws, community`)
-vest <- c(sInd2022VestGress$`Randomization draws, community`,
-  sInd2023VestGress$`Randomization draws, community`)
-south <- c(sInd2022SorGress$`Randomization draws, community`,
-  sInd2023SorGress$`Randomization draws, community`)
-mid <- c(sInd2022TrondGress$`Randomization draws, community`,
-  sInd2023TrondGress$`Randomization draws, community`)
+east <- c(hInd2022OstGress$`Randomization draws, community`,
+  hInd2023OstGress$`Randomization draws, community`)
+vest <- c(hInd2022VestGress$`Randomization draws, community`,
+  hInd2023VestGress$`Randomization draws, community`)
+south <- c(hInd2022SorGress$`Randomization draws, community`,
+  hInd2023SorGress$`Randomization draws, community`)
+mid <- c(hInd2022TrondGress$`Randomization draws, community`,
+  hInd2023TrondGress$`Randomization draws, community`)
 
 # sample
 east2 <- sample(east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
@@ -749,14 +694,18 @@ south2 <- sample(south, size = regTable |> filter(Region == "Sør") |> pull(area
 mid2 <- sample(mid, size = regTable |> filter(Region == "Midt") |> pull(area_weight)*10000, replace = T)
 
 # repeat for forests (skog)
-s_east <- c(sInd2022OstSkog$`Randomization draws, community`,
-  sInd2023OstSkog$`Randomization draws, community`)
-s_vest <- c(sInd2022VestSkog$`Randomization draws, community`,
-  sInd2023VestSkog$`Randomization draws, community`)
-s_south <- c(sInd2022SorSkog$`Randomization draws, community`,
-  sInd2023SorSkog$`Randomization draws, community`)
-s_mid <- c(sInd2022TrondSkog$`Randomization draws, community`,
-  sInd2023TrondSkog$`Randomization draws, community`)
+s_east <- c(
+  hInd2022OstSkog$`Randomization draws, community`,
+  hInd2023OstSkog$`Randomization draws, community`)
+s_vest <- c(
+  hInd2022VestSkog$`Randomization draws, community`,
+  hInd2023VestSkog$`Randomization draws, community`)
+s_south <- c(
+  hInd2022SorSkog$`Randomization draws, community`,
+  hInd2023SorSkog$`Randomization draws, community`)
+s_mid <- c(
+  hInd2022TrondSkog$`Randomization draws, community`,
+  hInd2023TrondSkog$`Randomization draws, community`)
 
 # sample
 s_east2 <- sample(s_east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
@@ -782,17 +731,23 @@ all_s <- c(s_east2, s_west2, s_south2, s_mid2)
 
 ## 10. Results
 
-```{=html}
-<!--# 
+```{r}
+tibble(
+  ECT = rep("B1", 2),
+  Indicator = rep("Bumblebees", 2),
+  ID = c("NO_BUMB_001", "NO_BUMB_002"),
+  "Accounting area" = "Norway",
+  Ecosystem = c("Grasslands", "Forest"),
+  "Closing year" = rep(2024, 2),
+  "Indicator value" = c(
+    round(pointEstimateNorway, 3), 
+    round(pointEstimateNorway_s, 3)),
+  "Error (IQR)" = c(
+    paste(round(nationalDist[1], 2), "-", round(nationalDist[2], 2)),
+    paste(round(nationalDist_s[1], 2), "-", round(nationalDist_s[2], 2))
+  )
+) |>
+  kable()
 
-Repeat the final results here. Typically this is a map or table of indicator values.
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
-
--->
 ```
-
-| ECT | Indicator | ID | Accounting area | Ecosystem | Closing year | Value | Error (IQR) |
-|---------|---------|---------|---------|---------|---------|---------|---------|
-| B1 | Butterflies | NO_BFLY_001 | Norway | Grasslands | 2024 | 0.358 | (0.253 - 0.345) |
-| B1 | Butterflies | NO_BFLY_002 | Norway | Forest | 2024 | 0.506 | (0.400 - 0.494) |
