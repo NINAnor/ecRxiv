@@ -10,8 +10,8 @@ assignees: anders-kolstad
 ## Review checklist
 
 Reviewers, please go though the checklist below and tick the boxes that are fulfilled. 
-If one check is not fulfilled, or requires some more discussion, press the *target* sign to the right on that line and *convert to issue*. Follow up the point there.
-The reviewes may add any additional comments, besides these general checks, as commenst below.
+If one check is not fulfilled, or requires some more discussion, you can either put it in a comments below, or press the *target* sign to the right on that line and *convert to issue*, then follow up the point there. Note that the last option is not available to all user. 
+The reviewers may add any additional comments, besides these general checks, as comments below.
 
 Before you start:
 
@@ -30,14 +30,14 @@ Also, under **labels** in the right column, locate and choose the correct indica
 
 - [ ] **Contribution and authorship:** Does the author list seem appropriate and complete?
 - [ ] **Meta data:** Does the metadata entered for the indicator seem correct, including ECT class and ecosystem type?
-- [ ] **Common language summary:** The common language summary is consise and clear.
+- [ ] **Common language summary:** The common language summary is concise and clear.
 - [ ] **Introduction and concusion:** Is the introduction written so that it sums up the general method and usabillity of the indicator?  
 - [ ] **Legibility and structure:** Is the documentation written so that is is easy, or at least possible, to follow the arguments? Is each header and sub-header populated with the appropriate text?
 - [ ] **Images, tables and figures:** Does the documentation contain the appropriate amount of tables, figures and images, and do these have high enough quality?
 - [ ] **A statement of uncertaint and needs**: Do the authors include the clear description of the different sources of uncertainty or errors for the indicator?
-- [ ] **Validation:** Does the documentation include some sort of validation for the precition of the indicator values, and is this validation sufficient?
+- [ ] **Validation:** Does the documentation include some sort of validation for the precision of the indicator values, and is this validation sufficient?
 - [ ] **Relevance:** Do the reviewers judge that this indicator has relevance as an ecosystem conditio indicator for the given ecosystems?
-- [ ] **Reproducability:** Is the documentation sufficient, or seem sufficient enough, to make the results entirely reproducable by the reviewers? 
+- [ ] **Reproducibility:** Is the documentation sufficient, or seem sufficient enough, to make the results entirely reproducible by the reviewers? 
 - [ ] **References:** Does the references seem appropriate and do important hyperlinks work?
 
 

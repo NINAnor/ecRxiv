@@ -27,28 +27,41 @@ The submission and publication of indicator documentation is also described in t
 1.  **Fork the main branch of this repository (repo)**. The main branch contains a lot of data files, but creating a fork does not cause create copies of the files themselves, and does not lead to higher data storage requirements. Note that personal users can only fork a repo once (at a time). Organisational users can fork as many times they want, so you can for example have one fork per indicator. An alternative is to have one fork on your personal user, where you ruitinely synchronise the main branch, and use other branched for individual indicators.  
 2.  **Make a partial clone of your forked repo**. Although it is possible to edit the files in your fork directly through GitHub in the web browser, most users will prefer to make a local copy of the repo and edit files in a separate software, such as RStudio or Positron. To avoid copying all the data files and git history for all the indicators already on ecRxiv, we highly recommend making a partial clone, and not a full (normal) clone. To do this you need to talk to git via the command line (don't be scared!). As a general solution, open the folder where you want to clone the repo into, right click, and open Git Bash. Alternatively, if working in RStudio, you can write directly in the terminal window:
   
-  `git clone --filter=blob:none --no-checkout https://github.com/<USER>/<REPO>`
 
+```
+git clone --filter=blob:none --no-checkout https://github.com/<USER>/<REPO>
+```
 This clones just the .git folder, but does not copy down any bigger data files from the web. Now you can choose which directories (folders) you want to clone. This is called sparse checkout. First, move working directory one folder up:
 
-`cd <REPO>`
+```
+cd <REPO>
+```
 
 Then initiate sparse checkout based on the root folder:
 
-`git sparse-checkout init --cone`
+```
+git sparse-checkout init --cone
+```
 
 Checkout root folder (downloads blobs (files), some of which you'll need):
 
-`git checkout <BRANCH NAME>`
+```
+git checkout main
+```
 
-BRANCH NAME is likely to be `main` in the above. Now, specify additional folders to download:
+Now, specify additional folders to download. If you are starting to work on a new indicator, and not updating an existing indicator, this is the code you should use:
 
-`git sparse-checkout set <dir1>/<dir2>`
+```
+git sparse-checkout set indicators/template_copy_folder_then_rename
+```
 
-If you are starting to work on a new indicator (not updating an existing indicator), dir1 should be `indicators` and dir2 should be `template_copy_folder_then_rename`. Leave the git bash window open. 
+Leave the git bash window open. 
 
 3.  Copy the `template_copy_folder_then_rename` folder and name the new folder, and files and folders inside it, according to our [naming convention](https://github.com/NINAnor/ecRxiv/wiki#naming-convention). Make sure not to simply rename the `template` folder - make a real copy.
-4.  Update the sparse checkout. The sparse checkout is set up to read only the `template_copy_folder_then_rename` folder, but you now want to work in the new folder you just created. Bring up the git bash window again and type `git sparse-checkout set <indicators>/<NEW_FOLDER_NAME>` where NEW_FOLDER_NAME will be the indicator ID(s).
+4.  Update the sparse checkout. The sparse checkout is set up to read only the `template_copy_folder_then_rename` folder, but you now want to work in the new folder you just created. Bring up the git bash window again and type this (replacing NEW_FOLDER_NAME with be the indicator ID):
+```
+git sparse-checkout set indicators/<NEW_FOLDER_NAME>
+``` 
 5.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` and `README.md`(don't rename these files). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recommended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
 6.  Render the quarto file to html
 7.  Do a pull request (PR) from your forked repo to the `main` branch in this repo.
