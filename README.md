@@ -62,8 +62,7 @@ Leave the git bash window open.
 ```
 git sparse-checkout set indicators/<NEW_FOLDER_NAME>
 ``` 
-
-5.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` (don't rename this file as it is automatically read and used to populate tables in the quarto file). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recommended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
+5.  Document your indicator using the templates provided. Smaller data files can be stored in the `data/` folder. Fill in `metadata.xlsx` and `README.md`(don't rename these files). Keep your forked repo up to date with your work by routinely pushig your changes. Please also adhere to the [recommended terminology](https://github.com/NINAnor/ecRxiv/wiki#recomended-terminology).
 6.  Render the quarto file to html
 7.  Do a pull request (PR) from your forked repo to the `main` branch in this repo.
 8.  Administrators of this repo will check that the submission (the PR) is done properly and that all files have been named in the correct way. If you have submitted data and code, this review will also include checking that the code is able to locate the data and run, and that proper code annotation is provided. Revise the PR until it reached the requirements set by the administrators.
