@@ -71,12 +71,12 @@ git sparse-checkout set indicators/<NEW_FOLDER_NAME>
 11.  The PR authors can revise their documentation as many time as needed, and in response to review by peers. Major revisions may result in the creation of a new version number for the original indicator.
 
 ### What if I have questions or suggestions?
-There is a [Q&A](https://github.com/NINAnor/ecRxiv/discussions/categories/q-a) where you can ask questions if you get stuck. If you already know there is a bug, or you have suggestsion for improving ecRxiv, you may raise an [issue](https://github.com/NINAnor/ecRxiv/issues) using the _feedback or comments_ form. We are grateful for any contributions, feedback and questions. 
+There is a [Q&A](https://github.com/NINAnor/ecRxiv/discussions/categories/q-a) where you can ask questions if you get stuck. If you already know there is a bug, or you have suggestsion for improving ecRxiv, you may raise an [issue](https://github.com/NINAnor/ecRxiv/issues) using the _FEEDBACK_ form. We are grateful for any contributions, feedback and questions. 
 
 ### How to review an indicator
-Indicator reviews are handles through GitHub Issues. Got to the [issues tab](https://github.com/NINAnor/ecRxiv/issues) and select *New Issue*. 
-If you are adding a complete review, similar to peer reviewing a scientific article, use the *Indicator review - checklist* template.
-If you just want to add a comment and a more simple review, use the *Feedback or comments* template.
+Indicator reviews are handled through GitHub Issues. Got to the [issues tab](https://github.com/NINAnor/ecRxiv/issues) and select *New Issue*. 
+If you are adding a complete review, similar to peer reviewing a scientific article, use the *INDICATOR REVIEW FORM*.
+If you just want to add a comment and a more simple review, use the *FEEDBACK* form.
 
 ### How to review a PR and update the shiny app (for admins)
 This is for ecRxiv administrators who first come incontact with a new PR. 
