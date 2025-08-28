@@ -1,5 +1,5 @@
 ---
-name: PR review checklist
+name: admin only - PR review checklist
 about: For Admin only - A checklist for processing new PRs with indicator documentation
 title: '[New PR]: "indicatorID"'
 labels: PR-checklist
