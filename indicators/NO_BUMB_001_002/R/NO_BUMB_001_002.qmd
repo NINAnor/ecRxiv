@@ -138,7 +138,7 @@ meta |>
 ## 1. Summary
 
 
-Bumblebees represent a conspicuous aspect of biodiversity, as well as indicators of habitat quality and important ecosystem functions, such as pollination. As a community they are dependent on a varied herbaceous flora. Bumblebee community structure can become disturbed by human activities, such as intensive agriculture and land-use change, and is therefore a key indicator of ecosystem condition.
+Bumblebees represent a conspicuous aspect of biodiversity, as well as indicators of habitat quality and important ecosystem functions, such as pollination. As a community they are dependent on a diverse herbaceous flora. Bumblebee community structure can become disturbed by human activities, such as intensive agriculture and land-use change, and is therefore a key indicator of ecosystem condition.
 
 Here we calculate nationally aggregated indicator estimates for all of Norway, for both the forest and the semi-natural meadow ecosystems. The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB) [@åström2024]. This is a transect based survey using a representative sample of grassland localities in four regions of Norway (northern Norway is not included, but is expected to become included in the near future). The indicator is based on the number of bumblebees in each locality, which is then compared to expert elicited reference communities that show the expected number of each bumblebee species.
 
@@ -158,11 +158,11 @@ NMBB is designed to be area representative, within the respective habitat types 
 
 The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), to western Norway (Vestland) in 2022, and Northern Norway in 2025. The spatial resolution aligns with these 4 regions (data from Northern Norway not yet available), and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region.
 
-There are in total 71 sampling locations as of 2024, divided between the forests and the grassland ecosystem. The four regions have approx. the same sample size, yet they cover quite different extents (@fig-regions). Therefore, the values from the central regions contributes a lot more in the area weighted national estimate (about 10 times as much weight as the values from the east region; @tbl-wgt). In this sense, the dataset is perhaps more suited, or at least more better designed, to analysing regional difference, rather than to look at national means.
+There are in total 71 sampling locations as of 2024, divided between the forests and the grassland ecosystem. The four regions have approx. the same sample size, yet they cover quite different extents (@fig-regions). Therefore, the values from the central regions contributes a lot more in the area weighted national estimate (about 10 times as much weight as the values from the east region; @tbl-wgt). In this sense, the dataset is perhaps more suited, or at least better designed, to analysing regional difference, rather than to look at national means.
 
 Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
 
-<!--# Data covers 2009 (for part of Norway) up to the present, but the database currently only has data up until 2024. The 2024 is available on GitHub, but is not accessible via the same workflow using the bombLepiSurv-package. -->
+
 
 ### 2.2 Original units
 
@@ -170,12 +170,12 @@ Original units are number of individuals of each species within a transect, alth
 
 ### 2.3 Additional comments about the dataset
 
-This indicator was developed for the Nature Index of Norway back in 2010 [@öberg2011] , and is calculated routinely on a yearly basis (see @åström2024 for the latest report). The indicator is also described in detail \[here\](https://ninanor.github.io/ecosystemCondition/insect-indicators.html), from where most of the text and code in the current document is taken (often directly).
+This indicator was first developed in 2012 for the Nature Index of Norway [@öberg2011] , and is calculated routinely on a yearly basis (see @åström2024 for the latest report). The indicator is also described in detail \[here\](https://ninanor.github.io/ecosystemCondition/insect-indicators.html), from where most of the text and code in the current document is taken (often directly).
 
 #### 2.3.1 Instructions for citing, using and accessing data
 
 
-The version of the data used here is only only stored at NINA, but will be made available upon request. 
+The version of the data used here is only stored at NINA, but will be made available upon request. 
 Most of the data is, however, available on GBIF [@dataset].
 
 ## 3. Indicator properties
@@ -208,7 +208,7 @@ The reference condition for forests is one with minimal negative human impact (p
 
 ### 4.2 Reference levels
 
-Reference levels are calculated the same way as for [@åström] but repeated here for coherency.
+Reference levels are calculated the same way as for @åström, but repeated here for coherency.
 
 Assessing the current state of insect communities is a complicated task, due to their taxonomic and functional breadth and high temporal and spatial variability. Still, even more challenging is establishing reference levels, when the reference states are extinct or prohibitively difficult to measure empirically.
 
@@ -236,7 +236,7 @@ where $n_{CS}$ is the number of expected common species (C) that is observed spo
 
 #### 4.2.1 Spatial resolution and validity
 
-The reference levels are the unique to each region. They reflect the assumed *mean* community assemblage of bumblebees in that region, and therefore indicator values should not be presented at a spatial scale that is smaller than region. Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning, and before any spatial aggregation.
+Reference levels are the unique to each region. They reflect the assumed *mean* community assemblage of bumblebees in that region, and therefore indicator values should not be presented at a spatial scale that is smaller than region. Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning, and before any spatial aggregation.
 
 ## 5. Uncertainties
 
@@ -377,14 +377,14 @@ indPlot(input = hSkogIndVals,
     ylim(c(0,1))
 ```
 
-The data objects contain point estimates and some percentiles. However, in certain ecosystem accounting contexts, we may want the SD. We can get the symmetrical SD from the vector of randomized draws of community indices, like this:
+The data objects contain point estimates and some percentiles. However, in certain ecosystem accounting contexts, we may want the standard deviation (SD). We can get the symmetrical SD from the vector of randomized draws of community indices, like this:
 
 ```{r}
 hInd2024OstGress$`Randomization draws, community` |>
   sd()
 ```
 
-However, the errors or extremely skewed. We shall therefore use the 50% confidence interval (IQR).
+However, the errors or extremely skewed. We shall therefore use the 50% confidence interval (Interquantile range, or IQR).
 
 Here is the summary data for one region and one year, for illustration:
 
@@ -400,9 +400,9 @@ hInd2024OstGress$`Randomization draws, community` |>
   quantile(probs = c(0.025, 0.5, 0.975))
 ```
 
-But notice that the point estimate is not the median of the distribution. Nor is it the mean. The point estimate is rather taken from the actual sample (not a random draw) of sampling locations.
+But notice that the point estimate is not the median of the distribution. Nor is it the mean. The point estimate is rather taken from the actual sample of sampling locations, and not from a bootstrap.
 
-This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. I will aggregate the data from year 2022 to 2024 and produce the value for the closing year 2024. We are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregating spatially over regions.
+This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. I will aggregate the data from year 2022 and 2024 and produce the value for the closing year 2024. Although it is possible to estimate regional indicator values. we are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregating spatially over regions.
 
 First we get the area weights. The localities are stratified to four regions of very different sizes.
 
