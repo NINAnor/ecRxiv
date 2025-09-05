@@ -17,7 +17,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research
-date: August 28, 2025 
+date: September 4, 2025 
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -137,7 +137,7 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 4 May 2025 - Version 001.000 started
-- 28 Aug 2025 - Version 001.000 revised
+- 4 Sep 2025 - Version 001.000 revised
 :::
 
 
@@ -171,6 +171,9 @@ The procedure implemented here follows a dataflow that has been described and do
 * Aggregating estimates geographically using area-weighted averages.
 * Truncating the values obtained to the interval from 0 to 1.
 
+> ### Interpretation
+An indicator value of 1 signifies a condition where there is little or no human impact on the water body. Values decreasing toward zero reflect negative ecological change, specifically an increase of nutrient-tolerant phytoplankton species, including problem algae, due to eutrophication.
+
 <!--# 
 With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of commmon language summary. It is a good idea to include a bullet point list of the spesific steps in the workflow. Include a mention of the following aspects:
 
@@ -190,8 +193,7 @@ WFD data in Norway are collected in a common database called [*Vannmiljø*](http
 This database contains information on all *measurements* taken in connection with the WFD ("registrations") as well as all *locations* at which measurements are taken ("water localities"). 
 Each water locality is assigned to a *water body*. 
 Information on water bodies can be retrieved from two other databases: the typology of water bodies is available from [*Vann-nett*](https://vann-nett.no/), whereas a geospatial dataset can be [downloaded](https://karteksport.miljodirektoratet.no/) from the Norwegian Environment Agency.
-
-All data used are publicly available, but not all of them are machine-readable (for details, see [Datasets](#datasets) below).
+Finally, detailed information on Norwegian lakes is available from the [*Innsjødatabase*](https://www.nve.no/kart/kartdata/vassdragsdata/innsjoedatabase/), which is maintained by the [Norwegian Water Resources and Energy Directorate](https://www.nve.no/).
 
 <!--# Describe the data you have used in more detail, it's origin, biases, availability ect.-->
 
@@ -213,13 +215,20 @@ A specific requirement for PTI is that the indicator value for a given water bod
 
 PTI is calculated as a dimensionless score with possible values between 1.16 and 4.99, where sensitivity to eutrophication increases with increasing scores.
 The score of a species represents the natural logarithm of the average total phosphorus, measured in µg/L, at the sites where the species occurs ([Ptacnik et al. 2009](#pta09)). 
-However, in the connection with the WFD, values are normally reported as "normalised ecological quality ratios" (nEQR) between 0 and 1, which correspond to *indicator* values sensu [SEEA EA](#seeaea).
+However, in the connection with the WFD, values are normally reported as "normalised ecological quality ratios" (nEQR) between 0 and 1, which correspond to *indicator* values sensu [SEEA&nbsp;EA](#seeaea).
 
 <!--# What are the original units for the most relevant  variables in the data-->
 
-<!--# ### 2.3 Additional comments about the dataset
+### 2.3 Additional comments about the dataset
 
-Text here -->
+#### 2.3.1 Instructions for citing, using and accessing data
+
+All data used are publicly available. 
+However, with the exception of [*Vannmiljø*](https://vannmiljowebapi.miljodirektoratet.no/swagger/ui/index#/), they are not accessible via an API but need to be downloaded manually. 
+Some required files are currently unavailable from from *Vann-nett* (temporarily so, it seems); they are therefore read from a previous *Vann-nett* download, which is archived in the GitHub repo [WFD2ECA](https://github.com/NINAnor/WFD2ECA/). 
+For further details, see [Datasets](#datasets) below.
+
+<!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
 
 
 ## 3. Indicator properties
@@ -629,7 +638,7 @@ We can show the raw (unfiltered and unscaled) measurements on a map.
 
 ### 9.4. Calculating mEQRs using reference levels
 
-According to the WFD and DGVF ([2025](#veil2)), measurements of WFD variables are transformed into so-called nEQR values ("normalised Ecological Quality Ratios") between 0 and 1, which correspond to indicator values sensu [SEEA EA](#seeaea). 
+According to the WFD and DGVF ([2025](#veil2)), measurements of WFD variables are transformed into so-called nEQR values ("normalised Ecological Quality Ratios") between 0 and 1, which correspond to indicator values sensu [SEEA&nbsp;EA](#seeaea). 
 This is normally done using the following steps:
 
 1. *Truncation.* Variable values are truncated, where measurements that are poorer than X~0~ are set to X~0~, and measurements that are better than X~100~ are set to X~100~.
@@ -762,7 +771,7 @@ rm(ut)
 
 Note that the output consists of mEQR values, i.e. it may contain values below 0 or above 1. 
 In the current case, however, all values of the output are between 0 and 1. 
-They thus correspond to nEQR values sensu WFD and indicator values sensu [SEEA EA](#seeaea).
+They thus correspond to nEQR values sensu WFD and indicator values sensu [SEEA&nbsp;EA](#seeaea).
 
 ```{r}
 {
@@ -801,8 +810,8 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 ## 10. Results
 
-As reference values of PTI differ between water body types and the scaling function used is non-linear, aggregated averages of *unscaled* values (*variable* values sensu SEEA EA) are not informative. 
-Therefore, this indicator is reported in terms of *scaled* values only (nEQR sensu WFD; *indicator* values sensu SEEA EA).
+As reference values of PTI differ between water body types and the scaling function used is non-linear, aggregated averages of *unscaled* values (*variable* values sensu SEEA&nbsp;EA) are not informative. 
+Therefore, this indicator is reported in terms of *scaled* values only (nEQR sensu WFD; *indicator* values sensu SEEA&nbsp;EA).
 
 The results are here tabulated (a) for the whole country and different years, and (b) for regions in 2024. 
 These estimates are based on 10,000 iterations and therefore differ from the ones above.
