@@ -1,0 +1,122 @@
+---
+title: "ASPT (invertebrate index of trophic status)"
+subtitle: "[NO_ASPT_001]"
+indicatorID: 
+  - NO_ASPT_001
+indicatorName: ASPT
+country: Norway
+continent: Europe
+ECT: A2 - Chemical State characteristics
+Realm: 
+  - Freshwater (F)
+Biome: 
+  - F1 Rivers and streams biome
+Ecosystem: 
+  - F1.3 Freeze-thaw streams
+yearAdded: 2025
+yearLastUpdate: 2025
+status: incomplete
+Version: 000.001
+VersionComment: First complete version
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ASPT_001
+Normalised: Yes
+SpatialAggregationPathway: Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
+author:
+  - name: Hanno Sandvik
+    email: hanno.sandvik@nina.no
+    affiliations:
+      - id: myID
+        name: Norwegian Institute for Nature Research
+date: March 6, 2025 
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+---
+
+<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
+
+<!--# Load all you dependencies here -->
+
+```{r setup}
+#| include: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+knitr::opts_chunk$set(echo = TRUE)
+
+library(foreign)
+library(sf)
+library(readxl)
+library(httr)
+library(jsonlite)
+```
+
+```{r source}
+#| echo: false
+source(here::here("_common.R"))
+```
+
+```{r}
+#| echo: false
+library(yaml)
+library(tibble)
+
+# Get the current .qmd file being rendered
+this_file <- knitr::current_input()
+# Read the YAML front matter
+lines <- readLines(this_file, warn = FALSE)
+dash_lines <- which(trimws(lines) == "---")
+yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
+yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
+
+# Convert to two-column Variable | Value for your old workflow
+meta <- tibble::enframe(yaml_data, name = "Variable", value = "Value")
+
+# Now you can use the same code as before:
+st      <- meta |> filter(Variable == "status") |> pull(Value)
+version <- meta |> filter(Variable == "Version") |> pull(Value)
+auth    <- meta |> filter(Variable == "authors") |> pull(Value)
+year    <- meta |> filter(Variable == "yearAdded") |> pull(Value)
+id      <- meta |> filter(Variable == "indicatorID") |> pull(Value)
+name    <- meta |> filter(Variable == "indicatorName") |> pull(Value)
+url     <- meta |> filter(Variable == "url") |> pull(Value)
+
+# You can keep your mutate/filter logic unchanged
+meta <- meta |>
+  mutate(Variable = case_match(Variable,
+    "indicatorID" ~ "Indicator ID",
+    "indicatorName" ~ "Indicator Name",
+    "country" ~ "Country",
+    "continent" ~ "Continent",
+    "ECT" ~ "Ecosystem Condition Typology Class",
+    "yearAdded" ~ "Year added",
+    "yearLastUpdate" ~ "Last update",
+    .default = Variable
+  )) |>
+  filter(Variable != "authors")
+```
+
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+meta |>
+  filter(Variable %in% c("Indicator ID","Indicator Name","Country","Continent","Ecosystem Condition Typology Class", "Year added", "Last update")) |>   kable()
+```
+
