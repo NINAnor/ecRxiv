@@ -134,7 +134,8 @@ meta |>
 ## Logg
 
 <!--# Update this logg with short messages for each update -->
-- 12 May 2025 - Version 000.900 started
+- 12 May 2025 - Version 000.900 started: first complete version
+- 05 Sep 2025 - Version 000.900 ready for code review
 :::
 
 
@@ -233,7 +234,7 @@ The total nitrogen concentration in water is measured in µg/L.
 All data used are publicly available. 
 However, with the exception of [*Vannmiljø*](https://vannmiljowebapi.miljodirektoratet.no/swagger/ui/index#/), they are not accessible via an API but need to be downloaded manually. 
 Some required files are currently unavailable from from *Vann-nett* (temporarily so, it seems); they are therefore read from a previous *Vann-nett* download, which is archived in the GitHub repo [WFD2ECA](https://github.com/NINAnor/WFD2ECA/). 
-For further details, see [Datasets](#datasets) below.
+For further details, see [chapter&nbsp;7](#import-and-prepare-datasets) below.
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
 
@@ -263,7 +264,7 @@ This doesnt need to be very long. Maybe just a single sentence.
 
 #### 3.1.1 Other condition typologies
 
-In the Norwegian classification of ecological characteristics (*økologiske egenskaper*) according to Nybø & Evju ([2017](#nyb17), p. 35), the indicator represents **abiotic conditions** (*abiotiske forhold*).
+In the Norwegian classification of ecological characteristics (*økologiske egenskaper*) according to Nybø & Evju ([2017](#nyb17), p.&nbsp;35), the indicator represents **abiotic conditions** (*abiotiske forhold*).
 
 In the WFD's distinction between *quality elements*, the indicator belongs to the *supporting chemical and physico-chemical elements*, representing **nutrition** (WFD, Annex&nbsp;V).
 
@@ -368,9 +369,9 @@ The uncertainties reported are inferential, i.e. they refer to the uncertainty a
 Quartiles (or, if needed, other error estimates) are obtained by drawing random numbers from the confidence intervals for water bodies that have been measured, and from the prediction intervals for water bodies that have been extrapolated. 
 
 Extrapolation is based on a model fitted to the data.
-This model also attempts to correct for sampling bias (see [section 2.2](#sampling-design)) by weighting measurements by the "surveillance activity" (*overvåkingsaktivitet*) during which they have been sampled. 
+This model also attempts to correct for sampling bias (see [section&nbsp;2.2](#sampling-design)) by weighting measurements by the "surveillance activity" (*overvåkingsaktivitet*) during which they have been sampled. 
 Scores between &minus;3 and +3 have been assigned to each surveillance activity, where the sign indicates the direction of the deviation (poorer or better than a randomly chosen water body), and the absolute value is an estimate of the magnitude of the bias. 
-The approach has been described (in Norwegian) by Sandvik ([2019](#san19): pp. 17--19) and extended by Framstad et al. ([2023](#fra23): pp. 121--122).
+The approach has been described (in Norwegian) by Sandvik ([2019](#san19): pp.&nbsp;17--19) and extended by Framstad et al. ([2023](#fra23): pp.&nbsp;121--122).
 
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
 However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
@@ -405,7 +406,7 @@ However, the variation in the mean is defined by the spatial variation only, and
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
 
 
-## 7. Datasets
+## 7. Import and prepare datasets
 
 <!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
 
@@ -517,7 +518,7 @@ The subsequent [analyses](#analyses) need the *location* of each water body (*va
 A geospatial dataset with this information is publicly available, but it needs to be downloaded manually:
 
 * Navigate to [https://karteksport.miljodirektoratet.no](https://karteksport.miljodirektoratet.no/).
-* In the menu to the left of the map, tick "Vannforekomster" in the "Produkt" section...
+* In the menu to the left of the map, tick "Vannforekomster" in the "Produkt" section ...
 * ... and "Nasjonalt" in the "Definer område" section.
 * Click "Neste".
 * Provide your e-mail in the "Epost" box.
@@ -526,7 +527,7 @@ A geospatial dataset with this information is publicly available, but it needs t
 
 The uncompressed geodatabase is needed for the analyses. 
 It has to have the name "VF.gdb" and to be placed in the "data" folder in order to be recognised. 
-(The [analyses](#analyses) use a cached version called "VF.RData", which is available via the WFD2ECA repo, see [section 7.1](#wfd2eca).)
+(The [analyses](#analyses) use a cached version called "VF.RData", which is available via the WFD2ECA repo, see [section&nbsp;7.1](#wfd2eca).)
 
 ### 7.4 Vann-nett
 
@@ -537,7 +538,7 @@ This information is publicly available from a separate database called *Vann-net
 A spreadsheet workbook exported from *Vann-nett* is needed for the analyses. 
 It has to have the name "V-L.csv" (for lakes) or "V-R.csv" (for rivers) in order to recognised.
 
-*(Note that Vann-nett has recently been upgraded. In the new version, typology factors are not included in the list of variables that are available for export. For the time being, water body typology thus has to be based on an export from the previous version of Vann-nett, which is no longer online. These previous exports are available via the WFD2ECA repo, see [section 7.1](#wfd2eca). It is to be hoped that the relevant information will be made available in the new version soon.)* <!--# 
+*(Note that Vann-nett has recently been upgraded. In the new version, typology factors are not included in the list of variables that are available for export. For the time being, water body typology thus has to be based on an export from the previous version of Vann-nett, which is no longer online. These previous exports are available via the WFD2ECA repo, see [section&nbsp;7.1](#wfd2eca). It is to be hoped that the relevant information will be made available in the new version soon.)* <!--# 
 I have requested this information to be added. I hope that it is only a matter of time before it is available again. -->
 
 With the necessary files in place, we can read the water body information.
@@ -559,7 +560,7 @@ head(V)
 
 An explanation of the columns (in Norwegian) is given [elsewhere](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/lesVannforekomster.md#funksjonsverdi).
 
-### 7.5 Innsjødatabasen
+### 7.5 Innsjødatabase
 
 Detailed information on Norwegian lakes is available from the [*Innsjødatabase*](https://www.nve.no/kart/kartdata/vassdragsdata/innsjoedatabase/) ("lake database") maintained by the Norwegian Water Resources and Energy Directorate ([NVE](https://www.nve.no/)). 
 This dataset is publicly available, but it needs to be downloaded manually:
@@ -581,7 +582,7 @@ This dataset is publicly available, but it needs to be downloaded manually:
 * Uncompress the zip archive. (Upon uncompression, the relevant files are located in the folder `NVEKartdata\NVEData\Innsjo`.)
 * Place the shapefiles (called `Innsjo_Innsjo.*`) in the "data" folder.
 
-(The [analyses](#analyses) use a cached version called "NVE.RData", which is available via the WFD2ECA repo, see [section 7.1](#wfd2eca).)
+(The [analyses](#analyses) use a cached version called "NVE.RData", which is available via the WFD2ECA repo, see [section&nbsp;7.1](#wfd2eca).)
 
 With the necessary files in place, we can read the export from *Innsjødatabase*.
 
@@ -602,7 +603,7 @@ head(nve)
 
 An explanation of the columns (in Norwegian) is given [elsewhere](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/lesInnsjodatabasen.md#funksjonsverdi).
 
-The information on water bodies (from *Vann-nett*) needs to be coupled with the information about lakes (from *Innsjødatabasen*). 
+The information on water bodies (from *Vann-nett*) needs to be coupled with the information about lakes (from *Innsjødatabase*). 
 This step also checks for some potential errors.
 
 ```{r}
