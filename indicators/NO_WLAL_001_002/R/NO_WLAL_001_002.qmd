@@ -19,7 +19,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research
-date: September 5, 2025 
+date: September 16, 2025 
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -208,16 +208,28 @@ A specific requirement for labile aluminium is that the indicator value for a gi
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
 
-### 2.2 Original units
+### 2.2 Sampling design
+
+WFD indicators are mainly measured opportunistically, e.g. when and where some authority has a need to check whether a water body fulfils the management objective of the WFD. 
+However, a subset of the measurements is taken systematically, e.g. repeated measurements in a sample of water bodies that have been selected following certain criteria.
+
+This sampling procedure implies that the representativeness of the sampled water bodies for the non-sampled water bodies is essentially unknown. 
+A specific concern is that quite some WFD measurements are taken *precisely because the sampled water body is known or assumed to be unrepresentative*. 
+The main reasons are the following:
+
+* Some water bodies are sampled because it is known or suspected that they do not fulfil the normative objective that X > X~60~ (in order to justify and design measures to improve ecological condition and, later, to evaluate the effect of the measures taken).
+* Some water bodies are sampled because they are regarded as reference water bodies, i.e. assumed to be in, or very close to, the reference condition.
+
+<!-- How was the data sampled? Describe potential sampling biases -->
+
+### 2.3 Original units
 
 The concentration of labile aluminium in water is measured in µg/L. 
 However, in the connection with the WFD, values are normally reported as "normalised ecological quality ratios" (nEQR) between 0 and 1, which correspond to *indicator* values sensu [SEEA&nbsp;EA](#seeaea).
 
 <!--# What are the original units for the most relevant  variables in the data-->
 
-### 2.3 Additional comments about the dataset
-
-#### 2.3.1 Instructions for citing, using and accessing data
+### 2.4 Instructions for citing, using and accessing data
 
 All data used are publicly available. 
 However, with the exception of [*Vannmiljø*](https://vannmiljowebapi.miljodirektoratet.no/swagger/ui/index#/), they are not accessible via an API but need to be downloaded manually. 
@@ -230,6 +242,14 @@ For further details, see [Datasets](#datasets) below.
 ## 3. Indicator properties
 
 Labile aluminium has the ID **88** in the metadata table for ecological condition variables for use in Norway ([Czúcz et al. 2023](#czu23)).
+The abbreviation used in the *Vannmiljø* database is **LAL** (this is needed for downloading the correct dataset).
+
+```{r}
+# Vannmiljø abbreviation and title of the indicator
+indikator <- tittel <- "LAL"
+# The relevant surface water category (**R**iver, **L**ake and/or **C**oast) 
+vannkategori <- c("L", "R")
+```
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
@@ -240,6 +260,14 @@ Describe the rationale for assigning the indicator to the ECT class. See https:/
 This doesnt need to be very long. Maybe just a single sentence. 
 -->
 
+#### 3.1.1 Other condition typologies
+
+In the Norwegian classification of ecological characteristics (*økologiske egenskaper*) according to Nybø & Evju ([2017](#nyb17), p. 35), the indicator represents **abiotic conditions** (*abiotiske forhold*).
+
+In the WFD's distinction between *quality elements*, the indicator belongs to the *supporting chemical and physico-chemical elements*, representing **acidification** (WFD, Annex&nbsp;V).
+
+<!--# Optional: Add text about other spesific standards, e.g. national standards, and how the indicator relates to these -->
+
 ### 3.2 Ecosystem condition characteristic
 
 Intact ecosystems are characterised by being chemically neutral or slightly alkaline, and labile aluminium represents the acidification of surface water.
@@ -249,27 +277,38 @@ Describe the ecosystem condition characteristic represented in the indicator. Se
 For example, and indicator called 'Trenching in mires' could be made to represent an ecosystem characteristic 'Intact hydrology'. The term 'characteristic' is used similar to the term 'criteria' in Multiple Criteria Decition Making.  
 -->
 
-### 3.3 Other standards
-
-In the Norwegian classification of ecological characteristics (*økologiske egenskaper*) according to Nybø & Evju ([2017](#nyb17), p. 35), the indicator represents **abiotic conditions** (*abiotiske forhold*).
-
-In the WFD's distinction between **quality elements**, the indicator belongs to the *supporting chemical and physico-chemical elements*, representing **acidification** (WFD, Annex&nbsp;V).
-
-The WFD enforces the environmental **objectives** that water bodies shall not have an indicator value below X~60~, and that water bodies already obtaining an indicator value above X~80~ shall not drop below this threshold (WFD, Article 4; cf. *Vannforskriften* §&nbsp;4).
-
-<!--# Optional: Add text about other spesific standards, e.g. national standards, and how the indicator relates to these -->
-
-### 3.4 Collinearities with other indicators
+### 3.3 Collinearities with other indicators
 
 Labile aluminium is correlated to [water pH](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WPHX_001_002) and may be broadly correlated to other measures of water acidification, specifically [AIP](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WAIP_001), [ANC](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WANC_001_002) and [RAMI](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WAMI_001).
 
 <!--# Describe known collinearities with other metrices (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
 
-### 3.5 Impact factors
+### 3.4 Impact factors
 
 Labile aluminium is a measure of the level of acidification, which usually is the result of long distance pollution (air pollution with sulfur dioxide, nitrogen oxide etc., and subsequent acidic precipitation).
 
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
+
+### 3.5 Spatial aggregation
+
+According to the WFD and DGVF ([2025](#veil2)), measurements of WFD variables are transformed into so-called nEQR values ("normalised Ecological Quality Ratios") between 0 and 1, which correspond to indicator values sensu [SEEA&nbsp;EA](#seeaea) (see [section 4.2](#reference-levels)). 
+In a WFD context, this is normally done using the following steps:
+
+1. *Truncation.* Variable values are truncated, where measurements that are poorer than X~0~ are set to X~0~, and measurements that are better than X~100~ are set to X~100~.
+2. *Scaling.* The truncated variable values are linearly scaled so that X~0~ becomes 0 and X~100~ becomes 1. The resulting indicator values are referred to as **EQR**s ("Ecological Quality Ratios").
+3. *Transformation.* EQR values are transformed in a stepwise-linear manner, so that the indicator values 0.2, 0.4, 0.6 and 0.8 correspond to the thresholds between the normative definitions of "bad", "poor", "moderate", "good" and "high" ecological status according to the WFD. The resulting indicator values are referred to as **nEQR**s ("normalised EQRs").
+4. *Summary statistics.* Instead of spatial aggregation, the proportion of water bodies fulfilling the normative objective of the WFD is calculated.
+
+Truncation, however, removes information about variation in ecological condition that is important for estimating (modelling and extrapolating) the indicator value and its uncertainty. 
+Therefore, the dataflow from WFD to an Ecosystem Condition Account should be based on values that are *scaled and transformed but not truncated*.
+This is implemented in the current context by modifying the order of the steps from truncation--scaling--transformation--statistics to scaling--transformation--aggregation--truncation (following [Sandvik 2019](#san19): pp. 13--15, [Sandvik 2025](#san25)):
+
+1. *Scaling.* The *un*truncated variable values are linearly scaled so that X~0~ becomes 0 and X~100~ becomes 1. Note that the resulting values may be negative (if X is poorer than X~0~) or larger than 1 (if X is better than X~100~).
+2. *Transformation.* The scaled values are transformed in a stepwise-linear manner in accordance with the [reference levels](#reference-levels) defined by the WFD. The resulting indicator values are here referred to as **mEQR**s ("modified EQRs"). This step requires an adjustment in cases were the minimum and/or maximum values of X can be much lower or higher than X~0~ or X~100~. The approach chosen here ensures that no indicator value can be below &minus;0.2 or above 1.2 (described, in Norwegian, [here](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/asympEQR.md)).
+3. *Aggregration.* Indicator values for the specific water bodies are spatially aggregated using model-based extrapolation to water bodies for which no measurements are available, followed by size-weighted arithmetic averages across all relevant water bodies (where "size" is the *area* of lake water bodies and the *length* of river water bodies).
+4. *Truncation.* When mEQR values are truncated in a final step, they become identical to nEQR values. However, truncation is here done only after the spatial aggregation of the modelled and simulated values.
+
+<!-- Describe in word the same aggregation pathway presented in the metadata.xlsx. If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1". -->
 
 
 ## 4. Reference condition and levels
@@ -287,6 +326,7 @@ Water bodies judged to be in the reference condition are referred to as *referen
 
 According to the WFD, reference levels are defined for X~0~, X~20~, X~40~, X~60~, X~80~, and X~100~. 
 These are used to classify the "ecological status" of water bodies as "bad" (X~0~ &le; X &le; X~20~), "poor" (X~20~ < X &le; X~40~), "moderate" (X~40~ < X &le; X~60~), "good" (X~60~ < X &le; X~80~), and "high" (X~80~ < X &le; X~100~). 
+The WFD enforces the environmental *objectives* that water bodies shall not have an indicator value below X~60~, and that water bodies already obtaining an indicator value above X~80~ shall not drop below this threshold (WFD, Article 4; cf. *Vannforskriften* §&nbsp;4).
 The WFD (Annex&nbsp;V, section 1.2) provides the following normative definition of "high status": 
 "The values of the biological quality elements for the surface water body reflect those normally associated with that type under undisturbed conditions, and show no, or only very minor, evidence of distortion."
 An approach used for many WFD indicators, including this one, is to define X~100~ as the median of the variable values measured in reference water bodies.
@@ -318,23 +358,28 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
 ## 5. Uncertainties
 
-The main uncertainty for national and regional values of the indicator is *sampling error*. 
-Measurements of variable values are only sampled in a small fraction of all relevant water bodies. 
-The approach below extrapolates indicator values to water bodies that have not been sampled, but this extrapolation is necessarily uncertain. 
-This uncertainty is quantified using prediction intervals.
+### 5.1 General uncertainties
 
-The underlying problem of the mentioned uncertainty is that the *representativeness* of the sampled water bodies for the non-sampled water bodies is unknown. 
-A specific issue regarding representativeness is that quite some WFD measurements are taken *precisely because the sampled water body is known or assumed to be unrepresentative*. 
-The main reasons are the following:
+The main uncertainty for spatially aggregated values of the indicator is *sampling error*. 
+Measurements of variable values are only sampled in a small fraction of all relevant water bodies.
 
-* Some water bodies are sampled because it is known or suspected that they do not fulfil the normative objective that X > X~60~ (in order to justify and design measures to improve ecological condition and, later, to evaluate the effect of the measures taken).
-* Some water bodies are sampled because they are regarded as reference water bodies, i.e. assumed to be in, or very close to, the reference condition.
+A further uncertainty pertains to the *reference levels*, which are not equally well studied in all water body types. 
+Whereas they are well-founded in common water body types, reference levels may not be entirely representative for rarer ones. 
 
-The approach below attempts to correct for these biases by weighting measurements by the "surveillance activity" (*overvåkingsaktivitet*) during which they have been sampled. 
+<!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
+
+### 5.2 Reported uncertainties
+
+The uncertainties reported are inferential, i.e. they refer to the uncertainty around the point estimates. 
+Quartiles (or, if needed, other error estimates) are obtained by drawing random numbers from the confidence intervals for water bodies that have been measured, and from the prediction intervals for water bodies that have been extrapolated. 
+
+Extrapolation is based on a model fitted to the data.
+This model also attempts to correct for sampling bias (see [section 2.2](#sampling-design)) by weighting measurements by the "surveillance activity" (*overvåkingsaktivitet*) during which they have been sampled. 
 Scores between &minus;3 and +3 have been assigned to each surveillance activity, where the sign indicates the direction of the deviation (poorer or better than a randomly chosen water body), and the absolute value is an estimate of the magnitude of the bias. 
 The approach has been described (in Norwegian) by Sandvik ([2019](#san19): pp. 17--19) and extended by Framstad et al. ([2023](#fra23): pp. 121--122).
 
-<!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
+<!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
+However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
 
 
 ## 6. References
@@ -368,96 +413,9 @@ The approach has been described (in Norwegian) by Sandvik ([2019](#san19): pp. 1
 
 <!--# Describe the unique datasets seperately under seperate headers (Dataset A, Dataset B, etc.-->
 
-### 7.1 Vannmiljø
+### 7.1 WFD2ECA
 
-*Vannmiljø* is a database maintained by the [Norwegian Environment Agency](https://www.miljodirektoratet.no/) that is used to collect registrations related to ecological condition of water according to the WFD. 
-This database contains information on all *measurements* taken in connection with the WFD ("registrations") as well as all *locations* at which measurements are taken ("water localities"). 
-Other information available from *Vannmiljø* includes lists of WFD variables and indicators ("parameters"), of surveillance activities, of measurement units used, of species recorded etc. 
-
-The database has long been available for manual download via [https://vannmiljo.miljodirektoratet.no](https://vannmiljo.miljodirektoratet.no/). 
-Recently, the data have also been made available via an [API](https://vannmiljowebapi.miljodirektoratet.no/swagger/ui/index#/), which is utilised here. 
-
-<!--# Describe the main dataset, typicaly the one containing the variable of (most) interest. Change the header from Dataset A to the name of the actual dataset. -->
-
-### 7.2. Vannforekomster
-
-In order to carry out the subsequent analyses, all WFD registrations need to be assigned to the correct water body (*vannforekomst*). 
-Information on water bodies has currently to be downloaded from separate sources. 
-A geospatial dataset of all water bodies is publicly available, but it needs to be downloaded manually:
-
-* Navigate to [https://karteksport.miljodirektoratet.no](https://karteksport.miljodirektoratet.no/).
-* In the menu to the left of the map, tick "Vannforekomster" in the "Produkt" section...
-* ...and "Nasjonalt" in the "Definer område" section.
-* Click "Neste".
-* Provide your e-mail in the "Epost" box.
-* Choose "ESRI Filgeodatabase (ESPG:4326)" in the "Format" box.
-* Upon pressing "Send bestilling", a compressed geodatabase (gdb) will be sent to your e-mail.
-
-The uncompressed geodatabase is needed for the analyses. 
-It has to have the name "VF.gdb" and to be placed in the "data" folder in order to be recognised. 
-(A cached version called "VF.RData" is used in the demo below.)
-
-### 7.3. Vann-nett
-
-In addition to the location of water bodies, the subsequent analyses need information on the water body *typology*. 
-In WFD context, typology refers to a set of factors describing abiotic characteristics of the water bodies, such as altitude, size and alkalinity. 
-This information is publicly available from a separate database called *Vann-nett* via the link [https://vann-nett.no/waterbodies/report](https://vann-nett.no/waterbodies/report). 
-
-A spreadsheet workbook exported from *Vann-nett* is needed for the analyses. 
-It has to have the name "V-L.csv" (for lakes) or "V-R.csv" (for rivers) in order to recognised.
-
-*(Note that Vann-nett has recently been upgraded. In the new version, typology factors are not included in the list of variables about water bodies that are available for export. For the time being, water body typology thus has to be based on an export from the previous version of Vann-nett, which is no longer online. It is to be hoped that the relevant information will be made available in the new version soon.)* <!--# 
-I have requested this information to be added. I hope that it is only a matter of time before it is available again. -->
-
-### 7.4. Innsjødatabasen
-
-Detailed information on Norwegian lakes is available from the [*Innsjødatabase*](https://www.nve.no/kart/kartdata/vassdragsdata/innsjoedatabase/) ("lake database") maintained by the Norwegian Water Resources and Energy Directorate ([NVE](https://www.nve.no/)). 
-This dataset is publicly available, but it needs to be downloaded manually:
-
-* Navigate to [https://nedlasting.nve.no/gis/](https://nedlasting.nve.no/gis/).
-* Choose (or retain) "Vektordata" in the "Velg datatype" dropdown menu.
-* Expand the "Innsjø" heading.
-* Tick the "Innsjø" box.
-* Click "Neste".
-* Choose "ESRI shapefil (.shp)" in the "Velg kartformat" dropdown menu.
-* Choose "Geografiske koordinater ETRS89" in the "Velg koordinatsystem" dropdown menu.
-* Choose "Overlapper" in the "Velg utvalgsmetode" dropdown menu.
-* Choose "Landsdekkende" in the "Velg dekningsområde" dropdown menu.
-* Click "Neste".
-* Provide your e-mail address in the "E-post" boxes.
-* Tick the "Jeg har lest og forstått betingelser..." box to accept the terms of use.
-* Upon pressing "Send", a link to a compressed archive (zip) will be sent to your e-mail.
-* Click that link to download the data.
-* Uncompress the zip archive. (Upon uncompression, the relevant files are located in the folder `NVEKartdata\NVEData\Innsjo`.)
-* Place the shapefiles (called `Innsjo_Innsjo.*`) in the "data" folder.
-
-(A cached version called "NVE.RData" is used in the demo below.)
-
-<!--# Describe additional datasets in a similar was as above. Delete or add ned subheaders as needed. -->
-
-
-## 8. Spatial units
-
-Data (measurements) are assumed to be representative for their respective water bodies, which correspond to the Ecosystem Assets of freshwater ecosystems. 
-The Ecosystem Accounting Area covered by the data is mainland Norway. 
-
-<!--# 
-Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpretted at. Potential spatial delineation data should eb introduced under 7.1. Datasets. We recomend using the SEEA EA terminology opf Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). 
--->
-
-## 9. Analyses
-
-### 9.1. Preliminaries
-
-At the outset, we define two variables containing the official abbreviations (i.e., according to *Vannmiljø*) of the indicator and of the relevant water category, respectively. 
-("Water categories" are **R**iver, **L**ake and **C**oast.)
-
-```{r}
-indikator <- tittel <- "LAL"
-vannkategori <- c("L", "R")
-```
-
-The dataflow used here has been described in the GitHub repository [WFD2ECA](https://github.com/NINAnor/WFD2ECA/). 
+The dataflow used here has been described in the GitHub repository [WFD2ECA](https://github.com/NINAnor/WFD2ECA/) ([Sandvik 2025](#san25)). 
 We start by downloading the functions and data files from archived version 2.0 of that repo.
 
 ```{r}
@@ -511,11 +469,94 @@ for (filnavn in list.files(".", full.names = TRUE)) {
 }
 ```
 
-### 9.2. Reading data on water bodies
+Among the data files downloaded, there are the reference levels of the indicator for different water body types ...
 
-The preparation of the list of water bodies (*vannforekomster*) requires three files: 
-two containing the water body typologies, which need to be downloaded from *Vann-nett* and named "V-L.csv" and "V-R.csv" (for **L**ake and **R**iver water bodies, respectively); 
-and another file containing a geodatabase of all water bodies, named "VF.gdb".
+```{r}
+head(as.data.frame(read_xlsx("../data/klassegrenser_" %+% indikator %+% ".xlsx", col_types = "text")))
+```
+
+... and a list of surveillance activities with their "bias score" (`skaar`).
+
+```{r}
+head(as.data.frame(read_xlsx("../data/VM-aktiv.xlsx", col_types = "text")))
+```
+
+### 7.2 Vannmiljø
+
+*Vannmiljø* is a database maintained by the [Norwegian Environment Agency](https://www.miljodirektoratet.no/) that is used to collect registrations related to ecological condition of water according to the WFD. 
+This database contains information on all *measurements* taken in connection with the WFD ("registrations") as well as all *locations* at which measurements are taken ("water localities"). 
+Other information available from *Vannmiljø* includes lists of WFD variables and indicators ("parameters"), of surveillance activities, of measurement units used, of species recorded etc. 
+
+The database has long been available for manual download via [https://vannmiljo.miljodirektoratet.no](https://vannmiljo.miljodirektoratet.no/). 
+Recently, the data have also been made available via an [API](https://vannmiljowebapi.miljodirektoratet.no/swagger/ui/index#/), which is utilised here. 
+
+First we read the measurements of the specified indicator from the *Vannmiljø* API.
+
+```{r}
+DATA <- lesMaalinger(indikator)
+```
+
+The output informs us that the operation was successful and how many registrations have been read. 
+This is how the dataset looks like:
+
+```{r}
+{
+  D <- DATA[1:12, ]
+  for (i in 1:ncol(D)) D[, i] <- substr(D[, i], 1, 10)
+  for (i in c(3, 4)) D[, i] <- D[, i] %+% "..."
+  print(head(D))
+  rm(D)
+}
+```
+
+An explanation of the columns (in Norwegian) is given [elsewhere](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/lesMaalinger.md#funksjonsverdi).
+
+A list of water localities (*vannlokaliteter*) is likewise read from the *Vannmiljø* API. 
+The main function argument is the surface water category.
+
+```{r}
+VL <- lesVannlokaliteter(vannkategori)
+```
+
+The output informs us that the operation was successful and how many water localities there are.
+This is how the dataset looks like:
+
+```{r}
+head(VL)
+```
+
+The columns are the water locality ID, code and name, the ID of its water body, its surface water category and UTM coordinates.
+
+### 7.3 Water body locations
+
+The subsequent [analyses](#analyses) need the *location* of each water body (*vannforekomst*).
+A geospatial dataset with this information is publicly available, but it needs to be downloaded manually:
+
+* Navigate to [https://karteksport.miljodirektoratet.no](https://karteksport.miljodirektoratet.no/).
+* In the menu to the left of the map, tick "Vannforekomster" in the "Produkt" section...
+* ... and "Nasjonalt" in the "Definer område" section.
+* Click "Neste".
+* Provide your e-mail in the "Epost" box.
+* Choose "ESRI Filgeodatabase (ESPG:4326)" in the "Format" box.
+* Upon pressing "Send bestilling", a compressed geodatabase (gdb) will be sent to your e-mail.
+
+The uncompressed geodatabase is needed for the analyses. 
+It has to have the name "VF.gdb" and to be placed in the "data" folder in order to be recognised. 
+(The [analyses](#analyses) use a cached version called "VF.RData", which is available via the WFD2ECA repo, see [section 7.1](#wfd2eca).)
+
+### 7.4 Vann-nett
+
+In addition to the location, we need information on the *typology* of each water body. 
+In WFD context, typology refers to a set of factors describing abiotic characteristics of the water bodies, such as altitude, size and alkalinity. 
+This information is publicly available from a separate database called *Vann-nett* via the link [https://vann-nett.no/waterbodies/report](https://vann-nett.no/waterbodies/report). 
+
+A spreadsheet workbook exported from *Vann-nett* is needed for the analyses. 
+It has to have the name "V-L.csv" (for lakes) or "V-R.csv" (for rivers) in order to recognised.
+
+*(Note that Vann-nett has recently been upgraded. In the new version, typology factors are not included in the list of variables that are available for export. For the time being, water body typology thus has to be based on an export from the previous version of Vann-nett, which is no longer online. These previous exports are available via the WFD2ECA repo, see [section 7.1](#wfd2eca). It is to be hoped that the relevant information will be made available in the new version soon.)* <!--# 
+I have requested this information to be added. I hope that it is only a matter of time before it is available again. -->
+
+With the necessary files in place, we can read the water body information.
 
 ```{r, eval=FALSE, echo=TRUE}
 V <- lesVannforekomster(vannkategori)
@@ -525,10 +566,17 @@ V <- lesVannforekomster(vannkategori)
 V <- lesVannforekomster(vannkategori, CACHE = "VF.RData")
 ```
 
-The output informs us of several adjustments made to the data, but that the operation was successful and how many water bodies (of the relevant water category) there are.
+The output informs us of several adjustments made to the data, but that the operation was successful and how many water bodies (of the relevant surface water category) there are.
+This is how the dataset looks like:
+
+```{r}
+head(V)
+```
+
+An explanation of the columns (in Norwegian) is given [elsewhere](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/lesVannforekomster.md#funksjonsverdi).
 
 As reference levels differ between river water bodies with and without anadromous fish, a file containing this information needs to be read as well. 
-For the time being, this is a separate file exported from *Vann-nett* ([see above](#vann-nett)), which needs to be coupled to the remaining information about water bodies (in the future, this information is hopefully part of the same export from *Vann-nett*).
+For the time being, this is a separate file exported from *Vann-nett*, which needs to be coupled to the remaining information about water bodies (in the future, this information is hopefully part of the same export from *Vann-nett*).
 
 ```{r}
 VNanadr <- as.data.frame(read_xlsx("../data/VN-anadr.xlsx"))
@@ -541,7 +589,31 @@ for (i in 1:nrow(V)) {
 }
 ```
 
-The export from *Innsjødatabase* needs to be read, too.
+### 7.5 Innsjødatabasen
+
+Detailed information on Norwegian lakes is available from the [*Innsjødatabase*](https://www.nve.no/kart/kartdata/vassdragsdata/innsjoedatabase/) ("lake database") maintained by the Norwegian Water Resources and Energy Directorate ([NVE](https://www.nve.no/)). 
+This dataset is publicly available, but it needs to be downloaded manually:
+
+* Navigate to [https://nedlasting.nve.no/gis/](https://nedlasting.nve.no/gis/).
+* Choose (or retain) "Vektordata" in the "Velg datatype" dropdown menu.
+* Expand the "Innsjø" heading.
+* Tick the "Innsjø" box.
+* Click "Neste".
+* Choose "ESRI shapefil (.shp)" in the "Velg kartformat" dropdown menu.
+* Choose "Geografiske koordinater ETRS89" in the "Velg koordinatsystem" dropdown menu.
+* Choose "Overlapper" in the "Velg utvalgsmetode" dropdown menu.
+* Choose "Landsdekkende" in the "Velg dekningsområde" dropdown menu.
+* Click "Neste".
+* Provide your e-mail address in the "E-post" boxes.
+* Tick the "Jeg har lest og forstått betingelser..." box to accept the terms of use.
+* Upon pressing "Send", a link to a compressed archive (zip) will be sent to your e-mail.
+* Click that link to download the data.
+* Uncompress the zip archive. (Upon uncompression, the relevant files are located in the folder `NVEKartdata\NVEData\Innsjo`.)
+* Place the shapefiles (called `Innsjo_Innsjo.*`) in the "data" folder.
+
+(The [analyses](#analyses) use a cached version called "NVE.RData", which is available via the WFD2ECA repo, see [section 7.1](#wfd2eca).)
+
+With the necessary files in place, we can read the export from *Innsjødatabase*.
 
 ```{r, eval=FALSE, echo=TRUE}
 nve <- lesInnsjodatabasen("Innsjo_Innsjo.dbf")
@@ -552,6 +624,13 @@ nve <- lesInnsjodatabasen("Innsjo_Innsjo.dbf", CACHE = "NVE.RData")
 ```
 
 The output informs us of a few adjustments made to the data, but that the operation was successful.
+This is how the dataset looks like:
+
+```{r}
+head(nve)
+```
+
+An explanation of the columns (in Norwegian) is given [elsewhere](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/lesInnsjodatabasen.md#funksjonsverdi).
 
 The information on water bodies (from *Vann-nett*) needs to be coupled with the information about lakes (from *Innsjødatabasen*). 
 This step also checks for some potential errors.
@@ -562,26 +641,21 @@ V <- oppdaterVannforekomster(V, nve)
 
 Again, the output informs us of some adjustments made to the data, but that the operation was successful.
 
-### 9.3. Reading registrations and other information from Vannmiljø
 
-Now we read the measurements of the specified indicator from the *Vannmiljø* API.
+## 8. Spatial units
 
-```{r}
-DATA <- lesMaalinger(indikator)
-```
+Data (measurements) are assumed to be representative for their respective water bodies, which correspond to the Ecosystem Assets of freshwater ecosystems. 
+The Ecosystem Accounting Area covered by the data is mainland Norway. 
 
-The output informs us that the operation was successful and how many registrations have been read.
+<!--# 
+Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpretted at. Potential spatial delineation data should eb introduced under 7.1. Datasets. We recomend using the SEEA EA terminology opf Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). 
+-->
 
-A list of water localities (*vannlokaliteter*) is likewise read from the *Vannmiljø* API. 
-The main function argument is the water category.
+## 9. Analyses
 
-```{r}
-VL <- lesVannlokaliteter(vannkategori)
-```
+### 9.1 Inspection of the dataset
 
-The output informs us that the operation was successful and how many water localities there are.
-
-We can show the raw (unfiltered and unscaled) measurements on a map.
+To take an initial look at the data, we can show the raw (unfiltered and unscaled) measurements on a map.
 
 ```{r}
 #| lab: measurement-map
@@ -642,24 +716,9 @@ We can show the raw (unfiltered and unscaled) measurements on a map.
 }
 ```
 
-### 9.4. Calculating mEQRs using reference levels
+### 9.2 Calculating mEQRs using reference levels
 
-According to the WFD and DGVF ([2025](#veil2)), measurements of WFD variables are transformed into so-called nEQR values ("normalised Ecological Quality Ratios") between 0 and 1, which correspond to indicator values sensu [SEEA&nbsp;EA](#seeaea). 
-This is normally done using the following steps:
-
-1. *Truncation.* Variable values are truncated, where measurements that are poorer than X~0~ are set to X~0~, and measurements that are better than X~100~ are set to X~100~.
-2. *Scaling.* The truncated variable values are linearly scaled so that X~0~ becomes 0 and X~100~ becomes 1. The resulting indicator values are referred to as **EQR**s ("Ecological Quality Ratios").
-3. *Transformation.* EQR values are transformed in a stepwise-linear manner, so that the indicator values 0.2, 0.4, 0.6 and 0.8 correspond to the thresholds between the normative definitions of "bad", "poor", "moderate", "good" and "high" ecological status according to the WFD. The resulting indicator values are referred to as **nEQR**s ("normalised EQRs").
-
-Truncation, however, removes information about variation in ecological condition that is important for estimating (modelling and extrapolating) the indicator value and its uncertainty. 
-Therefore, the dataflow from WFD to an Ecosystem Condition Account should be based on values that are *scaled and transformed but not truncated*.
-This is implemented in the current context by modifying the order of the steps from truncation&ndash;scaling&ndash;transformation to scaling&ndash;transformation&ndash;aggregation&ndash;truncation (following [Sandvik 2019](#san19): pp. 13--15, [Sandvik 2025](#san25)):
-
-1. *Scaling.* The *un*truncated variable values are linearly scaled so that X~0~ becomes 0 and X~100~ becomes 1. Note that the resulting values may be negative (if X is poorer than X~0~) or larger than 1 (if X is better than X~100~).
-2. *Transformation.* The scaled values are transformed in a stepwise-linear manner in accordance with the threshold values defined by the WFD. The resulting indicator values are here referred to as **mEQR**s ("modified EQRs"). This step requires an adjustment in cases were the minimum and/or maximum values of X can be much lower or higher than X~0~ or X~100~. The approach chosen here ensures that no indicator value can be below &minus;0.2 or above 1.2.
-3. *Aggregration.* Indicator values for the specific water bodies need to be spatially aggregated (see below). 
-4. *Truncation.* When mEQR values are truncated, they become identical to nEQR values. However, truncation is here done only after the spatial aggregation of the modelled and simulated values.
-
+Following the description in [section 3.5](#spatial-aggregation), measurements need to be transformed into mEQR values. 
 Let us have closer look at the reference levels of the indicator (which are given in [DGVF 2025](#veil2)).
 
 ```{r}
@@ -727,7 +786,7 @@ Note that variable values may be better (smaller) than X~100~ (blue line).
 An asymptotic transformation is used for X < X~100~ in order to keep mEQR values below 1.2. 
 Note also that X~0~ is infinite, a situation that is taken care of by using a hyperbolic scaling function.
 
-### 9.5. Estimating the indicator values and their uncertainty
+### 9.3 Estimating the indicator values and their uncertainty
 
 With the necessary files in place, the calculations can start. 
 This is done using the function WFD2ECA ("Water Framework Directive to Ecosystem Condition Account"), which is [documented in the WFD2ECA repository](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/dataflow.md) ([Sandvik 2025](#san25)).
@@ -769,7 +828,7 @@ utmating <- WFD2ECA(
 )
 ```
 
-### 9.6. Summary of the output
+### 9.4 Summary of the output
 
 The output is a list with one list element per geographic reporting level (i.e., in this case, one for the national and one for the regional level).
 For each geographical unit on this level and each reporting year, the predicted value and the simulated values are saved.
