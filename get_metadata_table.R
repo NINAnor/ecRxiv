@@ -3,7 +3,7 @@ library(purrr)
 library(dplyr)
 
 # Folder containing qmd files
-qmd_folder <- "indicators/"  # adjust to your folder
+qmd_folder <- "indicators/"  
 
 # List all qmd files
 qmd_files <- list.files(qmd_folder, pattern = "\\.qmd$", full.names = TRUE, recursive = TRUE)
@@ -41,7 +41,7 @@ yaml_data<-yaml_data |>
   select("indicatorID","indicatorName","country",
          "continent","ECT","Realm","Biome","Ecosystem", 
          "yearAdded", "yearLastUpdate", "status", "Version") |> 
-  drop_na()
+  drop_na() # all NAs
 
 
 
