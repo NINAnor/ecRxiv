@@ -191,7 +191,7 @@ Nevertheless, there are often several ways of defining the *target area*, and th
 
 For forests we only calcuate one version of this indicator: 
 
-* **TCCD_001**:  Average Tree Cover Density in the forest areas of Norway. (Here the *refere*target area* is defined as the total area of ET04 in the Norwegian national ecosystem type map (Grunnkart), which complies with both Eurostat's guidance (Eurostat 2025) and the SEEA EA principles. 
+* **TCCD_001**:  Average Tree Cover Density in the forest areas of Norway. (Here the *refere* target area* is defined as the total area of ET04 in the Norwegian national ecosystem type map (Grunnkart), which complies with both Eurostat's guidance (Eurostat 2025) and the SEEA EA principles. 
 
 An alternative version could potentially also be calculated directly from NIBIO's National Forest Inventory data, but unfortunately *tree cover* as a variable was not assessed consistently in all forest inventory sites: some forest types were left out, which  can lead to a biassed estimator (see Czucz et al. 2025a).   
 
@@ -673,7 +673,7 @@ rm(list = setdiff(ls(),
 
 ```
 
-THese files will be used to create virtual rasters during the analyses. We do not create these rasters now as we will paralellise the ananlyses. When parallelising, the transfer of the pointers stored in the virtual rasters do not transfer well between the different workers. That is why they will be created within each worker later on rather than creating one for all workers that would be stored on NINA's internal repository.
+These files will be used to create virtual rasters during the analyses. We do not create these rasters now as we will paralellise the ananlyses. When parallelising, the transfer of the pointers stored in the virtual rasters do not transfer well between the different workers. That is why they will be created within each worker later on rather than creating one for all workers that would be stored on NINA's internal repository.
 
 <!-- Now that we have the cleaned the rasters for the Tree Cover Density. We can create a virtual raster for each year that will be used in the subsequent analyses. -->
 <!-- ```{r} -->
@@ -698,7 +698,7 @@ THese files will be used to create virtual rasters during the analyses. We do no
 #### Load and prepare the forest data
 To allow for a breakdown at municipal level, we start by intersecting Eurostat Local Administrative Units with the class "Forest and woodlands" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on. 
 
-Spatial intersections between municipalities and Grunnkart are computing intensive. To reduce the time, we use the `duckdb` package. Note that tiles 33, 34 and 55 of the Grunnkart, had to be cleaned separately as functions in `duckdb` couldn't make the geometry valid but functions in `sf` package could.
+Spatial intersections between municipalities and Grunnkart are computing intensive. To reduce the time, we use the `duckdb` package. Note that tiles 33, 34, 50, 55 and 56 of the Grunnkart, had to be cleaned separately as functions in `duckdb` couldn't make the geometry valid but functions in `sf` package could.
 ```{r}
 #| eval: false
 #| code-summary: "Forests per LAUs"
@@ -711,7 +711,7 @@ gdb_files <- list.files(path_grunnkart, pattern = "_gdb\\.gdb$",
 
 ## Clean Grunnkart tile 33, 34, and 55
 # Clean
-gdb_issue_tiles <- gdb_files[c(7, 8, 14)]
+gdb_issue_tiles <- gdb_files[c(7, 8, 13, 14, 15)]
 
 daemons(3)
 grunnkart_cln <- map(seq_along(gdb_issue_tiles), 
@@ -756,13 +756,15 @@ ddbs_load(conn)
 
 
 ## Limit the number of threads (cores) duckdb uses
-dbExecute(conn, "PRAGMA threads = 30")
+dbExecute(conn, "PRAGMA threads = 10")
 
 
 ## Register grunnkart_34 in the duckdb database
-ddbs_write_vector(conn, grunnkart_cln[[1]], "grunnkart_valid_34")
-ddbs_write_vector(conn, grunnkart_cln[[2]], "grunnkart_valid_33")
-ddbs_write_vector(conn, grunnkart_cln[[3]], "grunnkart_valid_55")
+ddbs_write_vector(conn, grunnkart_cln[[1]], "grunnkart_valid_33")
+ddbs_write_vector(conn, grunnkart_cln[[2]], "grunnkart_valid_34")
+ddbs_write_vector(conn, grunnkart_cln[[3]], "grunnkart_valid_50")
+ddbs_write_vector(conn, grunnkart_cln[[4]], "grunnkart_valid_55")
+ddbs_write_vector(conn, grunnkart_cln[[5]], "grunnkart_valid_56")
 
 
 # Check that the table was registered
@@ -806,6 +808,15 @@ SELECT
   WHERE okosystemtype_1 = 'Forest and woodlands'
 ")
 
+query_valid_50 <- glue("
+CREATE TABLE grunnkart_valid AS
+SELECT
+  okosystemtype_1,
+  geo AS geom
+  FROM grunnkart_valid_50
+  WHERE okosystemtype_1 = 'Forest and woodlands'
+")
+
 query_valid_55 <- glue("
 CREATE TABLE grunnkart_valid AS
 SELECT
@@ -819,10 +830,19 @@ query_valid_56 <- glue("
 CREATE TABLE grunnkart_valid AS
 SELECT
   okosystemtype_1,
-  ST_Transform(ST_MakeValid(geo), 'EPSG: 25835', 'EPSG:3035', true) AS geom
-  FROM grunnkart
+  geo AS geom
+  FROM grunnkart_valid_56
   WHERE okosystemtype_1 = 'Forest and woodlands'
 ")
+
+# query_valid_56 <- glue("
+# CREATE TABLE grunnkart_valid AS
+# SELECT
+#   okosystemtype_1,
+#   ST_Transform(ST_MakeValid(geo), 'EPSG: 25835', 'EPSG:3035', true) AS geom
+#   FROM grunnkart
+#   WHERE okosystemtype_1 = 'Forest and woodlands'
+# ")
 
 query_intersect <- glue("
 CREATE TABLE grunnkart_intersection AS
@@ -842,7 +862,7 @@ DROP COLUMN geom_1")
 # includes registration of grunnkart and its cleaning
 do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_list, bd_path){
   
-  if(fylke %in% c(3, 11, 15, 40, 42, 46, 31, 32, 39, 50)){
+  if(fylke %in% c(3, 11, 15, 40, 42, 46, 31, 32, 39)){
     
     # Register Grunnkart for the specific fylke
     idx <- which(fylke_index_path_list == fylke)
@@ -866,7 +886,7 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, query_drop)
     
     # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
+    forest_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
     
     # Drop the grunnkart register tables
     dbExecute(db_connexion, "DROP VIEW grunnkart")
@@ -875,7 +895,7 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
     
     # Return the spatial intersection
-    return(soaa_lau)
+    return(forest_lau)
     
   } else if(fylke %in% c(18)){
     
@@ -901,7 +921,7 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, query_drop)
     
     # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
+    forest_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
     
     # Drop the grunnkart register tables
     dbExecute(db_connexion, "DROP VIEW grunnkart")
@@ -910,18 +930,18 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
     
     # Return the spatial intersection
-    return(soaa_lau)
+    return(forest_lau)
     
   } else if(fylke == 56){
     
-    # Register Grunnkart for the specific fylke
-    idx <- which(fylke_index_path_list == fylke)
-    ar_path <- path_list[idx]
-    ar_layer <- "arealregnskap"
-    dbExecute(db_connexion, glue("
-  CREATE VIEW grunnkart AS 
-  SELECT *,
-  FROM ST_Read('{ar_path}', layer='{ar_layer}')"))
+  #   # Register Grunnkart for the specific fylke
+  #   idx <- which(fylke_index_path_list == fylke)
+  #   ar_path <- path_list[idx]
+  #   ar_layer <- "arealregnskap"
+  #   dbExecute(db_connexion, glue("
+  # CREATE VIEW grunnkart AS 
+  # SELECT *,
+  # FROM ST_Read('{ar_path}', layer='{ar_layer}')"))
     
     # Register LAU for specific Fylke
     lau_path <- bd_path
@@ -936,15 +956,14 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, query_drop)
     
     # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
+    forest_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
     
     # Drop the grunnkart register tables
-    dbExecute(db_connexion, "DROP VIEW grunnkart")
     dbExecute(db_connexion, "DROP VIEW lau_fylke")
     dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
     dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
     
-    return(soaa_lau)
+    return(forest_lau)
     
   } else if(fylke == 34){
     
@@ -961,14 +980,14 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, query_drop)
     
     # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
+    forest_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
     
     # Drop the grunnkart register tables
     dbExecute(db_connexion, "DROP VIEW lau_fylke")
     dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
     dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
     
-    return(soaa_lau)
+    return(forest_lau)
     
   } else if(fylke == 33){
 
@@ -985,14 +1004,14 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, query_drop)
 
     # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
+    forest_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
 
     # Drop the grunnkart register tables
     dbExecute(db_connexion, "DROP VIEW lau_fylke")
     dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
     dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
 
-    return(soaa_lau)
+    return(forest_lau)
     
   } else if(fylke == 55){
 
@@ -1009,16 +1028,40 @@ do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_lis
     dbExecute(db_connexion, query_drop)
 
     # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
+    forest_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
 
     # Drop the grunnkart register tables
     dbExecute(db_connexion, "DROP VIEW lau_fylke")
     dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
     dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
 
-    return(soaa_lau)
+    return(forest_lau)
     
-  }else (return("an error has occured"))
+  } else if(fylke == 50){
+    
+    # Register LAU for specific Fylke
+    lau_path <- bd_path
+    dbExecute(db_connexion, glue("
+  CREATE VIEW lau_fylke AS 
+  SELECT *,
+  FROM ST_Read('{bd_path}')"))
+    
+    # Spatial intersect to join the variables of both datasets before intersection
+    dbExecute(db_connexion, query_valid_50)
+    dbExecute(db_connexion, query_intersect)
+    dbExecute(db_connexion, query_drop)
+    
+    # Perform spatial intersection
+    forest_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
+    
+    # Drop the grunnkart register tables
+    dbExecute(db_connexion, "DROP VIEW lau_fylke")
+    dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
+    dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
+    
+    return(forest_lau)
+    
+  } else (return("an error has occured"))
   
 }
 
@@ -1311,7 +1354,7 @@ rm(list = setdiff(ls(),
 ```
 
 ### Extract tree cover density percentage
-Now that we have the forest and the urban areas within each municipalities, we can extract the raster cells of tree cover density corresponding the forest or urban polygons within each municipality. Note that for this we use the `exact_extract()` function which works only with polygons. This means that we need to first clean the forest and urban layers created previously to only keep the polygons.
+Now that we have the forest and the urban areas within each municipalities, we can extract the raster cells of tree cover density corresponding the forest or urban polygons within each municipality. Note that for this we use the `exact_extract()` function which works only with polygons. This means that we need to first clean the forest and urban layers created previously to only keep the polygons. Due to processing errors in the spatial intersection, TCCD_001 could not be compiled for municipalities Røst and Træna.
 
 ```{r}
 #| eval: false
@@ -1327,6 +1370,15 @@ lau_nb[35] <- "0301"
 
 # List the years of interest
 yrs <- seq(2018, 2021, 1)
+
+## Check nb of municipalities
+forest_lau_inter_kom <- lapply(forest_lau_inter, function(i) unique(i$k__2024)) %>%
+                          unlist() %>%
+                          unique() # 355 instead of 357. Two are missing: Røst and Træna.
+
+soaa_lau_inter_kom <- lapply(soaa_lau_inter, function(i) unique(i$k__2024)) %>%
+                          unlist() %>%
+                          unique() # all are present
 
 ## Clean SOAA: keep only polygons
 daemons(15)
@@ -1453,6 +1505,22 @@ lau_tcd <- map(seq_along(lau_nb), function(municipality_idx){
   )
 
 daemons(0)
+
+## Check nb of municipalities again
+forest_lau_poly_kom <- forest_lau %>%
+                        st_drop_geometry()%>%
+                        select(k__2024) %>%
+                        unique() #355: still two missing as expected.
+
+soaa_lau_poly_kom <- soaa_lau %>%
+                        st_drop_geometry()%>%
+                        select(k__2024) %>%
+                        unique() #357 as expected
+
+lau_poly_kom <- lau_tcd %>%
+                  st_drop_geometry()%>%
+                  select(k__2024) %>%
+                  unique() #357 as expected
 
 
 ## Clean the R environment
