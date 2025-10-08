@@ -259,6 +259,7 @@ The actual boundaries of the municipalities were patched together from two sourc
 | **EU data about the municipalities**  | Yes | Data and description available from Eurostat: [LAU](https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units) and [DEGURBA](https://ec.europa.eu/eurostat/web/nuts/local-administrative-units) |
 | **Norwegian data about the municipalities**  | Yes | Data available from Kartverkert: [boundaries](https://kartkatalog.geonorge.no/metadata/administrative-enheter-kommuner/041f1e6e-bdbc-4091-b48f-8a5990f3cc5b) and [identifiers](https://www.kartverket.no/til-lands/fakta-om-norge/norske-fylke-og-kommunar) |
 
+Detailed codes and instructions to download the data are described in Section 9.
 
 ## 3. Indicator properties
 
@@ -519,7 +520,7 @@ rm(list = setdiff(ls(),
 ```
 
 ### Load and prepare the tree cover density data
-We prepared the Tree Canopy Cover Density rasters, they are available on the internal NINA repository indicated above. For transparency we provide the code below to download and prepare the data. Tree canopy cover density layers have been downloaded from Copernicus for the years 2018 to 2021. This can be down using an API query through the WEkEO website (https://help.wekeo.eu/en/articles/6416936-how-to-download-wekeo-data#h_4d7de19c7c) and the `hdar` package. Note that the request through API requires the username and password from the WEkEO website. The API query uses a bounding box but it is quite large, resulting in heavy rasters of 6GB each. That is why a subsequent step of cleaning has been done to mask the cells that were not in Norway, hence decreasing the size of the rasters. These processed rasters are the ones we made available on the internal NINA repository.
+We prepared the Tree Canopy Cover Density rasters, they are available on the internal NINA repository indicated above. For transparency we provide the code below to download and prepare the data. Tree canopy cover density layers have been downloaded from Copernicus for the years 2018 to 2021. This can be done using an API query through the WEkEO website (https://help.wekeo.eu/en/articles/6416936-how-to-download-wekeo-data#h_4d7de19c7c) and the `hdar` package. Note that the request through API requires the username and password from the WEkEO website. The API query uses a bounding box but it is quite large, resulting in heavy rasters of 6GB each. That is why a subsequent step of cleaning has been done to mask the cells that were not in Norway, hence decreasing the size of the rasters. These processed rasters are the ones we made available on the internal NINA repository.
 
 ```{r}
 #| eval: false
@@ -707,7 +708,7 @@ These files will be used to create virtual rasters during the analyses. We do no
 #### Load and prepare the forest data
 To allow for a breakdown at municipal level, we start by intersecting Eurostat Local Administrative Units with the class "Forest and woodlands" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on. 
 
-Spatial intersections between municipalities and Grunnkart are computing intensive. To reduce the time, we use the `duckdb` package. Note that tiles 33, 34, 50, 55 and 56 of the Grunnkart, had to be cleaned separately as functions in `duckdb` couldn't make the geometry valid but functions in `sf` package could.
+Spatial intersections between municipalities and Grunnkart are computing intensive. To reduce the time, we use the `duckdb` package. Note that tiles 33, 34, 50, 55 and 56 of the Grunnkart, had to be cleaned separately as functions in `duckdb` could not make the geometry valid but functions in `sf` package could.
 ```{r}
 #| eval: false
 #| code-summary: "Forests per LAUs"
@@ -1105,7 +1106,7 @@ rm(list = setdiff(ls(),
 #### Load and prepare the urban area data
 To allow for a breakdown at municipal level, we intersect Eurostat Local Administrative Units with the class "Settlements and other artificial areas" from the Grunnkart. Results at municipal level will be aggregated at national level in the Result section later on.
 
-As previously, we use the `duckdb` package to reduce computing time. Note that tile 34 of the Grunnkart, had to be cleaned separately as functions in `duckdb` couldn't make the geometry valid but functions in `sf` package could.
+As previously, we use the `duckdb` package to reduce computing time. Note that tile 34 of the Grunnkart, had to be cleaned separately as functions in `duckdb` could not make the geometry valid but functions in `sf` package could.
 ```{r}
 #| eval: false
 #| code-summary: "Settlements per LAUs"
@@ -1666,26 +1667,31 @@ Below, we present two kinds of summary table: one national, and one presenting a
 #| eval: true
 #| code-summary: "National summary table"
 
-# Read exported table
+## Read exported table
 forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_forest_3OCT2025.csv", sep = ";", head = TRUE)
 urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_urban_6OCT2025.csv", sep = ";", head = TRUE)
 lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_6OCT2025.csv", sep = ";", head = TRUE)
 
-# Compile the different URAQ indicators at national level
+## TCCD_001
+
 tccd_001_nat <- forest_res_raw %>%
-                  select(year, mean_forest_tcd_perc) %>%
+                  select(year, LAU_NAM, k__2024, mean) %>%
                   group_by(year) %>%
-                  summarise(mean_tcd_national = round2(mean(mean_forest_tcd_perc), 2),
-                            sd_tcd_national = round2(sd(mean_forest_tcd_perc), 2)) %>%
+                  summarise(mean_tcd_national = round2(mean(mean), 2),
+                            count_n = n(),
+                            sd_tcd_national = round2(sd(mean), 2),
+                            se_tcd_national = round2(sd(mean)/sqrt(count_n), 2)) %>%
                   mutate(ID = "TCCD_001")
 
-
+## TCCD_100 ##############################
 tccd_100_nat <- urban_res_raw %>%
                   filter(DEGURBA == 1) %>%
-                  select(year, mean_lau_tcd_perc) %>%
+                  select(year, LAU_NAM, k__2024, mean) %>%
                   group_by(year) %>%
-                  summarise(mean_tcd_national = round2(mean(mean_lau_tcd_perc), 2),
-                            sd_tcd_national = round2(sd(mean_lau_tcd_perc), 2)) %>%
+                  summarise(mean_tcd_national = round2(mean(mean), 2),
+                            count_n = n(),
+                            sd_tcd_national = round2(sd(mean), 2),
+                            se_tcd_national = round2(sd(mean)/sqrt(count_n), 2)) %>%
                   mutate(ID = "TCCD_100")
 
 tccd_101_nat <- urban_res_raw %>%
