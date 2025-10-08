@@ -1548,20 +1548,28 @@ Now that the mean tree cover density has been extracted from the Tree Cover Dens
 ```{r}
 #| eval: false
 #| code-summary: "Mean Tree Cover Density in forest and urban areas per municipalities"
+## Raw data
+soaa_tcd_df <- soaa_tcd %>% 
+                compact() %>%
+                bind_rows() 
+
+forest_tcd_df <- forest_tcd %>% 
+                    compact() %>%
+                    bind_rows() 
+
+lau_tcd_df <- lau_tcd %>%
+                compact() %>%
+                bind_rows() 
 
 ## Average Tree Cover Density in the SOAA of the municipality
-soaa_tcd_av <- soaa_tcd %>%
-                  compact() %>%
-                  bind_rows() %>%
-                  rename(kommune_nummer = k__2024) %>%
-                  group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
-                  summarise(mean_soaa_tcd_perc = mean(mean),
-                            sd_soaa_tcd_perc = sd(mean),
-                            total_soaa_area_m2 = sum(area_m2))
+soaa_tcd_av <- soaa_tcd_df %>%
+                rename(kommune_nummer = k__2024) %>%
+                group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
+                summarise(mean_soaa_tcd_perc = mean(mean),
+                          sd_soaa_tcd_perc = sd(mean),
+                          total_soaa_area_m2 = sum(area_m2))
 
-forest_tcd_av <- forest_tcd %>%
-                  compact() %>%
-                  bind_rows() %>%
+forest_tcd_av <- forest_tcd_df %>%
                   rename(kommune_nummer = k__2024) %>%
                   group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
                   summarise(mean_forest_tcd_perc = mean(mean),
@@ -1569,14 +1577,12 @@ forest_tcd_av <- forest_tcd %>%
                             total_forest_area_m2 = sum(area_m2))
 
 
-lau_tcd_av <- lau_tcd %>%
-                  compact() %>%
-                  bind_rows() %>%
-                  rename(kommune_nummer = k__2024) %>%
-                  group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
-                  summarise(mean_lau_tcd_perc = mean(mean),
-                            sd_lau_tcd_perc = stdev,
-                            total_lau_area_m2 = sum(area_m2))
+lau_tcd_av <- lau_tcd_df%>%
+                rename(kommune_nummer = k__2024) %>%
+                group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
+                summarise(mean_lau_tcd_perc = mean(mean),
+                          sd_lau_tcd_perc = stdev,
+                          total_lau_area_m2 = sum(area_m2))
 
 ## Clean the R environment
 rm(list = setdiff(ls(), 
