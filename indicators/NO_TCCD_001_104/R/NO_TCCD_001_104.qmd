@@ -1614,15 +1614,16 @@ Now we can build an overall table that we will be able to use to calculate all t
 ```{r}
 #| eval: false
 #| code-summary: "Summary table"
-## Create tables of results
-res_table_tcd_urb <- inner_join(soaa_tcd_av, lau_tcd_av, by = c("year", "kommune_nummer")) %>%
-                      select(year, fylk_nr.x, kommune_nummer, DEGURBA.x, mean_lau_tcd_perc, sd_lau_tcd_perc, 
-                             total_lau_area_m2, mean_soaa_tcd_perc, sd_soaa_tcd_perc, total_soaa_area_m2) %>%
-                      rename(fylk_nr = fylk_nr.x, DEGURBA = DEGURBA.x)
 
 ## Export tables of results
-write.table(res_table_tcd_urb, paste0(res_path, "TCCD_summary_table_urban.csv"), sep = ";", row.names = FALSE)
-write.table(forest_tcd_av, paste0(res_path, "TCCD_summary_table_forest.csv"), sep = ";", row.names = FALSE)
+write.table(soaa_tcd_av, paste0(res_path, "TCCD_summary_table_urban_6Oct2025.csv"), sep = ";", row.names = FALSE)
+write.table(soaa_tcd_df, paste0(res_path, "TCCD_raw_data_urban_6OCT2025.csv"), sep = ";", row.names = FALSE)
+
+write.table(forest_tcd_av, paste0(res_path, "TCCD_summary_table_forest_3OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(forest_tcd_df, paste0(res_path, "TCCD_raw_data_forest_3OCT2025.csv"), sep = ";", row.names = FALSE)
+
+write.table(lau_tcd_av, paste0(res_path, "TCCD_summary_lau_6OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(lau_tcd_df, paste0(res_path, "TCCD_raw_data_lau_6OCT2025.csv"), sep = ";", row.names = FALSE)
 
 ## Clean R Environment
 rm(ls())
