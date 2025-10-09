@@ -58,7 +58,7 @@ library(glmmTMB)
 library(flextable)
 library(conflicted)
 library(tidyverse)
-conflict_prefer_all("dplyr")
+conflict_prefer_all("dplyr", quiet = T)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -164,11 +164,11 @@ Functional plant community indicators represent the response of the vascular pla
 
 Here, we build functional plant community indicators by combining field sampled plant community data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019) with functional plant indicator values from Tyler et al. (2021) and indicator values for plant strategies towards stressors from Grime (1974). We calculate the functional signatures of plant communities in the monitored sites with respect to various environmental variables depending on ecosystem type (not all variables are relevant for all ecosystem types). These functional signatures are then compared to reference distributions of functional signature, separately for each ecosystem type, calculated from ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020). These functional plant community indicators are developed following the principles and technical protocol of the IBECA framework (Jakobsson et al. 2021, Töpper & Jakobsson 2021).
 
-For grazing land and hay meadows, the main drivers of change today are abandonment/land-use change, climatic changes, pollution (incl. over-fertilization). Therefore, we use functional plant indicator values for light, moisture, pH, nitrogen, phosphorus, grazing/mowing, and soil disturbance. 
+1) The Farmland and open lowland index is evaluated via a set of plant indicators for 'grazing land and hay meadows' and  a set of indicators for 'naturally open lowland ecosystems'. For grazing land and hay meadows the main drivers of change today are abandonment/land-use change, climatic changes, pollution (incl. over-fertilization). Therefore, we use functional plant indicator values for light, moisture, pH, nitrogen, phosphorus, grazing/mowing, and soil disturbance. 
 For naturally open lowland ecosystems, the main drivers today are land-use change (inlc. wear-and-tear from recreational overuse), climatic changes, and pollution. Therefore, we use functional plant indicator values for light, nitrogen, and soil disturbance as well as Grime's strategy indicator values for competition, abiotic stress, and disturbance. 
-For mountain ecosystems, the main drivers today are disturbance from human infrastructure, climatic changes, species range shifts, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for heat requirement, light, and nitrogen, respectively.
-For wetland ecosystems, the main drivers today are drainage, shrub/tree encroachment, pollution and climate change related changes in water table and moisture content.  Therefore, we use functional plant indicator values for moisture, light, pH, and nitrogen.
-For forest ecosystems, the main drivers today are disturbance from human infrastructure, climatic changes, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for moisture and nitrogen.
+2) For mountain ecosystems, the main drivers today are disturbance from human infrastructure, climatic changes, species range shifts, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for heat requirement, light, and nitrogen, respectively.
+3) For wetland ecosystems, the main drivers today are drainage, shrub/tree encroachment, pollution and climate change related changes in water table and moisture content.  Therefore, we use functional plant indicator values for moisture, light, pH, and nitrogen.
+4) For forest ecosystems, the main drivers today are disturbance from human infrastructure, climatic changes, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for moisture and nitrogen.
 Note, that these indicators do not address the issue of loss of area, which is the overarching and dominating reason for biodiversity loss both globally and in Norway. This pressure is covered in the extent account and not the condition account.
 
 ## 2. About the underlying data
@@ -192,8 +192,7 @@ Abundance data for vascular plants in ANO is given as % cover within a 1 m2 samp
 
 ### 2.3 Additional comments about the dataset
 
-none
-
+The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
 
 #### 2.3.1 Instructions for citing, using and accessing data
 
@@ -214,11 +213,10 @@ Functional plant community indicators for grazing/mowing, soil disturbance, comp
  
 ### 3.2 Ecosystem condition characteristic
 
-Functional plant community indicators in general are aimed at describing to which degree ecosystems fulfill the criterion 'Intact plant community', i.e. to that degree they are in good condition with respect to a plant community composition reflecting the functional properties of the respective ecosystem in the reference condition.
-
-The individual, specific functional plant community indicators represent concrete functional properties of an ecosystem and deviations from the reference thus shed light on which drivers affect the plant community.
-
-For instance, the functional plant community indicator on nitrogen represents the influence of nitrogen on the plant community composition in the given ecosystem. Thus, deviations from the reference community towards e.g. higher nitrogen values reflect an environment characterized by higher availability of nitrogen which has led to shifts in plant species composition towards higher abundances of species with higher affinity to nitrogen. This functional plant community indicator for nitrogen reflects both the chemical properties of the ecosystem but also the ecosystem’s productivity.
+Through the coupling of compositional data to environmental indicator values, the functional plant community indicators in addition represent the following ecosystem condition characteristic:
+Functional plant community indicators for nitrogen, phosphorus and pH reflect the availability of nutrients and soil chemical properties and thus represent the characteristic 'Abiotic factors'.
+Functional plant community indicators for heat requirement, moisture, light and abiotic stress (Grime's S) reflect the availability of abiotic, physical environmental resources and thus represent the  characteristic 'Abiotic factors'.
+Functional plant community indicators for grazing/mowing, soil disturbance, competition (Grime's C) and vegetation disturbance (Grime's R) reflect the availability of physical structuring conditions and thus represent the  characteristic 'Functionally important species and structures'.
 
 ### 3.3 Other standards
 
@@ -299,7 +297,7 @@ Ullerud HA, Bryn A, Halvorsen R, Hemsing LØ. Consistency in land-cover mapping:
 
 ### 7.1 ANO monitoring data
 
-ANO stands for areal-representativ naturovervåking, i.e. area representative nature monitoring. 1000 sites are randomly distributed across mainland Norway and visited within a 5-year cycle. Each ANO site spans a 500 x 500 m grid cell, and the data collection at each ANO site includes up to 12 evenly distributed vegetation analyses in 1 x 1 m plots (up to 12, because some of these evenly distributed points may be in water or otherwise inaccessible). For the vegetation analyses, the cover of each vascular plant species in the plot is recorded. Every vegetation analysis is accompanied by an assessment of the ecosystem the plot lies in, including ecosystem type and some additional variables related to ecosystem-specific drivers of state (following the NiN system, Halvorsen et al. 2020). In the analyses described in this document, we use the data available on Miljødirektoratets kartkatalog (https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054), which comprises data from the first round of data collection in ANO, 2019-2024, and a total of 20 028 plots in 1052 sites. For some major ecosystem types no reference species lists exist, and the final evaluation of the functional plant community indicators thus comprised 15 787 plots in 1029 sites.
+ANO stands for areal-representativ naturovervåking, i.e. area representative nature monitoring. 1000 sites are randomly distributed across mainland Norway and visited within a 5-year cycle. Each ANO site spans a 500 x 500 m grid cell, and the data collection at each ANO site includes up to 18 evenly distributed vegetation analyses in 1 x 1 m plots (up to 18, because some of these evenly distributed points may be in water or otherwise inaccessible). For the vegetation analyses, the cover of each vascular plant species in the plot is recorded. Every vegetation analysis is accompanied by an assessment of the ecosystem the plot lies in, including ecosystem type and some additional variables related to ecosystem-specific drivers of state (following the NiN system, Halvorsen et al. 2020). In the analyses described in this document, we use the data available on Miljødirektoratets kartkatalog (https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054), which comprises data from the first round of data collection in ANO, 2019-2024, and a total of 20 028 plots in 1052 sites. For some major ecosystem types no reference species lists exist, and the final evaluation of the functional plant community indicators thus comprised 15 787 plots in 1029 sites.
 The timeframe of six years from 2019-2024 allows to create indicator values for the two 3-year reporting periods 2019-2021 and 2022-2024.
 
 
@@ -354,13 +352,11 @@ unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport
 ```
 
 Import testing data:
+Here we load the ANO data from an internal NINA server. The geodatabase contain two relevant layers; one for the species data and one for the spatial data. These then need to later be combined into one dataset.
 ```{r}
-#Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
 # ANO data
-ANO.sp <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/naturovervaking_eksport.gdb",
-                  layer="ANO_Art", quiet = T)
-ANO.geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/naturovervaking_eksport.gdb",
-                   layer="ANO_SurveyPoint", quiet = T)
+ANO.sp<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ANO.sp.RDS"))
+ANO.geo<-readRDS(paste0(here::here(),"/indicators/NO_FUNC_001-004/data/cache/ANO.geo.RDS"))
 #head(ANO.sp)
 #head(ANO.geo)
 
@@ -1413,20 +1409,20 @@ This leaves us with the monitoring data including plant indicators (ANO.sp.ind, 
 
 <!-- Print head of data set with horizontal scrolling -->
 ```{r ano-sp-tab, echo=F}
-#head(ANO.sp.ind) %>%
+head(ANO.sp.ind) %>%
   kable("html",caption = "ANO species occurence data set with attached plant trait data.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 ```{r GRUK-sp-tab, echo=F}
-#head(GRUK.species.ind) %>%
+head(GRUK.species.ind) %>%
   kable("html",caption = "GRUK species occurence data set with attached plant trait data.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 
 ```{r aso-sp-tab, echo=F}
-#head(ASO.sp.ind) %>%
+head(ASO.sp.ind) %>%
   kable("html",caption = "ASO species occurence data set with attached plant trait data.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
@@ -1435,13 +1431,13 @@ This leaves us with the monitoring data including plant indicators (ANO.sp.ind, 
 
 
 ```{r wetland_mountain_forest_seminatural-ref-data-tab, echo=FALSE}
-#head(NiN.wet_mount_forest_seminat.cov) %>% 
+head(NiN.wet_mount_forest_seminat.cov) %>% 
   kable("html", caption = "Reference data set for wetland, mountain, forest, and semi-natural ecosystems") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 ```{r naturally open-ref-data-tab, echo=FALSE}
-#head(NiN.natopen.cov) %>% 
+head(NiN.natopen.cov) %>% 
   kable("html", caption = "Reference data set for naturally open ecosystems below the treeline") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
 ```
@@ -1592,7 +1588,7 @@ indBoot.HeatOverhang <- function(sp,abun,ind, iter,obl,rat,var.abun=F) {
 ```
 
 ```{r}
-colnames(NiN.wet_mount_forest_seminat.cov)
+#colnames(NiN.wet_mount_forest_seminat.cov)
 # 1st column is the species
 # 2nd-133rd column is the abundances of sp in different ecosystem types
 # 134th-144th column is the indicator values of the respective species
@@ -1602,7 +1598,7 @@ colnames(NiN.wet_mount_forest_seminat.cov)
 # each sample re-samples 1/3 of the number of species
 # the abundance of the re-sampled species may vary (see bootstrap function for details)
 
-colnames(NiN.natopen.cov)
+#colnames(NiN.natopen.cov)
 # 1st column is the species
 # 6th-71st column is the abundances of sp in different ecosystem types
 # 74th-79th column is the indicator values of the respective species
@@ -1658,12 +1654,12 @@ natopen.ref.cov<-readRDS(paste0(here::here(), "/indicators/NO_FUNC_001-004/data/
 ```
 
 ```{r}
-#head(wet_mount_forest_seminat.ref.cov[[1]]) %>%
+head(wet_mount_forest_seminat.ref.cov[[1]]) %>%
     kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
 ```{r}
-#head(natopen.ref.cov[[1]]) %>%
+head(natopen.ref.cov[[1]]) %>%
     kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
 ```
 
@@ -1702,18 +1698,20 @@ indEll.n=11
 tab <- matrix(ncol=3*indEll.n, nrow=87 ) # 87 basic ecosystem types
 # coercing the values into the table
 
-for (i in 1:length(x) ) {
-  tab[i,1:3] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["CC"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,4:6] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["SS"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,7:9] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["RR"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+myQuantiles <- c(0.25, 0.5, 0.75)
 
-  tab[i,13:15] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Light"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,16:18] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Moisture"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,19:21] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_reaction_pH"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,22:24] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Nitrogen"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,25:27] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Phosphorus"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,28:30] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Grazing_mowing"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,31:33] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_disturbance"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+for (i in 1:length(x) ) {
+  tab[i,1:3] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["CC"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,4:6] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["SS"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,7:9] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["RR"]][,x[i]]),probs=myQuantiles,na.rm=T)
+
+  tab[i,13:15] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Light"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,16:18] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Moisture"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,19:21] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_reaction_pH"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,22:24] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Nitrogen"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,25:27] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Phosphorus"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,28:30] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Grazing_mowing"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,31:33] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_disturbance"]][,x[i]]),probs=myQuantiles,na.rm=T)
 
 }
 
@@ -1741,17 +1739,17 @@ grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[1], x=wet_mount_forest_s
 
 for (i in 1:length(unique(wet_mount_forest_seminat.NiNtypes2)) ) {
   
-  tab[length(x)+i,1:3] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["CC"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,4:6] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["SS"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,7:9] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["RR"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,1:3] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["CC"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,4:6] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["SS"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,7:9] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["RR"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
 
-  tab[length(x)+i,13:15] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Light"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,16:18] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Moisture"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,19:21] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_reaction_pH"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,22:24] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Nitrogen"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,25:27] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Phosphorus"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,28:30] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Grazing_mowing"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[length(x)+i,31:33] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_disturbance"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[length(x)+i,13:15] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Light"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,16:18] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Moisture"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,19:21] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_reaction_pH"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,22:24] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Nitrogen"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,25:27] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Phosphorus"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,28:30] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Grazing_mowing"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,31:33] <- quantile(as.matrix(wet_mount_forest_seminat.ref.cov[["Soil_disturbance"]][,grep(pattern=unique(wet_mount_forest_seminat.NiNtypes2)[i], x=wet_mount_forest_seminat.NiNtypes)]),probs=myQuantiles,na.rm=T)
   
   tab$NiN[length(x)+i] <- unique(wet_mount_forest_seminat.NiNtypes2)[i]
   
@@ -1916,12 +1914,12 @@ tab <- matrix(ncol=3*indEll.n, nrow=length(unique(natopen.NiNtypes)) ) # 66 basi
 
 
 for (i in 1:length(x) ) {
-  tab[i,1:3] <- quantile(as.matrix(natopen.ref.cov[["CC"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,4:6] <- quantile(as.matrix(natopen.ref.cov[["SS"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,7:9] <- quantile(as.matrix(natopen.ref.cov[["RR"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,10:12] <- quantile(as.matrix(natopen.ref.cov[["Light"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,13:15] <- quantile(as.matrix(natopen.ref.cov[["Nitrogen"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
-  tab[i,16:18] <- quantile(as.matrix(natopen.ref.cov[["Soil_disturbance"]][,x[i]]),probs=c(0.025,0.5,0.975),na.rm=T)
+  tab[i,1:3] <- quantile(as.matrix(natopen.ref.cov[["CC"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,4:6] <- quantile(as.matrix(natopen.ref.cov[["SS"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,7:9] <- quantile(as.matrix(natopen.ref.cov[["RR"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,10:12] <- quantile(as.matrix(natopen.ref.cov[["Light"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,13:15] <- quantile(as.matrix(natopen.ref.cov[["Nitrogen"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,16:18] <- quantile(as.matrix(natopen.ref.cov[["Soil_disturbance"]][,x[i]]),probs=myQuantiles,na.rm=T)
 
 }
 
@@ -2766,12 +2764,13 @@ values_drop_na = FALSE
 
 ```
 
-### Calculating national and regional indices for the single plant indicators and for the overall functional plant community indicator
+#### Calculating national and regional indices for the single plant indicators and for the overall functional plant community indicator
 
 We can calculate national and region-wise medians and 0.25 and 0.75 quantiles. Calculating means is not recommended since these 0-1 data do not follow a Gaussian distribution.
+The national and regional estimates are computed separately (i.e. regional estimates are not spatially aggregated)
 ```{r}
 # defining the quantiles
-res.quant <- c(.25, .5, .5)
+res.quant <- c(.25, .5, .75)
 
 ## forest ecosystems
 # list to hold the results
