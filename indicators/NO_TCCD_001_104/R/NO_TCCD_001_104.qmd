@@ -31,6 +31,7 @@ code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
+bibliography: references.bib
 ---
 
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -1441,7 +1442,7 @@ extract_rast <- function(bd_shp, year){
   tcd_cells_ex <- boundaries %>%
                     exact_extract(tcd_vrt,
                                   .,
-                                  fun = c("mean", "stdev"), # kept only for lau_tcd
+                                  fun = c("mean", "stdev", "count"), # kept only for lau_tcd
                                   append_cols = TRUE) %>%
                     filter(!is.na(mean) == TRUE) %>%  # Cleaning step
                     mutate(., year = year)
@@ -1586,14 +1587,6 @@ forest_tcd_av <- forest_tcd_df %>%
                             sd_forest_tcd_perc = sd(mean),
                             total_forest_area_m2 = sum(area_m2))
 
-
-lau_tcd_av <- lau_tcd_df%>%
-                rename(kommune_nummer = k__2024) %>%
-                group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
-                summarise(mean_lau_tcd_perc = mean(mean),
-                          sd_lau_tcd_perc = stdev,
-                          total_lau_area_m2 = sum(area_m2))
-
 ## Clean the R environment
 rm(list = setdiff(ls(), 
                   c("path_degurba",
@@ -1632,8 +1625,7 @@ write.table(soaa_tcd_df, paste0(res_path, "TCCD_raw_data_urban_6OCT2025.csv"), s
 write.table(forest_tcd_av, paste0(res_path, "TCCD_summary_table_forest_3OCT2025.csv"), sep = ";", row.names = FALSE)
 write.table(forest_tcd_df, paste0(res_path, "TCCD_raw_data_forest_3OCT2025.csv"), sep = ";", row.names = FALSE)
 
-write.table(lau_tcd_av, paste0(res_path, "TCCD_summary_lau_6OCT2025.csv"), sep = ";", row.names = FALSE)
-write.table(lau_tcd_df, paste0(res_path, "TCCD_raw_data_lau_6OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(lau_tcd_df, paste0(res_path, "TCCD_raw_data_lau_9OCT2025.csv"), sep = ";", row.names = FALSE)
 
 ## Clean R Environment
 rm(ls())
@@ -1670,30 +1662,21 @@ Below, we present two kinds of summary table: one national, and one presenting a
 ## Read exported table
 forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_forest_3OCT2025.csv", sep = ";", head = TRUE)
 urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_urban_6OCT2025.csv", sep = ";", head = TRUE)
-lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_6OCT2025.csv", sep = ";", head = TRUE)
+lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_9OCT2025.csv", sep = ";", head = TRUE)
 
 ## TCCD_001
 
 tccd_001_nat <- forest_res_raw %>%
-                  select(year, LAU_NAM, k__2024, mean) %>%
+                  select(year, LAU_NAM, k__2024, mean, area_m2) %>%
                   group_by(year) %>%
                   summarise(mean_tcd_national = round2(mean(mean), 2),
+                            w_mean_tcd_national = round2(weighted.mean(mean, area_m2), 2),
                             count_n = n(),
                             sd_tcd_national = round2(sd(mean), 2),
                             se_tcd_national = round2(sd(mean)/sqrt(count_n), 2)) %>%
                   mutate(ID = "TCCD_001")
 
-## TCCD_100 ##############################
-tccd_100_nat <- urban_res_raw %>%
-                  filter(DEGURBA == 1) %>%
-                  select(year, LAU_NAM, k__2024, mean) %>%
-                  group_by(year) %>%
-                  summarise(mean_tcd_national = round2(mean(mean), 2),
-                            count_n = n(),
-                            sd_tcd_national = round2(sd(mean), 2),
-                            se_tcd_national = round2(sd(mean)/sqrt(count_n), 2)) %>%
-                  mutate(ID = "TCCD_100")
-
+## TCCD_101##############################################
 tccd_101_nat <- urban_res_raw %>%
                   filter(DEGURBA == 1) %>%
                   select(year, mean_soaa_tcd_perc) %>%
@@ -1751,31 +1734,37 @@ datatable(res_national)
 #| message: false
 #| code-summary: "Municipal summary table"
 
-# Read exported table
-forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_summary_table_forest.csv", sep = ";", head = TRUE)
-
-urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_summary_table_urban.csv", sep = ";", head = TRUE)
+## Read exported table
+forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_forest_3OCT2025.csv", sep = ";", head = TRUE)
+urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_urban_6OCT2025.csv", sep = ";", head = TRUE)
+lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_6OCT2025.csv", sep = ";", head = TRUE)
 
 municip_names <- read_excel(path_degurba, sheet = "NO")
 municip_names$`LAU CODE` <- as.numeric(municip_names$`LAU CODE`)
 
-# Compile the different URAQ indicators at national level
+## Compile the different URAQ indicators at national level
+
+# TCCD_001
 tccd_001_mun <- forest_res_raw %>%
-                  select(year, kommune_nummer, mean_forest_tcd_perc, sd_forest_tcd_perc) %>%
-                  group_by(year, kommune_nummer) %>%
-                  summarise(mean_tcd_municipal = round2(mean_forest_tcd_perc, 2),
-                            sd_tcd_municipal = round2(sd_forest_tcd_perc, 2)) %>%
+                  select(year, k__2024, mean, area_m2) %>%
+                  group_by(year, k__2024) %>%
+                  summarise(mean_tcd_municip= round2(mean(mean), 2),
+                            w_mean_tcd_municip= round2(weighted.mean(mean, area_m2), 2),
+                            count_n = n(),
+                            sd_tcd_municip = round2(sd(mean), 2),
+                            se_tcd_municip = round2(sd(mean)/sqrt(count_n), 2)) %>%
                   mutate(ID = "TCCD_001")
 
-tccd_100_mun <- urban_res_raw %>%
+# TCCD_100
+tccd_100_nat <- lau_res_raw %>%
                   filter(DEGURBA == 1) %>%
-                  select(year, kommune_nummer, mean_lau_tcd_perc, sd_lau_tcd_perc) %>%
-                  group_by(year, kommune_nummer) %>%
-                  summarise(mean_tcd_municipal = round2(mean_lau_tcd_perc, 2),
-                            sd_tcd_municipal = round2(sd_lau_tcd_perc, 2)) %>%
-                  mutate(ID = "TCCD_100")
+                  select(year, LAU_NAM, k__2024, mean, count, stdev) %>%
+                  mutate(w_mean_tcd_national = round2(mean, 2),
+                         sd_tcd_national = round2(stdev, 2),
+                         se_tcd_national = round2(stdev/sqrt(count), 2),
+                         ID = "TCCD_100")
 
-
+# TCCD_101#######################
 tccd_101_mun <- urban_res_raw %>%
                   filter(DEGURBA == 1) %>%
                   select(year, kommune_nummer, mean_soaa_tcd_perc, sd_soaa_tcd_perc) %>%
