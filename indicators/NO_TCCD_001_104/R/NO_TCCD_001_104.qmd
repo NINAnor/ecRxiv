@@ -1212,7 +1212,7 @@ From the summary table that we exported previously, we create a summary table wi
 
 <!-- * **TCCD_001**: Average Tree Cover Density in the forest areas of municipalities in Norway (class Forest and woodlands of the EU Ecosystem Typology) -->
 
-* **TCCD_100**: Average TCCD in the *whole area of* the municipalities considered as "cities" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 1`). Due to methodological limitations, no standard error is associated with this indicator. Further improvements will be implemented with future revisions of the TCCD indicators.
+* **TCCD_100**: Average TCCD in the *whole area of* the municipalities considered as "cities" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 1`). 
 
 * **TCCD_101**: Average TCCD in the urban areas (class Settlements and other artificial areas of the EU Ecosystem Typology) within the municipalities considered as "cities" according to Eurostat classification: degree of urbanisation equal to 1 (`DEGURBA = 1`)
 
@@ -1222,7 +1222,7 @@ From the summary table that we exported previously, we create a summary table wi
 
 * **TCCD_104**: Average TCCD in the urban areas of Norway (class Settlements and other artificial areas of the EU Ecosystem Typology) 
 
-Below, we present two kinds of summary table: one national, and one presenting a breakdown by municipalities. Note that due to methodological issues, results for Røst and Træna are not available for TCCD_001.
+Below, we present two kinds of summary table: one national, and one presenting a breakdown by municipalities. Note that due to methodological issues, results for Røst and Træna are not available for TCCD_001. Also, due to methodological limitations, no standard error is associated with TCCD_100 which are indicated as "NA" for "Not available". Further improvements will be implemented with future revisions of the TCCD indicators.
 
 ### National Results
 ```{r}
@@ -1252,7 +1252,8 @@ tccd_100_nat <- lau_res_raw %>%
                   select(year, LAU_NAM, k__2024, mean, area_m2) %>%
                   group_by(year) %>%
                   summarise(w_mean_tcd_national = round2(weighted.mean(mean, area_m2), 2)) %>%
-                  mutate(ID = "TCCD_100")
+                  mutate(ID = "TCCD_100",
+                         se_tcd_national = NA)
 
 ## TCCD_101
 tccd_101_nat <- urban_res_raw %>%
@@ -1302,6 +1303,7 @@ tccd_104_nat <- urban_res_raw %>%
                   mutate(ID = "TCCD_104")
 
 res_national <- bind_rows(tccd_001_nat,
+                          tccd_100_nat,
                           tccd_101_nat,
                           tccd_102_nat,
                           tccd_103_nat,
@@ -1316,6 +1318,8 @@ colnames(res_national) <- c("Indicator",
                             "Accounting period",
                             "Average Tree Canopy Cover Density (%)",
                             "Standard error (%)")
+
+
 
 datatable(res_national)
 ```
@@ -1348,7 +1352,8 @@ tccd_001_mun <- forest_res_raw %>%
 tccd_100_mun <- lau_res_raw %>%
                   filter(DEGURBA == 1) %>%
                   select(year, LAU_NAM, k__2024, mean, area_m2) %>%
-                  mutate(w_mean_tcd_national = round2(mean, 2),
+                  mutate(w_mean_tcd_municip = round2(mean, 2),
+                         se_tcd_municip = NA,
                          ID = "TCCD_100")
 
 
