@@ -1311,6 +1311,9 @@ res_national <- bind_rows(tccd_001_nat,
                 mutate(Indicator = "Tree Canopy Cover Density",
                        Accounting_area = "Norway") %>%
                 select(Indicator, ID, Accounting_area, year, w_mean_tcd_national, se_tcd_national)
+  
+res_national$se_tcd_national <- as.character(res_national$se_tcd_national) %>%
+                                      replace_na("Not available")
 
 colnames(res_national) <- c("Indicator",
                             "ID",
@@ -1398,6 +1401,9 @@ res_municip <- bind_rows(tccd_001_mun,
                          tccd_103_mun) %>%
               mutate(Indicator = "Tree Canopy Cover Density") %>%
               select(Indicator, ID, LAU_NAM, k__2024, year, w_mean_tcd_municip, se_tcd_municip) 
+
+res_national$se_tcd_municip <- as.character(res_national$se_tcd_municip) %>%
+                                      replace_na("Not available")
               
       
 colnames(res_municip) <- c("Indicator",
