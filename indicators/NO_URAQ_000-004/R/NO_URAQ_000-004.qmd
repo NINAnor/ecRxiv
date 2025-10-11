@@ -150,7 +150,7 @@ meta |>
 ## Logg
 
 <!--# Update this logg with short messages for each update -->
-- 01 Jan. 1901 - Original PR
+- 08 September 2025 - Original PR
 :::
 
 
@@ -903,31 +903,6 @@ soaa_pm25 <- map(seq_along(lau_nb), function(municipality_idx){
 
 daemons(0)
 
-# Using future_map() from furrr
-# plan(multisession, workers = 4)
-# sooa_pm25 <- map(seq_along(lau_nb[1]), function(municipality_idx){
-#   
-#   # Filter municipality
-#   municipality_code <- lau_nb[municipality_idx]
-#   soaa_filtered <- soaa_lau %>%
-#                     filter(k__2024 == as.numeric(municipality_code))
-#   
-#   # Parallelise the extraction of PM2.5 cells for each year
-#   
-#   pm25_cells <- future_map(seq_along(yrs), function(j){
-#       extract_rast(
-#       path_rast_folder = "/data/P-Prosjekter2/412413_2023_no_egd/git_data/PM2.5/",
-#       soaa_shp = soaa_filtered,
-#       municipality = municipality_code,
-#       year = yrs[j]
-#     )}, .options = furrr_options(seed = TRUE))
-#   
-#   return(pm25_cells)
-#   
-#   })
-
-#BC: make a backup of soaa_pm25?
-
 
 ## Clean the R environment
 rm(list = setdiff(ls(), 
@@ -1000,34 +975,51 @@ municip_pm25_av <- map2(all_combinations$seq_yrs, all_combinations$seq_lau_nb,
                    )
 daemons(0)
 
+
+
+
+##Create the raw data
+# Calculate municipality total area
+lau_total_area <- lau_2024 %>%
+                    mutate(area_m2 = unclass(st_area(.))) %>%
+                    st_drop_geometry() %>%
+                    select(k__2024, area_m2)
+
+# Create raw datasets
 municip_pm25_df <- municip_pm25_av %>%
                     compact() %>%
-                    bind_rows()
+                    bind_rows() %>%
+                    left_join(., lau_total_area, join_by(kommune_nummer == k__2024))
+
+
+soaa_pm25_df <- soaa_pm25 %>%
+                  compact() %>%
+                  bind_rows() 
 
 ## Average PM2.5 in the ET01 of the municipality
-soaa_pm25_av <- soaa_pm25 %>%
-                  compact() %>%
-                  bind_rows() %>%
+soaa_pm25_av <- soaa_pm25_df[1:100,] %>%
                   rename(kommune_nummer = k__2024) %>%
-                  group_by(year, fylk_nr, kommune_nummer, DEGURBA) %>%
+                  select(year, LAU_NAM, kommune_nummer, DEGURBA, soaa_area_m2, mean) %>%
+                  group_by(year, LAU_NAM, kommune_nummer, DEGURBA) %>%
                   summarise(mean_soaa_pm25_ug_m3 = mean(mean),
-                            sd_soaa_pm25_ug_m3 = sd(mean),
-                            total_soaa_area_m2 = sum(soaa_area_m2))
+                            w_mean_soaa_pm25_ug_m3 = round2(weighted.mean(mean, soaa_area_m2), 2),
+                            sd_soaa_pm25_ug_m3 = round2(sd(mean), 2),
+                            count_n = n(),
+                            se_soaa_pm25_ug_m3 = round2(sd(mean)/sqrt(count_n), 2))
+
+
 ```
 
-### Summary table to derive URAQ
-Now we can build an overall table that we will be able to use to calculate all the versions of the URAQ indicator in the Results section below.
-
+### Export result tables to derive URAQ
 ```{r}
 #| eval: false
-#| code-summary: "Summary table"
-## Create tables of results
-res_table_pm25 <- inner_join(soaa_pm25_av, municip_pm25_df, by = c("year", "kommune_nummer")) %>%
-                    select(year, fylk_nr, kommune_nummer, DEGURBA, mean_pm25_municip_ug_m3, sd_pm25_municip_ug_m3, mean_soaa_pm25_ug_m3, sd_soaa_pm25_ug_m3, total_soaa_area_m2)
-                    
+#| code-summary: "Export result tables"
 
-## Export tables of results
-write.table(res_table_pm25, paste0(res_path, "URAQ_summary_table.csv"), sep = ";", row.names = FALSE)
+## Export raw data
+write.table(soaa_pm25_df, paste0(res_path, "URAQ_SOAA_raw_data_table_10OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(soaa_pm25_av, paste0(res_path, "URAQ_SOAA_summary_table_10OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(municip_pm25_df, paste0(res_path, "URAQ_municipality_summary_table_10OCT2025.csv"), sep = ";", row.names = FALSE)
+
 ```
 
 
@@ -1055,7 +1047,8 @@ Below, we present two kinds of summary table: one national, and one presenting a
 #| code-summary: "National summary table"
 
 # Read exported table
-res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/URAQ_summary_table.csv", sep = ";", head = TRUE)
+soaa_res_processed <- read.table(paste0(res_path, "URAQ_SOAA_summary_table_10OCT2025.csv"), sep = ";", head = TRUE)
+municip_res_processed <- read.table(paste0(res_path, "URAQ_municipality_summary_table_10OCT2025.csv"), sep = ";", head = TRUE)
 
 # Compile the different URAQ indicators at national level
 uraq_000_nat <- res_raw %>%
