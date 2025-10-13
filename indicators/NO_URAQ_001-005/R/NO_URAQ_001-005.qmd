@@ -289,12 +289,12 @@ Why was the current option chosen and how were the reference levels quantified? 
 
 Similarly to most other pollutants and other "negative" condition variables, a zero value (no pollutants present) can be considered as a meaningful value for the "optimal" *reference level* (X~100~) of PM2.5. 
 
-In principle it could be possible to assign further reference levels (e.g. X~60~, X~0~) based on limit values (greseverdier), criteria (luftkvalitetskriterier), or national targets set by Norway's Pollution Control Regulations (Forurensningsforskriften), the Norwegian Institute of Public Health (Folkehelseinstituttet), the Norwegian Environment Agency (Miljødirektoratet), or the World Health Organization (WHO). Norway also has a national target related to the annual concentration of PM2.5, which is 8 $\mu$g/m^3^. Nevertheless, in the case of this variable, identifying the right values for the reference levels is not a purely ecologist task, and in the context of the current project the necessary interdisciplinary understanding was not achieved. @SYLVIE: **review this based on Balint's response to TCCD. I am not sure this is correct.**  
+In principle it could be possible to assign further reference levels (e.g. X~60~, X~0~) based on limit values (greseverdier), criteria (luftkvalitetskriterier), or national targets set by Norway's Pollution Control Regulations (Forurensningsforskriften), the Norwegian Institute of Public Health (Folkehelseinstituttet), the Norwegian Environment Agency (Miljødirektoratet), or the World Health Organization (WHO). Norway also has a national target related to the annual concentration of PM2.5, which is 8 $\mu$g/m^3^. Nevertheless, in the case of this variable, identifying the right values for the reference levels is not a purely ecologist task, and in the context of the current project the necessary interdisciplinary understanding was not achieved.  
 
 
 #### 4.2.1 Spatial resolution and validity
 <!--# Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. -->
-X~100~ (the null value of PM2.5) can be seen as a universal reference level, which is valid for any occurrences and subtypes of ET01 (in any type of settlement) at any spatial resolution over all Norway. Nevertheless, If there will be any further reference levels determined for PM2.5 in the future they will also probably be universal reference levels -- nevertheless the environmental norms are defined at the local level (directly for the air quality station measurements), so if the reference levels will be linked to them, then they will also need to be applied at the local level. (i.e., pixel level data will need to be rescaled first, before spatial aggregation.) 
+X~100~ (the null value of PM2.5) can be seen as a universal reference level, which is valid for any occurrences and subtypes of ET01 (in any type of settlement) at any spatial resolution over all Norway. Nevertheless, if there will be any further reference levels determined for PM2.5 in the future they will also probably be universal reference levels -- nevertheless the environmental norms are defined at the local level (directly for the air quality station measurements), so if the reference levels will be linked to them, then they will also need to be applied at the local level. (i.e., pixel level data will need to be rescaled first, before spatial aggregation.) 
 
 ## 5. Uncertainties
 <!--# Describe the main uncertainties or sources of error in the indicator or the underlying data. -->
@@ -378,6 +378,9 @@ path_kom_nb <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/Adminstrative_bo
 
 # Grunnkart
 path_grunnkart <- "/data/R/GeoSpatialData/LandUse/Norway_Arealregnskap/Original/GrunnkartArealregnskap FGDB-format/"
+
+# Path to functions
+path_fn <- paste0(getwd(), "/indicators/NO_URAQ_001_005/R/functions")
 
 # Path to write results
 res_path <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/URAQ/"
@@ -568,143 +571,8 @@ ALTER TABLE grunnkart_intersection
 DROP COLUMN geom_1")
 
 
-## Intersection
-
-# Create function to do the spatial intersection
-# includes registration of grunnkart and its cleaning
-do_intersection <- function(db_connexion, fylke, path_list, fylke_index_path_list, bd_path){
-  
-  if(fylke %in% c(3, 11, 15, 40, 42, 46, 31, 33, 32, 39, 50)){
-    
-    # Register Grunnkart for the specific fylke
-    idx <- which(fylke_index_path_list == fylke)
-    ar_path <- normalizePath(path_list[idx])
-    ar_layer <- "arealregnskap"
-    dbExecute(db_connexion, glue("
-  CREATE VIEW grunnkart AS 
-  SELECT *,
-  FROM ST_Read('{ar_path}', layer='{ar_layer}')"))
-    
-    # Register LAU for specific Fylke
-    lau_path <- bd_path
-    dbExecute(db_connexion, glue("
-  CREATE VIEW lau_fylke AS 
-  SELECT *,
-  FROM ST_Read('{bd_path}')"))
-    
-    # Spatial intersect to join the variables of both datasets before intersection
-    dbExecute(db_connexion, query_valid)
-    dbExecute(db_connexion, query_intersect)
-    dbExecute(db_connexion, query_drop)
-    
-    # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
-    
-    # Drop the grunnkart register tables
-    dbExecute(db_connexion, "DROP VIEW grunnkart")
-    dbExecute(db_connexion, "DROP VIEW lau_fylke")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
-    
-    # Return the spatial intersection
-    return(soaa_lau)
-    
-  } else if(fylke %in% c(18, 55)){
-    
-    # Register grunnkart for the specific fylke
-    idx <- which(fylke_index_path_list == fylke)
-    ar_path <- path_list[idx]
-    ar_layer <- "arealregnskap"
-    dbExecute(db_connexion, glue("
-  CREATE VIEW grunnkart AS 
-  SELECT *,
-  FROM ST_Read('{ar_path}', layer='{ar_layer}')"))
-    
-    # Register LAU for specific Fylke
-    lau_path <- bd_path
-    dbExecute(db_connexion, glue("
-  CREATE VIEW lau_fylke AS 
-  SELECT *,
-  FROM ST_Read('{bd_path}')"))
-    
-    # Spatial intersect to join the variables of both datasets before intersection
-    dbExecute(db_connexion, query_valid_18_55)
-    dbExecute(db_connexion, query_intersect)
-    dbExecute(db_connexion, query_drop)
-    
-    # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
-    
-    # Drop the grunnkart register tables
-    dbExecute(db_connexion, "DROP VIEW grunnkart")
-    dbExecute(db_connexion, "DROP VIEW lau_fylke")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
-    
-    # Return the spatial intersection
-    return(soaa_lau)
-    
-  } else if(fylke == 56){
-    
-    # Register Grunnkart for the specific fylke
-    idx <- which(fylke_index_path_list == fylke)
-    ar_path <- path_list[idx]
-    ar_layer <- "arealregnskap"
-    dbExecute(db_connexion, glue("
-  CREATE VIEW grunnkart AS 
-  SELECT *,
-  FROM ST_Read('{ar_path}', layer='{ar_layer}')"))
-    
-    # Register LAU for specific Fylke
-    lau_path <- bd_path
-    dbExecute(db_connexion, glue("
-  CREATE VIEW lau_fylke AS 
-  SELECT *,
-  FROM ST_Read('{bd_path}')"))
-    
-    # Spatial intersect to join the variables of both datasets before intersection
-    dbExecute(db_connexion, query_valid_56)
-    dbExecute(db_connexion, query_intersect)
-    dbExecute(db_connexion, query_drop)
-    
-    # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
-    
-    # Drop the grunnkart register tables
-    dbExecute(db_connexion, "DROP VIEW grunnkart")
-    dbExecute(db_connexion, "DROP VIEW lau_fylke")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
-    
-    return(soaa_lau)
-    
-  } else if(fylke == 34){
-    
-    # Register LAU for specific Fylke
-    lau_path <- bd_path
-    dbExecute(db_connexion, glue("
-  CREATE VIEW lau_fylke AS 
-  SELECT *,
-  FROM ST_Read('{bd_path}')"))
-    
-    # Spatial intersect to join the variables of both datasets before intersection
-    dbExecute(db_connexion, query_valid_34)
-    dbExecute(db_connexion, query_intersect)
-    dbExecute(db_connexion, query_drop)
-    
-    # Perform spatial intersection
-    soaa_lau <- ddbs_intersection(db_connexion, x = "grunnkart_intersection", y = "lau_fylke", crs = "EPSG:3035")
-    
-    # Drop the grunnkart register tables
-    dbExecute(db_connexion, "DROP VIEW lau_fylke")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_valid")
-    dbExecute(db_connexion, "DROP TABLE grunnkart_intersection")
-    
-    return(soaa_lau)
-    
-  } else (retrun("an error has occured"))
-  
-}
+## Intersection - source the function needed: do_intersection
+source(paste0(path_fn,"/NO_URAQ_functions.R"))
 
 # Create the input to the intersection function
 numextract <- function(string){str_extract(string, "[-+]?[0-9]*\\.?[0-9]+")
@@ -770,24 +638,8 @@ url_list <- map(seq_along(yrs),
                           )
                 )
 
-
-## Write API query function: retrieve the data and write them on the disk
-api_fetch_data <- function(year_vec, municipality_vec, year, municipality, out_path, url_list){
-
-  idx_year <- which(year_vec == year)
-  idx_municip <- which(municipality_vec == municipality)
-  
-  # Create a request
-  req <- request(url_list[[idx_year]][idx_municip])
-  
-  # Perform the request
-  fetch_data <- req %>% 
-                 req_perform()
-  
-  # Write data in GIS folder       
-  resp_body_raw(fetch_data) %>% 
-    writeBin(., paste0(out_path, year, "/PM25_", year, "_", municipality, ".tif"))
-  }
+##  API query- source the function to retrieve the data and write them on the disk: api_fetch_data
+source(paste0(path_fn,"/NO_URAQ_functions.R"))
 
 
 ## Retrive and write the PM2.5 data on the disk
@@ -855,31 +707,9 @@ soaa_lau <-  soaa_lau_inter %>%
 daemons(0)
   
 
-## Create function to read the raster and extract the raster cells corresponding to SOOA
-extract_rast <- function(path_rast_folder, soaa_shp, municipality, year){
+## - source function to read the raster and extract the raster cells corresponding to SOOA : extract_rast
+source(paste0(path_fn,"/NO_URAQ_functions.R"))
 
-  # Load packages so they are available in environment fo the worker for parallel computing
-  library(dplyr)
-  library(sf)
-  library(terra)
-  library(exactextractr)
-
-  # Read in data
-  municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
-  soaa_bd <- soaa_shp %>%
-              st_transform(., crs(municip_rast)) %>%
-              mutate(soaa_area_m2 = unclass(st_area(.)))
-
-  # Extract raster cells
-  soaa_lau_pm25 <- soaa_bd %>%
-                    exact_extract(municip_rast,
-                                  .,
-                                  fun = c("mean"),
-                                  append_cols = TRUE) %>%
-                    filter(!is.na(mean) == TRUE) %>%  # Cleaning step
-                    mutate(., year = year)
-  return(soaa_lau_pm25)
-}
 
 ## Extract PM2.5 mean concentration per ET01 polygon
 daemons(8)
@@ -936,33 +766,8 @@ Now that we have the PM2.5 concentration for the whole municipalities (PM2.5 ras
 #| code-summary: "Mean PM2.5 concentration in urban areas"
 
 ## Average PM2.5 in the municipality
-# Create an averaging function
-read_and_compile_pm25 <- function(path_rast_folder, year, municipality){
-  
-  # Load libraries for workers
-  library(terra)
-  library(dplyr)
-  
-  # Read in data
-  municip_rast <- rast(paste0(path_rast_folder, year, "/PM25_", year, "_", municipality, ".tif"))
-  
-  # Average
-  av_pm25_municip <- values(municip_rast) %>% 
-                      .[!is.na(.)] %>%
-                      mean()
-  sd_pm25_municip <- values(municip_rast) %>% 
-                      .[!is.na(.)] %>%
-                      sd()
-  
-  # Return a vector of results
-  res <- data.frame(mean_pm25_municip_ug_m3 = av_pm25_municip, 
-                    sd_pm25_municip_ug_m3 = sd_pm25_municip,
-                    year = year, 
-                    kommune_nummer = as.numeric(municipality))
-  
-  return(res)
-                      
-}
+## - source function to average PM2.5 concentration is municipality : read_and_compile_pm25
+source(paste0(path_fn,"/NO_URAQ_functions.R"))
 
 # Run the averaging function
 daemons(10)
