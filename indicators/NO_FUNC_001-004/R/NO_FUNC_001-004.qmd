@@ -58,6 +58,7 @@ library(glmmTMB)
 library(flextable)
 library(conflicted)
 library(tidyverse)
+library(DT)
 conflict_prefer_all("dplyr", quiet = T)
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -160,16 +161,9 @@ meta |>
 <!--# Document you work below.  -->
 
 ## 1. Summary
-Functional plant community indicators represent the response of the vascular plant species composition to environmental variables (such as available temperature, moisture, nitrogen, light, pH, soil disturbance, and others) and to environmental stressors (such as competition, abiotic stress, and disturbance) and can thus be used to describe the functional signature of plant communities by calculating community-weighted means of functional indicator values related to these environmental variables or stressors for plant communities (Diekmann 2003). The functional signature of plant communities may be indicative of ecosystem condition, depending on which functional plant indicator we look at (cf. Töpper et al. 2018). For instance, using an indicator for moisture one would find a functional signature with higher moisture values for plant communities in mires compared to e.g. grasslands or forests. Deviations in the functional signature of such an indicator beyond a certain range of indicator values (as there of course is natural variation of functional signatures within an ecosystem type) may be related to a reduction in ecological condition. For different ecosystems different environmental variables are subject to change and thus relevant for condition accounting. In principle, both too much or too little of any environmental resource can represent a driver leading to shifts in plant species composition. Thus, functional plant community indicators usually are two-sided indicators that can show deviations of a plant community towards both excess or limiting amounts of a resource. One example of an exception here is the indicator for heat-requirement in alpine systems, which is designed as a one-sided indicator for a one-directional environmental pressure phenomenon: climate warming. This indicator does not rely on calculating community weighted means but rather on calculating cumulative abundance (see Framstad et al. 2022).
+Functional plant community indicators represent the response of the vascular plant species composition to environmental variables (such as available temperature, moisture, nitrogen, light, pH, soil disturbance, and others) and to environmental stressors (such as competition, abiotic stress, and disturbance). They are based on calculating community-weighted means (Diekmann 2003, Töpper et al. 2018) or cumulative abundance (see Framstad et al. 2022) of plant indicator values for plant community data. Deviations in such an indicator beyond a certain range of indicator values indicate a directional shift in the plant community. In principle, both too much or too little of any environmental resource can represent a driver leading to shifts in plant species composition. Thus, functional plant community indicators usually are two-sided indicators, in this work with the exception of the indicator for heat-requirement in alpine systems, which targets a one-directional environmental pressure phenomenon - climate warming – and is designed as a one-side indicator.
 
-Here, we build functional plant community indicators by combining field sampled plant community data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019) with functional plant indicator values from Tyler et al. (2021) and indicator values for plant strategies towards stressors from Grime (1974). We calculate the functional signatures of plant communities in the monitored sites with respect to various environmental variables depending on ecosystem type (not all variables are relevant for all ecosystem types). These functional signatures are then compared to reference distributions of functional signature, separately for each ecosystem type, calculated from ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020). These functional plant community indicators are developed following the principles and technical protocol of the IBECA framework (Jakobsson et al. 2021, Töpper & Jakobsson 2021).
-
-1) The Farmland and open lowland index is evaluated via a set of plant indicators for 'grazing land and hay meadows' and  a set of indicators for 'naturally open lowland ecosystems'. For grazing land and hay meadows the main drivers of change today are abandonment/land-use change, climatic changes, pollution (incl. over-fertilization). Therefore, we use functional plant indicator values for light, moisture, pH, nitrogen, phosphorus, grazing/mowing, and soil disturbance. 
-For naturally open lowland ecosystems, the main drivers today are land-use change (inlc. wear-and-tear from recreational overuse), climatic changes, and pollution. Therefore, we use functional plant indicator values for light, nitrogen, and soil disturbance as well as Grime's strategy indicator values for competition, abiotic stress, and disturbance. 
-2) For mountain ecosystems, the main drivers today are disturbance from human infrastructure, climatic changes, species range shifts, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for heat requirement, light, and nitrogen, respectively.
-3) For wetland ecosystems, the main drivers today are drainage, shrub/tree encroachment, pollution and climate change related changes in water table and moisture content.  Therefore, we use functional plant indicator values for moisture, light, pH, and nitrogen.
-4) For forest ecosystems, the main drivers today are disturbance from human infrastructure, climatic changes, and pollution. For the first, functional plant indicators are not suitable; for the others, we use functional plant indicator values for moisture and nitrogen.
-Note, that these indicators do not address the issue of loss of area, which is the overarching and dominating reason for biodiversity loss both globally and in Norway. This pressure is covered in the extent account and not the condition account.
+Here, we build functional plant community indicators by combining field sampled plant community data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019) with functional plant indicator values from Tyler et al. (2021) and indicator values for plant strategies towards stressors from Grime (1974). As reference communities we use ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020, see Evju et al. 2023 for naturally open lowland ecosystems). For each major ecosystem type a separate set of indicators, related to the main drivers of change today, is computed.
 
 ## 2. About the underlying data
 We use three types of data for building functional plant community indicators for ecological condition:
@@ -202,6 +196,12 @@ Reference species lists are available via https://artsdatabanken.no/Pages/281569
 Plant indicator data from Grime and Tyler et al. are available via their references below. 
 
 ## 3. Indicator properties
+
+1) The Farmland and open lowland index is evaluated via a set of plant indicators for 'grazing land and hay meadows' and  a set of indicators for 'naturally open lowland ecosystems'. For grazing land and hay meadows the main drivers are abandonment, climatic changes, pollution/fertilization. Therefore, we use functional plant indicator values for light, moisture, pH, nitrogen, phosphorus, grazing/mowing, and soil disturbance. For naturally open lowland ecosystems, the main drivers are land-use change, climatic changes, and pollution. Therefore, we use functional plant indicator values for light, nitrogen, and soil disturbance as well as Grime's strategy indicator values for competition, abiotic stress, and disturbance. 
+2) For mountain ecosystems, the main drivers today are climatic changes, shrub/tree encroachment, and pollution. Therefore, we use functional plant indicator values for heat requirement, light, and nitrogen, respectively.
+3) For wetland ecosystems, the main drivers are drainage, climate change related changes in water table and moisture content, shrub/tree encroachment, and pollution.  Therefore, we use functional plant indicator values for moisture, light, pH, and nitrogen.
+4) For forest ecosystems, the main drivers are climatic changes, and pollution. Therefore, we use functional plant indicator values for moisture and nitrogen.
+Note, that these indicators do not address the issue of loss of area, which is the overarching and dominating reason for biodiversity loss both globally and in Norway. This pressure is covered in the extent account and not the condition account.
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
@@ -589,7 +589,7 @@ ANO.sp$Species <- gsub("( .*)","\\L\\1",ANO.sp$Species,perl=TRUE) # make capital
 ANO.sp$Species <- gsub("( .*)","\\L\\1",ANO.sp$Species,perl=TRUE) # make capital letters after space to lowercase
 
 ## merge species data with indicators
-ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "parentglobalid")], 
+ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "ParentGlobalID")], 
                 y= ind.dat[,c("species", "CC", "SS", "RR", "Light", "Moisture", "Soil_reaction_pH", "Nitrogen","Heat_requirement", "Soil_disturbance","Phosphorus","Grazing_mowing")],
                 by.x="Species", by.y="species", all.x=T)
 summary(ANO.sp.ind)
@@ -685,7 +685,7 @@ ANO.sp <- ANO.sp %>%
   mutate(Species=str_replace(Species,"Veratrum lobelianum", "Veratrum album"))
 
 ## merge species data with indicators
-ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "parentglobalid")], 
+ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "ParentGlobalID")], 
                     y= ind.dat[,c("species", "CC", "SS", "RR", "Light", "Moisture", "Soil_reaction_pH", "Nitrogen","Heat_requirement", "Soil_disturbance","Phosphorus","Grazing_mowing")],
                     by.x="Species", by.y="species", all.x=T)
 summary(ANO.sp.ind)
@@ -3041,6 +3041,119 @@ for (i in 1:length(NO_FUNC_001b_2022to2024[['median']]$Indicator) ) {
 }
 
 
+### ecosystem tables
+## forest
+NO_FUNC_004 <- rbind(
+cbind(
+ecosystem="forest",period="2019to2021",
+pivot_longer(NO_FUNC_004_2019to2021[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_004_2019to2021[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_004_2019to2021[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_004_2019to2021[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+),
+cbind(
+ecosystem="forest",period="2022to2024",
+pivot_longer(NO_FUNC_004_2022to2024[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_004_2022to2024[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_004_2022to2024[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_004_2022to2024[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+)
+)
+
+## wetland
+NO_FUNC_003 <- rbind(
+cbind(
+ecosystem="wetland",period="2019to2021",
+pivot_longer(NO_FUNC_003_2019to2021[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_003_2019to2021[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_003_2019to2021[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_003_2019to2021[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+),
+cbind(
+ecosystem="wetland",period="2022to2024",
+pivot_longer(NO_FUNC_003_2022to2024[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_003_2022to2024[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_003_2022to2024[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_003_2022to2024[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+)
+)
+
+## mountain
+NO_FUNC_002 <- rbind(
+cbind(
+ecosystem="mountain",period="2019to2021",
+pivot_longer(NO_FUNC_002_2019to2021[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_002_2019to2021[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_002_2019to2021[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_002_2019to2021[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+),
+cbind(
+ecosystem="mountain",period="2022to2024",
+pivot_longer(NO_FUNC_002_2022to2024[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_002_2022to2024[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_002_2022to2024[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_002_2022to2024[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+)
+)
+
+## open lowland
+NO_FUNC_001 <- rbind(
+cbind(
+ecosystem="open_lowland",period="2019to2021",
+pivot_longer(NO_FUNC_001_2019to2021[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_001_2019to2021[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_001_2019to2021[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_001_2019to2021[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+),
+cbind(
+ecosystem="open_lowland",period="2022to2024",
+pivot_longer(NO_FUNC_001_2022to2024[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_001_2022to2024[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_001_2022to2024[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_001_2022to2024[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+)
+)
+
+## naturally open lowland
+NO_FUNC_001a <- rbind(
+cbind(
+ecosystem="naturally_open_lowland",period="2019to2021",
+pivot_longer(NO_FUNC_001a_2019to2021[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_001a_2019to2021[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_001a_2019to2021[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_001a_2019to2021[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+),
+cbind(
+ecosystem="naturally_open_lowland",period="2022to2024",
+pivot_longer(NO_FUNC_001a_2022to2024[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_001a_2022to2024[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_001a_2022to2024[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_001a_2022to2024[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+)
+)
+
+## semi-natural
+NO_FUNC_001b <- rbind(
+cbind(
+ecosystem="semi_natural",period="2019to2021",
+pivot_longer(NO_FUNC_001b_2019to2021[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_001b_2019to2021[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_001b_2019to2021[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_001b_2019to2021[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+),
+cbind(
+ecosystem="semi_natural",period="2022to2024",
+pivot_longer(NO_FUNC_001b_2022to2024[['median']], cols = 2:7, names_to = "region", values_to = "median"),
+pivot_longer(NO_FUNC_001b_2022to2024[['high']], cols = 2:7, names_to = "region", values_to = "high")[,3],
+pivot_longer(NO_FUNC_001b_2022to2024[['low']], cols = 2:7, names_to = "region", values_to = "low")[,3],
+pivot_longer(NO_FUNC_001b_2022to2024[['n']], cols = 2:7, names_to = "region", values_to = "n")[,3]
+)
+)
+
+## all ecosystems
+NO_FUNC_001to004 <- rbind(
+  NO_FUNC_004,NO_FUNC_003,NO_FUNC_002,NO_FUNC_001a,NO_FUNC_001b
+)
 
 ```
 
@@ -3057,82 +3170,6 @@ for (i in 1:length(NO_FUNC_001b_2022to2024[['median']]$Indicator) ) {
 # xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
 # xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
 
-# open lowland (natopen & seminat combined)
-NO_FUNC_001_2022to2024[['median']]
-NO_FUNC_001_2022to2024[['high']]
-NO_FUNC_001_2022to2024[['low']]
-NO_FUNC_001_2022to2024[['n']]
-
-NO_FUNC_001_2019to2021[['median']]
-NO_FUNC_001_2019to2021[['high']]
-NO_FUNC_001_2019to2021[['low']]
-NO_FUNC_001_2019to2021[['n']]
-
-# naturally open ecosystem below the tree line
-NO_FUNC_001a_2022to2024[['median']]
-NO_FUNC_001a_2022to2024[['high']]
-NO_FUNC_001a_2022to2024[['low']]
-NO_FUNC_001a_2022to2024[['n']]
-
-NO_FUNC_001a_2019to2021[['median']]
-NO_FUNC_001a_2019to2021[['high']]
-NO_FUNC_001a_2019to2021[['low']]
-NO_FUNC_001a_2019to2021[['n']]
-
-# semi-natural ecosystem
-NO_FUNC_001b_2022to2024[['median']]
-NO_FUNC_001b_2022to2024[['high']]
-NO_FUNC_001b_2022to2024[['low']]
-NO_FUNC_001b_2022to2024[['n']]
-
-NO_FUNC_001b_2019to2021[['median']]
-NO_FUNC_001b_2019to2021[['high']]
-NO_FUNC_001b_2019to2021[['low']]
-NO_FUNC_001b_2019to2021[['n']]
-
-### mountain ecosystems - indices (mean), standard errors (se), and number of observations (n)
-## Indicators:
-# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
-# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
-# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
-NO_FUNC_002_2022to2024[['median']]
-NO_FUNC_002_2022to2024[['high']]
-NO_FUNC_002_2022to2024[['low']]
-NO_FUNC_002_2022to2024[['n']]
-
-NO_FUNC_002_2019to2021[['median']]
-NO_FUNC_002_2019to2021[['high']]
-NO_FUNC_002_2019to2021[['low']]
-NO_FUNC_002_2019to2021[['n']]
-
-### wetland ecosystems - indices (mean), standard errors (se), and number of observations (n)
-## Indicators:
-# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
-# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
-# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
-NO_FUNC_003_2022to2024[['median']]
-NO_FUNC_003_2022to2024[['high']]
-NO_FUNC_003_2022to2024[['low']]
-NO_FUNC_003_2022to2024[['n']]
-
-NO_FUNC_003_2019to2021[['median']]
-NO_FUNC_003_2019to2021[['high']]
-NO_FUNC_003_2019to2021[['low']]
-NO_FUNC_003_2019to2021[['n']]
-
-### forest ecosystems - indices (mean), standard errors (se), and number of observations (n)
-## Indicators:
-# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
-# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
-# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
-NO_FUNC_004_2022to2024[['median']]
-NO_FUNC_004_2022to2024[['high']]
-NO_FUNC_004_2022to2024[['low']]
-NO_FUNC_004_2022to2024[['n']]
-
-NO_FUNC_004_2019to2021[['median']]
-NO_FUNC_004_2019to2021[['high']]
-NO_FUNC_004_2019to2021[['low']]
-NO_FUNC_004_2019to2021[['n']]
+DT::datatable(NO_FUNC_001to004)
 
 ```
