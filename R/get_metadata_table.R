@@ -40,7 +40,9 @@ print(yaml_data)
 yaml_data<-yaml_data |> 
   select("indicatorID","indicatorName","country",
          "continent","ECT","Realm","Biome","Ecosystem", 
-         "yearAdded", "yearLastUpdate", "status", "Version") |> 
+         "yearAdded", "yearLastUpdate", "status", 
+         "Version", "data_availability",
+         "code_reproducibility", "open_science_badge") |> 
   drop_na() # all NAs
 
 
