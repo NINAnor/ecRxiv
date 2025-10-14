@@ -18,7 +18,7 @@ Ecosystem:
 yearAdded: 2025
 yearLastUpdate: 2025
 status: incomplete
-Version: 000.001
+Version: "000.001"
 VersionComment: First complete version
 url: 
 Normalised: 
@@ -43,9 +43,9 @@ author:
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
 date: January 1, 1901 # Enter date
-data_availability: none 
-code_reproducibility: none
-open_science_badge: none
+data_availability: gold
+code_reproducibility: bronze
+open_science_badge: silver
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -89,9 +89,20 @@ source(here::here("_common.R"))
 #| echo: false
 #| cache: false
 
+if(interactive()){
+  
+qmd_files <- list.files(
+    pattern = "\\.qmd$",
+     full.names = TRUE
+ )
+this_file <- qmd_files[1]
+  
+}else{
+
 # Get the current .qmd file being rendered
-#this_file <- knitr::current_input()
-this_file <- here::here("indicators","template_copy_folder_then_rename", "R","document_indicator_here_and rename_file.qmd")
+this_file <- knitr::current_input()
+}
+
 # Read the YAML front matter
 lines <- readLines(this_file, warn = FALSE)
 dash_lines <- which(trimws(lines) == "---")
@@ -171,22 +182,22 @@ status_badge(as.character(st))
 
 ```{r versionBadge}
 #| echo: false
-version_badge(as.character(version))
+version_badge(version_number = as.character(version[[1]]))
 ```
 
 ```{r dataBadge}
 #| echo: false
-data_badge("none")
+data_badge(as.character(badges[[1]]))
 ```
 
 ```{r codeBadge}
 #| echo: false
-code_badge("none")
+code_badge(as.character(badges[[2]]))
 ```
 
 ```{r openScienceBadge}
 #| echo: false
-open_science_badge("none")
+open_science_badge(as.character(badges[[3]]))
 ```
 ::: 
  
