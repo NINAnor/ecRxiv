@@ -319,7 +319,7 @@ There are several sources of uncertainties affecting the values of this indicato
 
 <!-- Eurostat 2023. Ecosystem condition accounts – Guidance Note, Fourth Draft. Eurostat Unit E2, Task Force on Ecosystem Accounting, 05 October 2023. Doc. ENV/EA/TF/2023_3/4v2. -->
 
-<!-- <!-- Eurostat 2024. EU Ecosystem typology. Technical Note. Version: September 2024. Eurostat. Supplementary document to Doc. ENV/EA/TF/2024_3/2a. --> -->
+<!-- Eurostat 2024. EU Ecosystem typology. Technical Note. Version: September 2024. Eurostat. Supplementary document to Doc. ENV/EA/TF/2024_3/2a. --> 
 
 <!-- Eurostat 2025. Ecosystem Condition Accounts – Guidance Note, 6th Draft. Eurostat Unit E2, Task Force on Ecosystem Accounting, 26-27 February 2025. Doc. ENV/EA/TF/2025_1/2. https://circabc.europa.eu/ui/group/922b4700-1c83-4099-b550-763badab3ec0/library/5074c555-99ea-4931-ace8-9351fa174f8b -->
 
@@ -335,7 +335,7 @@ All the datasets used to compile the different versions of the URGR indicators h
 We used the following six datasets:
 
 * **D-1a**: Copernicus IMD (EEA): a series of raster datasets used to quantify the "green areas" in URGR_001-004
-* **D-1b**: Grunnkart (NIBIO): a high-resolution vector dataset used to quantify the "green areas" in URGR_010
+* **D-1b**: Grunnkart (NIBIO): a high-resolution vector dataset used to quantify the "green areas" in URGR_005
 * **D-2**: Copernicus CLC (EEA): a raster dataset used to delineate urban areas (Class 1: artificial areas) in URGR_001-004
 * **D-3**: LAU data (Local Administrative Units, Eurostat GISCO): a vector dataset was used as the primary data source to delineate the municipalities
 * **D-4**: DEGURBA (Degree of urbanisation) A tabular dataset assigning one of three DEGURBA classes (1: “cities”; 2: “towns and suburbs”; 3: “rural areas”) to each municipality. These classes were used to breakdown the results for URAQ_001-003.
@@ -348,7 +348,7 @@ We used the following six datasets:
 
 The indicator values of URGR-001-004 can be interpreted at any spatial scale above the _characteristic scale_ of urban green areas which largely corresponds to the MMU for natural ecosystem types (any forests, lakes, etc below the MMU will be considered as parts of the urban ET, while the larger ones will be seen as non-urban natural ETs). So calculating URGR-001-004 for any planning and administrative unit above the quatier (bydel) level can generally be seen as meaningful. Nevertheless, coarser ecosystem accounting areas (EAA), like the *fylke*s or the *entire country* can also be highly relevant as reporting areas.  
 
-For the variant URGR-010 the smallest interpretable reporting units are the entire metropolitan areas (the entire administrative area of specific groups of "cities and adjacent towns and suburbs").
+For the variant URGR-005 the smallest interpretable reporting units are the entire metropolitan areas (the entire administrative area of specific groups of "cities and adjacent towns and suburbs").
 
 
 ## 9. Analyses
@@ -358,7 +358,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 ### 9.1 URGR_010
 #### 9.1.1 Preparation of the data
-First we need to create separate data sets for each ecosystem types that are relevant to include in "urban green ecosystems". According to the @cond-gn-eurostat, all ecosystem types in the EU Ecosystem Types Typology with a green cover should be included. This means that, in the EU Ecosystem Typology, we only discard: 10. Marine inlets and transitional waters, 12. Marine Ecosystems, and 1. Settlements and Other Artificial areas except classes 1.4 Urban greenspace and 1.5.2 Cemeteries. Note that the new Grunnkart has several tiles and not all of them have the same projection.
+We use the Grunnkart (CLC, **D-1b**) to define the urban green areas (*focal area*).  According to the @cond-gn-eurostat2025, all ecosystem types in the EU Ecosystem Types Typology with a green cover should be included. This means that, in the EU Ecosystem Typology, we only discard: 10. Marine inlets and transitional waters, 12. Marine Ecosystems, and 1. Settlements and Other Artificial areas except classes 1.4 Urban greenspace and 1.5.2 Cemeteries. Note that the new Grunnkart has several tiles and not all of them have the same projection.
 ```{r}
 #| eval: false
 #| code-summary: "Create Ecosystem Types datasets"
@@ -435,7 +435,7 @@ et_list[[i]] <- gdb_files %>%
 ```
 
 
-To compile URGR_010, we need the Norwegian Local Administrative Units (LAUs) from Eurostat. According to the @cond-gn-eurostat, only LAUs whcih are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat to select the citites (DEGURBA = 1) and towns and suburbs (DEGURBA = 2) that were adjacent to these cities. Below are two codes: (i) one to create the dataset from scratch, and (ii) one that reads the dataset already created and available from NINA's internal repository.
+To compile URGR_005, we need the Norwegian Local Administrative Units (LAUs) from Eurostat (**D-3**). According to the @cond-gn-eurostat2025, only LAUs which are cities and the LAUs for towns and suburb adjacent to these cities should be selected. We thus used the DEGURBA variable from Eurostat (**D-4)** to select the cities (DEGURBA = 1) and towns and suburbs (DEGURBA = 2) that were adjacent to these cities. Below are two codes: (i) one to create the dataset from scratch, and (ii) one that reads the dataset already created and available from NINA's internal repository.
 
 ```{r}
 #| eval: false
@@ -586,7 +586,7 @@ for(i in 1:length(et_clean_list)){
 
 ```
 
-Now we just need to only extract polygons from the ecosystem type data. Some points and line are present. As we are interested in areas, we decide to remove them as they won't contribute to the area estimates. This is also to have a process that will be more comparable to the process used for URGR_30 and URGR_31 for which only polygons are used due to restrictions in the functionalities of the `exact_extract()` function.
+Now, we just need to only extract polygons from the ecosystem type data. Some points and line are present. As we are interested in areas, we decide to remove them as they won't contribute to the area estimates. This is also to have a process that will be more comparable to the process used for the other URGR indicators for which only polygons are used due to restrictions in the functionalities of the `exact_extract()` function.
 ```{r}
 #| eval: false
 #| code-summary: "Final dataset of ecosystem type"
@@ -658,13 +658,13 @@ city_group_area <- lau_32 %>%
                       cbind(., city_group_names)
 ```
 
-Finally, we can calculate summary tables for URGR_010:
+Finally, we can calculate summary tables for URGR_005:
 ```{r}
 #| eval: false
 #| code-summary: "Create summary tables"
 
 # Summary table detailed per LAUs
-URGR_010_tab <- et_lau_area %>%
+URGR_005_tab <- et_lau_area %>%
                   compact() %>%
                   bind_rows() %>%
                   st_drop_geometry() %>%
@@ -677,7 +677,7 @@ URGR_010_tab <- et_lau_area %>%
                   left_join(., lau_total_area, by = "LAU_ID")
 
 # Summary table aggregated per "city group"
-URGR_010_tab_city_gr <- URGR_010_tab %>%
+URGR_005_tab_city_gr <- URGR_010_tab %>%
                           group_by(cty_grp, okosystemtype_1, okosystemtype_2, okosystemtype_3, okosystemtype_kode) %>%
                           select(!lau_area_m2) %>%
                           summarise(total_area_et_m2 = sum(total_area_et_m2)) %>%
