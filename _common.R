@@ -101,16 +101,3 @@ get_file_info <- function() {
   return(NULL)
 }
 
-
-# function to get the folder name following 'indicators'
-# The solution is platform agnistic
-
-extract_folder_name <- function(file_path, target_folder = "indicators") {
-  # Normalize path separators to forward slashes
-  normalized_path <- gsub("\\\\", "/", file_path)
-  
-  # Extract using forward slashes
-  folder_name <- stringr::str_extract(normalized_path, paste0("(?<=", target_folder, "/)[^/]+"))
-  
-  return(folder_name)
-}

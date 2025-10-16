@@ -35,7 +35,8 @@ yearLastUpdate: 2025
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
 VersionComment: Comment here # Describe briefly how this version differs from earlier versions 
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
+# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: # Yes or no depending on whether the metric has been normliased or not.
 SpatialAggregationPathway: Describe the aggregation using the standrdaise terminology # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
 format: 
@@ -152,8 +153,6 @@ name <- meta |>
 url <- meta |>
   dplyr::filter(Variable == "url") |>
   pull(Value)
-url <- paste0(url, extract_folder_name(this_file$path))
-
 badges<-meta |> 
   dplyr::filter(Variable %in% c("data_availability",
          "code_reproducibility", "open_science_badge")) |> 
@@ -209,7 +208,7 @@ open_science_badge(as.character(badges[[3]]))
 ::: 
  
 
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, this_file$path, sep="")`
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 
 
