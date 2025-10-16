@@ -104,20 +104,7 @@ source(here::here("_common.R"))
 #| echo: false
 #| cache: false
 
-if(interactive()){
-  
-qmd_files <- list.files(
-    pattern = "\\.qmd$",
-     full.names = TRUE
- )
-this_file <- qmd_files[1]
-  
-}else{
-
-# Get the current .qmd file being rendered
-this_file <- knitr::current_input()
-}
-
+this_file <- get_file_info()$path
 # Read the YAML front matter
 lines <- readLines(this_file, warn = FALSE)
 dash_lines <- which(trimws(lines) == "---")
