@@ -160,11 +160,13 @@ meta <- meta |>
   dplyr::mutate(Variable = dplyr::case_match(Variable,
     "indicatorID" ~ "Indicator ID" ,
     "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
     "continent" ~ "Continent",
+    "country" ~ "Country",
     "ECT" ~ "Ecosystem Condition Typology Class",
     "yearAdded" ~ "Year added",
     "yearLastUpdate" ~ "Last update",
+    "VersionComment" ~ "Version comment",
+    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
     .default = Variable
   )) |>
   dplyr::filter(Variable != "authors")
@@ -215,11 +217,22 @@ open_science_badge(as.character(badges[[3]]))
 #| echo: false
 #| warning: false
 meta |>
-  dplyr::filter(Variable %in% c("Indicator ID","Indicator Name","Country","Continent","Ecosystem Condition Typology Class", "Year added", "Last update")) |>   kable()
-
-meta |>
-  dplyr::select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
 :::
