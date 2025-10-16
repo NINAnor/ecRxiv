@@ -54,9 +54,10 @@ author:
     affiliations:
       - id: myID
         name: A Fictive Institute for Nature Research # Enter affiliations
-  - name: Jane Doe              #  Enter subsequent authors like this, or remove if not relevant
+  - name: First Last              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
+AuthorList: Doe, J. and Last, F.  
 date: January 1, 1901 # Enter date
 data_availability: gold
 code_reproducibility: bronze
@@ -103,10 +104,10 @@ source(here::here("_common.R"))
 ```{r extractFromYML}
 #| echo: false
 #| cache: false
+this_file <- get_file_info()
 
-this_file <- get_file_info()$path
 # Read the YAML front matter
-lines <- readLines(this_file, warn = FALSE)
+lines <- readLines(this_file$path, warn = FALSE)
 dash_lines <- which(trimws(lines) == "---")
 yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
 yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
@@ -137,7 +138,7 @@ version <- meta |>
   dplyr::filter(Variable == "Version") |>
   pull(Value)
 auth <- meta |>
-  dplyr::filter(Variable == "authors") |>
+  dplyr::filter(Variable == "AuthorList") |>
   pull(Value)
 year <- meta |>
   dplyr::filter(Variable == "yearAdded") |>
@@ -151,6 +152,8 @@ name <- meta |>
 url <- meta |>
   dplyr::filter(Variable == "url") |>
   pull(Value)
+url <- paste0(url, extract_folder_name(this_file$path))
+
 badges<-meta |> 
   dplyr::filter(Variable %in% c("data_availability",
          "code_reproducibility", "open_science_badge")) |> 
@@ -206,7 +209,7 @@ open_science_badge(as.character(badges[[3]]))
 ::: 
  
 
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, this_file$path, sep="")`
 
 
 
