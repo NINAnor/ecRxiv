@@ -66,3 +66,38 @@ open_science_badge <- function(openScienceBadge = none) {
   image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#open-science-badges")
 
 }
+
+
+# function to get the current file path
+# irrespective of rendering or being in interactive mode
+
+get_file_info <- function() {
+  # During rendering
+  if (requireNamespace("knitr", quietly = TRUE)) {
+    knitr_file <- knitr::current_input()
+    if (!is.null(knitr_file) && knitr_file != "") {
+      return(list(
+        path = knitr_file,
+        name = basename(knitr_file),
+        dir = dirname(knitr_file),
+        context = "rendering"
+      ))
+    }
+  }
+  
+  # Interactive RStudio session
+  if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+    rstudio_file <- rstudioapi::getSourceEditorContext()$path
+    if (rstudio_file != "") {
+      return(list(
+        path = rstudio_file,
+        name = basename(rstudio_file),
+        dir = dirname(rstudio_file),
+        context = "interactive"
+      ))
+    }
+  }
+  
+  return(NULL)
+}
+
