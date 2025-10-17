@@ -681,6 +681,10 @@ URGR_005_tab_city_gr <- URGR_010_tab %>%
                           select(!lau_area_m2) %>%
                           summarise(total_area_et_m2 = sum(total_area_et_m2)) %>%
                           left_join(., city_group_area, by = "cty_grp")
+
+# Writing out into a csv for later reuse
+path_res <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/URGR/"
+out1_flat %>% write_excel(str_c(path_res, "URGR_005_results-", format(Sys.time(), "%y%m%d-%H%M"), ".xlsx"))
 ```
 
 These table have been exported to the internal repository and will be used in the Results section to create an overall summary table comparing all URGR indicators.
@@ -837,7 +841,7 @@ out1_flat %>% write_excel_csv(str_c(path_res, "URGR_001-004_results-", format(Sy
 This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either. -->
 
 ### National-level results
-These results are presented for all variants. For URGR_010 we could not calculate a reliable measure of uncertainty. The recommended variant for general use is URGR_004.
+These results are presented for all variants. For URGR_005 we could not calculate a reliable measure of uncertainty. The recommended variant for general use is URGR_004.
 
 ```{r}
 #| eval: true
@@ -848,25 +852,26 @@ These results are presented for all variants. For URGR_010 we could not calculat
 path_res <- "/data/P-Prosjekter2/412413_2023_no_egd/Results/URGR/"
 urgr001_004 <- read_csv(paste0(path_res, "URGR_001-004_results-251009-2341.csv"))
 
-urgr010 <-   read_excel(paste0(path_res, "URGR_001_detailed_results_24MAY25.xlsx"))
+urgr005 <- read_excel(paste0(path_res, "URGR_005_results-251009-2341.xlsx"))
 
 # National-level results
 res_national <- urgr001_004 %>%
   filter(regn_nm == "Norway") %>%
   select(indi, regn_nm, se_munic, sug) %>%
-  bind_rows(tibble(indi="URGR_010", regn_nm= "Norway", se_munic= NA,  
-                   sug=sum(urgr010$total_area_et_m2) / 
-                     sum(unique(urgr010$lau_area_m2)))) %>% #!!unique, because the LAU areas are repeated in this data frame 
+  bind_rows(tibble(indi="URGR_005", regn_nm= "Norway", se_munic= NA,  
+                   sug=sum(urgr005$total_area_et_m2) / 
+                     sum(unique(urgr005$lau_area_m2)))) %>% #!!unique, because the LAU areas are repeated in this data frame 
   mutate(Indicator= "Share of urban green areas", year= 2018) %>%
-  mutate(sug= round2(sug*100, 2), sd= round2(se_munic, 2) ) %>%
-  select(Indicator, ID= indi, 
+  mutate(sug= round2(sug*100, 2), sd= round2(se_munic, 2)) %>%
+  mutate(ID = gsub("_", " ", .$indi)) %>%
+  select(Indicator, ID, 
          `Accounting area`= regn_nm,
          `Accounting period`= year, 
          `Variable value (%)`= sug,
-         `Standard deviation (%)`= se_munic)
+         `Standard error (%)`= se_munic)
 
 
-kbl(res_national)
+datatbale(res_national)
 
 ```
 
@@ -890,9 +895,9 @@ res_regional <- urgr001_004 %>%
          `Accounting area`= regn_nm,
          `Accounting period`= year, 
          `Variable value (%)`= sug,
-         `Standard deviation (%)`= se_munic)
+         `Standard error (%)`= se_munic)
 
-kbl(res_regional)
+datatable(res_regional)
 
 ```
 
