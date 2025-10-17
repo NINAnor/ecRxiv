@@ -842,7 +842,7 @@ out1_flat %>% write_excel_csv(str_c(path_res, "URGR_001-004_results-", format(Sy
 This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either. -->
 
 ### National-level results
-These results are presented for all variants. For URGR_005 we could not calculate a reliable measure of uncertainty. The recommended variant for general use is URGR_004.
+These results are presented for all variants. For URGR_005 we could not calculate a reliable measure of uncertainty, hence marked as "Not available" below. The recommended variant for general use is URGR_004.
 
 ```{r}
 #| eval: true
@@ -871,13 +871,15 @@ res_national <- urgr001_004 %>%
          `Variable value (%)`= sug,
          `Standard error (%)`= se_munic)
 
+res_national$`Standard error (%)` <- as.character(res_national$`Standard error (%)`) %>%
+                                        replace_na("Not available")
 
 datatable(res_national)
 
 ```
 
 ### Regional results
-At a regional level we can only show the results for URGR_001-004. Many regions of Norway have zero or just one settlements classified as "cities" (`DEGURBA=1`). For these settlements URGR_001 (or its uncertainty) could not be quantified. The recommended variant for general use is URGR_004.
+At a regional level we can only show the results for URGR_001-004. Many regions of Norway have zero or just one settlements classified as "cities" (`DEGURBA=1`). For these settlements URGR_001 (or its uncertainty) could not be quantified and are marked as "Not available". The recommended variant for general use is URGR_004.
 
 ```{r}
 #| eval: true
@@ -899,6 +901,9 @@ res_regional <- urgr001_004 %>%
          `Accounting period`= year, 
          `Variable value (%)`= sug,
          `Standard error (%)`= se_munic)
+
+res_regional$`Standard error (%)` <- as.character(res_regional$`Standard error (%)`) %>%
+                                        replace_na("Not available")
 
 datatable(res_regional)
 
