@@ -48,6 +48,7 @@ library(dplyr)
 library(purrr)
 library(readxl)
 library(numform)
+library(DT)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -871,7 +872,7 @@ res_national <- urgr001_004 %>%
          `Standard error (%)`= se_munic)
 
 
-datatbale(res_national)
+datatable(res_national)
 
 ```
 
@@ -890,9 +891,11 @@ urgr001_004 <- read_csv(paste0(path_res, "URGR_001-004_results-251009-2341.csv")
 res_regional <- urgr001_004 %>%
   filter(regn_nm != "Norway") %>%
   mutate(Indicator= "Share of urban green areas", year= 2018) %>%
-  mutate(sug= round2(sug*100, 2), sd= round2(se_munic, 2) ) %>%
-  select(Indicator, ID= indi, 
-         `Accounting area`= regn_nm,
+  mutate(sug= round2(sug*100, 2), sd= round2(se_munic, 2)) %>%
+  mutate(ID = gsub("_", " ", .$indi)) %>%
+  mutate(acc_area = gsub("_", " ", .$indi)) %>%
+  select(Indicator, ID, 
+         `Accounting area`= acc_area,
          `Accounting period`= year, 
          `Variable value (%)`= sug,
          `Standard error (%)`= se_munic)
