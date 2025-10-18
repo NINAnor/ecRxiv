@@ -2,16 +2,16 @@
 image_link <- function(image,url,...){
   htmltools::a(
     href=url,
-    htmltools::img(src=image,...)
+    htmltools::img(src=image, height = "20px", ...)
     )
 }
 
 # print status badge
 status_badge <- function(type) {
   image_path <- switch(type,
-                   complete = "../../../badge_status_operational.svg",
-                   incomplete = "../../../badge_status_under_development.svg",
-                   deprecated = "../../../badge_status_deprecated.svg",
+                   complete = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_operational.svg",
+                   incomplete = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_under_development.svg",
+                   deprecated = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_deprecated.svg",
                    stop("Invalid `type`", call. = FALSE)
   )
   
@@ -30,10 +30,10 @@ version_badge <- function(version_number){
 # print open science badges
 data_badge <- function(dataAvailability = none) {
   image_path <- switch(dataAvailability,
-                   gold = "../../../badge_data_gold.svg",
-                   silver = "../../../badge_data_silver.svg",
-                   bronze = "../../../badge_data_bronze.svg",
-                   none = "../../../badge_data_none.svg",
+                   gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_gold.svg",
+                   silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_silver.svg",
+                   bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_bronze.svg",
+                   none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_none.svg",
                    stop("Invalid `type`", call. = FALSE)
   )
   
@@ -43,10 +43,10 @@ data_badge <- function(dataAvailability = none) {
 
 code_badge <- function(codeReproducibility = none) {
   image_path <- switch(codeReproducibility,
-                   gold = "../../../badge_code_gold.svg",
-                   silver = "../../../badge_code_silver.svg",
-                   bronze = "../../../badge_code_bronze.svg",
-                   none = "../../../badge_code_none.svg",
+                   gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_gold.svg",
+                   silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_silver.svg",
+                   bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_bronze.svg",
+                   none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_none.svg",
                    stop("Invalid `type`", call. = FALSE)
   )
   
@@ -56,13 +56,48 @@ code_badge <- function(codeReproducibility = none) {
 
 open_science_badge <- function(openScienceBadge = none) {
   image_path <- switch(openScienceBadge,
-                   gold = "../../../badge_overall_gold.svg",
-                   silver = "../../../badge_overall_silver.svg",
-                   bronze = "../../../badge_overall_bronze.svg",
-                   none = "../../../badge_overall_none.svg",
+                   gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_gold.svg",
+                   silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_silver.svg",
+                   bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_bronze.svg",
+                   none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_none.svg",
                    stop("Invalid `type`", call. = FALSE)
   )
   
   image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#open-science-badges")
 
 }
+
+
+# function to get the current file path
+# irrespective of rendering or being in interactive mode
+
+get_file_info <- function() {
+  # During rendering
+  if (requireNamespace("knitr", quietly = TRUE)) {
+    knitr_file <- knitr::current_input()
+    if (!is.null(knitr_file) && knitr_file != "") {
+      return(list(
+        path = knitr_file,
+        name = basename(knitr_file),
+        dir = dirname(knitr_file),
+        context = "rendering"
+      ))
+    }
+  }
+  
+  # Interactive RStudio session
+  if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+    rstudio_file <- rstudioapi::getSourceEditorContext()$path
+    if (rstudio_file != "") {
+      return(list(
+        path = rstudio_file,
+        name = basename(rstudio_file),
+        dir = dirname(rstudio_file),
+        context = "interactive"
+      ))
+    }
+  }
+  
+  return(NULL)
+}
+
