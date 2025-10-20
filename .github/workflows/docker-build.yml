@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - production
+  push:
+    branches:
+      - test
 
 jobs:
   build:
@@ -26,6 +29,7 @@ jobs:
             type=sha,prefix=,enable=${{ github.base_ref == 'main' }}
             type=raw,value=latest,enable=${{ github.base_ref == 'production' }}
             type=sha,prefix=,enable=${{ github.base_ref == 'production' }}
+            type=raw,value=test,enable=${{ github.ref_name == 'test' }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -33,11 +37,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Login to GitHub Container Registry
+        if: github.ref_name == 'test'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: false
+          push: ${{ github.ref_name == 'test' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
