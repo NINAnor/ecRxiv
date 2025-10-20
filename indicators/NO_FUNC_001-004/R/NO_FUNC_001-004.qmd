@@ -2138,10 +2138,10 @@ colnames(results.ANO[['original']])[(nvar.site+1):(length(ind)+nvar.site)] <- pa
 for (i in (nvar.site+1):(length(ind)+nvar.site) ) {results.ANO[['original']][,i] <- as.numeric(results.ANO[['original']][,i])}
 summary(results.ANO[['original']])
 #results.ANO[['original']]$Region <- as.factor(results.ANO[['original']]$Region)
-results.ANO[['original']]$globalid <- as.factor(results.ANO[['original']]$globalid)
+results.ANO[['original']]$GlobalID <- as.factor(results.ANO[['original']]$GlobalID)
 results.ANO[['original']]$ano_flate_id <- as.factor(results.ANO[['original']]$ano_flate_id)
 results.ANO[['original']]$ano_punkt_id <- as.factor(results.ANO[['original']]$ano_punkt_id)
-results.ANO[['original']]$hovedoekosystem_250m2 <- as.factor(results.ANO[['original']]$hovedoekosystem_250m2)
+#results.ANO[['original']]$hovedoekosystem_250m2 <- as.factor(results.ANO[['original']]$hovedoekosystem_250m2)
 results.ANO[['original']]$hovedoekosystem_rute  <- as.factor(results.ANO[['original']]$hovedoekosystem_rute)
 results.ANO[['original']]$kartleggingsenhet_1m2 <- as.factor(results.ANO[['original']]$kartleggingsenhet_1m2)
 results.ANO[['original']]$hovedtype_rute    <- as.factor(results.ANO[['original']]$hovedtype_rute)
@@ -2169,11 +2169,11 @@ for (i in 1:nrow(ANO.all) ) {  #
     if ( ANO.all$hovedtype_rute[i] %in% unique(sub("\\-.*", "", wet_mount_forest_seminat.ref.cov.val$grunn)) ) {
       
       # if there is any species present in current ANO point  
-      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),'Species']) > 0 ) {
+      if ( length(ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),'Species']) > 0 ) {
         
         
         # Light
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Light')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Light')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Light),]
         
@@ -2201,7 +2201,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Moisture
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Moisture')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Moisture')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Moisture),]
         
@@ -2229,7 +2229,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Soil_reaction_pH
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Soil_reaction_pH')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Soil_reaction_pH')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Soil_reaction_pH),]
         
@@ -2257,7 +2257,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Nitrogen
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Nitrogen')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Nitrogen')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Nitrogen),]
         
@@ -2285,7 +2285,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
 
         # Phosphorus
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Phosphorus')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Phosphorus')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Phosphorus),]
         
@@ -2313,7 +2313,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Grazing_mowing
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Grazing_mowing')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Grazing_mowing')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Grazing_mowing),]
         
@@ -2341,7 +2341,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Soil_disturbance
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Soil_disturbance')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Soil_disturbance')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Soil_disturbance),]
         
@@ -2375,11 +2375,11 @@ for (i in 1:nrow(ANO.all) ) {  #
     if ( ANO.all$hovedtype_rute[i] %in% c('T3','T7','T14','T22') ) {
       
       # if there is any species present in current ANO point  
-      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),'Species']) > 0 ) {
+      if ( length(ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),'Species']) > 0 ) {
         
         
         #Heat requirement overhang
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Heat_requirement')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Heat_requirement')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Heat_requirement) & dat$art_dekning>0,]
         
@@ -2412,11 +2412,11 @@ for (i in 1:nrow(ANO.all) ) {  #
     if ( ANO.all$hovedtype_rute[i] %in% unique(sub("\\-.*", "", natopen.ref.cov.val$grunn)) ) {
       
       # if there is any species present in current ANO point  
-      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),'Species']) > 0 ) {
+      if ( length(ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),'Species']) > 0 ) {
         
         # Grime's C
         
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','CC')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','CC')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$CC),]
         
@@ -2454,7 +2454,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Grime's S
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','SS')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','SS')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$SS),]
         
@@ -2492,7 +2492,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Grime's R
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','RR')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','RR')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$RR),]
         
@@ -2530,7 +2530,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Light
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Light')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Light')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Light),]
         
@@ -2568,7 +2568,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Nitrogen
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Nitrogen')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Nitrogen')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Nitrogen),]
         
@@ -2606,7 +2606,7 @@ for (i in 1:nrow(ANO.all) ) {  #
         
         
         # Soil_disturbance
-        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.all$globalid[i]),c('art_dekning','Soil_disturbance')]
+        dat <- ANO.sp.ind[ANO.sp.ind$ParentGlobalID==as.character(ANO.all$GlobalID[i]),c('art_dekning','Soil_disturbance')]
         results.ANO[['original']][i,'richness'] <- nrow(dat)
         dat <- dat[!is.na(dat$Soil_disturbance),]
         
@@ -3161,14 +3161,14 @@ NO_FUNC_001to004 <- rbind(
 
 
 ## 10. Results
-```{r}
+Ecosystem indices (median), uncertainty (0.25 and 0.75 quantiles, i.e. 'low' and 'high'), and number of observations (n) for each region, period and indicator.
+Indicators:
+fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
+CC, SS, RR =  Grime's C, S and R
+xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
+xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
 
-### open lowland (seminat & natopen) ecosystems - indices (mean), standard errors (se), and number of observations (n)
-## Indicators:
-# fpci.min = overall functional plant community indicator, based on the minimum of the underlying indicators
-# CC, SS, RR =  Grime's C, S and R
-# xxx1 = lower xxx indicator (i.e. deviations towards too little xxx)
-# xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
+```{r}
 
 DT::datatable(NO_FUNC_001to004)
 
