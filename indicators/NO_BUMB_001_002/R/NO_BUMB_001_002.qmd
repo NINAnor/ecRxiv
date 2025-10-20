@@ -131,6 +131,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 
 -   21 Aug. 2025 - Started work
+-   02 Sep. 2025 - Added 3.6, 5.1 and 5.2
 :::
 
 <hr />
@@ -200,6 +201,10 @@ Possibly co-varied with NO_BFLY [@åström] as they both represent insect commun
 
 Bumblebees in Norway are negatively affected by the loss and fragmentation of flower rich habitats in the agricultural landscape, including good nest sites [@adb]. The reduction is good habitat is attributed to both land abandonment and increased land use intensity (pesticides, fertilize use with reduced flower diversity).
 
+### 3.6 Spatial aggregation
+
+The variable is scaled at the transect level and the point estimate is a simple arithmetic mean of all transect data points for Norway. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1.
+
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
@@ -239,8 +244,22 @@ where $n_{CS}$ is the number of expected common species (C) that is observed spo
 Reference levels are the unique to each region. They reflect the assumed *mean* community assemblage of bumblebees in that region, and therefore indicator values should not be presented at a spatial scale that is smaller than region. Note that there is no *variable* (in SEEA EA terms) associated with this indicator, and the indicator is normalised from the beginning, and before any spatial aggregation.
 
 ## 5. Uncertainties
+### 5.1 General uncertainties
+We think the main sources of uncertainty for this indicators has to do with (1) the representativity of the spatial sampling and how well it represents the ecosystem type in question, and (2) and the precision of the reference community and the way the variable is normalised.
 
-The indicator values are estimated with uncertainty in the sense of spatial variation, by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples. The uncertainties for indicator values are constituted by a distribution of discrete values, and therefore we only provide confidence intervals and not a standard deviation.
+For the first point we note that bumblebees are flying insects that use resources in a range of habitats outside, or embedded within, what we use as the target ecosystem type. In addition, the spatial sampling is a stratified point sampling where some regions are intentionally left out. The national estimates therefore don't include data from the entire country.
+
+The second point refers to the reference communities, that are defined based on expect knowledge. These are not reproduceable or based on strong empirical data.
+
+
+### 5.2 Reported uncertainties
+
+What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. 
+It does not directly describe variation in the data itself. 
+However, the variation in the mean is defined by the spatial variation only, 
+and quartiles are obtained by bootstrapping the set of localities within a region, 
+and calculating the indicator for each of 9999 such samples. 
+
 
 ## 6. References
 
@@ -551,7 +570,8 @@ all_s <- c(s_east2, s_west2, s_south2, s_mid2)
 
 ## 10. Results
 
-```{r}
+```{r tbl-finalTable}
+#| tbl-cap: Accounting table with indicator values. IQR = interquantile range.
 tibble(
   ECT = rep("B1", 2),
   Indicator = rep("Bumblebees", 2),
