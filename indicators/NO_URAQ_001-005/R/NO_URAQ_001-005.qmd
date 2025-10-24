@@ -946,12 +946,13 @@ Note that URAQ_004 is not reported here as  this indicator is only for national 
 soaa_res_processed <- read.table(paste0(res_path, "URAQ_SOAA_summary_table_10OCT2025.csv"), sep = ";", head = TRUE)
 municip_res_processed <- read.table(paste0(res_path, "URAQ_municipality_summary_table_10OCT2025.csv"), sep = ";", head = TRUE)
 
-# Compile the different URAQ indicators at national level
+# Compile the different URAQ indicators at regional level
 uraq_001_mun <- municip_res_processed %>%
                 select(year, kommune_nummer, LAU_NAM, DEGURBA, mean_pm25_municip_ug_m3) %>%
-                rename(w_mean_pm25_ug_m3 = mean_pm25_municip_ug_m3) %>%
-                mutate(se_pm25_ug_m3 = NA,
-                       ID = "URAQ 001")
+                mutate(w_mean_pm25_ug_m3 = round2(mean_pm25_municip_ug_m3, 2),
+                       se_pm25_ug_m3 = NA,
+                       ID = "URAQ 001") %>%
+                select(!mean_pm25_municip_ug_m3)
 
 uraq_002_mun <- soaa_res_processed %>%
                 select(year, kommune_nummer, LAU_NAM, DEGURBA, w_mean_soaa_pm25_ug_m3, se_soaa_pm25_ug_m3) %>%
