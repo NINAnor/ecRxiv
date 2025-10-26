@@ -427,7 +427,7 @@ extract_rast <- function(bd_shp, year){
   
   # Extract raster cells
   tcd_cells_ex <- boundaries %>%
-    exact_extract(tcd_vrt2,
+    exact_extract(tcd_vrt,
                   .,
                   fun = c("mean", "stdev"), # kept only for lau_tcd
                   append_cols = TRUE) %>%
