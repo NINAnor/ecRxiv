@@ -585,7 +585,7 @@ map(seq_along(matches), function(i){
 # Source the functions that will be needed: process_raster_fn() and files_list_fn
 source(paste0(path_fn,"/NO_TCCD_functions.R"))
 
-# Path the the raster data
+# Path the the raw raster data
 path_tcd_raw_list <- map(seq_along(yrs),  
                          ~paste0("/data/scratch/tmp_sylvie/TCD_Copernicus/",
                                  as.character(yrs[.x]),
@@ -1103,9 +1103,7 @@ soaa_lau_poly_kom <- soaa_lau %>%
                         unique() #357 as expected
 
 lau_poly_kom <- lau_tcd %>%
-                  st_drop_geometry()%>%
-                  select(k__2024) %>%
-                  unique() #357 as expected
+                  length() #357 as expected
 
 
 ## Clean the R environment
@@ -1182,6 +1180,9 @@ rm(list = setdiff(ls(),
                     "soaa_tcd",
                     "forest_tcd",
                     "lau_tcd",
+                    "soaa_tcd_df",
+                    "forest_tcd_df",
+                    "lau_tcd_df",
                     "soaa_tcd_av",
                     "forest_tcd_av",
                     "lau_tcd_av")))
@@ -1195,13 +1196,13 @@ Due to the computation time of the code in this document, we export the tables o
 #| code-summary: "Summary table"
 
 ## Export tables of results
-write.table(soaa_tcd_av, paste0(res_path, "TCCD_summary_table_urban_6Oct2025.csv"), sep = ";", row.names = FALSE)
-write.table(soaa_tcd_df, paste0(res_path, "TCCD_raw_data_urban_6OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(soaa_tcd_av, paste0(res_path, "TCCD_summary_table_urban_26Oct2025.csv"), sep = ";", row.names = FALSE)
+write.table(soaa_tcd_df, paste0(res_path, "TCCD_raw_data_urban_26OCT2025.csv"), sep = ";", row.names = FALSE)
 
-write.table(forest_tcd_av, paste0(res_path, "TCCD_summary_table_forest_3OCT2025.csv"), sep = ";", row.names = FALSE)
-write.table(forest_tcd_df, paste0(res_path, "TCCD_raw_data_forest_3OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(forest_tcd_av, paste0(res_path, "TCCD_summary_table_forest_26OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(forest_tcd_df, paste0(res_path, "TCCD_raw_data_forest_26OCT2025.csv"), sep = ";", row.names = FALSE)
 
-write.table(lau_tcd_df, paste0(res_path, "TCCD_raw_data_lau_6OCT2025.csv"), sep = ";", row.names = FALSE)
+write.table(lau_tcd_df, paste0(res_path, "TCCD_raw_data_lau_26OCT2025.csv"), sep = ";", row.names = FALSE)
 
 ## Clean R Environment
 rm(ls())
@@ -1236,9 +1237,9 @@ Below, we present two kinds of summary table: one national, and one presenting a
 #| code-summary: "National summary table"
 
 ## Read exported table
-forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_forest_3OCT2025.csv", sep = ";", head = TRUE)
-urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_urban_6OCT2025.csv", sep = ";", head = TRUE)
-lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_9OCT2025.csv", sep = ";", head = TRUE)
+forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_forest_26OCT2025.csv", sep = ";", head = TRUE)
+urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_urban_26OCT2025.csv", sep = ";", head = TRUE)
+lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_26OCT2025.csv", sep = ";", head = TRUE)
 
 ## TCCD_001
 
@@ -1340,9 +1341,9 @@ datatable(res_national)
 #| code-summary: "Municipal summary table"
 
 ## Read exported table
-forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_forest_3OCT2025.csv", sep = ";", head = TRUE)
-urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_urban_6OCT2025.csv", sep = ";", head = TRUE)
-lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_6OCT2025.csv", sep = ";", head = TRUE)
+forest_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_forest_26OCT2025.csv", sep = ";", head = TRUE)
+urban_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_urban_26OCT2025.csv", sep = ";", head = TRUE)
+lau_res_raw <- read.table("/data/P-Prosjekter2/412413_2023_no_egd/Results/TCCD/TCCD_raw_data_lau_26OCT2025.csv", sep = ";", head = TRUE)
 
 ## Compile the different URAQ indicators at national level
 
