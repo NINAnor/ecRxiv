@@ -36,12 +36,8 @@ process_raster_fn <- function(path_read, norway_mask, path_write, files_names){
     # Mask
     tcd_no_mask <- crop(tcd_rast, norway_mask_pj, mask = TRUE)
     
-    # Clean values 0 and 255
-    rclfy_mx <- matrix(c(0, 255,
-                         NaN, NaN), 
-                       nrow = 2, 
-                       ncol = 2)
-    tcd_reclfy <- classify(tcd_no_mask, rclfy_mx)
+    # Clean values 255
+    tcd_reclfy <- classify(tcd_no_mask, cbind(255,NaN))
     levels(tcd_reclfy) <- levels(tcd_rast)[[1]]
     
     # Export
@@ -423,14 +419,15 @@ extract_rast <- function(bd_shp, year){
   
   # Read in boundary data (forest or urban)
   crs_tcd <- rast(filename_vrt_cln[1]) %>%
-    crs()
+              crs()
+  
   boundaries <- bd_shp %>%
     st_transform(., crs = crs_tcd) %>%
     mutate(area_m2 = unclass(st_area(.)))
   
   # Extract raster cells
   tcd_cells_ex <- boundaries %>%
-    exact_extract(tcd_vrt,
+    exact_extract(tcd_vrt2,
                   .,
                   fun = c("mean", "stdev"), # kept only for lau_tcd
                   append_cols = TRUE) %>%
