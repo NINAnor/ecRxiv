@@ -6,7 +6,7 @@ USER root
 
 # Consolidated apt install with --no-install-recommends and explicit cleanup
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libcurl4-openssl-dev libssl-dev libxml2-dev \
+    curl libcurl4-openssl-dev libssl-dev libxml2-dev \
     libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
     libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -29,8 +29,8 @@ COPY --chown=shiny:shiny indicators/ /srv/shiny-server/indicators/
 COPY --chown=shiny:shiny style.css _common.R controlled_vocab.yaml /srv/shiny-server/
 
 # Healthcheck (basic)
-#HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-#    CMD curl -f http://localhost:3838 || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:3838 || exit 1
 
 EXPOSE 3838
 CMD ["/init"]
