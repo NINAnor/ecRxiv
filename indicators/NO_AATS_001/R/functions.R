@@ -8,12 +8,11 @@ calculate_indicator <- function(data, group_var) {
   result <- data %>%
     group_by({{ group_var }}) %>%
     summarise(
-      # Area-weighted indicator value
-      indicator_value = sum(indicator_continuous_weighted, na.rm = TRUE) / 
-                       sum(au_areal, na.rm = TRUE),
-      
       # Total area represented
       total_area = sum(au_areal, na.rm = TRUE),
+      
+      # Area-weighted indicator value
+      indicator_value = sum(indicator_continuous_weighted, na.rm = TRUE) / total_area,
       
       # Number of plots
       n_plots = n(),
