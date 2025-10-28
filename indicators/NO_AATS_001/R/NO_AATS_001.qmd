@@ -1,15 +1,13 @@
 ---
-title: "Alien Coniferous Tree Species"
+title: "Absence of alien coniferous tree species"
 subtitle: |
-  [NO_AATS_001] \
-  [INDICATORID2] (ECOSYSTEM B)  
+  [NO_AATS_001]
 # delete the line with the second indicatorID (line 5) 
 # if it's not relevant for you.
 # In the parentheses you can add a word to distinguish multiple indicators 
 # from each other, for example the ecosystem type that they cover
 indicatorID: 
   - NO_AATS_001
-  - INDICATORID2 # delete whole line if not needed
 # If you are presenting multiple indicators, and have multiple 
 # indicator IDs, then add them as a list here, and make sure you add
 # the same number of list entries, 
@@ -20,17 +18,17 @@ indicatorID:
 # same realm, same country etc., then you only need to write the realm and
 # country once. 
 indicatorName: 
-  - INDICATOR_NAME # add more by adding another line starting '-'
+  - Alien coniferous tree species # add more by adding another line starting '-'
 country: Norway
 continent: Europe
 ECT: write ECT here # e.g. A2 - Chemical State characteristics
 Realm: 
-  - write realm here # e.g. Freshwater (F)
+  - Terrestrial (T) # e.g. Freshwater (F)
 Biome: 
   - write biome here # e.g. F1 Rivers and streams biome
 Ecosystem: 
   - write ecosystem here # e.g. F1.3 Freeze-thaw streams
-yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2025
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
@@ -50,15 +48,16 @@ format:
 execute: 
   cache: true
 author:
-  - name: John Doe              # Enter name
-    email: john.doe@example.no  # Enter email
+  - name: Erik Framstad              # Enter name
+    email: erik.framstad@nina.no  # Enter email
     affiliations:
       - id: myID
-        name: A Fictive Institute for Nature Research # Enter affiliations
-  - name: First Last              #  Enter subsequent authors like this, or remove if not relevant
+        name: Norwegian Institute for Nature Research # Enter affiliations
+  - name: Aud H. Halbritter              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
-AuthorList: Doe, J. and Last, F.  
+        name: University of Bergen # Enter affiliations
+AuthorList: Framstad, E. and Halbritter, A. H.
 date: October 26, 2025 # Enter date
 data_availability: gold
 code_reproducibility: bronze
@@ -87,6 +86,7 @@ library(anybadger)
 library(yaml)
 library(tibble)
 library(conflicted)
+library(janitor)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -100,6 +100,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #| echo: false
 #| cache: false
 source(here::here("_common.R"))
+source(here("indicators", "NO_AATS_001", "R", "functions.R"))
 ```
 
 ```{r extractFromYML}
@@ -423,7 +424,8 @@ All trees larger than 5 cm dbh are recorded and identified for each 250 m² NFI 
 # Load main data file
 lsk_data_raw <- read_csv(here("indicators", "NO_AATS_001", "data", "LSK_data_naturregnskap.csv"), 
                      show_col_types = FALSE,
-                     locale = locale(encoding = "UTF-8"))
+                     locale = locale(encoding = "UTF-8")) |>
+  clean_names()
 
 ```
 
@@ -437,7 +439,7 @@ current_reporting_year <- 2024
 # filter out data from reporting years
 lsk_data <- lsk_data_raw |>
   filter(merket_finnm == 0 | is.na(merket_finnm)) |>
-  filter(SESONG %in% reporting_years)
+  filter(sesong %in% reporting_years)
 
 ```
 
@@ -459,21 +461,273 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 -->
 
-<!-- Analyses code to be added -->
+### 9.1 Create derived variables
+
+This section creates the key derived variables needed for the indicator calculation. First, we remove plots with missing data for alien species percentages to ensure reliable calculations. Then we calculate the total percentage of alien coniferous species by summing introduced spruce and pine percentages. The indicator value represents the absence of alien species (100% minus the alien species percentage), with values capped at 100% to prevent negative values. Finally, we create area-weighted values by multiplying the indicator value by the plot area weight.
+
+```{r create-derived-variables}
+
+# Remove rows with NA values for alien species percentages
+lsk_data <- lsk_data |>
+# IS THIS CORRECT TO REMOVE THE NAS?
+  filter(!is.na(intro_gran_pr) & !is.na(intro_furu_pr)) |>
+# Calculate derived variables
+  mutate(
+    # Total percentage of alien coniferous species
+    total_intro_conif = intro_gran_pr + intro_furu_pr,
+    
+    # Indicator value: % absence of alien species
+    # Original units: proportion (%) of forest stand volume/crown cover for alien species
+    # Absence = 100% - % alien species
+    indicator_continuous = 100 - pmin(total_intro_conif, 100),
+    
+    # Weighted values: indicator value * au_areal
+    indicator_continuous_weighted = indicator_continuous * au_areal
+  )
+
+```
+
+### 9.2 Define reference values
+
+This section establishes the reference levels needed for scaling the indicator values. The reference condition is defined as intact forest ecosystems with no alien tree species. The upper reference value (X100) is set to 100% absence (0% alien species), representing the best possible condition. The lower reference value (X0) is set to 0% absence (100% alien species), representing the worst possible condition. These values enable linear scaling of the indicator between 0 and 1.
+
+```{r define-reference-values}
+
+# - Reference condition: Intact forest ecosystems should not have any alien tree species
+# - X100 (best condition): 100% absence of alien species (0% alien species)
+# - X0 (worst condition): 0% absence (100% alien species)
+# - Scaling: Linear relationship assumed between X0 and X100
+# - Spatial resolution: Values are aggregated for larger areas (counties)
+
+reference_values <- tibble(
+  region = c("all"),
+  x0 = 0,      # Worst condition: 0% absence (100% alien species)
+  x100 = 100   # Best condition: 100% absence (0% alien species)
+)
+
+```
+
+### 9.3 Calculate indicator values
+
+This section calculates area-weighted indicator values at different spatial scales. For counties, we use the `calculate_indicator()` function which groups data by county and computes area-weighted averages. The national average is calculated directly by summing all weighted values and dividing by total area. The area-weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates, providing unbiased spatial representation.
+
+```{r calculate-county-indicators}
+
+# Calculate for counties (region_fylke)
+results_county <- calculate_indicator(data = lsk_data, group_var = region_fylke)
+
+```
+
+```{r calculate-region-indicators}
+
+# Calculate for regions (need to investigate what region variable represents - likely north, west, etc.)
+# TODO: Find out what the region variable is called in the dataset
+# results_region <- calculate_indicator(lsk_data, region)
+
+```
+
+```{r calculate-national-indicators}
+
+# Calculate national average
+results_national <- lsk_data %>%
+  summarise(
+    region = "National",
+    indicator_value = sum(indicator_continuous_weighted, na.rm = TRUE) / 
+                     sum(au_areal, na.rm = TRUE),
+    total_area = sum(au_areal, na.rm = TRUE),
+    n_plots = n()
+  )
+
+```
+
+### 9.4 Bootstrap uncertainty estimation
+
+This section quantifies uncertainty in the indicator estimates using bootstrap resampling. For the national level, we resample all plots with replacement and recalculate the indicator 1000 times to estimate sampling variability. For counties, we apply the same bootstrap procedure to plots within each county individually. This provides confidence intervals that reflect the spatial variability and sampling uncertainty at each spatial scale, enabling assessment of the reliability of the estimates.
+
+```{r bootstrap-county-uncertainty}
+
+# Calculate bootstrap for county level
+# For each county, bootstrap the plots within that county
+results_county_with_uncertainty <- results_county %>%
+  rowwise() %>%
+  mutate(
+    county_data = list(lsk_data %>% filter(region_fylke == cur_data()$region_fylke)),
+    bootstrap_result = list(bootstrap_indicator(county_data)),
+    se = bootstrap_result$se,
+    ci_lower = bootstrap_result$ci_lower,
+    ci_upper = bootstrap_result$ci_upper
+  ) %>%
+  select(-county_data, -bootstrap_result) %>%
+  ungroup()
+
+```
+
+```{r bootstrap-region-uncertainty}
+
+# TODO: Add bootstrap for regions once region variable is identified
+# results_region_with_uncertainty <- results_region %>%
+#   rowwise() %>%
+#   mutate(
+#     region_data = list(lsk_data %>% filter(region == cur_data()$region)),
+#     bootstrap_result = list(bootstrap_indicator(region_data)),
+#     se = bootstrap_result$se,
+#     ci_lower = bootstrap_result$ci_lower,
+#     ci_upper = bootstrap_result$ci_upper
+#   ) %>%
+#   select(-region_data, -bootstrap_result) %>%
+#   ungroup()
+
+```
+
+```{r bootstrap-national-uncertainty}
+
+# Calculate bootstrap for national level
+bootstrap_national <- bootstrap_indicator(lsk_data)
+
+results_national_with_uncertainty <- results_national %>%
+  mutate(
+    se = bootstrap_national$se,
+    ci_lower = bootstrap_national$ci_lower,
+    ci_upper = bootstrap_national$ci_upper
+  )
+
+```
+
+### 9.5 Scale indicator values
+
+This section scales the indicator values to a standardized 0-1 range using the reference values defined earlier. The scaling function transforms raw percentage values to scaled values between 0 and 1, where 0 represents the worst condition (0% absence) and 1 represents the best condition (100% absence). Both point estimates and confidence intervals are scaled, ensuring that uncertainty estimates remain meaningful in the scaled space. Counties are then ranked by their unscaled indicator values for comparison.
+
+```{r scale-indicators}
+
+# Scale national result
+scaled_national <- scale_indicator(
+  results_national_with_uncertainty$indicator_value,
+  reference_values$x0[1],
+  reference_values$x100[1]
+)
+
+results_national_scaled <- results_national_with_uncertainty %>%
+  mutate(
+    scaled_value = scaled_national,
+    scaled_ci_lower = scale_indicator(ci_lower, reference_values$x0[1], reference_values$x100[1]),
+    scaled_ci_upper = scale_indicator(ci_upper, reference_values$x0[1], reference_values$x100[1])
+  )
+
+# Scale county results with uncertainty
+county_table <- results_county_with_uncertainty %>%
+  mutate(
+    scaled_value = scale_indicator(indicator_value, 
+                                   reference_values$x0[1], 
+                                   reference_values$x100[1]),
+    scaled_ci_lower = scale_indicator(ci_lower, 
+                                      reference_values$x0[1], 
+                                      reference_values$x100[1]),
+    scaled_ci_upper = scale_indicator(ci_upper, 
+                                      reference_values$x0[1], 
+                                      reference_values$x100[1])
+  ) %>%
+  arrange(desc(indicator_value))
+
+```
 
 ## 10. Results
 
-<!--# 
+The following tables present the indicator results at different spatial scales. All values are scaled between 0 and 1, where 0 represents the worst condition (0% absence of alien species) and 1 represents the best condition (100% absence of alien species).
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+### 10.1 County-level results
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+```{r county-results-table}
+#| tbl-cap: 'County-level indicator values for absence of alien coniferous tree species'
+#| echo: false
 
--->
+county_table %>%
+  select(region_fylke, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) %>%
+  mutate(
+    indicator_value = round(indicator_value, 2),
+    scaled_value = round(scaled_value, 3),
+    se = round(se, 2),
+    ci_lower = round(ci_lower, 2),
+    ci_upper = round(ci_upper, 2),
+    total_area = round(total_area, 0)
+  ) %>%
+  rename(
+    County = region_fylke,
+    `Indicator Value (%)` = indicator_value,
+    `Scaled Value` = scaled_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
 
-<!-- Results to be added -->
+### 10.2 Regional results
 
-## 11. Export file
+```{r region-results-table}
+#| tbl-cap: 'Regional indicator values for absence of alien coniferous tree species'
+#| echo: false
+
+# TODO: Add regional results table once region variable is identified
+# region_table %>%
+#   select(region, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) %>%
+#   mutate(
+#     indicator_value = round(indicator_value, 2),
+#     scaled_value = round(scaled_value, 3),
+#     se = round(se, 2),
+#     ci_lower = round(ci_lower, 2),
+#     ci_upper = round(ci_upper, 2),
+#     total_area = round(total_area, 0)
+#   ) %>%
+#   rename(
+#     Region = region,
+#     `Indicator Value (%)` = indicator_value,
+#     `Scaled Value` = scaled_value,
+#     `Standard Error` = se,
+#     `CI Lower` = ci_lower,
+#     `CI Upper` = ci_upper,
+#     `Total Area (ha)` = total_area,
+#     `Number of Plots` = n_plots
+#   ) %>%
+#   kable() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+cat("Regional results will be added once the region variable is identified in the dataset.")
+```
+
+### 10.3 National results
+
+```{r national-results-table}
+#| tbl-cap: 'National indicator values for absence of alien coniferous tree species'
+#| echo: false
+
+results_national_scaled %>%
+  select(region, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) %>%
+  mutate(
+    indicator_value = round(indicator_value, 2),
+    scaled_value = round(scaled_value, 3),
+    se = round(se, 2),
+    ci_lower = round(ci_lower, 2),
+    ci_upper = round(ci_upper, 2),
+    total_area = round(total_area, 0)
+  ) %>%
+  rename(
+    `Spatial Level` = region,
+    `Indicator Value (%)` = indicator_value,
+    `Scaled Value` = scaled_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+<!--# ## 11. Export file -->
 
 <!--# 
 
