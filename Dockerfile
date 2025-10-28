@@ -32,6 +32,5 @@ COPY --chown=shiny:shiny style.css _common.R controlled_vocab.yaml /srv/shiny-se
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:3838 || exit 1
 
-USER shiny
 EXPOSE 3838
 CMD ["/init"]
