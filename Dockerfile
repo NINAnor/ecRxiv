@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Optional: use install2.r for faster R package install (comes with rocker)
 ENV CRAN_REPO=https://cloud.r-project.org
 RUN install2.r --error --skipinstalled -r $CRAN_REPO \
-    shiny DT bslib dplyr here rmarkdown readxl tidyverse
+    shiny DT bslib dplyr here rmarkdown readxl tidyverse markdown
 
 # Prepare directories
 RUN mkdir -p /srv/shiny-server/R /srv/shiny-server/data /srv/shiny-server/indicators \
