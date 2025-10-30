@@ -84,9 +84,13 @@ library(kableExtra)
 library(here)
 library(anybadger)
 library(yaml)
-library(tibble)
 library(conflicted)
 library(janitor)
+library(stringi)
+library(geodata)
+library(terra)
+library(sf)
+library(DT)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -431,15 +435,20 @@ lsk_data_raw <- read_csv(here("indicators", "NO_AATS_001", "data", "LSK_data_nat
 
 ```{r filter-data}
 
-# Define reporting period (current: 2020-2024, 5-year window)
-reporting_years <- 2020:2024
-current_reporting_year <- 2024
+# Define multiple 5-year reporting periods starting from 2010
+# Data starts in 2010, so we create 5-year periods: 2010-2014, 2015-2019, 2020-2024
+reporting_periods <- list(
+  "2010-2014" = 2010:2014,
+  "2015-2019" = 2015:2019,
+  "2020-2024" = 2020:2024
+)
 
 # Filter out Finnmark flats marked for removal (merket_finnm == 1)
-# filter out data from reporting years
+# Keep all years for now, we'll filter by period in calculations
 lsk_data <- lsk_data_raw |>
   filter(merket_finnm == 0 | is.na(merket_finnm)) |>
-  filter(sesong %in% reporting_years)
+  # Keep only data from 2010 onward (start of reporting periods)
+  filter(sesong >= 2010)
 
 ```
 
@@ -463,7 +472,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 ### 9.1 Create derived variables
 
-This section creates the key derived variables needed for the indicator calculation. First, we remove plots with missing data for alien species percentages to ensure reliable calculations. Then we calculate the total percentage of alien coniferous species by summing introduced spruce and pine percentages. The indicator value represents the absence of alien species (100% minus the alien species percentage), with values capped at 100% to prevent negative values. Finally, we create area-weighted values by multiplying the indicator value by the plot area weight.
+This section creates the key derived variables needed for the indicator calculation. We first remove plots with missing data for alien species percentages to ensure reliable calculations. We then standardise geography fields used throughout the analysis: `region_code` (first digit of `region_fylke`), the readable county name `region_fylke_name` (numeric prefixes removed), and a normalised join key `region_fylke_name_clean`. Next, we compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100). Finally, we create area-weighted values by multiplying the indicator by the plot’s area weight.
 
 ```{r create-derived-variables}
 
@@ -471,8 +480,24 @@ This section creates the key derived variables needed for the indicator calculat
 lsk_data <- lsk_data |>
 # IS THIS CORRECT TO REMOVE THE NAS?
   filter(!is.na(intro_gran_pr) & !is.na(intro_furu_pr)) |>
-# Calculate derived variables
+# Calculate derived variables and standardised region/fylke fields
   mutate(
+    # Region code: first digit from region_fylke (e.g., '1' in '1-02 Oslo')
+    region_code = stringr::str_extract(region_fylke, "^[0-9]"),
+
+    # County/fylke name without numeric prefixes (remove leading digits and separators like '-' or space)
+    region_fylke_name = stringr::str_squish(
+      stringr::str_replace_all(region_fylke, "^\\d+[- ]*", "")
+    ),
+
+    # Cleaned (ascii, lowercase, de-punctuated) version for consistent joins/labels
+    region_fylke_name_clean = stringi::stri_trans_general(
+      stringr::str_squish(
+        tolower(stringr::str_replace_all(region_fylke_name, "[0-9.-]", " ") )
+      ),
+      "Latin-ASCII"
+    ),
+
     # Total percentage of alien coniferous species
     total_intro_conif = intro_gran_pr + intro_furu_pr,
     
@@ -507,141 +532,198 @@ reference_values <- tibble(
 
 ```
 
-### 9.3 Calculate indicator values
+### 9.3 Calculate raw indicator values (non-scaled)
 
-This section calculates area-weighted indicator values at different spatial scales. For counties, we use the `calculate_indicator()` function which groups data by county and computes area-weighted averages. The national average is calculated directly by summing all weighted values and dividing by total area. The area-weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates, providing unbiased spatial representation.
+This section calculates area-weighted indicator values at different spatial scales for each 5‑year reporting period. We use a tidyverse workflow to iterate over all periods and return a list containing county, region and national results per period. County results are grouped by `region_fylke_name`, region results by `region_code`, and national by a single overall group. The national average is the area‑weighted mean across all plots. Area‑weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates.
 
-```{r calculate-county-indicators}
+```{r calculate-all-periods}
 
-# Calculate for counties (region_fylke)
-results_county <- calculate_indicator(data = lsk_data, group_var = region_fylke)
+# Calculate indicators for all reporting periods (tidyverse/purrr)
+all_results <- enframe(reporting_periods, name = "period", value = "years") |>
+  mutate(res = map2(years, period, ~ calculate_period_indicators(lsk_data, .y, .x))) |>
+  filter(!map_lgl(res, is.null))
+
+# Combine results across all periods
+results_county_all_periods  <- map_dfr(all_results$res, "county")
+results_national_all_periods <- map_dfr(all_results$res, "national")
+results_region_all_periods <- map_dfr(all_results$res, "region")
 
 ```
 
-```{r calculate-region-indicators}
+### 9.4 Bootstrap uncertainty estimation (non-scaled)
 
-# Calculate for regions (need to investigate what region variable represents - likely north, west, etc.)
-# TODO: Find out what the region variable is called in the dataset
-# results_region <- calculate_indicator(lsk_data, region)
+This section quantifies uncertainty in the non‑scaled indicator estimates for each period using a tidyverse mapping approach. For each period, we bootstrap the national estimate from all plots and, separately, bootstrap county and region estimates by resampling plots within each county/region. For testing and faster renders, the bootstrap iteration count is set to 200 (will be changed to 10000 for final reporting). We then bind the results across periods to produce tidy frames with standard errors and 95% confidence intervals.
+
+```{r bootstrap-all-periods}
+
+# Period-wise bootstrap (non-scaled)
+bootstrap_results_tbl <- all_results |>
+  transmute(
+    period,
+    # County uncertainty: bootstrap within each county using the period's plot data
+    county_boot = map(res, ~{
+      period_data <- .x$data
+      .x$county |>
+        rowwise() |>
+        mutate(
+          county_data = list(period_data |> filter(region_fylke_name == cur_data()$region_fylke_name)),
+          bootstrap_result = list(bootstrap_indicator(county_data, n_bootstrap = 200)),
+          se = bootstrap_result$se,
+          ci_lower = bootstrap_result$ci_lower,
+          ci_upper = bootstrap_result$ci_upper
+        ) |>
+        select(-county_data, -bootstrap_result) |>
+        ungroup()
+    }),
+    # Region uncertainty: bootstrap within each region using the period's plot data
+    region_boot = map(res, ~{
+      period_data <- .x$data
+      .x$region |>
+        rowwise() |>
+        mutate(
+          region_data = list(period_data |> filter(region_code == cur_data()$region_code)),
+          bootstrap_result = list(bootstrap_indicator(region_data, n_bootstrap = 200)),
+          se = bootstrap_result$se,
+          ci_lower = bootstrap_result$ci_lower,
+          ci_upper = bootstrap_result$ci_upper
+        ) |>
+        select(-region_data, -bootstrap_result) |>
+        ungroup()
+    }),
+    # National uncertainty: bootstrap from all plots in the period
+    national_boot = map(res, ~{
+      period_data <- .x$data
+      boot_nat <- bootstrap_indicator(period_data, n_bootstrap = 200)
+      .x$national |>
+        mutate(
+          se = boot_nat$se,
+          ci_lower = boot_nat$ci_lower,
+          ci_upper = boot_nat$ci_upper
+        )
+    })
+  )
+
+# Combine bootstrap results across all periods (non-scaled)
+results_county_non_scaled_uncertainty <- purrr::list_rbind(bootstrap_results_tbl$county_boot)
+results_region_non_scaled_uncertainty <- purrr::list_rbind(bootstrap_results_tbl$region_boot)
+results_national_non_scaled_uncertainty <- purrr::list_rbind(bootstrap_results_tbl$national_boot)
+
+head(results_county_non_scaled_uncertainty)
 
 ```
 
-```{r calculate-national-indicators}
+### 9.5 Scale at county, then aggregate scaled to regions and national
 
-# Calculate national average
-results_national <- lsk_data %>%
+In line with the specified workflow, we first scale the county values using the reference levels and then aggregate these scaled county values to the regions and to the national level using area weights. County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits. For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 10000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.
+
+```{r scale-and-aggregate}
+
+# County scaled values (point estimates) for all periods
+county_scaled_all_periods <- results_county_all_periods %>%
+  mutate(
+    scaled_value = scale_indicator(
+      indicator_value,
+      reference_values$x0[1],
+      reference_values$x100[1]
+    )
+  )
+
+# Ensure region_code is present by joining from the source data (in case it was dropped upstream)
+county_scaled_all_periods <- county_scaled_all_periods %>%
+  left_join(
+    lsk_data %>% distinct(region_fylke_name, region_code),
+    by = "region_fylke_name"
+  )
+
+# Aggregate scaled county to regions (point estimates) for all periods
+region_scaled_agg_all_periods <- county_scaled_all_periods %>%
+  group_by(period, region_code) %>%
+  summarise(
+    scaled_value = sum(scaled_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
+    total_area = sum(total_area, na.rm = TRUE),
+    n_plots = sum(n_plots, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Aggregate scaled county to national (point estimates) for all periods
+national_scaled_agg_all_periods <- county_scaled_all_periods %>%
+  group_by(period) %>%
   summarise(
     region = "National",
-    indicator_value = sum(indicator_continuous_weighted, na.rm = TRUE) / 
-                     sum(au_areal, na.rm = TRUE),
-    total_area = sum(au_areal, na.rm = TRUE),
-    n_plots = n()
+    scaled_value = sum(scaled_value * total_area, na.rm = TRUE) /
+                   sum(total_area, na.rm = TRUE),
+    total_area = sum(total_area, na.rm = TRUE),
+    n_plots = sum(n_plots, na.rm = TRUE),
+    .groups = "drop"
   )
 
-```
-
-### 9.4 Bootstrap uncertainty estimation
-
-This section quantifies uncertainty in the indicator estimates using bootstrap resampling. For the national level, we resample all plots with replacement and recalculate the indicator 1000 times to estimate sampling variability. For counties, we apply the same bootstrap procedure to plots within each county individually. This provides confidence intervals that reflect the spatial variability and sampling uncertainty at each spatial scale, enabling assessment of the reliability of the estimates.
-
-```{r bootstrap-county-uncertainty}
-
-# Calculate bootstrap for county level
-# For each county, bootstrap the plots within that county
-results_county_with_uncertainty <- results_county %>%
-  rowwise() %>%
+# Uncertainty for county scaled: apply linear scaling to non-scaled CIs
+county_scaled_with_uncertainty <- results_county_non_scaled_uncertainty %>%
   mutate(
-    county_data = list(lsk_data %>% filter(region_fylke == cur_data()$region_fylke)),
-    bootstrap_result = list(bootstrap_indicator(county_data)),
-    se = bootstrap_result$se,
-    ci_lower = bootstrap_result$ci_lower,
-    ci_upper = bootstrap_result$ci_upper
-  ) %>%
-  select(-county_data, -bootstrap_result) %>%
-  ungroup()
-
-```
-
-```{r bootstrap-region-uncertainty}
-
-# TODO: Add bootstrap for regions once region variable is identified
-# results_region_with_uncertainty <- results_region %>%
-#   rowwise() %>%
-#   mutate(
-#     region_data = list(lsk_data %>% filter(region == cur_data()$region)),
-#     bootstrap_result = list(bootstrap_indicator(region_data)),
-#     se = bootstrap_result$se,
-#     ci_lower = bootstrap_result$ci_lower,
-#     ci_upper = bootstrap_result$ci_upper
-#   ) %>%
-#   select(-region_data, -bootstrap_result) %>%
-#   ungroup()
-
-```
-
-```{r bootstrap-national-uncertainty}
-
-# Calculate bootstrap for national level
-bootstrap_national <- bootstrap_indicator(lsk_data)
-
-results_national_with_uncertainty <- results_national %>%
-  mutate(
-    se = bootstrap_national$se,
-    ci_lower = bootstrap_national$ci_lower,
-    ci_upper = bootstrap_national$ci_upper
-  )
-
-```
-
-### 9.5 Scale indicator values
-
-This section scales the indicator values to a standardized 0-1 range using the reference values defined earlier. The scaling function transforms raw percentage values to scaled values between 0 and 1, where 0 represents the worst condition (0% absence) and 1 represents the best condition (100% absence). Both point estimates and confidence intervals are scaled, ensuring that uncertainty estimates remain meaningful in the scaled space. Counties are then ranked by their unscaled indicator values for comparison.
-
-```{r scale-indicators}
-
-# Scale national result
-scaled_national <- scale_indicator(
-  results_national_with_uncertainty$indicator_value,
-  reference_values$x0[1],
-  reference_values$x100[1]
-)
-
-results_national_scaled <- results_national_with_uncertainty %>%
-  mutate(
-    scaled_value = scaled_national,
-    scaled_ci_lower = scale_indicator(ci_lower, reference_values$x0[1], reference_values$x100[1]),
-    scaled_ci_upper = scale_indicator(ci_upper, reference_values$x0[1], reference_values$x100[1])
-  )
-
-# Scale county results with uncertainty
-county_table <- results_county_with_uncertainty %>%
-  mutate(
-    scaled_value = scale_indicator(indicator_value, 
-                                   reference_values$x0[1], 
+    scaled_value = scale_indicator(indicator_value,
+                                   reference_values$x0[1],
                                    reference_values$x100[1]),
-    scaled_ci_lower = scale_indicator(ci_lower, 
-                                      reference_values$x0[1], 
+    scaled_ci_lower = scale_indicator(ci_lower,
+                                      reference_values$x0[1],
                                       reference_values$x100[1]),
-    scaled_ci_upper = scale_indicator(ci_upper, 
-                                      reference_values$x0[1], 
+    scaled_ci_upper = scale_indicator(ci_upper,
+                                      reference_values$x0[1],
                                       reference_values$x100[1])
-  ) %>%
-  arrange(desc(indicator_value))
+  )
+
+# Bootstrap uncertainty for scaled-then-aggregated regions per period
+region_scaled_uncertainty <- all_results |>
+  transmute(
+    period,
+    by_region = map(res, ~ bootstrap_region_scaled_agg(
+      .x$data,
+      x0 = reference_values$x0[1],
+      x100 = reference_values$x100[1],
+      n_bootstrap = 200
+    ))
+  ) |>
+  tidyr::unnest(by_region)
+
+# Bootstrap uncertainty for scaled-then-aggregated national per period
+national_scaled_uncertainty <- all_results |>
+  transmute(
+    period,
+    bs = map(res, ~ bootstrap_national_scaled_agg(
+      .x$data,
+      x0 = reference_values$x0[1],
+      x100 = reference_values$x100[1],
+      n_bootstrap = 200
+    ))
+  ) |>
+  mutate(
+    region = "National",
+    se = map_dbl(bs, "se"),
+    ci_lower = map_dbl(bs, "ci_lower"),
+    ci_upper = map_dbl(bs, "ci_upper")
+  ) |>
+  select(-bs)
+
+# attach uncertainty
+region_scaled_agg_with_uncertainty <- region_scaled_agg_all_periods %>%
+  left_join(region_scaled_uncertainty, by = c("period", "region_code"))
+
+national_scaled_agg_with_uncertainty <- national_scaled_agg_all_periods %>%
+  left_join(national_scaled_uncertainty, by = c("period", "region"))
 
 ```
 
 ## 10. Results
 
-The following tables present the indicator results at different spatial scales. All values are scaled between 0 and 1, where 0 represents the worst condition (0% absence of alien species) and 1 represents the best condition (100% absence of alien species).
+The following tables present the indicator results at county, regional and national scales for each reporting period. All values are scaled between 0 and 1, where 0 represents the worst condition (0% absence of alien species) and 1 represents the best condition (100% absence of alien species). Where relevant, 95% confidence intervals are shown.
 
-### 10.1 County-level results
+### 10.1 County-level results (scaled with uncertainty)
 
-```{r county-results-table}
-#| tbl-cap: 'County-level indicator values for absence of alien coniferous tree species'
+```{r tbl-county-results-table}
+#| tbl-cap: 'County-level indicator values for absence of alien coniferous tree species by reporting period'
 #| echo: false
 
-county_table %>%
-  select(region_fylke, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) %>%
+county_tbl_df <- county_scaled_with_uncertainty |>
+  select(period, region_fylke_name, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) |>
   mutate(
     indicator_value = round(indicator_value, 2),
     scaled_value = round(scaled_value, 3),
@@ -649,9 +731,10 @@ county_table %>%
     ci_lower = round(ci_lower, 2),
     ci_upper = round(ci_upper, 2),
     total_area = round(total_area, 0)
-  ) %>%
+  ) |>
   rename(
-    County = region_fylke,
+    Period = period,
+    County = region_fylke_name,
     `Indicator Value (%)` = indicator_value,
     `Scaled Value` = scaled_value,
     `Standard Error` = se,
@@ -659,73 +742,246 @@ county_table %>%
     `CI Upper` = ci_upper,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
-  ) %>%
-  kable() %>%
+  )
+
+DT::datatable(
+  county_tbl_df,
+  rownames = FALSE,
+  options = list(pageLength = 10, scrollX = TRUE, lengthMenu = c(10, 25, 50, 100))
+)
+```
+
+#### Map – county-level scaled values across reporting periods
+
+```{r fig-map-county-latest}
+#| fig-cap: 'Scaled indicator values by county across reporting periods'
+#| warning: false
+#| message: false
+
+# Get official county (admin level 1) boundaries for Norway from GADM
+# Cache locally in the indicator data folder to avoid repeated downloads
+shp_cache_path <- here::here("indicators", "NO_AATS_001", "data", "gadm_NOR_1.rds")
+if (file.exists(shp_cache_path)) {
+  norway_counties <- readRDS(shp_cache_path)
+} else {
+  gadm <- geodata::gadm("NOR", level = 1, path = tempdir())
+  norway_counties <- sf::st_as_sf(gadm) |> janitor::clean_names()
+  saveRDS(norway_counties, shp_cache_path)
+}
+
+# Helper to clean names like we did for table
+clean_nm <- function(x) {
+  stringi::stri_trans_general(
+    str_squish(tolower(str_replace_all(x, "[0-9.-]", " "))),
+    "Latin-ASCII"
+  )
+}
+
+# GADM county name field is NAME_1 (cleaned to name_1 by janitor)
+geom_key <- "name_1"
+
+# Build cleaned name on geometry too
+norway_counties <- norway_counties |>
+  dplyr::mutate(
+    geom_name_clean = clean_nm(.data[[geom_key]])
+  )
+
+# Collapse multipart county polygons to one feature per county name
+norway_counties_collapsed <- norway_counties |>
+  dplyr::group_by(geom_name_clean) |>
+  dplyr::summarise(.groups = "drop") |>
+  sf::st_make_valid()
+
+# Prepare county data across all periods (keep only required columns and distinct rows), harmonize names
+county_for_join <- county_scaled_all_periods |>
+  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
+  dplyr::mutate(
+    region_fylke_name_clean = dplyr::case_when(
+      region_fylke_name_clean %in% c("troms", "finnmark") ~ "troms og finnmark",
+      region_fylke_name_clean %in% c("vestfold", "telemark") ~ "vestfold og telemark",
+      region_fylke_name_clean %in% c("akershus", "ostfold", "buskerud") ~ "viken",
+      TRUE ~ region_fylke_name_clean
+    )
+  ) |>
+  dplyr::select(period, region_fylke_name_clean, scaled_value) |>
+  dplyr::distinct()
+
+# Join on cleaned names directly (across all periods)
+joined <- norway_counties_collapsed |>
+  dplyr::left_join(county_for_join, by = c("geom_name_clean" = "region_fylke_name_clean"))
+
+# Simple choropleth of scaled value (0-1)
+ggplot(joined) +
+  geom_sf(aes(fill = scaled_value), color = "grey30", size = 0.1) +
+  scale_fill_viridis_c(name = "Scaled value", limits = c(0,1), na.value = "#f0f0f0") +
+  facet_wrap(~ period) +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+
+### 10.2 Regional results (aggregated with uncertainty)
+
+```{r tbl-region-results-table}
+#| tbl-cap: 'Regional scaled indicator values by reporting period (with 95% CI)'
+#| echo: false
+
+region_scaled_agg_with_uncertainty |>
+  select(period, region_code, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) |>
+  mutate(
+    scaled_value = round(scaled_value, 3),
+    se = round(se %||% NA_real_, 3),
+    ci_lower = round(ci_lower %||% NA_real_, 3),
+    ci_upper = round(ci_upper %||% NA_real_, 3),
+    total_area = round(total_area, 0)
+  ) |>
+  rename(
+    Period = period,
+    Region = region_code,
+    `Scaled Value` = scaled_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  kable() |>
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
 
-### 10.2 Regional results
+#### Map – regional scaled values across reporting periods
 
-```{r region-results-table}
-#| tbl-cap: 'Regional indicator values for absence of alien coniferous tree species'
-#| echo: false
+```{r fig-map-region-periods}
+#| fig-cap: 'Scaled indicator values by region across reporting periods'
+#| warning: false
+#| message: false
 
-# TODO: Add regional results table once region variable is identified
-# region_table %>%
-#   select(region, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) %>%
-#   mutate(
-#     indicator_value = round(indicator_value, 2),
-#     scaled_value = round(scaled_value, 3),
-#     se = round(se, 2),
-#     ci_lower = round(ci_lower, 2),
-#     ci_upper = round(ci_upper, 2),
-#     total_area = round(total_area, 0)
-#   ) %>%
-#   rename(
-#     Region = region,
-#     `Indicator Value (%)` = indicator_value,
-#     `Scaled Value` = scaled_value,
-#     `Standard Error` = se,
-#     `CI Lower` = ci_lower,
-#     `CI Upper` = ci_upper,
-#     `Total Area (ha)` = total_area,
-#     `Number of Plots` = n_plots
-#   ) %>%
-#   kable() %>%
-#   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+# Helper cleaner (same as above)
+clean_nm <- function(x) {
+  stringi::stri_trans_general(
+    str_squish(tolower(str_replace_all(x, "[0-9.-]", " "))),
+    "Latin-ASCII"
+  )
+}
 
-cat("Regional results will be added once the region variable is identified in the dataset.")
+# Load regions layer from NO_ALIE folder (suggested source)
+regions_layer <- sf::st_read(
+  here::here("indicators", "NO_ALIE_001", "data", "regions.shp"),
+  quiet = TRUE
+) |> janitor::clean_names()
+
+# Try to detect a name/label column for regions (first character/factor column)
+char_cols <- names(regions_layer)[sapply(regions_layer, function(col) is.character(col) || is.factor(col))]
+region_name_col <- if (length(char_cols)) char_cols[1] else names(regions_layer)[1]
+
+regions_geom <- regions_layer |>
+  dplyr::mutate(
+    region_name_raw = .data[[region_name_col]],
+    region_name_clean = clean_nm(region_name_raw),
+    region_code = dplyr::case_when(
+      grepl("^ost|^øst", region_name_clean) ~ "1",
+      grepl("^sor|^sør", region_name_clean) ~ "2",
+      grepl("^vest", region_name_clean) ~ "3",
+      grepl("^midt", region_name_clean) ~ "4",
+      grepl("^nord", region_name_clean) ~ "5",
+      TRUE ~ region_name_clean
+    ),
+    region_name = dplyr::case_when(
+      region_code == "1" ~ "Øst",
+      region_code == "2" ~ "Sør",
+      region_code == "3" ~ "Vest",
+      region_code == "4" ~ "Midt",
+      region_code == "5" ~ "Nord",
+      TRUE ~ region_name_raw
+    )
+  ) |>
+  sf::st_make_valid()
+
+# Diagnostics: geometry vs data names and multi-region counties
+geom_names <- norway_counties |> dplyr::pull(name_1) |> clean_nm() |> unique()
+data_names <- county_scaled_all_periods |>
+  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
+  dplyr::pull(region_fylke_name_clean) |> unique()
+
+cat("\n[Diag] In geometry but not in data (first 20):\n")
+print(utils::head(setdiff(geom_names, data_names), 20))
+cat("\n[Diag] In data but not in geometry (first 20):\n")
+print(utils::head(setdiff(data_names, geom_names), 20))
+
+multi_region_counties <- lsk_data |>
+  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
+  dplyr::group_by(region_fylke_name_clean) |>
+  dplyr::summarise(n_regions = dplyr::n_distinct(region_code),
+                   regions = paste(sort(unique(region_code)), collapse = ","), .groups = "drop") |>
+  dplyr::filter(n_regions > 1) |>
+  dplyr::arrange(desc(n_regions))
+cat("\n[Diag] Counties mapped to multiple regions in data:\n")
+print(multi_region_counties)
+
+dominant_region_by_period <- lsk_data |>
+  dplyr::filter(sesong %in% unlist(reporting_periods)) |>
+  dplyr::mutate(period = dplyr::case_when(
+    sesong %in% reporting_periods[[1]] ~ names(reporting_periods)[1],
+    sesong %in% reporting_periods[[2]] ~ names(reporting_periods)[2],
+    sesong %in% reporting_periods[[3]] ~ names(reporting_periods)[3]
+  )) |>
+  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
+  dplyr::group_by(period, region_fylke_name_clean, region_code) |>
+  dplyr::summarise(area_weight = sum(au_areal, na.rm = TRUE), .groups = "drop") |>
+  dplyr::group_by(period, region_fylke_name_clean) |>
+  dplyr::slice_max(area_weight, n = 1) |>
+  dplyr::distinct(period, region_fylke_name_clean, .keep_all = TRUE) |>
+  dplyr::ungroup()
+cat("\n[Diag] Dominant region per county and period (first 20):\n")
+print(utils::head(dominant_region_by_period, 20))
+
+# Prepare values per period
+region_values <- region_scaled_agg_all_periods |>
+  dplyr::select(period, region_code, scaled_value) |>
+  dplyr::distinct()
+
+regions_joined <- regions_geom |>
+  dplyr::left_join(region_values, by = "region_code")
+
+ggplot(regions_joined) +
+  geom_sf(aes(fill = scaled_value), color = "grey30", size = 0.1) +
+  scale_fill_viridis_c(name = "Scaled value", limits = c(0,1), na.value = "#f0f0f0") +
+  facet_wrap(~ period) +
+  theme_minimal() +
+  theme(legend.position = "right")
 ```
 
-### 10.3 National results
+### 10.3 National results (aggregated with uncertainty)
 
-```{r national-results-table}
-#| tbl-cap: 'National indicator values for absence of alien coniferous tree species'
+```{r tbl-national-results-table}
+#| tbl-cap: 'National scaled indicator values by reporting period (with 95% CI)'
 #| echo: false
 
-results_national_scaled %>%
-  select(region, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) %>%
+national_scaled_agg_with_uncertainty |>
+  select(period, region, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) |>
   mutate(
-    indicator_value = round(indicator_value, 2),
     scaled_value = round(scaled_value, 3),
-    se = round(se, 2),
-    ci_lower = round(ci_lower, 2),
-    ci_upper = round(ci_upper, 2),
+    se = round(se, 3),
+    ci_lower = round(ci_lower, 3),
+    ci_upper = round(ci_upper, 3),
     total_area = round(total_area, 0)
-  ) %>%
+  ) |>
   rename(
+    Period = period,
     `Spatial Level` = region,
-    `Indicator Value (%)` = indicator_value,
     `Scaled Value` = scaled_value,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
-  ) %>%
-  kable() %>%
+  ) |>
+  kable() |>
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
+
+
+
 
 <!--# ## 11. Export file -->
 
