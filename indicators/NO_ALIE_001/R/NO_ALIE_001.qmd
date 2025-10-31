@@ -1,19 +1,53 @@
 ---
 title: "Alien species"
+subtitle: "NO_ALIE_001"
+indicatorID: 
+  - NO_ALIE_001
+indicatorName: 
+  - Alien Species 
+country: Norway
+continent: Europe
+ECT: B1
+Realm: 
+  - Terrestrial
+Biome: 
+  - T2 Temperate-boreal forests and woodlands biome
+Ecosystem: 
+  - 
+yearAdded: 2023
+yearLastUpdate: 2024
+status: incomplete
+Version: 0.002
+VersionComment: Working pipeline, but not perationalised. Compared to v.0.001 this version is updated with new headers, and some other formatting issues.
+url: https://github.com/NINAnor/ecRxiv/tree/published/indicators/NO_ALIE
+Normalised: 
+SpatialAggregationPathway: # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
 format: 
   html:
     embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
 author:
-  - name: Anders L. Kolstad              # Enter name
-    email: anders.kolstad@nina.no  # Enter email
+  - name: Anders L. Kolstad
+    email: Anders.Kolstad@nina.no  
     affiliations:
-      - id: myID
+      - id: NINA
         name: Norwegian Institute for Nature Research
 date: August 28, 2024 # Enter date 
 callout-icon: false
-execute:
-  cache: true
+lightbox: true
+css: ../../../style.css
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
 ---
+
 
 ```{r setup, include=FALSE}
 library(knitr)
@@ -51,30 +85,34 @@ source(here::here("R/_common.R"))
 ```
 
 ```{r}
+
 #| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
-st <- meta |>
-  filter(Variable == "status") |>
-  pull(Value)
-version <- meta |> 
-  filter(Variable == "Version") |>
-  pull(Value)
-auth <- meta |>
-  filter(Variable == "authors") |>
-  pull(Value)
-year <- meta |>
-  filter(Variable == "yearAdded") |>
-  pull(Value)
-name <- meta |>
-  filter(Variable == "indicatorName") |>
-  pull(Value)
-url <- meta |>
-  filter(Variable == "url") |>
-  pull(Value)
+library(yaml)
+library(tibble)
+
+# Get the current .qmd file being rendered
+this_file <- knitr::current_input()
+# Read the YAML front matter
+lines <- readLines(this_file, warn = FALSE)
+dash_lines <- which(trimws(lines) == "---")
+yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
+yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
+
+# Convert to two-column Variable | Value for your old workflow
+meta <- tibble::enframe(yaml_data, name = "Variable", value = "Value")
+
+# Now you can use the same code as before:
+st      <- meta |> filter(Variable == "status") |> pull(Value)
+version <- meta |> filter(Variable == "Version") |> pull(Value)
+auth    <- meta |> filter(Variable == "authors") |> pull(Value)
+year    <- meta |> filter(Variable == "yearAdded") |> pull(Value)
+id      <- meta |> filter(Variable == "indicatorID") |> pull(Value)
+name    <- meta |> filter(Variable == "indicatorName") |> pull(Value)
+url     <- meta |> filter(Variable == "url") |> pull(Value)
 
 meta <- meta |>
   mutate(Variable = case_match(Variable,
-    "indicatorID" ~ "Indicator ID" ,
+    "indicatorID" ~ "Indicator ID",
     "indicatorName" ~ "Indicator Name",
     "country" ~ "Country",
     "continent" ~ "Continent",
@@ -82,11 +120,10 @@ meta <- meta |>
     "yearAdded" ~ "Year added",
     "yearLastUpdate" ~ "Last update",
     .default = Variable
-   )
-  ) |>
+  )) |>
   filter(Variable != "authors")
-
 ```
+
 
 <!--# The following parts are autogenertaed. Do not edit. -->
 
@@ -120,8 +157,7 @@ status(st)
 #| warning: false
 
 meta |>
-  select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  filter(Variable %in% c("Indicator ID","Indicator Name","Country","Continent","Ecosystem Condition Typology Class", "Year added", "Last update")) |>   kable()
 
 ```
 

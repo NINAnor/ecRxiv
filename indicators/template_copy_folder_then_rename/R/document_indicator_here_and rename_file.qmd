@@ -1,6 +1,44 @@
 ---
 title: "Enter indicator name here"
-subtitle: "[INDICATORID]"
+subtitle: |
+  [INDICATORID] \
+  [INDICATORID2] (ECOSYSTEM B)  
+# delete the line with the second indicatorID (line 5) 
+# if it's not relevant for you.
+# In the parentheses you can add a word to distinguish multiple indicators 
+# from each other, for example the ecosystem type that they cover
+indicatorID: 
+  - INDICATORID
+  - INDICATORID2 # delete whole line if not needed
+# If you are presenting multiple indicators, and have multiple 
+# indicator IDs, then add them as a list here, and make sure you add
+# the same number of list entries, 
+# and in the same order that corresponds to the indicator IDs,  
+# to the meta data fields where the indicators differ. 
+# For example, if the indicators cover different ecosystem types, 
+# add the ecosystems as a list under 'Ecosystems', but if they are in the
+# same realm, same country etc., then you only need to write the realm and
+# country once. 
+indicatorName: 
+  - INDICATOR_NAME # add more by adding another line starting '-'
+country: country
+continent: continent
+ECT: write ECT here # e.g. A2 - Chemical State characteristics
+Realm: 
+  - write realm here # e.g. Freshwater (F)
+Biome: 
+  - write biome here # e.g. F1 Rivers and streams biome
+Ecosystem: 
+  - write ecosystem here # e.g. F1.3 Freeze-thaw streams
+yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2025
+status: incomplete # options are complete, incomplete, or deprecated
+Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: Comment here # Describe briefly how this version differs from earlier versions 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
+# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Describe the aggregation using the standrdaise terminology # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
 format: 
   html:
     embed-resources: true
@@ -17,10 +55,14 @@ author:
     affiliations:
       - id: myID
         name: A Fictive Institute for Nature Research # Enter affiliations
-  - name: Jane Doe              #  Enter subsequent authors like this, or remove if not relevant
+  - name: First Last              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
-date: January 1, 1901 # Enter date 
+AuthorList: Doe, J. and Last, F.  
+date: January 1, 1901 # Enter date
+data_availability: gold
+code_reproducibility: bronze
+open_science_badge: silver
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -36,100 +78,170 @@ code-links:
 
 ```{r setup}
 #| include: false
+#| cache: false
 library(knitr)
 library(tidyverse)
 library(kableExtra)
 library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
+
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r source}
 #| echo: false
+#| cache: false
 source(here::here("_common.R"))
 ```
 
-```{r}
+```{r extractFromYML}
 #| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
+#| cache: false
+this_file <- get_file_info()
+
+# Read the YAML front matter
+lines <- readLines(this_file$path, warn = FALSE)
+dash_lines <- which(trimws(lines) == "---")
+yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
+yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
+
+# Robust flatten function
+flatten_to_string <- function(x) {
+  if (is.list(x)) {
+    # recursively flatten any nested lists
+    x <- unlist(x, recursive = TRUE)
+  }
+  # convert to single string
+  paste(x, collapse = "; ")
+}
+
+# Apply to all YAML entries
+yaml_data_flat <- lapply(yaml_data, flatten_to_string)
+
+# Create tibble
+meta <- tibble::enframe(yaml_data_flat, name = "Variable", value = "Value")
+
+# Check structure
+#str(meta)
+
 st <- meta |>
-  filter(Variable == "status") |>
+  dplyr::filter(Variable == "status") |>
   pull(Value)
 version <- meta |>
-  filter(Variable == "Version") |>
+  dplyr::filter(Variable == "Version") |>
   pull(Value)
 auth <- meta |>
-  filter(Variable == "authors") |>
+  dplyr::filter(Variable == "AuthorList") |>
   pull(Value)
 year <- meta |>
-  filter(Variable == "yearAdded") |>
+  dplyr::filter(Variable == "yearAdded") |>
   pull(Value)
 id <- meta |>
-  filter(Variable == "indicatorID") |>
+  dplyr::filter(Variable == "indicatorID") |>
   pull(Value)
 name <- meta |>
-  filter(Variable == "indicatorName") |>
+  dplyr::filter(Variable == "indicatorName") |>
   pull(Value)
 url <- meta |>
-  filter(Variable == "url") |>
+  dplyr::filter(Variable == "url") |>
+  pull(Value)
+badges<-meta |> 
+  dplyr::filter(Variable %in% c("data_availability",
+         "code_reproducibility", "open_science_badge")) |> 
   pull(Value)
 
 meta <- meta |>
-  mutate(Variable = case_match(Variable,
+  dplyr::mutate(Variable = dplyr::case_match(Variable,
     "indicatorID" ~ "Indicator ID" ,
     "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
     "continent" ~ "Continent",
+    "country" ~ "Country",
     "ECT" ~ "Ecosystem Condition Typology Class",
     "yearAdded" ~ "Year added",
     "yearLastUpdate" ~ "Last update",
+    "VersionComment" ~ "Version comment",
+    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
     .default = Variable
-   )
-  ) |>
-  filter(Variable != "authors")
+  )) |>
+  dplyr::filter(Variable != "authors")
 
 ```
+
+
 
 <!--# The following parts are autogenerated. Do not edit. -->
 
-```{r}
+::: {layout-ncol="5"}
+
+```{r statusBadge}
 #| echo: false
-#| results: asis
-status(st)
+status_badge(as.character(st))
 ```
 
-::: {layout-ncol="2"}
+```{r versionBadge}
+#| echo: false
+version_badge(version_number = as.character(version[[1]]))
+```
 
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
 
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+ 
 
 > **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
-> **Version**: `r version`
 
-:::
 
-```{=html}
-<details>
-<summary>Show metadata</summary>
-```
-
-```{r tbl-meta}
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
-
-```{=html}
-</details>
-```
+:::
 
 ::: {.callout-tip collapse="true"}
 
-## Logg
+## Log
 
 <!--# Update this logg with short messages for each update -->
 - 01 Jan. 1901 - Original PR
@@ -143,28 +255,23 @@ meta |>
 ## 1. Summary
 
 <!--# 
-
-With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. It is a good idea to include a bullet point list of the specific steps in the workflow. Include a mention of the following aspects:
-
-What does the metric represent?
-Why is this relevant for describing ecosystem condition in this ecosystem?
-What are the main anthropogenig impact factors?
-What kind of data is used? 
-Shortly, how is the data customized (modified, estimated, integrated) to fit its purpose as an indicator?
-What is the current status of  the metric (can it be used or is it still in development)?
-How should the metric be used and interpreted, and how should it not be used/interpretted?
-
+With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. Follow the four numbers sub-headers below. under point 2, it is possible under  include a bullet point list of the specific steps in the workflow. 
  -->
 
-> ### Interpretation
-<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator:
-
-  An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. 
-
-Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote.    
-  -->
+1. **Background and rationale**:
+<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
+What are the main anthropogenic impact factors? -->
+2. **Methods**:
+<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+3. **Interpretation**:
+<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
 An indicator value of 1 signifies ...
 Values decreasing toward zero reflect...
+
+4. **Results and development needs**:
+<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
+
+
 
 ## 2. About the underlying data
 
@@ -221,9 +328,9 @@ For example, and indicator called 'Trenching in mires' could be made to represen
 
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
 
-### 3.6 Spatial aggregation
+### 3.5 Spatial aggregation
 
-<!-- Describe in word the same aggregation pathway presented in the metadata.xlsx. If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
+<!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
 ## 4. Reference condition and levels
 
@@ -315,3 +422,18 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 ```{r export}
 #| eval: false
 ```
+
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
