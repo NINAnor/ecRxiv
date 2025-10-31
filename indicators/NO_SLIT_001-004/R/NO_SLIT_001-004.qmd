@@ -451,7 +451,7 @@ results.ANO.slit[['scaled']] <- results.ANO.slit[['original']]
 
 ```
 
-```{r, eval = F, echo = T, warning = F}
+```{r, eval = F, echo = F, warning = F}
 
 # calculating scaled values for the indicators based on the dataset
 for (i in 1:nrow(ANO.geo) ) {
@@ -475,11 +475,16 @@ for (i in 1:nrow(ANO.geo) ) {
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
 
-
+#saveRDS(results.ANO.slit, paste0(here::here(),"/indicators/NO_SLIT_001-004/data/cache/results.ANO.slit.RDS"))
 
 ```
 
 Now we have both variables on heavy vehicles and overuse scaled.
+
+```{r, include = F}
+# Use cache data
+results.ANO.slit<-readRDS(paste0(here::here(),"/indicators/NO_SLIT_001-004/data/cache/results.ANO.slit.RDS"))
+```
 
 
 #### Scaled value analyses
@@ -538,9 +543,10 @@ NO_SLIT_003_2019to2021 <- data.frame(
 )
   
 # calculation of the median and quantiles
+myQuantiles <- c(.25, .5, .75)
 # Norway 2022-2024
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_003_2022to2024$low[1] <- res[1]
 NO_SLIT_003_2022to2024$median[1] <- res[2]
 NO_SLIT_003_2022to2024$high[1] <- res[3]
@@ -548,7 +554,7 @@ NO_SLIT_003_2022to2024$n[1] <- nrow(df[!is.na(df$erosion),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region==NO_SLIT_003_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_003_2022to2024$low[i] <- res[1]
 NO_SLIT_003_2022to2024$median[i] <- res[2]
 NO_SLIT_003_2022to2024$high[i] <- res[3]
@@ -556,7 +562,7 @@ NO_SLIT_003_2022to2024$n[i] <- nrow(df[!is.na(df$erosion),])
 }
 # Norway 2019-2021
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_003_2019to2021$low[1] <- res[1]
 NO_SLIT_003_2019to2021$median[1] <- res[2]
 NO_SLIT_003_2019to2021$high[1] <- res[3]
@@ -564,7 +570,7 @@ NO_SLIT_003_2019to2021$n[1] <- nrow(df[!is.na(df$erosion),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region==NO_SLIT_003_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_003_2019to2021$low[i] <- res[1]
 NO_SLIT_003_2019to2021$median[i] <- res[2]
 NO_SLIT_003_2019to2021$high[i] <- res[3]
@@ -594,7 +600,7 @@ NO_SLIT_001_2019to2021 <- data.frame(
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_001_2022to2024$low[1] <- res[1]
 NO_SLIT_001_2022to2024$median[1] <- res[2]
 NO_SLIT_001_2022to2024$high[1] <- res[3]
@@ -602,7 +608,7 @@ NO_SLIT_001_2022to2024$n[1] <- nrow(df[!is.na(df$erosion),])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region==NO_SLIT_001_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_001_2022to2024$low[i] <- res[1]
 NO_SLIT_001_2022to2024$median[i] <- res[2]
 NO_SLIT_001_2022to2024$high[i] <- res[3]
@@ -610,7 +616,7 @@ NO_SLIT_001_2022to2024$n[i] <- nrow(df[!is.na(df$erosion),])
 }
 # Norway 2019-2021
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_001_2019to2021$low[1] <- res[1]
 NO_SLIT_001_2019to2021$median[1] <- res[2]
 NO_SLIT_001_2019to2021$high[1] <- res[3]
@@ -618,7 +624,7 @@ NO_SLIT_001_2019to2021$n[1] <- nrow(df[!is.na(df$erosion),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region==NO_SLIT_001_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_001_2019to2021$low[i] <- res[1]
 NO_SLIT_001_2019to2021$median[i] <- res[2]
 NO_SLIT_001_2019to2021$high[i] <- res[3]
@@ -647,7 +653,7 @@ NO_SLIT_002_2019to2021 <- data.frame(
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 == "vaatmark" | res.ANO.slit$hovedoekosystem_rute == "Wetland") & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
 NO_SLIT_002_2022to2024$low[1] <- res[1]
 NO_SLIT_002_2022to2024$median[1] <- res[2]
 NO_SLIT_002_2022to2024$high[1] <- res[3]
@@ -655,7 +661,7 @@ NO_SLIT_002_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 == "vaatmark" | res.ANO.slit$hovedoekosystem_rute == "Wetland") & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_002_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-  res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
   NO_SLIT_002_2019to2021$low[i] <- res[1]
   NO_SLIT_002_2019to2021$median[i] <- res[2]
   NO_SLIT_002_2019to2021$high[i] <- res[3]
@@ -663,7 +669,7 @@ for (i in 2:6) {
 }
 # Norway 2019-2021
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='vaatmark' | res.ANO.slit$hovedoekosystem_rute=='Wetland') & res.ANO.slit$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_002_2019to2021$low[1] <- res[1]
 NO_SLIT_002_2019to2021$median[1] <- res[2]
 NO_SLIT_002_2019to2021$high[1] <- res[3]
@@ -671,7 +677,7 @@ NO_SLIT_002_2019to2021$n[1] <- nrow(df[!is.na(df$erosion),])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='vaatmark' | res.ANO.slit$hovedoekosystem_rute=='Wetland') & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region==NO_SLIT_002_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
-res <-  quantile(df$erosion,c(.25, .5, .75), na.rm=T)
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
 NO_SLIT_002_2019to2021$low[i] <- res[1]
 NO_SLIT_002_2019to2021$median[i] <- res[2]
 NO_SLIT_002_2019to2021$high[i] <- res[3]
@@ -701,7 +707,7 @@ NO_SLIT_004_2019to2021 <- data.frame(
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
 NO_SLIT_004_2022to2024$low[1] <- res[1]
 NO_SLIT_004_2022to2024$median[1] <- res[2]
 NO_SLIT_004_2022to2024$high[1] <- res[3]
@@ -709,7 +715,7 @@ NO_SLIT_004_2022to2024$n[1] <- nrow(df[!is.na(df$erosion), ])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region == NO_SLIT_004_2022to2024$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-  res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
   NO_SLIT_004_2022to2024$low[i] <- res[1]
   NO_SLIT_004_2022to2024$median[i] <- res[2]
   NO_SLIT_004_2022to2024$high[i] <- res[3]
@@ -717,7 +723,7 @@ for (i in 2:6) {
 }
 # Norway 2019-2021
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
 NO_SLIT_004_2019to2021$low[1] <- res[1]
 NO_SLIT_004_2019to2021$median[1] <- res[2]
 NO_SLIT_004_2019to2021$high[1] <- res[3]
@@ -725,7 +731,7 @@ NO_SLIT_004_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_004_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-  res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
   NO_SLIT_004_2019to2021$low[i] <- res[1]
   NO_SLIT_004_2019to2021$median[i] <- res[2]
   NO_SLIT_004_2019to2021$high[i] <- res[3]
@@ -755,7 +761,7 @@ NO_SLIT_004a_2019to2021 <- data.frame(
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2022, 2023, 2024), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
 NO_SLIT_004a_2022to2024$low[1] <- res[1]
 NO_SLIT_004a_2022to2024$median[1] <- res[2]
 NO_SLIT_004a_2022to2024$high[1] <- res[3]
@@ -763,7 +769,7 @@ NO_SLIT_004a_2022to2024$n[1] <- nrow(df[!is.na(df$erosion), ])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region == NO_SLIT_004a_2022to2024$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-  res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
   NO_SLIT_004a_2022to2024$low[i] <- res[1]
   NO_SLIT_004a_2022to2024$median[i] <- res[2]
   NO_SLIT_004a_2022to2024$high[i] <- res[3]
@@ -771,7 +777,7 @@ for (i in 2:6) {
 }
 # Norway 2019-2021
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
 NO_SLIT_004a_2019to2021$low[1] <- res[1]
 NO_SLIT_004a_2019to2021$median[1] <- res[2]
 NO_SLIT_004a_2019to2021$high[1] <- res[3]
@@ -779,7 +785,7 @@ NO_SLIT_004a_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_004a_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-  res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
   NO_SLIT_004a_2019to2021$low[i] <- res[1]
   NO_SLIT_004a_2019to2021$median[i] <- res[2]
   NO_SLIT_004a_2019to2021$high[i] <- res[3]
@@ -809,7 +815,7 @@ NO_SLIT_004b_2019to2021 <- data.frame(
 # calculation of the median and quantiles
 # Norway 2022-2024
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
 NO_SLIT_004b_2022to2024$low[1] <- res[1]
 NO_SLIT_004b_2022to2024$median[1] <- res[2]
 NO_SLIT_004b_2022to2024$high[1] <- res[3]
@@ -817,7 +823,7 @@ NO_SLIT_004b_2022to2024$n[1] <- nrow(df[!is.na(df$erosion), ])
 # regions 2022-2024
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region == NO_SLIT_004b_2022to2024$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-  res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
   NO_SLIT_004b_2022to2024$low[i] <- res[1]
   NO_SLIT_004b_2022to2024$median[i] <- res[2]
   NO_SLIT_004b_2022to2024$high[i] <- res[3]
@@ -825,7 +831,7 @@ for (i in 2:6) {
 }
 # Norway 2019-2021
 df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
 NO_SLIT_004b_2019to2021$low[1] <- res[1]
 NO_SLIT_004b_2019to2021$median[1] <- res[2]
 NO_SLIT_004b_2019to2021$high[1] <- res[3]
@@ -833,7 +839,7 @@ NO_SLIT_004b_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
 # regions 2019-2021
 for (i in 2:6) {
   df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_004b_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
-  res <- quantile(df$erosion, c(.25, .5, .75), na.rm = T)
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
   NO_SLIT_004b_2019to2021$low[i] <- res[1]
   NO_SLIT_004b_2019to2021$median[i] <- res[2]
   NO_SLIT_004b_2019to2021$high[i] <- res[3]
