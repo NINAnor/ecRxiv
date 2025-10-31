@@ -58,6 +58,7 @@ library(glmmTMB)
 library(flextable)
 library(conflicted)
 library(tidyverse)
+library(funModeling)
 conflict_prefer_all("dplyr")
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -419,7 +420,7 @@ scal.2 <- function() {
 ```
 
 We then can prepare a list of data frames to hold the results and perform the scaling according to the principles described in NINA report 1967 (Töpper and Jakobsson 2021).
-```{r aChunkName, results='hide'}
+```{r aChunkName, results='hide', eval=F}
 
 unique(ANO.geo$hovedoekosystem_250m2) # major ecosystem types in circle data
 unique(ANO.geo$hovedoekosystem_rute) # major ecosystem types in plot data
@@ -501,7 +502,7 @@ st_geometry(res.ANO.slit) <- st_geometry(ANO.geo)
 nor <- st_read(here::here("indicators/NO_SLIT_001-004/data/outlineOfNorway_EPSG25833.shp"),
                quiet = T)%>%
   st_as_sf() %>%
-  st_transform(crs = [crs](sf::st_crs)(ANO.geo))
+  st_transform(crs = sf::st_crs(ANO.geo))
 
 reg <- st_read(here::here("indicators/NO_SLIT_001-004/data/regions.shp"),
                quiet = T) %>%
