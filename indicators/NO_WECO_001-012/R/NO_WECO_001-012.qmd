@@ -50,12 +50,9 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 knitr::opts_chunk$set(echo = TRUE)
-
 library(foreign)
 library(sf)
 library(readxl)
-#library(httr)
-#library(jsonlite)
 library(sp)
 ```
 
@@ -150,6 +147,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - 12 Aug 2025 - Version 000.900 started: first complete version
 - 17 Oct 2025 - Version 000.900 submitted to review
+- 29 Oct 2025 - Code review by ALK
 :::
 
 
@@ -178,7 +176,7 @@ The definitions suggested are
 (**B**)&nbsp;unweighted proportion of water bodies with at least good ecological status *or good ecological potential*; 
 (**C**)&nbsp;*size-weighted* proportion of water bodies with at least good ecological status; 
 (**D**)&nbsp;size-weighted *average* of ecological status or ecological potential (see [chapter&nbsp;9](#analyses) for more detail). 
-With four indicator definitions and three ecosystem types (or "surface water categories" sensu WFD), a total of twelve indicators are described:
+With four indicator definitions and three ecosystem types (or "surface water categories" sensu WFD), a total of twelve indicators are described (@tbl-overview).
 
 | Indicator ID | Ecosystem | Definition | Problem 1:<br />composite | Problem 2:<br />1OAO | Problem 3:<br />area | Problem 4:<br />proportion |
 |:------------:|:---------:|:----------:|:-------------:|:-------------:|:-------------:|:---------------:|
@@ -195,11 +193,11 @@ With four indicator definitions and three ecosystem types (or "surface water cat
 | NO_WECO_011	| Lake          | D	| <span style="color:red">X</span> | <span style="color:red">X</span> | <span style="color:green">✓</span> | <span style="color:green">✓</span> |
 | NO_WECO_012	| Coastal water | D	| <span style="color:red">X</span> | <span style="color:red">X</span> | <span style="color:green">✓</span> | <span style="color:green">✓</span> |
 
-: {.striped .hover}
+: Overview of indicators. {#tbl-overview .striped .hover}
 
 &nbsp;
 
-In Norway, the WFD is implemented by means of [*Vannforskriften*](#vannf), and relevant parameters are described in national guidelines ([DGVF 2025](#veil2)). 
+In Norway, the WFD is implemented through [*Vannforskriften*](#vannf), and relevant parameters are described in national guidelines ([DGVF 2025](#veil2)). 
 The status assessments of Norwegian water bodies are available from the [*Vann-nett*](#vannn) database.
 
 > ### Interpretation
@@ -325,11 +323,15 @@ To illustrate how this might be carried out in line with "WFD thinking" (as desc
 
 For rivers, such an index might thus be calculated as
 
-`(ASPT / 3 + PIT / 3 + TP / 3) / 2 + (RAMI / 3 + API / 3 + ANC / 9 + LAL / 9 + PH / 9) / 2`.
+$$
+(ASPT / 3 + PIT / 3 + TP / 3) / 2 + (RAMI / 3 + API / 3 + ANC / 9 + LAL / 9 + PH / 9) / 2
+$$
 
 Analogously, a lake condition index might be calculated as
 
-`(PTI / 3 + CHL / 6 + PPB / 6 + TP / 3) / 3 + (ANC / 3 + LAL / 3 + PH / 3) / 3 + WLEV / 3`.
+$$
+(PTI / 3 + CHL / 6 + PPB / 6 + TP / 3) / 3 + (ANC / 3 + LAL / 3 + PH / 3) / 3 + WLEV / 3
+$$
 
 These index definitions only include WFD indicators. 
 Other freshwater indicators (such as salmon stock quality, [NO_SALM_001](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_SALM_001)) can -- and should -- be included following the same approach.
@@ -631,10 +633,9 @@ for (i in 1:nrow(V)) {
 }
 ```
 
-The resulting dataset can be shown an a map ...
+The resulting dataset can be shown an a map (@fig-map).
 
-```{r}
-#| lab: measurement-map
+```{r fig-map}
 #| fig-cap: "Map of all river and lake water bodies in Norway, using WFD colour coding for ecological status classes."
 
 par(mai = rep(0, 4))
