@@ -116,8 +116,11 @@ bootstrap_indicator <- function(data, n_bootstrap = 1000) {
   return(list(
     mean = mean(bootstrap_results),
     se = sd(bootstrap_results),
-    ci_lower = quantile(bootstrap_results, 0.025),
-    ci_upper = quantile(bootstrap_results, 0.975)
+    ci_lower = as.numeric(quantile(bootstrap_results, 0.025)),
+    ci_upper = as.numeric(quantile(bootstrap_results, 0.975)),
+    q1 = as.numeric(quantile(bootstrap_results, 0.25)),      # First quartile (25th percentile)
+    median = as.numeric(quantile(bootstrap_results, 0.50)),  # Median (50th percentile)
+    q3 = as.numeric(quantile(bootstrap_results, 0.75))       # Third quartile (75th percentile)
   ))
 }
 
@@ -199,8 +202,11 @@ bootstrap_national_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 1
   return(list(
     mean = mean(bootstrap_results),
     se = stats::sd(bootstrap_results),
-    ci_lower = stats::quantile(bootstrap_results, 0.025),
-    ci_upper = stats::quantile(bootstrap_results, 0.975)
+    ci_lower = as.numeric(stats::quantile(bootstrap_results, 0.025)),
+    ci_upper = as.numeric(stats::quantile(bootstrap_results, 0.975)),
+    q1 = as.numeric(stats::quantile(bootstrap_results, 0.25)),      # First quartile (25th percentile)
+    median = as.numeric(stats::quantile(bootstrap_results, 0.50)),  # Median (50th percentile)
+    q3 = as.numeric(stats::quantile(bootstrap_results, 0.75))       # Third quartile (75th percentile)
   ))
 }
 
@@ -245,8 +251,11 @@ bootstrap_region_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 100
   out <- tibble::tibble(
     region_code = region_codes,
     se = apply(res_mat, 2, stats::sd, na.rm = TRUE),
-    ci_lower = apply(res_mat, 2, stats::quantile, probs = 0.025, na.rm = TRUE),
-    ci_upper = apply(res_mat, 2, stats::quantile, probs = 0.975, na.rm = TRUE)
+    ci_lower = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.025, na.rm = TRUE)),
+    ci_upper = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.975, na.rm = TRUE)),
+    q1 = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.25, na.rm = TRUE)),      # First quartile (25th percentile)
+    median = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.50, na.rm = TRUE)),  # Median (50th percentile)
+    q3 = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.75, na.rm = TRUE))       # Third quartile (75th percentile)
   )
 
   return(out)
