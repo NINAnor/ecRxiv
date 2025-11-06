@@ -1,6 +1,58 @@
 # Functions for NO_AATS_001 indicator calculation
 # Absence of alien coniferous tree species
 
+# Helper to merge split county names (e.g., Telemark SØ/NV -> Telemark)
+normalize_county_parts <- function(x) {
+  # remove trailing directional tokens (space or hyphen separated): SØ, NV, N, S, Ø, V
+  x <- stringr::str_replace(x, "[ -](SØ|SO|S\\u00D8|NV|NE|SV|SE|N|S|Ø|O|V)$", "")
+  x <- stringr::str_squish(x)
+  x
+}
+
+# Map cleaned county names to region codes per specification
+# Returns: "1"=Øst, "2"=Sør, "3"=Vest, "4"=Midt, "5"=Nord
+assign_region_code <- function(fylke_name_clean) {
+  dplyr::case_when(
+    # Øst: Østfold, Oslo/Akershus, Innlandet, Buskerud, Vestfold
+    fylke_name_clean %in% c(
+      "ostfold", "oslo", "akershus", "oslo akershus",
+      "innlandet", "buskerud", "vestfold"
+    ) ~ "1",
+
+    # Sør: Telemark + Agder
+    fylke_name_clean %in% c("telemark", "agder") ~ "2",
+
+    # Vest: Rogaland, Vestland (incl. historic Hordaland/Sogn og Fjordane names if present)
+    fylke_name_clean %in% c("rogaland", "vestland", "hordaland", "sogn og fjordane") ~ "3",
+
+    # Midt: Møre og Romsdal + Trøndelag (incl. historic split names if present)
+    fylke_name_clean %in% c(
+      "more og romsdal", "trondelag", "sor-trondelag", "nord-trondelag"
+    ) ~ "4",
+
+    # Nord: Nordland, Troms, Finnmark (incl. combined Troms og Finnmark)
+    fylke_name_clean %in% c(
+      "nordland", "troms", "finnmark", "troms og finnmark"
+    ) ~ "5",
+
+    TRUE ~ NA_character_
+  )
+}
+
+# Map region codes to display names
+# Inputs: code as character ("1".."5") or numeric 1..5
+assign_region_name <- function(region_code) {
+  code_chr <- as.character(region_code)
+  dplyr::case_when(
+    code_chr == "1" ~ "Øst",
+    code_chr == "2" ~ "Sør",
+    code_chr == "3" ~ "Vest",
+    code_chr == "4" ~ "Midt",
+    code_chr == "5" ~ "Nord",
+    TRUE ~ NA_character_
+  )
+}
+
 # Function to calculate area-weighted indicator values
 calculate_indicator <- function(data, group_var) {
   
@@ -63,10 +115,10 @@ calculate_period_indicators <- function(data, period_name, years) {
   
   # Calculate county indicators (attach region_code and cleaned name)
   county_to_region <- period_data %>%
-    dplyr::distinct(region_fylke_name, region_code, region_fylke_name_clean)
+    dplyr::distinct(fylke_name, region_code, fylke_name_clean)
 
-  county_results <- calculate_indicator(period_data, region_fylke_name) %>%
-    dplyr::left_join(county_to_region, by = "region_fylke_name") %>%
+  county_results <- calculate_indicator(period_data, fylke_name) %>%
+    dplyr::left_join(county_to_region, by = "fylke_name") %>%
     mutate(period = period_name)
 
   # Calculate region indicators (group by region_code)
@@ -102,7 +154,7 @@ bootstrap_national_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 1
       dplyr::slice_sample(n = nrow(period_data), replace = TRUE)
 
     # county non-scaled from bootstrapped plots (by cleaned county name)
-    boot_county <- calculate_indicator(boot_sample, region_fylke_name)
+    boot_county <- calculate_indicator(boot_sample, fylke_name)
 
     # scale counties
     boot_county_scaled <- boot_county %>%
@@ -130,7 +182,7 @@ bootstrap_national_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 1
 }
 
 # Bootstrap region uncertainty for scaled-then-aggregated workflow
-# For each bootstrap: compute county non-scaled by region_fylke_name, scale counties,
+# For each bootstrap: compute county non-scaled by fylke_name, scale counties,
 # aggregate scaled to each region_code using total_area
 bootstrap_region_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 1000) {
   region_codes <- unique(period_data$region_code)
@@ -142,13 +194,13 @@ bootstrap_region_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 100
     boot_sample <- period_data %>% dplyr::slice_sample(n = nrow(period_data), replace = TRUE)
 
     # county non-scaled by cleaned county name
-    boot_county <- calculate_indicator(boot_sample, region_fylke_name)
+    boot_county <- calculate_indicator(boot_sample, fylke_name)
 
     # bring region_code and total_area per county by joining a distinct mapping
     county_to_region <- boot_sample %>%
-      dplyr::distinct(region_fylke_name, region_code)
+      dplyr::distinct(fylke_name, region_code)
 
-    boot_county <- boot_county %>% dplyr::left_join(county_to_region, by = "region_fylke_name")
+    boot_county <- boot_county %>% dplyr::left_join(county_to_region, by = "fylke_name")
 
     # scale county values
     boot_county_scaled <- boot_county %>%

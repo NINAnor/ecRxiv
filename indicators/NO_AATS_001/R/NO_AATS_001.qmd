@@ -484,8 +484,8 @@ reporting_periods <- list(
 
 # Filter out Finnmark flats marked for removal (merket_finnm == 1)
 # Keep all years for now, we'll filter by period in calculations
-lsk_data <- lsk_data_raw |>
-  filter(merket_finnm == 0 | is.na(merket_finnm)) |>
+lsk_data <- lsk_data_raw |> 
+  filter(merket_finnm == 0) |>
   # Keep only data from 2010 onward (start of reporting periods)
   filter(sesong >= 2010)
 
@@ -512,7 +512,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 ### 9.1 Create derived variables
 
 This section creates the key derived variables needed for the indicator calculation. We first remove plots with missing data for alien species percentages to ensure reliable calculations.
-We then standardise geography fields used throughout the analysis: `region_code` (first digit of `region_fylke`), the readable county name `region_fylke_name` (numeric prefixes removed), and a normalised join key `region_fylke_name_clean`.
+We then standardise geography fields used throughout the analysis: `region_code` (assigned based on county name per specification), the readable county name `fylke_name` (numeric prefixes removed and split counties merged), and a normalised join key `fylke_name_clean`.
 Next, we compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100).
 Finally, we create area-weighted values by multiplying the indicator by the plot’s area weight.
 
@@ -524,21 +524,28 @@ lsk_data <- lsk_data |>
   filter(!is.na(intro_gran_pr) & !is.na(intro_furu_pr)) |>
 # Calculate derived variables and standardised region/fylke fields
   mutate(
-    # Region code: first digit from region_fylke (e.g., '1' in '1-02 Oslo')
-    region_code = stringr::str_extract(region_fylke, "^[0-9]"),
 
     # County/fylke name without numeric prefixes (remove leading digits and separators like '-' or space)
-    region_fylke_name = stringr::str_squish(
+    fylke_name = stringr::str_squish(
       stringr::str_replace_all(region_fylke, "^\\d+[- ]*", "")
     ),
 
+    # Merge split county variants (e.g., "Telemark SØ" and "Telemark NV" -> "Telemark")
+    fylke_name = normalize_county_parts(fylke_name),
+
     # Cleaned (ascii, lowercase, de-punctuated) version for consistent joins/labels
-    region_fylke_name_clean = stringi::stri_trans_general(
+    fylke_name_clean = stringi::stri_trans_general(
       stringr::str_squish(
-        tolower(stringr::str_replace_all(region_fylke_name, "[0-9.-]", " ") )
+        tolower(stringr::str_replace_all(fylke_name, "[0-9.-]", " ") )
       ),
       "Latin-ASCII"
     ),
+
+    # Assign region_code based on canonical county name (per specification Øst/Sør/Vest/Midt/Nord)
+    region_code = assign_region_code(fylke_name_clean),
+
+    # Human-friendly region name for mapping/labels
+    region_name = assign_region_name(region_code),
 
     # Total percentage of alien coniferous species
     total_intro_conif = intro_gran_pr + intro_furu_pr,
@@ -550,6 +557,15 @@ lsk_data <- lsk_data |>
     
     # Weighted values: indicator value * au_areal
     indicator_continuous_weighted = indicator_continuous * au_areal
+  )
+
+# Keep only the fields used downstream to simplify processing
+lsk_data <- lsk_data |>
+  dplyr::select(
+    sesong, merket_finnm, au_areal,
+    intro_gran_pr, intro_furu_pr,
+    total_intro_conif, indicator_continuous, indicator_continuous_weighted,
+    region_fylke, region_code, region_name, fylke_name, fylke_name_clean
   )
 
 ```
@@ -582,7 +598,7 @@ reference_values <- tibble(
 
 This section calculates area-weighted indicator values at different spatial scales for each 5‑year reporting period. 
 We use a tidyverse workflow to iterate over all periods and return a list containing county, region and national results per period.
-County results are grouped by `region_fylke_name`, region results by `region_code`, and national by a single overall group.
+County results are grouped by `fylke_name`, region results by `region_code`, and national by a single overall group.
 The national average is the area‑weighted mean across all plots.
 Area‑weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates.
 
@@ -619,7 +635,7 @@ bootstrap_results_tbl <- all_results |>
       .x$county |>
         rowwise() |>
         mutate(
-          county_data = list(period_data |> filter(region_fylke_name == cur_data()$region_fylke_name)),
+          county_data = list(period_data |> filter(fylke_name == cur_data()$fylke_name)),
           bootstrap_result = list(bootstrap_indicator(county_data, n_bootstrap = 200)),
           se = bootstrap_result$se,
           ci_lower = bootstrap_result$ci_lower,
@@ -686,8 +702,8 @@ county_scaled_all_periods <- results_county_all_periods %>%
 # Ensure region_code is present by joining from the source data (in case it was dropped upstream)
 county_scaled_all_periods <- county_scaled_all_periods %>%
   left_join(
-    lsk_data %>% distinct(region_fylke_name, region_code),
-    by = "region_fylke_name"
+    lsk_data %>% distinct(fylke_name, region_code),
+    by = "fylke_name"
   )
 
 # Aggregate scaled county to regions (point estimates) for all periods
@@ -780,7 +796,7 @@ Where relevant, 95% confidence intervals are shown.
 #| echo: false
 
 county_tbl_df <- county_scaled_with_uncertainty |>
-  select(period, region_fylke_name, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) |>
+  select(period, fylke_name, indicator_value, scaled_value, se, ci_lower, ci_upper, total_area, n_plots) |>
   mutate(
     indicator_value = round(indicator_value, 2),
     scaled_value = round(scaled_value, 3),
@@ -791,7 +807,7 @@ county_tbl_df <- county_scaled_with_uncertainty |>
   ) |>
   rename(
     Period = period,
-    County = region_fylke_name,
+    County = fylke_name,
     `Indicator Value (%)` = indicator_value,
     `Scaled Value` = scaled_value,
     `Standard Error` = se,
@@ -851,21 +867,21 @@ norway_counties_collapsed <- norway_counties |>
 
 # Prepare county data across all periods (keep only required columns and distinct rows), harmonize names
 county_for_join <- county_scaled_all_periods |>
-  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
+  dplyr::mutate(fylke_name_clean = clean_nm(fylke_name)) |>
   dplyr::mutate(
-    region_fylke_name_clean = dplyr::case_when(
-      region_fylke_name_clean %in% c("troms", "finnmark") ~ "troms og finnmark",
-      region_fylke_name_clean %in% c("vestfold", "telemark") ~ "vestfold og telemark",
-      region_fylke_name_clean %in% c("akershus", "ostfold", "buskerud") ~ "viken",
-      TRUE ~ region_fylke_name_clean
+    fylke_name_clean = dplyr::case_when(
+      fylke_name_clean %in% c("troms", "finnmark") ~ "troms og finnmark",
+      fylke_name_clean %in% c("vestfold", "telemark") ~ "vestfold og telemark",
+      fylke_name_clean %in% c("akershus", "ostfold", "buskerud") ~ "viken",
+      TRUE ~ fylke_name_clean
     )
   ) |>
-  dplyr::select(period, region_fylke_name_clean, scaled_value) |>
+  dplyr::select(period, fylke_name_clean, scaled_value) |>
   dplyr::distinct()
 
 # Join on cleaned names directly (across all periods)
 joined <- norway_counties_collapsed |>
-  dplyr::left_join(county_for_join, by = c("geom_name_clean" = "region_fylke_name_clean"))
+  dplyr::left_join(county_for_join, by = c("geom_name_clean" = "fylke_name_clean"))
 
 # Simple choropleth of scaled value (0-1)
 ggplot(joined) +
@@ -957,8 +973,8 @@ regions_geom <- regions_layer |>
 # Diagnostics: geometry vs data names and multi-region counties
 geom_names <- norway_counties |> dplyr::pull(name_1) |> clean_nm() |> unique()
 data_names <- county_scaled_all_periods |>
-  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
-  dplyr::pull(region_fylke_name_clean) |> unique()
+  dplyr::mutate(fylke_name_clean = clean_nm(fylke_name)) |>
+  dplyr::pull(fylke_name_clean) |> unique()
 
 cat("\n[Diag] In geometry but not in data (first 20):\n")
 print(utils::head(setdiff(geom_names, data_names), 20))
@@ -966,8 +982,8 @@ cat("\n[Diag] In data but not in geometry (first 20):\n")
 print(utils::head(setdiff(data_names, geom_names), 20))
 
 multi_region_counties <- lsk_data |>
-  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
-  dplyr::group_by(region_fylke_name_clean) |>
+  dplyr::mutate(fylke_name_clean = clean_nm(fylke_name)) |>
+  dplyr::group_by(fylke_name_clean) |>
   dplyr::summarise(n_regions = dplyr::n_distinct(region_code),
                    regions = paste(sort(unique(region_code)), collapse = ","), .groups = "drop") |>
   dplyr::filter(n_regions > 1) |>
@@ -982,12 +998,12 @@ dominant_region_by_period <- lsk_data |>
     sesong %in% reporting_periods[[2]] ~ names(reporting_periods)[2],
     sesong %in% reporting_periods[[3]] ~ names(reporting_periods)[3]
   )) |>
-  dplyr::mutate(region_fylke_name_clean = clean_nm(region_fylke_name)) |>
-  dplyr::group_by(period, region_fylke_name_clean, region_code) |>
+  dplyr::mutate(fylke_name_clean = clean_nm(fylke_name)) |>
+  dplyr::group_by(period, fylke_name_clean, region_code) |>
   dplyr::summarise(area_weight = sum(au_areal, na.rm = TRUE), .groups = "drop") |>
-  dplyr::group_by(period, region_fylke_name_clean) |>
+  dplyr::group_by(period, fylke_name_clean) |>
   dplyr::slice_max(area_weight, n = 1) |>
-  dplyr::distinct(period, region_fylke_name_clean, .keep_all = TRUE) |>
+  dplyr::distinct(period, fylke_name_clean, .keep_all = TRUE) |>
   dplyr::ungroup()
 cat("\n[Diag] Dominant region per county and period (first 20):\n")
 print(utils::head(dominant_region_by_period, 20))
