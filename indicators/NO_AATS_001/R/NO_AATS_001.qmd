@@ -472,25 +472,6 @@ lsk_data_raw <- read_csv(here("indicators", "NO_AATS_001", "data", "LSK_data_nat
 
 ```
 
-```{r filter-data}
-
-# Define multiple 5-year reporting periods starting from 2010
-# Data starts in 2010, so we create 5-year periods: 2010-2014, 2015-2019, 2020-2024
-reporting_periods <- list(
-  "2010-2014" = 2010:2014,
-  "2015-2019" = 2015:2019,
-  "2020-2024" = 2020:2024
-)
-
-# Filter out Finnmark flats marked for removal (merket_finnm == 1)
-# Keep all years for now, we'll filter by period in calculations
-lsk_data <- lsk_data_raw |> 
-  filter(merket_finnm == 0) |>
-  # Keep only data from 2010 onward (start of reporting periods)
-  filter(sesong >= 2010)
-
-```
-
 ## 8. Spatial units
 
 <!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
@@ -509,17 +490,36 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 -->
 
-### 9.1 Create derived variables
+### 9.1 Prepare data and create derived variables
 
-This section creates the key derived variables needed for the indicator calculation. We first remove plots with missing data for alien species percentages to ensure reliable calculations.
+This section creates the key derived variables needed for the indicator calculation.
+We first remove plots with missing data for alien species percentages.
 We then standardise geography fields used throughout the analysis: `region_code` (assigned based on county name per specification), the readable county name `fylke_name` (numeric prefixes removed and split counties merged), and a normalised join key `fylke_name_clean`.
 Next, we compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100).
 Finally, we create area-weighted values by multiplying the indicator by the plot’s area weight.
 
+```{r reporting-periods}
+
+# Define multiple 5-year reporting periods starting from 2010
+# Data starts in 2010, so we create 5-year periods: 2010-2014, 2015-2019, 2020-2024
+reporting_periods <- list(
+  "2010-2014" = 2010:2014,
+  "2015-2019" = 2015:2019,
+  "2020-2024" = 2020:2024
+)
+
+```
+
 ```{r create-derived-variables}
 
+# Filter out Finnmark flats marked for removal (merket_finnm == 1)
+# Keep all years for now, we'll filter by period in calculations
+lsk_data <- lsk_data_raw |> 
+  filter(merket_finnm == 0) |>
+  # Keep only data from 2010 onward (start of reporting periods)
+  filter(sesong >= 2010) |>
+
 # Remove rows with NA values for alien species percentages
-lsk_data <- lsk_data |>
 # IS THIS CORRECT TO REMOVE THE NAS?
   filter(!is.na(intro_gran_pr) & !is.na(intro_furu_pr)) |>
 # Calculate derived variables and standardised region/fylke fields
@@ -558,6 +558,10 @@ lsk_data <- lsk_data |>
     # Weighted values: indicator value * au_areal
     indicator_continuous_weighted = indicator_continuous * au_areal
   )
+
+```
+
+```{r select-downstream-fields}
 
 # Keep only the fields used downstream to simplify processing
 lsk_data <- lsk_data |>
