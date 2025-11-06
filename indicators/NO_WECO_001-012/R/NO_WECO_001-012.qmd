@@ -13,6 +13,85 @@ subtitle: |
   [NO_WECO_010] (average status of rivers) \
   [NO_WECO_011] (average status of lakes) \
   [NO_WECO_012] (average status of coast) \
+# delete the line with the second indicatorID (line 5) 
+# if it's not relevant for you.
+# In the parentheses you can add a word to distinguish multiple indicators 
+# from each other, for example the ecosystem type that they cover
+indicatorID: 
+  - NO_WECO_001
+  - NO_WECO_002
+  - NO_WECO_003
+  - NO_WECO_004
+  - NO_WECO_005
+  - NO_WECO_006
+  - NO_WECO_007
+  - NO_WECO_008
+  - NO_WECO_009
+  - NO_WECO_010
+  - NO_WECO_011
+  - NO_WECO_012
+# If you are presenting multiple indicators, and have multiple 
+# indicator IDs, then add them as a list here, and make sure you add
+# the same number of list entries, 
+# and in the same order that corresponds to the indicator IDs,  
+# to the meta data fields where the indicators differ. 
+# For example, if the indicators cover different ecosystem types, 
+# add the ecosystems as a list under 'Ecosystems', but if they are in the
+# same realm, same country etc., then you only need to write the realm and
+# country once. 
+indicatorName: 
+  - Ecological status of surface water # add more by adding another line starting '-'
+country: Norway
+continent: Europe
+ECT: Other # e.g. A2 - Chemical State characteristics
+Realm: 
+  - Freshwater (F)
+  - Freshwater (F)
+  - Marine (F)
+  - Freshwater (F)
+  - Freshwater (F)
+  - Marine (F)
+  - Freshwater (F)
+  - Freshwater (F)
+  - Marine (F)
+  - Freshwater (F)
+  - Freshwater (F)
+  - Marine (F)
+Biome: 
+  - F1 Rivers and streams biome
+  - F2 Lakes biome
+  - M1 Marine shelf biome
+  - F1 Rivers and streams biome
+  - F2 Lakes biome
+  - M1 Marine shelf biome
+  - F1 Rivers and streams biome
+  - F2 Lakes biome
+  - M1 Marine shelf biome
+  - F1 Rivers and streams biome
+  - F2 Lakes biome
+  - M1 Marine shelf biome
+Ecosystem: 
+  - F1.3 Freeze-thaw streams
+  - F2.4 Freeze-thaw freshwater lakes
+  - Several ecosystems
+  - F1.3 Freeze-thaw streams
+  - F2.4 Freeze-thaw freshwater lakes
+  - Several ecosystems
+  - F1.3 Freeze-thaw streams
+  - F2.4 Freeze-thaw freshwater lakes
+  - Several ecosystems
+  - F1.3 Freeze-thaw streams
+  - F2.4 Freeze-thaw freshwater lakes
+  - Several ecosystems
+yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2025
+status: deprecated # options are complete, incomplete, or deprecated
+Version: "000.900" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: First complete version # Describe briefly how this version differs from earlier versions 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WECO_001-012
+# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Truncate - Scale - Transform - Aggregate # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
 format: 
   html:
     embed-resources: true
@@ -29,7 +108,11 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research
-date: October 17, 2025 
+AuthorList: Sandvik, H.
+date: November 6, 2025 # Enter date
+data_availability: gold
+code_reproducibility: silver
+open_science_badge: silver
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -45,11 +128,22 @@ code-links:
 
 ```{r setup}
 #| include: false
+#| cache: false
 library(knitr)
 library(tidyverse)
 library(kableExtra)
 library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
 library(foreign)
 library(sf)
 library(readxl)
@@ -58,96 +152,155 @@ library(sp)
 
 ```{r source}
 #| echo: false
+#| cache: false
 source(here::here("_common.R"))
 ```
 
-```{r}
+```{r extractFromYML}
 #| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
+#| cache: false
+this_file <- get_file_info()
+
+# Read the YAML front matter
+lines <- readLines(this_file$path, warn = FALSE)
+dash_lines <- which(trimws(lines) == "---")
+yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
+yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
+
+# Robust flatten function
+flatten_to_string <- function(x) {
+  if (is.list(x)) {
+    # recursively flatten any nested lists
+    x <- unlist(x, recursive = TRUE)
+  }
+  # convert to single string
+  paste(x, collapse = "; ")
+}
+
+# Apply to all YAML entries
+yaml_data_flat <- lapply(yaml_data, flatten_to_string)
+
+# Create tibble
+meta <- tibble::enframe(yaml_data_flat, name = "Variable", value = "Value")
+
+# Check structure
+#str(meta)
+
 st <- meta |>
-  filter(Variable == "status") |>
+  dplyr::filter(Variable == "status") |>
   pull(Value)
 version <- meta |>
-  filter(Variable == "Version") |>
+  dplyr::filter(Variable == "Version") |>
   pull(Value)
 auth <- meta |>
-  filter(Variable == "authors") |>
+  dplyr::filter(Variable == "AuthorList") |>
   pull(Value)
 year <- meta |>
-  filter(Variable == "yearAdded") |>
+  dplyr::filter(Variable == "yearAdded") |>
   pull(Value)
 id <- meta |>
-  filter(Variable == "indicatorID") |>
+  dplyr::filter(Variable == "indicatorID") |>
   pull(Value)
 name <- meta |>
-  filter(Variable == "indicatorName") |>
+  dplyr::filter(Variable == "indicatorName") |>
   pull(Value)
 url <- meta |>
-  filter(Variable == "url") |>
+  dplyr::filter(Variable == "url") |>
+  pull(Value)
+badges<-meta |> 
+  dplyr::filter(Variable %in% c("data_availability",
+         "code_reproducibility", "open_science_badge")) |> 
   pull(Value)
 
 meta <- meta |>
-  mutate(Variable = case_match(Variable,
+  dplyr::mutate(Variable = dplyr::case_match(Variable,
     "indicatorID" ~ "Indicator ID" ,
     "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
     "continent" ~ "Continent",
+    "country" ~ "Country",
     "ECT" ~ "Ecosystem Condition Typology Class",
     "yearAdded" ~ "Year added",
     "yearLastUpdate" ~ "Last update",
+    "VersionComment" ~ "Version comment",
+    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
     .default = Variable
-   )
-  ) |>
-  filter(Variable != "authors")
+  )) |>
+  dplyr::filter(Variable != "authors")
 
 ```
+
+
 
 <!--# The following parts are autogenerated. Do not edit. -->
 
-```{r}
+::: {layout-ncol="5"}
+
+```{r statusBadge}
 #| echo: false
-#| results: asis
-status(st)
+status_badge(as.character(st))
 ```
 
-::: {layout-ncol="2"}
-
-
-
-> **Recommended citation**: `r paste("\n", auth, " ", year, ". ", name, " (ID: ", id[1], "--012) ", "v. ", version, ". ecRxiv: ", url, sep="")`
-
-> **Version**: `r version`
-
-:::
-
-```{=html}
-<details>
-<summary>Show metadata</summary>
+```{r versionBadge}
+#| echo: false
+version_badge(version_number = as.character(version[[1]]))
 ```
 
-```{r tbl-meta}
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
-
-```{=html}
-</details>
-```
+:::
 
 ::: {.callout-tip collapse="true"}
 
-## Logg
+## Log
 
 <!--# Update this logg with short messages for each update -->
 - 12 Aug 2025 - Version 000.900 started: first complete version
-- 17 Oct 2025 - Version 000.900 submitted to review
 - 29 Oct 2025 - Code review by ALK
+- 06 Nov 2025 - Version 000.900 revised and ready for publication
 :::
 
 
@@ -157,18 +310,17 @@ meta |>
 
 ## 1. Summary
 
+1. **Background and rationale**:
 The [*Water Framework Directive*](#wfd) (hereafter **WFD**) has established a system to describe the ecological status of rivers (+&nbsp;canals), lakes (+&nbsp;reservoirs) and coastal waters (collectively referred to as *surface waters*). 
 Within this framework, ecological status is assessed using a set of *parameters* (indicators) that express the condition of *biological quality elements* (aquatic flora, fish fauna, invertebrate fauna, phytoplankton) and *supporting elements* (hydromorphology, chemical and physico-chemical conditions) relative to anthropogenic *pressures* (such as acidification, eutrophication, pollution, regulation). 
 Parameters are measured in (or transformed to) a common scale from 0 to 1, called *normalized Ecological Quality Ratio* (nEQR; equivalent to scaled indicators in [SEEA&nbsp;EA](#seeaea)). 
-The overall status of a water body is determined by the quality element with the lowest nEQR (i.e., parameters are combined using the one-out--all-out principle rather than averaging).
-
+The overall status of a water body is determined by the quality element with the lowest nEQR (i.e., parameters are combined using the one-out--all-out principle rather than averaging).<br />
 Whereas several WFD parameters are applicable and valid as ecosystem condition indicators according to SEEA&nbsp;EA (see [section&nbsp;3.3](#collinearities-with-other-indicators)), Eurostat has also recommended the use of the "percentage of rivers and canals / lakes and reservoirs with *good ecological status*" (i.e., nEQR > 0.6) as an ecosystem condition indicator. 
 However, such an indicator is incompatible with the SEEA&nbsp;EA guidelines and has undesirable mathematical properties: 
 (**1**)&nbsp;many different parameters are combined in one *composite* index; 
 (**2**)&nbsp;in doing so, the one-out--all-out (*1OAO*) principle is used; 
 (**3**)&nbsp;values are not weighted by the *area* of the ecosystem assets; 
-(**4**)&nbsp;the indicator uses *proportions* and cut-off values (0.6) rather than actual values (see [section&nbsp;3.6](#drawbacks) for more detail).
-
+(**4**)&nbsp;the indicator uses *proportions* and cut-off values (0.6) rather than actual values (see [section&nbsp;3.6](#drawbacks) for more detail).<br />
 For these reasons, we discourage the use of this indicator. 
 As it is recommended by Eurostat, however, we here document how it can be estimated, and how *some* (but emphatically not all) of its incompatibilities with SEEA&nbsp;EA can be removed by modifying its definition. 
 The definitions suggested are 
@@ -195,25 +347,21 @@ With four indicator definitions and three ecosystem types (or "surface water cat
 
 : Overview of indicators. {#tbl-overview .striped .hover}
 
-&nbsp;
-
+<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
+What are the main anthropogenic impact factors? -->
+2. **Methods**:
 In Norway, the WFD is implemented through [*Vannforskriften*](#vannf), and relevant parameters are described in national guidelines ([DGVF 2025](#veil2)). 
 The status assessments of Norwegian water bodies are available from the [*Vann-nett*](#vannn) database.
-
-> ### Interpretation
-For indicators NO_WECO_001--009, a value of 1 signifies that all water bodies deviate only slightly, if at all, from undisturbed conditions; values decreasing toward zero reflect lower percentages of water bodies meeting this criterion. For indicators NO_WECO_010--012, a value of 1 signifies a condition where there is little or no human impact on the water body; values decreasing toward zero reflect negative ecological change.
-
-<!--# 
-With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of commmon language summary. It is a good idea to include a bullet point list of the spesific steps in the workflow. Include a mention of the following aspects:
-
-What does the metric represent?
-Why is this relevant for describing ecosystem condition in this ecosystem?
-What are the main anthropogenig impact factors?
-What kind of data is used? 
-Shortly, how is the data customized (modified, estimated, integarted) to fit its purpuse as an indicator?
-What is the current status of  the metric (can it be used or is it still in development)?
-How should the metric be used and interpretted, and how should it not be used/interpretted?
--->
+<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+3. **Interpretation**:
+<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
+For indicators NO_WECO_001--009, a value of 1 signifies that all water bodies deviate only slightly, if at all, from undisturbed conditions; 
+values decreasing toward zero reflect lower percentages of water bodies meeting this criterion. 
+For indicators NO_WECO_010--012, a value of 1 signifies a condition where there is little or no human impact on the water body; 
+values decreasing toward zero reflect negative ecological change.
+4. **Results and development needs**:
+The indicator is ready for use in principle, but is tagged as "deprecated" because its use cannot be recommended for reasons that cannot be overcome by further development.
+<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
 
 ## 2. About the underlying data
@@ -225,7 +373,7 @@ Information on the ecological status of all Norwegian water bodies is collected 
 ### 2.1 Spatial and temporal resolution and extent
 
 The **spatial** resolution of WFD data is on the level of *water bodies*. 
-The WFD defines a water body (specifically a "body of surface water") as "a discrete and significant element of surface water such as a lake, a reservoir, a stream, river or canal, [or] part of a stream, river or canal" (WFD, Article 2, paragraph 10; cf. *Vannforskriften* §&nbsp;3, letter a; for implementation, see [DGVF 2018](#veil1), ch. 2).
+The WFD defines a water body (specifically a "body of surface water") as "a discrete and significant element of surface water such as a lake, a reservoir, a stream, river or canal, [or] part of a stream, river or canal" (WFD, Article 2, paragraph 10; cf. *Vannforskriften* §&nbsp;3, letter&nbsp;a; for implementation, see [DGVF 2018](#veil1), ch.&nbsp;2).
 
 There is no specific **temporal** resolution, as measurements of WFD indicators are reported sporadically. 
 The estimation of overall ecological status is based on measurements from the most recent six years within the ten-year interval up to and including the current year.
@@ -312,7 +460,7 @@ The WFD parameters that have been implemented as ecosystem condition indicators 
 | Total phosphorus | [NO_WTPX_002](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WTPX_001_002) | Lake | A2 | chemical | eutrophication |
 | Water level<br />regulation | [NO_WLEV_001](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WLEV_001) | Lake | A1 | hydromorphology | regulation |
 
-: {.striped .hover}
+: Other freshwater indicators. {#tbl-other-indicators .striped .hover}
 
 &nbsp;
 
@@ -324,13 +472,13 @@ To illustrate how this might be carried out in line with "WFD thinking" (as desc
 For rivers, such an index might thus be calculated as
 
 $$
-(ASPT / 3 + PIT / 3 + TP / 3) / 2 + (RAMI / 3 + API / 3 + ANC / 9 + LAL / 9 + PH / 9) / 2
+(\text{ASPT} / 3 + \text{PIT} / 3 + \text{TP} / 3) / 2 + (\text{RAMI} / 3 + \text{API} / 3 + \text{ANC} / 9 + \text{LAL} / 9 + \text{PH} / 9) / 2
 $$
 
 Analogously, a lake condition index might be calculated as
 
 $$
-(PTI / 3 + CHL / 6 + PPB / 6 + TP / 3) / 3 + (ANC / 3 + LAL / 3 + PH / 3) / 3 + WLEV / 3
+(\text{PTI} / 3 + \text{CHL} / 6 + \text{PPB} / 6 + \text{TP} / 3) / 3 + (\text{ANC} / 3 + \text{LAL} / 3 + \text{PH} / 3) / 3 + \text{WLEV} / 3
 $$
 
 These index definitions only include WFD indicators. 
@@ -361,7 +509,7 @@ The two remaining definitions ([**C**](#indicator-definition-c) and [**D**](#ind
 
 ### 3.6. Drawbacks
 
-Ecological status of surface water is a variable recommended for ecosystem condition accounting by Eurostat (see [Czúcz et al. 2025](#czu25)). 
+Ecological status of surface water is a metric recommended for ecosystem condition accounting by Eurostat (see [Czúcz et al. 2025](#czu25)). 
 However, the [indicator definition suggested by Eurostat](#indicator-definition-a) (and, to a lesser degree, the [modifications tested below](#analyses)) has at least four undesirable properties, which makes it incompatible with the [SEEA&nbsp;EA](#seeaea) guidelines. 
 These are:
 
@@ -633,7 +781,7 @@ for (i in 1:nrow(V)) {
 }
 ```
 
-The resulting dataset can be shown an a map (@fig-map).
+The resulting dataset can be shown an a map (@fig-map) ...
 
 ```{r fig-map}
 #| fig-cap: "Map of all river and lake water bodies in Norway, using WFD colour coding for ecological status classes."
@@ -846,17 +994,17 @@ for (vannkategori in c("R", "L", "C")) {
 As expected, indicator values estimated in accordance with definition **B** are higher than ones estimated with definition&nbsp;**A**. 
 This is because **A** considers all heavily modified water bodies to be in less than "good" status, wheres **B** equates "good potential" with "good status", so that the fraction increases by an amount corresponding to water bodies in the latter condition. 
 Both approaches are defendable: 
-**A** is obviously in better accordance with the definition of "heavily modified water bodies" ([see above](#reference-levels)), precisely because it implies that "good status" is unachievable for them. 
+**A** is obviously in better accordance with the definition of "heavily modified water bodies" ([see above](#reference-levels)), precisely because this definition implies that "good status" is unachievable for them. 
 For water management, however, it is reasonable to concentrate on the "second-best goal" available for such water bodies, which is ensuring "good potential". 
 Counting water bodies with "good potential" as a management success, as definition **B** does, therefore makes some sense. 
-Such considerations should not normally be allowed to influence an ecosystem condition account however, so that **B** is even less in line with [SEEA&nbsp;EA](#seeaea) than&nbsp;**A**.
+Such considerations should not normally be allowed to influence an ecosystem condition account, however, so that **B** is even less in line with [SEEA&nbsp;EA](#seeaea) than&nbsp;**A**.
 
 The difference between definitions **A** and **C** is that **A** ignores the size of the water bodies. 
 As can be seen from the results, this may lead to deviations in both directions. 
 In the case of lakes, smaller water bodies have a better ecological status, on average, than larger water bodies. 
 Therefore, the area-weighted indicator (**C**) is lower than the unweighted one (**A**). 
 For river and coastal water bodies, the reverse seems to be the case, since the size-weighted indicator values are higher than the unweighted ones. 
-(It should be mentioned that the area of a lake water body is an ecologically relevant characteristic of the lake, whereas the length of river water bodies and area of coastal water is not, since the delineation of these water bodies is arbitrary.) 
+(It should be mentioned that the area of a lake water body is an ecologically relevant characteristic of the lake, whereas the length of river water bodies and area of coastal water are not, since the delineation of these water bodies is arbitrary.) 
 Area-weighted indicators are clearly more in line with SEEA&nbsp;EA ([see above](#drawbacks)).
 
 Finally, the difference between definitions **C** and **D** is that **C** ignores the precise value of the underlying variable by purely counting the proportion of water bodies reaching a certain threshold ([see above](#drawbacks)). 
@@ -897,7 +1045,7 @@ The estimates are based on 10,000 iterations and therefore differ from the ones 
 | NO_WECO_007  | [Def. C](#indicator-definition-c) | 0.697         | 0.694          | 0.700          |
 | NO_WECO_010  | [Def. D](#indicator-definition-d) | 0.696         | 0.694          | 0.697          |
 
-: Indicator values for different definitions of ecological status of rivers in Norway in 2025 {.striped .hover}
+: Indicator values for different definitions of ecological status of rivers in Norway in 2025 {#tbl-results_rivers .striped .hover}
 
 ### 10.2. Lakes
 
@@ -908,7 +1056,7 @@ The estimates are based on 10,000 iterations and therefore differ from the ones 
 | NO_WECO_008  | [Def. C](#indicator-definition-c) | 0.461         | 0.457          | 0.463          |
 | NO_WECO_011  | [Def. D](#indicator-definition-d) | 0.605         | 0.603          | 0.608          |
 
-: Indicator values for different definitions of ecological status of lakes in Norway in 2025 {.striped .hover}
+: Indicator values for different definitions of ecological status of lakes in Norway in 2025 {#tbl-results-lakes .striped .hover}
 
 ### 10.3. Coastal waters
 
@@ -919,7 +1067,7 @@ The estimates are based on 10,000 iterations and therefore differ from the ones 
 | NO_WECO_009  | [Def. C](#indicator-definition-c) | 0.808         | 0.791          | 0.822          |
 | NO_WECO_012  | [Def. D](#indicator-definition-d) | 0.709         | 0.703          | 0.714          |
 
-: Indicator values for different definitions of ecological status of coastal waters in Norway in 2025 {.striped .hover}
+: Indicator values for different definitions of ecological status of coastal waters in Norway in 2025 {#tbl-results-coast .striped .hover}
 
 <!--# 
 Repeat the final results here. Typically this is a map or table of indicator values.
