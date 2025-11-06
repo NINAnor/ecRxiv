@@ -2,10 +2,33 @@
 # Absence of alien coniferous tree species
 
 # Helper to merge split county names (e.g., Telemark SØ/NV -> Telemark)
+# Uses hard-coded mappings for reliability
 normalize_county_parts <- function(x) {
-  # remove trailing directional tokens (space or hyphen separated): SØ, NV, N, S, Ø, V
-  x <- stringr::str_replace(x, "[ -](SØ|SO|S\\u00D8|NV|NE|SV|SE|N|S|Ø|O|V)$", "")
+  # Hard-coded mapping for split counties that need to be merged
+  county_mapping <- c(
+    "Aust-Agder" = "Agder",
+    "Vest-Agder" = "Agder",
+    "Sør-Trøndelag" = "Trøndelag",
+    "Nord-Trøndelag" = "Trøndelag"
+  )
+  
+  # Clean up input
   x <- stringr::str_squish(x)
+  
+  # Apply mapping (vectorized)
+  x[x %in% names(county_mapping)] <- county_mapping[x[x %in% names(county_mapping)]]
+  
+  # For non-matched entries, remove trailing directional tokens (SØ, NV, etc.)
+  not_matched <- !x %in% names(county_mapping)
+  if (any(not_matched)) {
+    x[not_matched] <- stringr::str_replace_all(
+      x[not_matched], 
+      "(?i)[ -](SØ|SO|S\\u00D8|S\\u00F8|NV|NE|SV|SE|N|S|Ø|O|V)$", 
+      ""
+    ) |>
+      stringr::str_squish()
+  }
+  
   x
 }
 
@@ -13,10 +36,11 @@ normalize_county_parts <- function(x) {
 # Returns: "1"=Øst, "2"=Sør, "3"=Vest, "4"=Midt, "5"=Nord
 assign_region_code <- function(fylke_name_clean) {
   dplyr::case_when(
-    # Øst: Østfold, Oslo/Akershus, Innlandet, Buskerud, Vestfold
+    # Øst: Østfold, Oslo/Akershus, Innlandet (Hedmark + Oppland), Buskerud, Vestfold
     fylke_name_clean %in% c(
-      "ostfold", "oslo", "akershus", "oslo akershus",
-      "innlandet", "buskerud", "vestfold"
+      "ostfold", "oslo", "akershus", "oslo akershus", "oslo og akershus",
+      "innlandet", "hedmark", "oppland",
+      "buskerud", "vestfold"
     ) ~ "1",
 
     # Sør: Telemark + Agder
@@ -25,10 +49,9 @@ assign_region_code <- function(fylke_name_clean) {
     # Vest: Rogaland, Vestland (incl. historic Hordaland/Sogn og Fjordane names if present)
     fylke_name_clean %in% c("rogaland", "vestland", "hordaland", "sogn og fjordane") ~ "3",
 
-    # Midt: Møre og Romsdal + Trøndelag (incl. historic split names if present)
-    fylke_name_clean %in% c(
-      "more og romsdal", "trondelag", "sor-trondelag", "nord-trondelag"
-    ) ~ "4",
+    # Midt: Møre og Romsdal + Trøndelag
+    # Note: Sør-Trøndelag and Nord-Trøndelag are normalized to Trøndelag before this function
+    fylke_name_clean %in% c("more og romsdal", "trondelag") ~ "4",
 
     # Nord: Nordland, Troms, Finnmark (incl. combined Troms og Finnmark)
     fylke_name_clean %in% c(

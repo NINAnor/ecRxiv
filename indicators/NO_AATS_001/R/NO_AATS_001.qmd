@@ -531,9 +531,10 @@ lsk_data <- lsk_data_raw |>
   mutate(
 
     # County/fylke name without numeric prefixes (remove leading digits and separators like '-' or space)
-    fylke_name = stringr::str_squish(
-      stringr::str_replace_all(region_fylke, "^\\d+[- ]*", "")
-    ),
+    # Handle formats like "09 Aust-Agder" or "1-02 Oslo" 
+    # Simple approach: remove everything up to and including the first space after digits
+    fylke_name = stringr::str_replace(region_fylke, "^\\d+([- ]+\\d+)?\\s+", "") |>
+      stringr::str_squish(),
 
     # Merge split county variants (e.g., "Telemark SØ" and "Telemark NV" -> "Telemark")
     fylke_name = normalize_county_parts(fylke_name),
@@ -606,7 +607,7 @@ reference_values <- tibble(
 ### 9.3 Calculate raw indicator values (non-scaled)
 
 This section calculates area-weighted indicator values at different spatial scales for each 5‑year reporting period. 
-We use a tidyverse workflow to iterate over all periods and return a list containing county, region and national results per period.
+We iterate over all periods and return a list containing county, region and national results per period.
 County results are grouped by `fylke_name`, region results by `region_code`, and national by a single overall group.
 The national average is the area‑weighted mean across all plots.
 Area‑weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates.
@@ -620,8 +621,8 @@ all_results <- enframe(reporting_periods, name = "period", value = "years") |>
 
 # Combine results across all periods
 results_county_all_periods  <- map_dfr(all_results$res, "county")
-results_national_all_periods <- map_dfr(all_results$res, "national")
 results_region_all_periods <- map_dfr(all_results$res, "region")
+results_national_all_periods <- map_dfr(all_results$res, "national")
 
 ```
 
@@ -709,11 +710,14 @@ county_scaled_all_periods <- results_county_all_periods %>%
   )
 
 # Ensure region_code is present by joining from the source data (in case it was dropped upstream)
-county_scaled_all_periods <- county_scaled_all_periods %>%
-  left_join(
-    lsk_data %>% distinct(fylke_name, region_code),
-    by = "fylke_name"
-  )
+# Only join if region_code is missing
+if (!"region_code" %in% names(county_scaled_all_periods)) {
+  county_scaled_all_periods <- county_scaled_all_periods %>%
+    left_join(
+      lsk_data %>% distinct(fylke_name, region_code),
+      by = "fylke_name"
+    )
+}
 
 # Aggregate scaled county to regions (point estimates) for all periods
 region_scaled_agg_all_periods <- county_scaled_all_periods %>%
