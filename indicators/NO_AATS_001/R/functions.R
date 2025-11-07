@@ -38,8 +38,8 @@ assign_region_code <- function(fylke_name_clean) {
   dplyr::case_when(
     # Øst: Østfold, Oslo/Akershus, Innlandet (Hedmark + Oppland), Buskerud, Vestfold
     fylke_name_clean %in% c(
-      "ostfold", "oslo", "akershus", "oslo akershus", "oslo og akershus",
-      "innlandet", "hedmark", "oppland",
+      "ostfold", "oslo og akershus",
+      "hedmark", "oppland",
       "buskerud", "vestfold"
     ) ~ "1",
 
@@ -47,7 +47,7 @@ assign_region_code <- function(fylke_name_clean) {
     fylke_name_clean %in% c("telemark", "agder") ~ "2",
 
     # Vest: Rogaland, Vestland (incl. historic Hordaland/Sogn og Fjordane names if present)
-    fylke_name_clean %in% c("rogaland", "vestland", "hordaland", "sogn og fjordane") ~ "3",
+    fylke_name_clean %in% c("rogaland", "hordaland", "sogn og fjordane") ~ "3",
 
     # Midt: Møre og Romsdal + Trøndelag
     # Note: Sør-Trøndelag and Nord-Trøndelag are normalized to Trøndelag before this function
@@ -55,7 +55,7 @@ assign_region_code <- function(fylke_name_clean) {
 
     # Nord: Nordland, Troms, Finnmark (incl. combined Troms og Finnmark)
     fylke_name_clean %in% c(
-      "nordland", "troms", "finnmark", "troms og finnmark"
+      "nordland", "troms", "finnmark"
     ) ~ "5",
 
     TRUE ~ NA_character_

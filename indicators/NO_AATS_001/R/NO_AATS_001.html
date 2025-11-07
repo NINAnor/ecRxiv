@@ -5016,9 +5016,9 @@ border-right: 1px solid #e0e0e0;
   <ul class="collapse">
   <li><a href="#prepare-data-and-create-derived-variables" id="toc-prepare-data-and-create-derived-variables" class="nav-link" data-scroll-target="#prepare-data-and-create-derived-variables">9.1 Prepare data and create derived variables</a></li>
   <li><a href="#define-reference-values" id="toc-define-reference-values" class="nav-link" data-scroll-target="#define-reference-values">9.2 Define reference values</a></li>
-  <li><a href="#calculate-area-weighted-indicator-values-non-scaled" id="toc-calculate-area-weighted-indicator-values-non-scaled" class="nav-link" data-scroll-target="#calculate-area-weighted-indicator-values-non-scaled">9.3 Calculate area-weighted indicator values (non-scaled)</a></li>
-  <li><a href="#bootstrap-uncertainty-estimation-non-scaled" id="toc-bootstrap-uncertainty-estimation-non-scaled" class="nav-link" data-scroll-target="#bootstrap-uncertainty-estimation-non-scaled">9.4 Bootstrap uncertainty estimation (non-scaled)</a></li>
-  <li><a href="#scale-at-county-then-aggregate-scaled-to-regions-and-national" id="toc-scale-at-county-then-aggregate-scaled-to-regions-and-national" class="nav-link" data-scroll-target="#scale-at-county-then-aggregate-scaled-to-regions-and-national">9.5 Scale at county, then aggregate scaled to regions and national</a></li>
+  <li><a href="#calculate-non-scaled-area-weighted-indicator-values" id="toc-calculate-non-scaled-area-weighted-indicator-values" class="nav-link" data-scroll-target="#calculate-non-scaled-area-weighted-indicator-values">9.3 Calculate non-scaled area-weighted indicator values</a></li>
+  <li><a href="#bootstrap-uncertainty-estimation-for-non-scaled-indicator-values" id="toc-bootstrap-uncertainty-estimation-for-non-scaled-indicator-values" class="nav-link" data-scroll-target="#bootstrap-uncertainty-estimation-for-non-scaled-indicator-values">9.4 Bootstrap uncertainty estimation for non-scaled indicator values</a></li>
+  <li><a href="#scale-indicator-values-at-county-level-and-aggregate-to-regional-and-national-levels" id="toc-scale-indicator-values-at-county-level-and-aggregate-to-regional-and-national-levels" class="nav-link" data-scroll-target="#scale-indicator-values-at-county-level-and-aggregate-to-regional-and-national-levels">9.5 Scale indicator values at county level and aggregate to regional and national levels</a></li>
   </ul></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">10. Results</a>
   <ul class="collapse">
@@ -5181,7 +5181,7 @@ Table 1: Indicator metadata
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Ecosystem Condition Typology Class</td>
-<td style="text-align: left;">what needs to be here</td>
+<td style="text-align: left;">B1 Biotic compositional characteristic</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Realm</td>
@@ -5423,7 +5423,8 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 -->
 <section id="prepare-data-and-create-derived-variables" class="level3">
 <h3 class="anchored" data-anchor-id="prepare-data-and-create-derived-variables">9.1 Prepare data and create derived variables</h3>
-<p>This section prepares the data and creates the key derived variables needed for the indicator calculation. We first remove the Finnmark plots marked for removal and then remove plots with missing data for alien species percentages. We then standardise geography fields used throughout the analysis: <code>region_code</code> (assigned based on county name per specification), the readable county name <code>fylke_name</code> (numeric prefixes removed and split counties merged), and a normalised join key <code>fylke_name_clean</code>. Next, we compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100). Finally, we create area-weighted values by multiplying the indicator value for each plot by the variable <code>au_areal</code> (the area weight for that plot).</p>
+<p>This section prepares the data and creates the key derived variables needed for the indicator calculation.</p>
+<p>First we define the reporting periods.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5436,6 +5437,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
+<p>We then remove the Finnmark plots marked for removal, filter for data from 2010 onward and remove plots with missing data for alien species percentages. We then standardise geography fields used throughout the analysis: <code>region_code</code> (assigned based on county name per specification), the readable county name <code>fylke_name</code> (numeric prefixes removed and split counties merged), and a normalised join key <code>fylke_name_clean</code>. Next, at the plot levelwe compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100). Finally, we create area-weighted values by multiplying the indicator value for each plot by the variable <code>au_areal</code> (the area weight for that plot).</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5449,8 +5451,8 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(sesong <span class="sc">&gt;=</span> <span class="dv">2010</span>) <span class="sc">|&gt;</span></span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove rows with NA values for alien species percentages</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># IS THIS CORRECT TO REMOVE THE NAS?</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(intro_gran_pr) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(intro_furu_pr)) <span class="sc">|&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(intro_gran_pr) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(intro_furu_pr)) <span class="sc">|&gt;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate derived variables and standardised region/fylke fields</span></span>
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
@@ -5494,6 +5496,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
+<p>Finally, we select the fields used downstream to simplify processing.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5528,9 +5531,9 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 </details>
 </div>
 </section>
-<section id="calculate-area-weighted-indicator-values-non-scaled" class="level3">
-<h3 class="anchored" data-anchor-id="calculate-area-weighted-indicator-values-non-scaled">9.3 Calculate area-weighted indicator values (non-scaled)</h3>
-<p>This section calculates area-weighted indicator values at different spatial scales for each 5‑year reporting period. To calculate the indicator values, we iterate over all periods and return a list containing county, region and national results per period. County results are grouped by <code>fylke_name</code>, region results by <code>region_code</code>, and national by a single overall group. The national average is the area‑weighted mean across all plots. Area‑weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates.</p>
+<section id="calculate-non-scaled-area-weighted-indicator-values" class="level3">
+<h3 class="anchored" data-anchor-id="calculate-non-scaled-area-weighted-indicator-values">9.3 Calculate non-scaled area-weighted indicator values</h3>
+<p>This section calculates area-weighted indicator values at different spatial scales for each 5‑year reporting period. The plot-level data (percentage absence of alien species <code>indicator_continuous_weighted = indicator_continuous * au_areal</code>) is used to calculate the indicator values by iterating over all periods and aggregate the plot-level data to different spatial scales: county, region, and national. County results are produced by grouping plots by <code>fylke_name</code> and calculating the area-weighted mean indicator value. Region results are produced by grouping plots by <code>region_code</code> and calculating the area-weighted mean indicator value. The national average is calculated as the area‑weighted mean across all plots (no grouping). Area‑weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates at each spatial scale.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5546,8 +5549,8 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 </details>
 </div>
 </section>
-<section id="bootstrap-uncertainty-estimation-non-scaled" class="level3">
-<h3 class="anchored" data-anchor-id="bootstrap-uncertainty-estimation-non-scaled">9.4 Bootstrap uncertainty estimation (non-scaled)</h3>
+<section id="bootstrap-uncertainty-estimation-for-non-scaled-indicator-values" class="level3">
+<h3 class="anchored" data-anchor-id="bootstrap-uncertainty-estimation-for-non-scaled-indicator-values">9.4 Bootstrap uncertainty estimation for non-scaled indicator values</h3>
 <p>This section quantifies uncertainty in the non‑scaled indicator estimates for each period. For each period, we bootstrap the national estimate from all plots and, separately, bootstrap county and region estimates by resampling plots within each county/region. For testing and faster renders, the bootstrap iteration count is set to 200 (will be changed to 1000 for final reporting). We then bind the results across periods with standard errors, 95% confidence intervals and quartiles.</p>
 <div class="cell">
 <details class="code-fold">
@@ -5626,9 +5629,9 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 </details>
 </div>
 </section>
-<section id="scale-at-county-then-aggregate-scaled-to-regions-and-national" class="level3">
-<h3 class="anchored" data-anchor-id="scale-at-county-then-aggregate-scaled-to-regions-and-national">9.5 Scale at county, then aggregate scaled to regions and national</h3>
-<p>We first scale the county values using the reference levels and then aggregate these scaled county values to the regions and to the national level using area weights. County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits and quartiles. For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 1000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.</p>
+<section id="scale-indicator-values-at-county-level-and-aggregate-to-regional-and-national-levels" class="level3">
+<h3 class="anchored" data-anchor-id="scale-indicator-values-at-county-level-and-aggregate-to-regional-and-national-levels">9.5 Scale indicator values at county level and aggregate to regional and national levels</h3>
+<p>We first scale the indicator values at the county level using the reference levels and then aggregate these scaled values to the regional and national scales using area weights. County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits and quartiles. For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 1000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5747,6 +5750,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <span id="cb8-113"><a href="#cb8-113" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">scaled_value =</span> median)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
+<p>Note that the scaling can also be done directly at the regional and national levels, by using the non-scaled indicator values. For this indicator, it makes no difference, because the scaling is linear.</p>
 </section>
 </section>
 <section id="results" class="level2">
@@ -5758,12 +5762,12 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <div id="tbl-county-results-table" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-county-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 2: County-level indicator values for absence of alien coniferous tree species by reporting period
+Table 2: County-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
 </figcaption>
 <div aria-describedby="tbl-county-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<div class="datatables html-widget html-fill-item" id="htmlwidget-2f0db2b88b05ee059d94" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-2f0db2b88b05ee059d94">{"x":{"filter":"none","vertical":false,"data":[["2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024"],["Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold"],[99.29000000000001,99.29000000000001,99.28,99.28,99.28,99.29000000000001,99.29000000000001,99.29000000000001,99.28,99.27,99.29000000000001,99.3,99.28,99.28,99.28,99.28,99.23999999999999,99.23,99.23,99.23,99.23,99.22,99.23,99.22,99.23,99.22,99.22,99.22,99.22,99.22,99.23,99.23,99.26000000000001,99.26000000000001,99.26000000000001,99.26000000000001,99.26000000000001,99.27,99.27,99.26000000000001,99.26000000000001,99.25,99.25,99.26000000000001,99.26000000000001,99.27,99.25,99.26000000000001],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[0.06,0.06,0.06,0.07000000000000001,0.06,0.07000000000000001,0.06,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.07000000000000001,0.06,0.07000000000000001,0.06,0.06,0.06,0.07000000000000001,0.06,0.07000000000000001,0.06,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.06,0.07000000000000001,0.06,0.06],[0.992,0.992,0.992,0.991,0.992,0.991,0.992,0.992,0.992,0.991,0.991,0.992,0.992,0.991,0.991,0.992,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.992,0.991,0.991,0.991,0.992,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.992],[0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.993,0.993,0.993,0.993,0.993,0.993,0.994,0.994,0.993,0.993,0.993,0.993,0.993,0.993,0.994,0.993,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994],[0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[872221,751388,835227,1678782,445181,444715,1148473,972300,340848,252044,427797,802663,728017,1630494,137889,269831,875636,740302,1034885,1665805,442026,443634,1148115,959772,341119,251865,438232,794912,727036,1635901,140683,265505,874194,740753,1043091,1661571,449226,445975,1141466,951571,337784,257983,444250,795633,721097,1628952,139241,260818],[977,845,173,1874,502,495,1194,1065,419,250,471,904,790,1867,168,325,985,832,239,1861,500,495,1199,1056,420,250,480,894,790,1875,174,317,981,841,240,1865,510,499,1196,1050,419,259,484,895,790,1871,174,317]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>Period<\/th>\n      <th>County<\/th>\n      <th>Indicator Value (%)<\/th>\n      <th>Scaled Value<\/th>\n      <th>Standard Error<\/th>\n      <th>CI Lower<\/th>\n      <th>CI Upper<\/th>\n      <th>Q1<\/th>\n      <th>Q3<\/th>\n      <th>Total Area (ha)<\/th>\n      <th>Number of Plots<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":10,"scrollX":true,"lengthMenu":[10,25,50,100],"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6,7,8,9,10]},{"name":"Period","targets":0},{"name":"County","targets":1},{"name":"Indicator Value (%)","targets":2},{"name":"Scaled Value","targets":3},{"name":"Standard Error","targets":4},{"name":"CI Lower","targets":5},{"name":"CI Upper","targets":6},{"name":"Q1","targets":7},{"name":"Q3","targets":8},{"name":"Total Area (ha)","targets":9},{"name":"Number of Plots","targets":10}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-aac94be206500d5662bb" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-aac94be206500d5662bb">{"x":{"filter":"none","vertical":false,"data":[["2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024"],["Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold"],[99.2832443935489,99.28106710750382,99.28674255670705,99.28534719519132,99.28596887572741,99.27789951064797,99.28045087101013,99.27942728828572,99.28522724412076,99.29239394462691,99.2882911679631,99.2913724864913,99.28503417017205,99.28667231099058,99.28246519741046,99.28111511112772,99.22264069560526,99.22022839485604,99.23353963416338,99.22071926970037,99.22041282603355,99.22697120170619,99.21855387824553,99.23131117186135,99.22674614487008,99.21935405853381,99.2286517154599,99.2372673715758,99.2110024774596,99.22265468648806,99.21926317107463,99.21791118613191,99.25679996413909,99.26746900083862,99.26180112199881,99.2631805444498,99.26132993183867,99.25434804823361,99.26215857406845,99.26202128976978,99.24906614624231,99.25758224504578,99.26325418604601,99.25871303533111,99.25942983060355,99.26833844983221,99.25955345732804,99.26356164475894],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.992,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[0.06,0.06,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.07000000000000001,0.07000000000000001,0.06,0.07000000000000001,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06],[0.991,0.992,0.992,0.991,0.992,0.991,0.991,0.992,0.991,0.992,0.992,0.991,0.991,0.992,0.991,0.992,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.992,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991],[0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.993,0.993,0.994,0.994,0.993,0.993,0.993,0.993,0.994,0.993,0.993,0.993,0.993,0.994,0.993,0.993,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994],[0.992,0.992,0.992,0.992,0.993,0.992,0.992,0.992,0.992,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[872221,751388,835227,1678782,445181,444715,1148473,972300,340848,252044,427797,802663,728017,1630494,137889,269831,875636,740302,1034885,1665805,442026,443634,1148115,959772,341119,251865,438232,794912,727036,1635901,140683,265505,874194,740753,1043091,1661571,449226,445975,1141466,951571,337784,257983,444250,795633,721097,1628952,139241,260818],[977,845,173,1874,502,495,1194,1065,419,250,471,904,790,1867,168,325,985,832,239,1861,500,495,1199,1056,420,250,480,894,790,1875,174,317,981,841,240,1865,510,499,1196,1050,419,259,484,895,790,1871,174,317]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>Period<\/th>\n      <th>County<\/th>\n      <th>indicator_value<\/th>\n      <th>Scaled Value<\/th>\n      <th>Standard Error<\/th>\n      <th>CI Lower<\/th>\n      <th>CI Upper<\/th>\n      <th>Q1<\/th>\n      <th>Q3<\/th>\n      <th>Total Area (ha)<\/th>\n      <th>Number of Plots<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":10,"scrollX":true,"lengthMenu":[10,25,50,100],"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6,7,8,9,10]},{"name":"Period","targets":0},{"name":"County","targets":1},{"name":"indicator_value","targets":2},{"name":"Scaled Value","targets":3},{"name":"Standard Error","targets":4},{"name":"CI Lower","targets":5},{"name":"CI Upper","targets":6},{"name":"Q1","targets":7},{"name":"Q3","targets":8},{"name":"Total Area (ha)","targets":9},{"name":"Number of Plots","targets":10}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 </figure>
@@ -5776,7 +5780,7 @@ Table 2: County-level indicator values for absence of alien coniferous tree spe
 <div id="tbl-region-results-table" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-region-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 3: Regional scaled indicator values by reporting period (with 95% CI)
+Table 3: Regional-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
 </figcaption>
 <div aria-describedby="tbl-region-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -5804,7 +5808,7 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">Øst</td>
 <td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.000</td>
-<td style="text-align: right;">0.997</td>
+<td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.999</td>
 <td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.999</td>
@@ -5829,8 +5833,8 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
 <td style="text-align: right;">0.965</td>
-<td style="text-align: right;">0.005</td>
-<td style="text-align: right;">0.956</td>
+<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.955</td>
 <td style="text-align: right;">0.973</td>
 <td style="text-align: right;">0.962</td>
 <td style="text-align: right;">0.968</td>
@@ -5842,8 +5846,8 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">4</td>
 <td style="text-align: left;">Midt</td>
 <td style="text-align: right;">0.992</td>
-<td style="text-align: right;">0.001</td>
-<td style="text-align: right;">0.990</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.989</td>
 <td style="text-align: right;">0.995</td>
 <td style="text-align: right;">0.991</td>
 <td style="text-align: right;">0.993</td>
@@ -5856,7 +5860,7 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">Nord</td>
 <td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.001</td>
-<td style="text-align: right;">0.990</td>
+<td style="text-align: right;">0.991</td>
 <td style="text-align: right;">0.995</td>
 <td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.994</td>
@@ -5868,7 +5872,7 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
 <td style="text-align: right;">0.998</td>
-<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.997</td>
 <td style="text-align: right;">0.999</td>
 <td style="text-align: right;">0.998</td>
@@ -5894,9 +5898,9 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
 <td style="text-align: right;">0.965</td>
-<td style="text-align: right;">0.005</td>
-<td style="text-align: right;">0.957</td>
-<td style="text-align: right;">0.974</td>
+<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.955</td>
+<td style="text-align: right;">0.973</td>
 <td style="text-align: right;">0.962</td>
 <td style="text-align: right;">0.968</td>
 <td style="text-align: right;">1132123</td>
@@ -5924,7 +5928,7 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: right;">0.990</td>
 <td style="text-align: right;">0.995</td>
 <td style="text-align: right;">0.992</td>
-<td style="text-align: right;">0.994</td>
+<td style="text-align: right;">0.993</td>
 <td style="text-align: right;">2910035</td>
 <td style="text-align: right;">2228</td>
 </tr>
@@ -5933,11 +5937,11 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
 <td style="text-align: right;">0.998</td>
-<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.997</td>
 <td style="text-align: right;">0.999</td>
 <td style="text-align: right;">0.998</td>
-<td style="text-align: right;">0.998</td>
+<td style="text-align: right;">0.999</td>
 <td style="text-align: right;">4091738</td>
 <td style="text-align: right;">4666</td>
 </tr>
@@ -5945,7 +5949,7 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">2</td>
 <td style="text-align: left;">Sør</td>
-<td style="text-align: right;">0.999</td>
+<td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.997</td>
 <td style="text-align: right;">1.000</td>
@@ -5958,10 +5962,10 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
-<td style="text-align: right;">0.964</td>
-<td style="text-align: right;">0.005</td>
-<td style="text-align: right;">0.954</td>
-<td style="text-align: right;">0.973</td>
+<td style="text-align: right;">0.963</td>
+<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.955</td>
+<td style="text-align: right;">0.972</td>
 <td style="text-align: right;">0.961</td>
 <td style="text-align: right;">0.967</td>
 <td style="text-align: right;">1151459</td>
@@ -5973,9 +5977,9 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">Midt</td>
 <td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.002</td>
-<td style="text-align: right;">0.988</td>
+<td style="text-align: right;">0.989</td>
 <td style="text-align: right;">0.995</td>
-<td style="text-align: right;">0.990</td>
+<td style="text-align: right;">0.991</td>
 <td style="text-align: right;">0.993</td>
 <td style="text-align: right;">2074927</td>
 <td style="text-align: right;">2370</td>
@@ -6008,7 +6012,7 @@ Table 3: Regional scaled indicator values by reporting period (with 95% CI)
 <div id="tbl-national-results-table" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-national-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 4: National scaled indicator values by reporting period (with 95% CI)
+Table 4: National-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
 </figcaption>
 <div aria-describedby="tbl-national-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -6034,7 +6038,7 @@ Table 4: National scaled indicator values by reporting period (with 95% CI)
 <td style="text-align: left;">National</td>
 <td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.001</td>
-<td style="text-align: right;">0.991</td>
+<td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.994</td>
 <td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.993</td>

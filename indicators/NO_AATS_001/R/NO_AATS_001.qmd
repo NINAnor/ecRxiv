@@ -21,7 +21,7 @@ indicatorName:
   - Alien coniferous tree species # add more by adding another line starting '-'
 country: Norway
 continent: Europe
-ECT: what needs to be here # e.g. A2 - Chemical State characteristics
+ECT: B1 Biotic compositional characteristic # e.g. A2 - Chemical State characteristics
 Realm: 
   - Terrestrial (T) # e.g. Freshwater (F)
 Biome: 
@@ -498,11 +498,8 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 ### 9.1 Prepare data and create derived variables
 
 This section prepares the data and creates the key derived variables needed for the indicator calculation.
-We first remove the Finnmark plots marked for removal and then remove plots with missing data for alien species percentages.
-We then standardise geography fields used throughout the analysis: `region_code` (assigned based on county name per specification), the readable county name `fylke_name` (numeric prefixes removed and split counties merged), and a normalised join key `fylke_name_clean`.
-Next, we compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100).
-Finally, we create area-weighted values by multiplying the indicator value for each plot by the variable `au_areal` (the area weight for that plot).
 
+First we define the reporting periods.
 ```{r reporting-periods}
 
 # Define multiple 5-year reporting periods starting from 2010
@@ -514,6 +511,11 @@ reporting_periods <- list(
 )
 
 ```
+
+We then remove the Finnmark plots marked for removal, filter for data from 2010 onward and remove plots with missing data for alien species percentages.
+We then standardise geography fields used throughout the analysis: `region_code` (assigned based on county name per specification), the readable county name `fylke_name` (numeric prefixes removed and split counties merged), and a normalised join key `fylke_name_clean`.
+Next, at the plot levelwe compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100).
+Finally, we create area-weighted values by multiplying the indicator value for each plot by the variable `au_areal` (the area weight for that plot).
 
 ```{r create-derived-variables}
 #| cache: false
@@ -527,8 +529,8 @@ lsk_data <- lsk_data_raw |>
   filter(sesong >= 2010) |>
 
 # Remove rows with NA values for alien species percentages
-# IS THIS CORRECT TO REMOVE THE NAS?
   filter(!is.na(intro_gran_pr) & !is.na(intro_furu_pr)) |>
+
 # Calculate derived variables and standardised region/fylke fields
   mutate(
 
@@ -573,6 +575,8 @@ lsk_data <- lsk_data_raw |>
 
 ```
 
+Finally, we select the fields used downstream to simplify processing.
+
 ```{r select-downstream-fields}
 
 # Keep only the fields used downstream to simplify processing
@@ -610,13 +614,14 @@ reference_values <- tibble(
 
 ```
 
-### 9.3 Calculate area-weighted indicator values (non-scaled)
+### 9.3 Calculate non-scaled area-weighted indicator values
 
 This section calculates area-weighted indicator values at different spatial scales for each 5‑year reporting period. 
-To calculate the indicator values, we iterate over all periods and return a list containing county, region and national results per period.
-County results are grouped by `fylke_name`, region results by `region_code`, and national by a single overall group.
-The national average is the area‑weighted mean across all plots.
-Area‑weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates.
+The plot-level data (percentage absence of alien species `indicator_continuous_weighted = indicator_continuous * au_areal`) is used to calculate the indicator values by iterating over all periods and aggregate the plot-level data to different spatial scales: county, region, and national.
+County results are produced by grouping plots by `fylke_name` and calculating the area-weighted mean indicator value.
+Region results are produced by grouping plots by `region_code` and calculating the area-weighted mean indicator value.
+The national average is calculated as the area‑weighted mean across all plots (no grouping).
+Area‑weighting ensures that plots representing larger forest areas have proportionally greater influence on the final estimates at each spatial scale.
 
 ```{r calculate-all-periods}
 
@@ -632,7 +637,7 @@ results_national_all_periods <- map_dfr(all_results$res, "national")
 
 ```
 
-### 9.4 Bootstrap uncertainty estimation (non-scaled)
+### 9.4 Bootstrap uncertainty estimation for non-scaled indicator values
 
 This section quantifies uncertainty in the non‑scaled indicator estimates for each period.
 For each period, we bootstrap the national estimate from all plots and, separately, bootstrap county and region estimates by resampling plots within each county/region.
@@ -715,9 +720,9 @@ results_national_non_scaled_uncertainty <- purrr::list_rbind(bootstrap_results_t
 
 ```
 
-### 9.5 Scale at county, then aggregate scaled to regions and national
+### 9.5 Scale indicator values at county level and aggregate to regional and national levels
 
-We first scale the county values using the reference levels and then aggregate these scaled county values to the regions and to the national level using area weights.
+We first scale the indicator values at the county level using the reference levels and then aggregate these scaled values to the regional and national scales using area weights.
 County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits and quartiles.
 For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 1000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.
 
@@ -839,6 +844,10 @@ national_scaled_agg_with_uncertainty <- national_scaled_agg_all_periods %>%
 
 ```
 
+Note that the scaling can also be done directly at the regional and national levels, by using the non-scaled indicator values.
+For this indicator, it makes no difference, because the scaling is linear.
+
+
 ## 10. Results
 
 The following tables present the indicator results at county, regional and national scales for each reporting period. 
@@ -848,14 +857,13 @@ Where relevant, 95% confidence intervals are shown.
 ### 10.1 County-level results (scaled with uncertainty)
 
 ```{r tbl-county-results-table}
-#| tbl-cap: 'County-level indicator values for absence of alien coniferous tree species by reporting period'
+#| tbl-cap: 'County-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
 #| echo: false
 
 county_tbl_df <- county_scaled_with_uncertainty |>
   select(period, fylke_name, indicator_value, scaled_value, se, scaled_ci_lower, scaled_ci_upper, 
          scaled_q1, scaled_q3, total_area, n_plots) |>
   mutate(
-    indicator_value = round(indicator_value, 2),
     scaled_value = round(scaled_value, 3),
     se = round(se, 2),
     scaled_ci_lower = round(scaled_ci_lower, 3),
@@ -867,7 +875,6 @@ county_tbl_df <- county_scaled_with_uncertainty |>
   rename(
     Period = period,
     County = fylke_name,
-    `Indicator Value (%)` = indicator_value,
     `Scaled Value` = scaled_value,
     `Standard Error` = se,
     `CI Lower` = scaled_ci_lower,
@@ -889,7 +896,7 @@ DT::datatable(
 ### 10.2 Regional results (aggregated with uncertainty)
 
 ```{r tbl-region-results-table}
-#| tbl-cap: 'Regional scaled indicator values by reporting period (with 95% CI)'
+#| tbl-cap: 'Regional-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
 #| echo: false
 
 region_scaled_agg_with_uncertainty |>
@@ -923,7 +930,7 @@ region_scaled_agg_with_uncertainty |>
 ### 10.3 National results (aggregated with uncertainty)
 
 ```{r tbl-national-results-table}
-#| tbl-cap: 'National scaled indicator values by reporting period (with 95% CI)'
+#| tbl-cap: 'National-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
 #| echo: false
 
 national_scaled_agg_with_uncertainty |>
