@@ -21,22 +21,22 @@ indicatorName:
   - Alien coniferous tree species # add more by adding another line starting '-'
 country: Norway
 continent: Europe
-ECT: write ECT here # e.g. A2 - Chemical State characteristics
+ECT: what needs to be here # e.g. A2 - Chemical State characteristics
 Realm: 
   - Terrestrial (T) # e.g. Freshwater (F)
 Biome: 
-  - write biome here # e.g. F1 Rivers and streams biome
+  - T2 Temperate-boreal forests and woodlands biome # e.g. F1 Rivers and streams biome
 Ecosystem: 
-  - write ecosystem here # e.g. F1.3 Freeze-thaw streams
+  - T2.1 Boreal/montane forests # e.g. F1.3 Freeze-thaw streams
 yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2025
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: Comment here # Describe briefly how this version differs from earlier versions 
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
+VersionComment: Inital version # Describe briefly how this version differs from earlier versions 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_AATS_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
-Normalised: # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Describe the aggregation using the standrdaise terminology # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Normalised: No # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Scale - aggregate (area-weighted arithmetic mean) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
 format: 
   html:
     embed-resources: true
@@ -55,10 +55,10 @@ author:
   - name: Ken Olav Storaunet       
     affiliations:             
         name: Norwegian Institute of Bioeconomy Research # Enter affiliations
-  - name: Aud H. Halbritter             
+  - name: Aud Helen Halbritter             
     affiliations:             
         name: University of Bergen # Enter affiliations
-AuthorList: Framstad, E. and Halbritter, A. H.
+AuthorList: Framstad, E. Storaunet, K. O. and Halbritter, A. H.
 date: October 26, 2025 # Enter date
 data_availability: gold
 code_reproducibility: bronze
@@ -636,7 +636,7 @@ results_national_all_periods <- map_dfr(all_results$res, "national")
 
 This section quantifies uncertainty in the non‑scaled indicator estimates for each period.
 For each period, we bootstrap the national estimate from all plots and, separately, bootstrap county and region estimates by resampling plots within each county/region.
-For testing and faster renders, the bootstrap iteration count is set to 200 (will be changed to 10000 for final reporting).
+For testing and faster renders, the bootstrap iteration count is set to 200 (will be changed to 1000 for final reporting).
 We then bind the results across periods with standard errors, 95% confidence intervals and quartiles.
 
 ```{r bootstrap-all-periods}
@@ -719,7 +719,7 @@ results_national_non_scaled_uncertainty <- purrr::list_rbind(bootstrap_results_t
 
 We first scale the county values using the reference levels and then aggregate these scaled county values to the regions and to the national level using area weights.
 County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits and quartiles.
-For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 10000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.
+For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 1000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.
 
 ```{r scale-and-aggregate}
 
