@@ -74,6 +74,9 @@ library(anybadger)
 library(yaml)
 library(tibble)
 library(conflicted)
+library(janitor)
+library(stringi)
+library(DT)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -87,6 +90,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #| echo: false
 #| cache: false
 source(here::here("_common.R"))
+source(here("indicators/NO_TDTA_001/R/functions.R"))
 ```
 
 ```{r extractFromYML}
@@ -231,7 +235,7 @@ meta |>
 ## Log
 
 <!--# Update this logg with short messages for each update -->
-- 01 Jan. 1901 - Original PR
+- 08 Nov. 2025 - Original PR
 :::
 
 
@@ -241,140 +245,120 @@ meta |>
 
 ## 1. Summary
 
-<!--# 
-With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. Follow the four numbers sub-headers below. under point 2, it is possible under  include a bullet point list of the specific steps in the workflow. 
- -->
-
 1. **Background and rationale**:
-<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
-What are the main anthropogenic impact factors? -->
+This indicator represents share of productive forest area with more than two vertical tree layers.
+In forests shaped by natural disturbances and succession, a substantial part of the forest will be multi-layered.
+Only where large stand-replacing disturbances occur at a certain intervals may one tree layer be characteristic.
+Modern even-aged forestry practices will result in one tree layer for much of the managed forest.
+Multi-layered forests will generally have more varied habitats and resources for species than a one-layered forest.
+This indicator has been proposed as a voluntary indicator in EU.
+
 2. **Methods**:
-<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+Data for this indicator come from the National Forest Inventory (NFI), where the number of tree layers within the 250 m^2^ NFI plot has been recorded for productive forest by current methods since the mid-1990s (@viken2021-feltinstruks).
+
 3. **Interpretation**:
-<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
-An indicator value of 1 signifies ...
-Values decreasing toward zero reflect...
+The estimated share of productive forest area with more than two tree layers will eventually be compared to a reference value for all forest, based on expert assessments supported by empirical data for near-natural forests and knowledge of ecosystem dynamics in intact forest ecosystems. Such reference values have not yet been determined for this indicator.
 
 4. **Results and development needs**:
-<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-
+Otherwise, the indicator is ready for use as a non-scaled variable.
+The indicator should not be used at finer spatial resolution than allows reliable estimates, probably regions.
 
 
 ## 2. About the underlying data
 
-<!--# Give a general introduction the datasets you have used, and provide more specific details in the sub-chapters.  -->
+The number of tree layers is recorded for each 250 m2 NFI inventory plot (@viken2021-feltinstruks). There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
+The indicator value is an unbiased area-weighted estimate of the share of the productive forest area with more than two tree layers, for included NFI plots in any selected region. All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year. For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024. The data are available upon request from NFI. 
 
 ### 2.1 Spatial and temporal resolution and extent
 
-<!--# Describe the temporal and spatial resolution and extent of the data used -->
+Data are available from the mid-1990s, when current recording methods were established. Annual estimates are possible due to representative sampling every year. For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. The data are representative for all productive forest land within the selected region. Spatial resolution should be limited to the resolution allowing for reliable estimates, probably counties.
 
 ### 2.2 Sampling design
 
-<!-- How was the data sampled? Describe potential sampling biases -->
+All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
 
 ### 2.3 Original units
 
-<!--# What are the original units for the most relevant  variables in the data-->
+The indicator is specified as the share of forest area (%) with at least two tree layers.
 
 
 ### 2.3 Instructions for citing, using and accessing data
 
-<!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
+The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2025-10-20, between NIBIO and the specified users.
+Further use of these data requires a separate data user agreement with NIBIO.
+
 
 ### 2.4 Additional comments about the dataset
 
-<!--# Optional. Text here -->
+None
 
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-<!--# Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
-This doesnt need to be very long. Maybe just a single sentence. -->
+The vertical tree layers represent a structural attribute of forests. Hence, this indicator represents a B2 Biotic structural characteristic.
 
 ### 3.1.1 Other condition typologies
 
-<!--# Optional: Add text about other standards or typologies, such as alternative national condition typologies, and how the indicator relates to these -->
+None
 
 
 ### 3.2 Ecosystem condition characteristic
 
-<!--# 
-
-Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
-For example, and indicator called 'Trenching in mires' could be made to represent an ecosystem characteristic 'Intact hydrology'. The term 'characteristic' is used similar to the term 'criteria' in Multiple Criteria Decision Making.  
-
--->
+The vertical tree layers represent a structural attribute of forests. The indicator is characterised as Functionally important species and biophysical structures.
 
 ### 3.3 Collinearities with other indicators
 
-<!--# Describe known collinearities with other metrics (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
+There may be some positive correlations with indicators for old forest and dead wood.
 
 
 ### 3.4 Impact factors
 
-<!--# Describe the main natural and anthropogenic factors that affecst the metric -->
+Natural disturbances and succession at small scale or with moderate severity will generally result in multi-layered forests. Severe, stand-replacing disturbances may result in one-layered forests, but such disturbances are expected to be rare. Modern even-aged forestry practices will result in one tree layer for much of the managed forest.
 
 ### 3.5 Spatial aggregation
 
-<!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
+The indicator should not be used at finer spatial resolution than allows reliable estimates, probably regions. 
 
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
 
-<!--# Define the reference condition (or refer to where it is defined). Note the distinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
+The reference condition is considered to be intact forest ecosystems, where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances. 
 
 ### 4.2 Reference levels
 
-<!--# 
-
-If relevant (i.e. if you have normalised a variable), describe the reference levels used to normalise the variable. 
-
-Use the terminology where X~0~ refers to the reference level (the variable value) denoting the worst possible condition; X~100~denotes the optimum or best possible condition; and X~*n*~, where in is between 0 and 100, denotes any other anchoring points linking the variable scale to the indicator scale (e.g. the threshold value between good and bad condition X~60^). 
-
-Why was the current option chosen and how were the reference levels quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here.
-
- -->
+An upper reference value (X100) has not yet been determined. It would likely be based on expert assessments supported by information on (1) the proportion of multi-layered forest in NFI plots assessed to be little affected by recent human activities, (2) the distribution of dominating tree species in various regions/counties, and (3) general assessments of natural forest dynamics and the effects on the size of trees. Reference values would be expert assessments without estimated uncertainty. The lower reference value (X0) is set to 0%. For lack of better knowledge, the relationship between indicator values and ecosystem condition is assumed to be linear for values between X100 and X0. Hence, indicator values are scaled between 0 and 1 based on a linear scaling function between X0 and X100; scaled indicator values above 1 are truncated to 1.
 
 
 #### 4.2.1 Spatial resolution and validity
 
-<!--# 
-
-Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
-
- -->
+The reference value will be given as an overall aggregated value for the share of multi-layered productive forest for larger areas such as counties. Although indicator values from NFI plots may technically be aggregated at finer spatial units than counties, scaling indicator values at such finer spatial levels may result in biases.
 
 ## 5. Uncertainties
+
 ### 5.1 General uncertainties
-<!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
+
+Uncertainties relate to the variability in the frequency of forest layers among NFI plots and assessment errors for tree layers within NFI plots. This combined uncertainty is quantified by bootstrapping. There will also be uncertainty related to the setting of the upper reference value and to the shape of the relationship between indicator values and ecosystem condition. These uncertainties will not be quantified.
 
 ### 5.2 Reported uncertainties
-<!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
-However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
-
 
 
 ## 6. References
 
-<!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
+The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2025-10-20, between NIBIO and the specified users.
+Further use of these data requires a separate data user agreement with NIBIO.
 
 ## 7. Import and prepare datasets
 
-<!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
-
 ### 7.1 Dataset A
 
-<!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
+The number of tree layers is recorded for each 250 m2 NFI inventory plot (@viken2021-feltinstruks). There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county. The indicator value is an unbiased area-weighted estimate of the share of the productive forest area with more than two tree layers, for included NFI plots in any selected region. All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year. For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
 
-### 7.2. Dataset B
-
-<!--# Repeat the process for each dataset -->
 
 ## 8. Spatial units
 
-<!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+...
 
 ## 9. Analyses
 
@@ -398,13 +382,6 @@ This is typically where people will harvest data from, so make sure to include a
 
 -->
 
-## 11. Export file
-
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
 
 ```{r export}
 #| eval: false
