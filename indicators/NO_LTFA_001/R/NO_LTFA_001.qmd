@@ -53,6 +53,7 @@ open_science_badge: silver
 callout-icon: false
 lightbox: true
 css: ../../../style.css
+bibliography: bibliography.bib
 code-links:
       - text: Add a review
         icon: github
@@ -249,7 +250,7 @@ meta |>
 This indicator represents the proportion of the forest area with trees of all species with a diameter at breast height of at least 40 cm. In forests shaped by natural disturbances and succession, large trees are expected to occur to a much higher extent than today. Historical harvesting of large trees and short harvest rotations in current forestry tend to prevent trees from growing very large. 
 
 2. **Methods**:
-Data for this indicator come from the National Forest Inventory (NFI), where the diameter at breast height (dbh) of all trees larger than 5 cm dbh within the 250 m2 NFI plot has been recorded by current methods since the mid-1990s (@viken2021-feltinstruks).
+Data for this indicator come from the National Forest Inventory (NFI), where the diameter at breast height (dbh) of all trees larger than 5 cm dbh within the 250 m^2^ NFI plot has been recorded by current methods since the mid-1990s [@viken2021-feltinstruks].
 
 3. **Interpretation**:
 The share of forest with large trees will eventually be compared to a reference value for all forest, based on expert assessments supported by empirical data for near-natural forests and knowledge of ecosystem dynamics in intact forest ecosystems. Such reference values have not yet been determined for this indicator.
@@ -260,7 +261,7 @@ Otherwise, the indicator is ready for use as a non-scaled variable. The indicato
 
 ## 2. About the underlying data
 
-The diameter at breast height (dbh) of all trees larger than 5 cm dbh is recorded for each 250 m2 NFI inventory plot (@viken2021-feltinstruks). There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county. The indicator value is an unbiased area-weighted estimate of the proportion (%) of NFI plots with at least one tree with a dbh of at least 40 cm for included NFI plots in any selected region. All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year. For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024. The data are available upon request from NFI. 
+The diameter at breast height (dbh) of all trees larger than 5 cm dbh is recorded for each 250 m^2^ NFI inventory plot [@viken2021-feltinstruks]. There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county. The indicator value is an unbiased area-weighted estimate of the proportion (%) of NFI plots with at least one tree with a dbh of at least 40 cm for included NFI plots in any selected region. All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year. For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024. The data are available upon request from NFI. 
 
 ### 2.1 Spatial and temporal resolution and extent
 
@@ -345,7 +346,7 @@ Uncertainties relate to the variability in the frequency of large trees among NF
 
 ### 7.1 Proportion of forest with large trees
 
-The diameter at breast height (dbh) is measured for all trees >5cm dbh for each 250 m2 NFI plot according to methods described in  (@viken2021-feltinstruks). For this indicator data from each full 5-yr inventory cycle, starting in 2010, are used. The variable is specified as the proportion of NFI plots with at least one tree with dbh ≥ 40 cm.
+The diameter at breast height (dbh) is measured for all trees > 5cm dbh for each 250 m^2^ NFI plot according to methods described in @viken2021-feltinstruks. For this indicator data from each full 5-yr inventory cycle, starting in 2010, are used. The variable is specified as the proportion of NFI plots with at least one tree with dbh ≥ 40 cm.
 
 ```{r load-data}
 
@@ -381,7 +382,7 @@ reporting_periods <- list(
 
 ```
 
-Next we filter the raw dataset to include only the two relevant forest area types, remove records missing the required DBH_40 variable, standardise the geography fields, and compute the indicator value.
+Next we filter the raw dataset to include productive and unproductive forest plots and standardise the geography fields, and compute the indicator value.
 The indicator is based on the NFI variable `dbh_40`, which is binary (1 if the plot has at least one tree with dbh ≥ 40 cm, 0 otherwise).
 Area-weighted values are created using `au_areal`.
 
@@ -438,7 +439,7 @@ Reference values are not yet available for this indicator, so subsequent steps f
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
-With the indicator-specific values added to `lsk_data`, we can reuse the generic helper functions defined in `functions.R` to produce area-weighted summaries for each reporting period at county, region, and national scales.
+With the indicator-specific values we can produce area-weighted summaries for each reporting period at county, region, and national scales.
 
 ```{r calculate-ltfa-all-periods}
 
@@ -454,11 +455,9 @@ ltfa_results_national_all_periods <- purrr::map_dfr(ltfa_results, "national")
 
 ```
 
-The objects `ltfa_results_county_all_periods`, `ltfa_results_region_all_periods`, and `ltfa_results_national_all_periods` now contain the area-weighted, non-scaled proportion of forest area with large trees for each 5-year reporting period and constitute the basis for subsequent reporting and visualisations.
-
 ### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
 
-Uncertainty in the non-scaled indicator estimates is quantified using the shared bootstrap utilities from `functions.R`.
+Uncertainty in the non-scaled indicator estimates is quantified using bootstrapping.
 For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
 
 ```{r bootstrap-ltfa-all-periods}
@@ -549,7 +548,7 @@ ltfa_results_national_non_scaled_uncertainty <- purrr::map_dfr(
 
 ```
 
-The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles, allowing the LTFA indicator to report non-scaled uncertainty consistently with other indicators.
+The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles.
 
 ## 10. Results
 
