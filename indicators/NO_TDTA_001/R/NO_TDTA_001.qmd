@@ -53,6 +53,7 @@ open_science_badge: silver
 callout-icon: false
 lightbox: true
 css: ../../../style.css
+bibliography: bibliography.bib
 code-links:
       - text: Add a review
         icon: github
@@ -269,7 +270,7 @@ The indicator should not be used at finer spatial resolution than regions within
 
 ## 2. About the underlying data
 
-The frequency and volume of temperate deciduous trees are recorded for each 250 m^2^ NFI inventory plot (@viken2021-feltinstruks).
+The frequency and volume of temperate deciduous trees are recorded for each 250 m^2^ NFI inventory plot [@viken2021-feltinstruks].
 Here we only include NFI plots in the boreonemoral zone, where temperate deciduous trees have their main distribution.
 There are about 1760 NFI plots in forest ecosystems in the boreonemoral zone, distributed on a regular 3x3 km grid.
 The indicator value is an unbiased area-weighted estimate of the proportion of forest dominated by temperate deciduous trees (quantified as the NFI variables `eik_pr` and `edellauv_pr`) for included NFI plots in any selected region.
@@ -278,12 +279,12 @@ For this indicator data from each full inventory cycle of 5 years are used, star
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Data are available from 2000, when current recording methods for the variables 'eik_pr' and 'edellauv_pr' were established.
+Data are available from 2000, when current recording methods for the variables `eik_pr` and `edellauv_pr` were established.
 Annual estimates are possible due to representative sampling every year. For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. The data are representative for the forest land within the boreonemoral zone of Norway. Spatial resolution should be limited to regions within the boreonemoral zone.
 
 ### 2.2 Sampling design
 
-All trees larger than 5 cm at breast height (dbh) are recorded and identified to species for each 250 m² NFI inventory plot in the boreonemoral zone (@viken2021-feltinstruks).
+All trees larger than 5 cm at breast height (dbh) are recorded and identified to species for each 250 m² NFI inventory plot in the boreonemoral zone [@viken2021-feltinstruks].
 There are about 1760 NFI plots in forest ecosystems in the boreonemoral zone, distributed on a regular 3x3 km grid.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
 
@@ -378,9 +379,9 @@ The uncertainties reported here are inferential and refer to the uncertainty aro
 
 ### 7.1 Dataset volume of temperate deciduous trees
 
-The frequency and volume of temperate deciduous trees are recorded for each 250 m^2^ NFI inventory plot (@viken2021-feltinstruks).
+The frequency and volume of temperate deciduous trees are recorded for each 250 m^2^ NFI inventory plot [@viken2021-feltinstruks].
 Here we only include NFI plots in the boreonemoral zone, where temperate deciduous trees have their main distribution. There are about 1760 NFI plots in forest ecosystems in the boreonemoral zone, distributed on a regular 3x3 km grid.
-The indicator value is an unbiased area-weighted estimate of the proportion of forest dominated by temperate deciduous trees (quantified as the NFI variables 'eik_pr' and 'edellauv_pr') for included NFI plots in any selected region.
+The indicator value is an unbiased area-weighted estimate of the proportion of forest dominated by temperate deciduous trees (quantified as the NFI variables `eik_pr` and `edellauv_pr`) for included NFI plots in any selected region.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
 For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
 
@@ -483,7 +484,7 @@ Reference values are not yet available for this indicator, so subsequent steps f
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
-With the indicator-specific values added to `lsk_data`, we can reuse the generic helper functions defined in `functions.R` to produce area-weighted summaries for each reporting period at county, region, and national scales.
+With the indicator-specific values added we produce area-weighted summaries for each reporting period at county, region, and national scales.
 
 ```{r calculate-tdta-all-periods}
 
@@ -499,11 +500,10 @@ tdta_results_national_all_periods <- purrr::map_dfr(tdta_results, "national")
 
 ```
 
-The objects `tdta_results_county_all_periods`, `tdta_results_region_all_periods`, and `tdta_results_national_all_periods` now contain the area-weighted, non-scaled share of boreonemoral forest area dominated by temperate deciduous trees for each 5-year reporting period and constitute the basis for subsequent reporting and visualisations.
 
 ### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
 
-Uncertainty in the non-scaled indicator estimates is quantified using the shared bootstrap utilities from `functions.R`.
+Uncertainty in the non-scaled indicator estimates is quantified using bootstrapping.
 For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
 
 ```{r bootstrap-tdta-all-periods}
@@ -596,7 +596,7 @@ tdta_results_national_non_scaled_uncertainty <- purrr::map_dfr(
 
 ```
 
-The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles, allowing the TDTA indicator to report non-scaled uncertainty consistently with other indicators.
+The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles.
 
 ## 10. Results
 
