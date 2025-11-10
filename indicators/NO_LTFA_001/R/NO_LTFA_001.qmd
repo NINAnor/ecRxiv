@@ -336,8 +336,6 @@ Uncertainties relate to the variability in the frequency of large trees among NF
 ### 5.2 Reported uncertainties
 
 
-
-
 ## 6. References
 
 ::: {#refs}
@@ -345,43 +343,369 @@ Uncertainties relate to the variability in the frequency of large trees among NF
 
 ## 7. Import and prepare datasets
 
-### 7.1 Dataset A
+### 7.1 Proportion of forest with large trees
 
 The diameter at breast height (dbh) is measured for all trees >5cm dbh for each 250 m2 NFI plot according to methods described in  (@viken2021-feltinstruks). For this indicator data from each full 5-yr inventory cycle, starting in 2010, are used. The variable is specified as the proportion of NFI plots with at least one tree with dbh ≥ 40 cm.
 
+```{r load-data}
+
+# Load main data file
+lsk_data_raw <- read_csv(here("indicators/NO_LTFA_001/data/LSK_data_naturregnskap.csv"), 
+                     show_col_types = FALSE,
+                     locale = locale(encoding = "UTF-8")) |>
+  clean_names()
+
+```
+
 ## 8. Spatial units
 
-... 
+Aggregated indicator values should not be applied for spatial units finer than those that allow reliable estimates, probably counties (i.e., de facto Ecosystem Assets).
 
 ## 9. Analyses
 
-<!--# 
+### 9.1 Prepare data and create derived variables
 
-Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+This section prepares the NFI plot data for calculating the indicator.
+We retain both productive and unproductive forest plots (`arealtype` 1 and 12), and then create the derived variables used in subsequent aggregation steps.
 
-Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
+First we define the 5-year reporting periods that match the temporal structure of the indicator.
 
-Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
+```{r reporting-periods}
 
--->
+# Define multiple 5-year reporting periods starting from 2010
+reporting_periods <- list(
+  "2010-2014" = 2010:2014,
+  "2015-2019" = 2015:2019,
+  "2020-2024" = 2020:2024
+)
+
+```
+
+Next we filter the raw dataset to include only the two relevant forest area types, remove records missing the required DBH_40 variable, standardise the geography fields, and compute the indicator value.
+The indicator is based on the NFI variable `dbh_40`, which is binary (1 if the plot has at least one tree with dbh ≥ 40 cm, 0 otherwise).
+Area-weighted values are created using `au_areal`.
+
+```{r create-derived-variables}
+#| cache: false
+
+lsk_data <- lsk_data_raw |>
+  filter(
+    arealtype %in% c(1, 12)
+  ) |>
+  mutate(
+    fylke_name = region_fylke |>
+      stringr::str_remove("^\\d+-\\d+\\s+") |>
+      stringr::str_remove("^\\d+\\s*") |>
+      stringr::str_squish(),
+    fylke_name = normalize_county_parts(fylke_name),
+    fylke_name_clean = stringi::stri_trans_general(
+      stringr::str_squish(
+        tolower(stringr::str_replace_all(fylke_name, "[0-9.-]", " "))
+      ),
+      "Latin-ASCII"
+    ),
+    region_code = assign_region_code(fylke_name_clean),
+    region_name = assign_region_name(region_code),
+    # Indicator value: binary variable (1 = plot has at least one tree with dbh ≥ 40 cm, 0 = no large trees)
+    indicator_continuous = dbh_40,
+    indicator_continuous_weighted = indicator_continuous * au_areal
+  )
+
+```
+
+Finally, we retain only the columns required for subsequent aggregation and reporting.
+
+```{r select-downstream-fields}
+
+lsk_data <- lsk_data |>
+  dplyr::select(
+    sesong,
+    au_areal,
+    arealtype,
+    region_code,
+    region_name,
+    fylke_name,
+    fylke_name_clean,
+    dbh_40,
+    indicator_continuous,
+    indicator_continuous_weighted
+  )
+
+```
+
+The prepared dataset `lsk_data` now contains the plot-level indicator value (binary: 1 if plot has large trees, 0 otherwise) together with area weights and harmonised geographic identifiers, ready for aggregation to the reporting periods defined above.
+Reference values are not yet available for this indicator, so subsequent steps focus on summarising the raw indicator values.
+
+### 9.2 Calculate non-scaled area-weighted indicator values
+
+With the indicator-specific values added to `lsk_data`, we can reuse the generic helper functions defined in `functions.R` to produce area-weighted summaries for each reporting period at county, region, and national scales.
+
+```{r calculate-ltfa-all-periods}
+
+ltfa_results <- purrr::imap(
+  reporting_periods,
+  ~ calculate_period_indicators(lsk_data, .y, .x)
+) |>
+  purrr::compact()
+
+ltfa_results_county_all_periods <- purrr::map_dfr(ltfa_results, "county")
+ltfa_results_region_all_periods <- purrr::map_dfr(ltfa_results, "region")
+ltfa_results_national_all_periods <- purrr::map_dfr(ltfa_results, "national")
+
+```
+
+The objects `ltfa_results_county_all_periods`, `ltfa_results_region_all_periods`, and `ltfa_results_national_all_periods` now contain the area-weighted, non-scaled proportion of forest area with large trees for each 5-year reporting period and constitute the basis for subsequent reporting and visualisations.
+
+### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
+
+Uncertainty in the non-scaled indicator estimates is quantified using the shared bootstrap utilities from `functions.R`.
+For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
+
+```{r bootstrap-ltfa-all-periods}
+
+ltfa_bootstrap <- ltfa_results |>
+  purrr::imap(
+    ~ list(
+      period = .y,
+      data = .x$data,
+      county = .x$county,
+      region = .x$region,
+      national = .x$national,
+      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 200),
+      county_boot = purrr::map(
+        split(.x$data, .x$data$fylke_name),
+        ~ bootstrap_indicator(.x, n_bootstrap = 200)
+      ),
+      region_boot = purrr::map(
+        split(.x$data, .x$data$region_code),
+        ~ bootstrap_indicator(.x, n_bootstrap = 200)
+      )
+    )
+  )
+
+ltfa_results_county_non_scaled_uncertainty <- purrr::map_dfr(
+  ltfa_bootstrap,
+  ~ {
+    county_summary <- purrr::imap_dfr(
+      .x$county_boot,
+      function(boot, county_name) {
+        dplyr::tibble(
+          fylke_name = county_name,
+          indicator_value = boot$median,
+          se = boot$se,
+          ci_lower = boot$ci_lower,
+          ci_upper = boot$ci_upper,
+          q1 = boot$q1,
+          median = boot$median,
+          q3 = boot$q3
+        )
+      }
+    )
+
+    .x$county |>
+      dplyr::select(fylke_name, period, total_area, n_plots) |>
+      dplyr::left_join(county_summary, by = "fylke_name")
+  }
+)
+
+ltfa_results_region_non_scaled_uncertainty <- purrr::map_dfr(
+  ltfa_bootstrap,
+  ~ {
+    region_summary <- purrr::imap_dfr(
+      .x$region_boot,
+      function(boot, region_code) {
+        dplyr::tibble(
+          region_code = region_code,
+          indicator_value = boot$median,
+          se = boot$se,
+          ci_lower = boot$ci_lower,
+          ci_upper = boot$ci_upper,
+          q1 = boot$q1,
+          median = boot$median,
+          q3 = boot$q3
+        )
+      }
+    )
+
+    .x$region |>
+      dplyr::select(region_code, period, total_area, n_plots) |>
+      dplyr::left_join(region_summary, by = "region_code")
+  }
+)
+
+ltfa_results_national_non_scaled_uncertainty <- purrr::map_dfr(
+  ltfa_bootstrap,
+  ~ .x$national |>
+    dplyr::mutate(
+      indicator_value = .x$national_boot$median,
+      se = .x$national_boot$se,
+      ci_lower = .x$national_boot$ci_lower,
+      ci_upper = .x$national_boot$ci_upper,
+      q1 = .x$national_boot$q1,
+      median = .x$national_boot$median,
+      q3 = .x$national_boot$q3
+    )
+)
+
+```
+
+The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles, allowing the LTFA indicator to report non-scaled uncertainty consistently with other indicators.
 
 ## 10. Results
 
-<!--# 
+The tables below present the non-scaled indicator values (proportion of forest area with large trees) together with bootstrap-derived uncertainty summaries for each 5-year reporting period.
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+### 10.1 County-level results (non-scaled with uncertainty)
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+```{r tbl-ltfa-county-results}
+#| tbl-cap: 'County-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
 
--->
+ltfa_county_results <- ltfa_results_county_non_scaled_uncertainty |>
+  dplyr::mutate(
+    indicator_value = round(indicator_value, 3),
+    se = round(se, 3),
+    ci_lower = round(ci_lower, 3),
+    ci_upper = round(ci_upper, 3),
+    q1 = round(q1, 3),
+    median = round(median, 3),
+    q3 = round(q3, 3),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    County = fylke_name,
+    `Indicator Value` = indicator_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Median` = median,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  dplyr::select(
+    Period,
+    County,
+    `Indicator Value`,
+    `Standard Error`,
+    `CI Lower`,
+    `CI Upper`,
+    `Q1`,
+    `Median`,
+    `Q3`,
+    `Total Area (ha)`,
+    `Number of Plots`
+  )
 
-## 11. Export file
+DT::datatable(
+  ltfa_county_results,
+  rownames = FALSE,
+  options = list(pageLength = 10, scrollX = TRUE, lengthMenu = c(10, 25, 50, 100))
+)
+```
 
-<!--# 
+### 10.2 Regional results (non-scaled with uncertainty)
 
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+```{r tbl-ltfa-region-results}
+#| tbl-cap: 'Regional-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
 
--->
+ltfa_region_results <- ltfa_results_region_non_scaled_uncertainty |>
+  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+  dplyr::mutate(
+    indicator_value = round(indicator_value, 3),
+    se = round(se %||% NA_real_, 3),
+    ci_lower = round(ci_lower %||% NA_real_, 3),
+    ci_upper = round(ci_upper %||% NA_real_, 3),
+    q1 = round(q1 %||% NA_real_, 3),
+    median = round(median %||% NA_real_, 3),
+    q3 = round(q3 %||% NA_real_, 3),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    `Region Code` = region_code,
+    Region = region_name,
+    `Indicator Value` = indicator_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Median` = median,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  dplyr::select(
+    Period,
+    `Region Code`,
+    Region,
+    `Indicator Value`,
+    `Standard Error`,
+    `CI Lower`,
+    `CI Upper`,
+    `Q1`,
+    `Median`,
+    `Q3`,
+    `Total Area (ha)`,
+    `Number of Plots`
+  )
+
+ltfa_region_results |>
+  kable() |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+### 10.3 National results (non-scaled with uncertainty)
+
+```{r tbl-ltfa-national-results}
+#| tbl-cap: 'National-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
+
+ltfa_national_results <- ltfa_results_national_non_scaled_uncertainty |>
+  dplyr::mutate(
+    indicator_value = round(indicator_value, 3),
+    se = round(se, 3),
+    ci_lower = round(ci_lower, 3),
+    ci_upper = round(ci_upper, 3),
+    q1 = round(q1, 3),
+    median = round(median, 3),
+    q3 = round(q3, 3),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    `Indicator Value` = indicator_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Median` = median,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  dplyr::select(
+    Period,
+    `Indicator Value`,
+    `Standard Error`,
+    `CI Lower`,
+    `CI Upper`,
+    `Q1`,
+    `Median`,
+    `Q3`,
+    `Total Area (ha)`,
+    `Number of Plots`
+  )
+
+ltfa_national_results |>
+  kable() |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
 
 ```{r export}
 #| eval: false
