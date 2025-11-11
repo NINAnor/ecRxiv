@@ -78,6 +78,7 @@ library(conflicted)
 library(janitor)
 library(stringi)
 library(DT)
+library(gt)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -370,6 +371,7 @@ These variations in plot representativity must be accounted for in aggregated es
 Normally, data from NFI will contain an area-weighting variable to be used in aggregating NFI data for spatial units larger than individual NFI plots. 
 
 ```{r load-data}
+#| code-summary: "Load data"
 
 # Load main data file
 lsk_data_raw <- read_csv(here("indicators/NO_DTVS_001/data/LSK_data_naturregnskap.csv"), 
@@ -394,6 +396,7 @@ We retain both productive and unproductive forest plots (`arealtype` 1 and 12), 
 First we define the 5-year reporting periods that match the temporal structure of the indicator.
 
 ```{r reporting-periods}
+#| code-summary: "Define reporting periods"
 
 # Define multiple 5-year reporting periods starting from 2010
 reporting_periods <- list(
@@ -410,6 +413,7 @@ Area-weighted values are created using `au_areal`.
 
 ```{r create-derived-variables}
 #| cache: false
+#| code-summary: "Create derived variables"
 
 lsk_data <- lsk_data_raw |>
   filter(
@@ -445,6 +449,7 @@ lsk_data <- lsk_data_raw |>
 Finally, we retain only the columns required for subsequent aggregation and reporting.
 
 ```{r select-downstream-fields}
+#| code-summary: "Select downstream fields"
 
 lsk_data <- lsk_data |>
   dplyr::select(
@@ -475,8 +480,8 @@ The indicator will be scaled against a reference value of 33% (0.33) for the who
 With the indicator-specific values we produce area-weighted summaries for each reporting period at county, region, and national scales.
 
 ```{r calculate-dtvs-all-periods}
+#| code-summary: "Calculate non-scaled values"
 
-# Calculate non-scaled area-weighted indicator values per reporting period
  dtvs_results <- purrr::imap(
    reporting_periods,
    ~ calculate_period_indicators(lsk_data, .y, .x)
@@ -495,6 +500,7 @@ Uncertainty in the non-scaled indicator estimates is quantified using bootstrapp
 For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
 
 ```{r bootstrap-dtvs-all-periods}
+#| code-summary: "Bootstrap uncertainty"
 
 # Prepare bootstrap objects per reporting period
  dtvs_bootstrap <- dtvs_results |>
@@ -586,23 +592,358 @@ For each 5-year period we resample the plot dataset, calculate area-weighted ind
 
 ```
 
+### 9.4 Scale indicator values and aggregate to regional and national levels
+
+Since the reference value (33%) is defined at a higher spatial level, we first aggregate non-scaled indicator values to regional and national levels, then scale these aggregated values using the reference levels.
+The `scale_indicator` function automatically truncates values above 1 (i.e., values exceeding 33% are scaled to 1).
+For uncertainty estimation, we use bootstrap functions that perform scale-then-aggregate to properly account for the scaling operation in the uncertainty propagation.
+
+```{r scale-and-aggregate}
+#| code-summary: "Scale and aggregate"
+
+# Define reference values: x0 = 0% (worst condition), x100 = 33% (best condition)
+x0 <- 0
+x100 <- 0.33
+
+# Scale county values (point estimates) for all periods
+county_scaled_all_periods <- dtvs_results_county_all_periods |>
+  dplyr::mutate(
+    scaled_value = scale_indicator(indicator_value, x0, x100)
+  )
+
+# Uncertainty for county scaled: apply linear scaling to non-scaled CIs and quartiles
+county_scaled_with_uncertainty <- dtvs_results_county_non_scaled_uncertainty |>
+  dplyr::mutate(
+    scaled_value = scale_indicator(indicator_value, x0, x100),
+    scaled_ci_lower = scale_indicator(ci_lower, x0, x100),
+    scaled_ci_upper = scale_indicator(ci_upper, x0, x100),
+    scaled_q1 = scale_indicator(q1, x0, x100),
+    scaled_median = scale_indicator(median, x0, x100),
+    scaled_q3 = scale_indicator(q3, x0, x100)
+  )
+
+# Aggregate non-scaled values to regional level (point estimates) for all periods
+region_non_scaled_agg_all_periods <- dtvs_results_region_all_periods |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(
+    indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
+    total_area = sum(total_area, na.rm = TRUE),
+    n_plots = sum(n_plots, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Scale aggregated regional values
+region_scaled_agg_all_periods <- region_non_scaled_agg_all_periods |>
+  dplyr::mutate(
+    scaled_value = scale_indicator(indicator_value, x0, x100),
+    region_name = assign_region_name(region_code)
+  )
+
+# Aggregate non-scaled values to national level (point estimates) for all periods
+national_non_scaled_agg_all_periods <- dtvs_results_national_all_periods |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(
+    indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
+    total_area = sum(total_area, na.rm = TRUE),
+    n_plots = sum(n_plots, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Scale aggregated national values
+national_scaled_agg_all_periods <- national_non_scaled_agg_all_periods |>
+  dplyr::mutate(
+    scaled_value = scale_indicator(indicator_value, x0, x100),
+    region = "National"
+  )
+
+# Check for truncation: count values exceeding 33% (x100)
+truncation_summary <- dplyr::bind_rows(
+  dtvs_results_county_all_periods |>
+    dplyr::mutate(
+      level = "County",
+      exceeds_threshold = indicator_value > x100,
+      original_value_pct = round(indicator_value * 100, 2),
+      region_code = NA_character_,
+      region_name = NA_character_
+    ) |>
+    dplyr::select(period, level, region_code, region_name, fylke_name, exceeds_threshold, original_value_pct),
+  region_non_scaled_agg_all_periods |>
+    dplyr::mutate(
+      level = "Region",
+      exceeds_threshold = indicator_value > x100,
+      original_value_pct = round(indicator_value * 100, 2),
+      region_name = assign_region_name(region_code),
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(period, level, region_code, region_name, fylke_name, exceeds_threshold, original_value_pct),
+  national_non_scaled_agg_all_periods |>
+    dplyr::mutate(
+      level = "National",
+      exceeds_threshold = indicator_value > x100,
+      original_value_pct = round(indicator_value * 100, 2),
+      region_code = NA_character_,
+      region_name = "National",
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(period, level, region_code, region_name, fylke_name, exceeds_threshold, original_value_pct)
+)
+
+# Summary of truncation by period and level
+truncation_counts <- truncation_summary |>
+  dplyr::group_by(period, level) |>
+  dplyr::summarise(
+    n_total = dplyr::n(),
+    n_exceeding_33pct = sum(exceeds_threshold, na.rm = TRUE),
+    pct_exceeding_33pct = round(100 * n_exceeding_33pct / n_total, 1),
+    .groups = "drop"
+  )
+
+# Values that were truncated (for reporting)
+truncated_values <- truncation_summary |>
+  dplyr::filter(exceeds_threshold) |>
+  dplyr::arrange(period, level, dplyr::desc(original_value_pct))
+
+```
+
+
+Values exceeding the reference value of 33% are truncated to 1.0 in the scaled indicator.
+The following table shows the values that were truncated for each period and level.
+
+```{r report-truncation}
+#| code-summary: "Report truncation"
+
+truncation_counts |>
+  dplyr::rename(
+    Period = period,
+    Level = level,
+    `Total` = n_total,
+    `Exceeding 33%` = n_exceeding_33pct,
+    `% Exceeding 33%` = pct_exceeding_33pct
+  ) |>
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `% Exceeding 33%`,
+    decimals = 1
+  )
+
+if (nrow(truncated_values) > 0) {
+  cat("\n### Values that were truncated:\n")
+  # Format truncated values for better display
+  truncated_display <- truncated_values |>
+    dplyr::mutate(
+      location = dplyr::case_when(
+        level == "County" ~ fylke_name,
+        level == "Region" ~ region_name,
+        level == "National" ~ "National",
+        TRUE ~ NA_character_
+      )
+    ) |>
+    dplyr::select(period, level, location, original_value_pct) |>
+    dplyr::rename(
+      Period = period,
+      Level = level,
+      Location = location,
+      `Original Value (%)` = original_value_pct
+    )
+  print(truncated_display)
+} else {
+  cat("\nNo values exceeded 33% and required truncation.\n")
+}
+
+```
+
+```{r bootstrap-scaled-uncertainty}
+#| code-summary: "Bootstrap uncertainty for scaled values"
+
+# Bootstrap uncertainty for scaled-then-aggregated regions per period
+region_scaled_uncertainty <- purrr::imap_dfr(
+  dtvs_results,
+  function(period_result, period_name) {
+    period_data <- period_result$data
+    
+    if (nrow(period_data) == 0) return(NULL)
+    
+    bootstrap_region_scaled_agg(
+      period_data,
+      x0 = x0,
+      x100 = x100,
+      n_bootstrap = 200
+    ) |>
+      dplyr::mutate(period = period_name)
+  }
+)
+
+# Bootstrap uncertainty for scaled-then-aggregated national per period
+national_scaled_uncertainty <- purrr::imap_dfr(
+  dtvs_results,
+  function(period_result, period_name) {
+    period_data <- period_result$data
+    
+    if (nrow(period_data) == 0) return(NULL)
+    
+    boot_result <- bootstrap_national_scaled_agg(
+      period_data,
+      x0 = x0,
+      x100 = x100,
+      n_bootstrap = 200
+    )
+    
+    dplyr::tibble(
+      period = period_name,
+      region = "National",
+      se = boot_result$se,
+      ci_lower = boot_result$ci_lower,
+      ci_upper = boot_result$ci_upper,
+      q1 = boot_result$q1,
+      median = boot_result$median,
+      q3 = boot_result$q3
+    )
+  }
+)
+
+# Attach uncertainty to scaled aggregated values and use bootstrap median as point estimate
+region_scaled_agg_with_uncertainty <- region_scaled_agg_all_periods |>
+  dplyr::left_join(region_scaled_uncertainty, by = c("period", "region_code")) |>
+  dplyr::mutate(
+    scaled_value = median  # Use bootstrap median as point estimate for consistency
+  )
+
+national_scaled_agg_with_uncertainty <- national_scaled_agg_all_periods |>
+  dplyr::left_join(national_scaled_uncertainty, by = c("period", "region")) |>
+  dplyr::mutate(
+    scaled_value = median  # Use bootstrap median as point estimate for consistency
+  )
+
+```
+
+The resulting tables contain scaled indicator values (0-1 scale) for regional and national levels, where values above 33% are truncated to 1.
+Uncertainty is quantified through bootstrap resampling that performs scale-then-aggregate, ensuring proper propagation of uncertainty through the scaling operation.
+
 ## 10. Results
 
-<!--# 
+The following tables present the scaled indicator results at county, regional and national scales for each reporting period.
+All values are scaled between 0 and 1, where 0 represents the worst condition (0% dead wood volume) and 1 represents the best condition (33% dead wood volume, the reference value).
+Values exceeding 33% are truncated to 1.
+Where relevant, 95% confidence intervals are shown.
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+### 10.1 County-level results (scaled with uncertainty)
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+```{r tbl-county-results-table}
+#| tbl-cap: 'County-level indicator values for dead wood volume as share of all wood volume by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition at 33% dead wood). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
 
--->
+county_scaled_with_uncertainty |>
+  dplyr::mutate(
+    fylke_name_clean = stringi::stri_trans_general(
+      stringr::str_squish(
+        tolower(stringr::str_replace_all(fylke_name, "[0-9.-]", " "))
+      ),
+      "Latin-ASCII"
+    ),
+    region_code = assign_region_code(fylke_name_clean),
+    region_name = assign_region_name(region_code)
+  ) |>
+  dplyr::select(period, fylke_name, region_name, scaled_value, se, scaled_ci_lower, scaled_ci_upper, 
+         scaled_q1, scaled_q3, total_area, n_plots) |>
+  dplyr::mutate(
+    scaled_value = round(scaled_value, 3),
+    se = round(se, 3),
+    scaled_ci_lower = round(scaled_ci_lower, 3),
+    scaled_ci_upper = round(scaled_ci_upper, 3),
+    scaled_q1 = round(scaled_q1, 3),
+    scaled_q3 = round(scaled_q3, 3),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    County = fylke_name,
+    Region = region_name,
+    `Scaled Value` = scaled_value,
+    `Standard Error` = se,
+    `CI Lower` = scaled_ci_lower,
+    `CI Upper` = scaled_ci_upper,
+    `Q1` = scaled_q1,
+    `Q3` = scaled_q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  DT::datatable(
+    rownames = FALSE,
+    options = list(pageLength = 10, scrollX = TRUE, lengthMenu = c(10, 25, 50, 100))
+  )
+```
 
-## 11. Export file
+### 10.2 Regional results (scaled with uncertainty)
 
-<!--# 
+```{r tbl-region-results-table}
+#| tbl-cap: 'Regional-level indicator values for dead wood volume as share of all wood volume by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition at 33% dead wood). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
 
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+region_scaled_agg_with_uncertainty |>
+  dplyr::select(period, region_code, region_name, scaled_value, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
+  dplyr::mutate(
+    scaled_value = round(scaled_value, 3),
+    se = round(se, 3),
+    ci_lower = round(ci_lower, 3),
+    ci_upper = round(ci_upper, 3),
+    q1 = round(q1, 3),
+    q3 = round(q3, 3),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    `Region Code` = region_code,
+    Region = region_name,
+    `Scaled Value` = scaled_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  kable() |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
 
--->
+### 10.3 National results (scaled with uncertainty)
+
+```{r tbl-national-results-table}
+#| tbl-cap: 'National-level indicator values for dead wood volume as share of all wood volume by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition at 33% dead wood). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
+
+national_scaled_agg_with_uncertainty |>
+  dplyr::select(period, region, scaled_value, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
+  dplyr::mutate(
+    scaled_value = round(scaled_value, 3),
+    se = round(se, 3),
+    ci_lower = round(ci_lower, 3),
+    ci_upper = round(ci_upper, 3),
+    q1 = round(q1, 3),
+    q3 = round(q3, 3),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    `Spatial Level` = region,
+    `Scaled Value` = scaled_value,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  kable() |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
 
 ```{r export}
 #| eval: false
