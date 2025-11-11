@@ -236,7 +236,7 @@ meta |>
 ## Log
 
 <!--# Update this logg with short messages for each update -->
-- 01 Jan. 1901 - Original PR
+- 11 Nov. 2025 - Original PR
 :::
 
 
@@ -469,6 +469,122 @@ lsk_data <- lsk_data |>
 
 The prepared dataset `lsk_data` now contains the plot-level proportion of dead wood volume (0-1) together with area weights and harmonised geographic identifiers, ready for aggregation to the reporting periods defined above.
 The indicator will be scaled against a reference value of 33% (0.33) for the whole country in subsequent steps.
+
+### 9.2 Calculate non-scaled area-weighted indicator values
+
+With the indicator-specific values we produce area-weighted summaries for each reporting period at county, region, and national scales.
+
+```{r calculate-dtvs-all-periods}
+
+# Calculate non-scaled area-weighted indicator values per reporting period
+ dtvs_results <- purrr::imap(
+   reporting_periods,
+   ~ calculate_period_indicators(lsk_data, .y, .x)
+ ) |>
+   purrr::compact()
+ 
+ dtvs_results_county_all_periods   <- purrr::map_dfr(dtvs_results, "county")
+ dtvs_results_region_all_periods   <- purrr::map_dfr(dtvs_results, "region")
+ dtvs_results_national_all_periods <- purrr::map_dfr(dtvs_results, "national")
+
+```
+
+### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
+
+Uncertainty in the non-scaled indicator estimates is quantified using bootstrapping.
+For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
+
+```{r bootstrap-dtvs-all-periods}
+
+# Prepare bootstrap objects per reporting period
+ dtvs_bootstrap <- dtvs_results |>
+   purrr::imap(
+     ~ list(
+       period = .y,
+       data = .x$data,
+       county = .x$county,
+       region = .x$region,
+       national = .x$national,
+       national_boot = bootstrap_indicator(.x$data, n_bootstrap = 200),
+       county_boot = purrr::map(
+         split(.x$data, .x$data$fylke_name),
+         ~ bootstrap_indicator(.x, n_bootstrap = 200)
+       ),
+       region_boot = purrr::map(
+         split(.x$data, .x$data$region_code),
+         ~ bootstrap_indicator(.x, n_bootstrap = 200)
+       )
+     )
+   )
+
+# County-level summaries with uncertainty
+ dtvs_results_county_non_scaled_uncertainty <- purrr::map_dfr(
+   dtvs_bootstrap,
+   ~ {
+     county_summary <- purrr::imap_dfr(
+       .x$county_boot,
+       function(boot, county_name) {
+         dplyr::tibble(
+           fylke_name = county_name,
+           indicator_value = boot$median,
+           se = boot$se,
+           ci_lower = boot$ci_lower,
+           ci_upper = boot$ci_upper,
+           q1 = boot$q1,
+           median = boot$median,
+           q3 = boot$q3
+         )
+       }
+     )
+
+     .x$county |>
+       dplyr::select(fylke_name, period, total_area, n_plots) |>
+       dplyr::left_join(county_summary, by = "fylke_name")
+   }
+ )
+
+# Region-level summaries with uncertainty
+ dtvs_results_region_non_scaled_uncertainty <- purrr::map_dfr(
+   dtvs_bootstrap,
+   ~ {
+     region_summary <- purrr::imap_dfr(
+       .x$region_boot,
+       function(boot, region_code) {
+         dplyr::tibble(
+           region_code = region_code,
+           indicator_value = boot$median,
+           se = boot$se,
+           ci_lower = boot$ci_lower,
+           ci_upper = boot$ci_upper,
+           q1 = boot$q1,
+           median = boot$median,
+           q3 = boot$q3
+         )
+       }
+     )
+
+     .x$region |>
+       dplyr::select(region_code, period, total_area, n_plots) |>
+       dplyr::left_join(region_summary, by = "region_code")
+   }
+ )
+
+# National-level summaries with uncertainty
+ dtvs_results_national_non_scaled_uncertainty <- purrr::map_dfr(
+   dtvs_bootstrap,
+   ~ .x$national |>
+     dplyr::mutate(
+       indicator_value = .x$national_boot$median,
+       se = .x$national_boot$se,
+       ci_lower = .x$national_boot$ci_lower,
+       ci_upper = .x$national_boot$ci_upper,
+       q1 = .x$national_boot$q1,
+       median = .x$national_boot$median,
+       q3 = .x$national_boot$q3
+     )
+ )
+
+```
 
 ## 10. Results
 
