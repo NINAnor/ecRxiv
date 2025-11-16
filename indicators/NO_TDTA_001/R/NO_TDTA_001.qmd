@@ -522,17 +522,17 @@ tdta_bootstrap <- tdta_results |>
       county = .x$county,
       region = .x$region,
       national = .x$national,
-      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 200),
+      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 1000),
       county_boot = purrr::map(
         split(.x$data, .x$data$fylke_name),
-        ~ bootstrap_indicator(.x, n_bootstrap = 200)
+        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
       ),
       region_boot = purrr::map(
         split(.x$data, .x$data$region_code),
-        ~ bootstrap_indicator(.x, n_bootstrap = 200)
+        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
       ),
-      national_scaled_boot = bootstrap_national_scaled_agg(.x$data, x0 = 0, x100 = 100, n_bootstrap = 200),
-      region_scaled_boot = bootstrap_region_scaled_agg(.x$data, x0 = 0, x100 = 100, n_bootstrap = 200)
+      national_scaled_boot = bootstrap_national_scaled_agg(.x$data, x0 = 0, x100 = 100, n_bootstrap = 1000),
+      region_scaled_boot = bootstrap_region_scaled_agg(.x$data, x0 = 0, x100 = 100, n_bootstrap = 1000)
     )
   )
 
