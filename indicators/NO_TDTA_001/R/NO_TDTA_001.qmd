@@ -419,10 +419,10 @@ reporting_periods <- list(
 
 ```
 
-Next we filter the raw dataset to include only nemoral and boreonemoral plots, keep the two relevant forest area types, remove records missing the required deciduous variables, standardise the geography fields, and compute the share of temperate deciduous trees as the capped sum of `edellauv_pr` and `eik_pr`.
-We then filter to retain only plots with at least 30% temperate deciduous trees.
-For the retained plots, the indicator value is the actual share of temperate deciduous trees (the percentage value).
-Area-weighted values are created using `au_areal`.
+Next we filter the raw dataset to include only nemoral and boreonemoral plots and the two relevant forest area types, remove rows with missing values for `edellauv_pr` or `eik_pr`, standardise the geography fields, and compute the share of temperate deciduous trees as the capped sum of `edellauv_pr` and `eik_pr` (maximum 100).
+We then create a dummy variable (`meets_threshold`) that is 1 if the share of temperate deciduous trees is at least 30%, and 0 otherwise.
+We multiply it by `au_areal` to obtain an area-weighted dummy per plot and aggregate over all BN + NE plots.
+Dividing the sum of the weighted dummy by the total `au_areal` for all BN+NE plots yields the proportion of forest area with at least 30% temperate deciduous trees.
 
 ```{r create-derived-variables}
 #| cache: false
@@ -450,19 +450,12 @@ lsk_data <- lsk_data_raw |>
     ),
     region_code = assign_region_code(fylke_name_clean),
     region_name = assign_region_name(region_code),
-    # Calculate total temperate deciduous share
+    # Calculate total temperate deciduous share (capped at 100)
     temperate_deciduous_share = pmin(edellauv_pr + eik_pr, 100),
     # Binary indicator: 1 if share >= 30%, 0 otherwise
-    # Used only for filtering - plots with < 30% are excluded
-    meets_threshold = if_else(temperate_deciduous_share >= 30, 1, 0),
-    temperate_deciduous_share_weighted = temperate_deciduous_share * au_areal
-  ) |>
-  # Filter to only include plots with >= 30% temperate deciduous trees
-  filter(meets_threshold == 1) |>
-  mutate(
-    # Indicator value: the actual share of temperate deciduous trees (for plots that meet threshold)
-    indicator_continuous = temperate_deciduous_share,
-    indicator_continuous_weighted = temperate_deciduous_share * au_areal
+    indicator_continuous = if_else(temperate_deciduous_share >= 30, 1, 0),
+    # Area-weighted dummy for aggregation to proportion of area
+    indicator_continuous_weighted = indicator_continuous * au_areal
   )
 
 ```
@@ -484,19 +477,16 @@ lsk_data <- lsk_data |>
     edellauv_pr,
     eik_pr,
     temperate_deciduous_share,
-    meets_threshold,
-    temperate_deciduous_share_weighted,
     indicator_continuous,
     indicator_continuous_weighted
   )
 
 ```
 
-The prepared dataset `lsk_data` now contains only plots with at least 30% temperate deciduous trees.
-The indicator value for each plot is the actual share of temperate deciduous trees (as a percentage).
-When aggregated, this gives the area-weighted average share of temperate deciduous trees among plots that meet the 30% threshold.
+The prepared dataset `lsk_data` now contains all BN+NE plots with non-missing deciduous shares.
+For each plot we store a dummy (0/1) indicating whether the share of temperate deciduous trees is at least 30%, and its area-weighted counterpart.
+Aggregating the weighted dummy over all BN+NE plots yields the proportion of forest area meeting the ≥30% criterion.
 Together with area weights and harmonised geographic identifiers, the data are ready for aggregation to the reporting periods defined above.
-Reference values are not yet available for this indicator, so subsequent steps focus on summarising these average values.
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
@@ -626,24 +616,23 @@ The tables below present the non-scaled indicator values (area-weighted average 
 
 tdta_county_results <- tdta_results_county_non_scaled_uncertainty |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 2),
+    indicator_value = round(indicator_value, 3),
     se = round(se, 2),
-    ci_lower = round(ci_lower, 2),
-    ci_upper = round(ci_upper, 2),
-    q1 = round(q1, 2),
-    median = round(median, 2),
-    q3 = round(q3, 2),
+    ci_lower = round(ci_lower, 3),
+    ci_upper = round(ci_upper, 3),
+    q1 = round(q1, 3),
+    median = round(median, 3),
+    q3 = round(q3, 3),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
     County = fylke_name,
-    `Indicator Value (%)` = indicator_value,
+    `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
-    `Median` = median,
     `Q3` = q3,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
@@ -651,12 +640,11 @@ tdta_county_results <- tdta_results_county_non_scaled_uncertainty |>
   dplyr::select(
     Period,
     County,
-    `Indicator Value (%)`,
+    `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
     `CI Upper`,
     `Q1`,
-    `Median`,
     `Q3`,
     `Total Area (ha)`,
     `Number of Plots`
@@ -678,25 +666,24 @@ DT::datatable(
 tdta_region_results <- tdta_results_region_non_scaled_uncertainty |>
   dplyr::mutate(region_name = assign_region_name(region_code)) |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 2),
+    indicator_value = round(indicator_value, 3),
     se = round(se %||% NA_real_, 2),
-    ci_lower = round(ci_lower %||% NA_real_, 2),
-    ci_upper = round(ci_upper %||% NA_real_, 2),
-    q1 = round(q1 %||% NA_real_, 2),
-    median = round(median %||% NA_real_, 2),
-    q3 = round(q3 %||% NA_real_, 2),
+    ci_lower = round(ci_lower %||% NA_real_, 3),
+    ci_upper = round(ci_upper %||% NA_real_, 3),
+    q1 = round(q1 %||% NA_real_, 3),
+    median = round(median %||% NA_real_, 3),
+    q3 = round(q3 %||% NA_real_, 3),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
     `Region Code` = region_code,
     Region = region_name,
-    `Indicator Value (%)` = indicator_value,
+    `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
-    `Median` = median,
     `Q3` = q3,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
@@ -705,12 +692,11 @@ tdta_region_results <- tdta_results_region_non_scaled_uncertainty |>
     Period,
     `Region Code`,
     Region,
-    `Indicator Value (%)`,
+    `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
     `CI Upper`,
     `Q1`,
-    `Median`,
     `Q3`,
     `Total Area (ha)`,
     `Number of Plots`
@@ -729,35 +715,33 @@ tdta_region_results |>
 
 tdta_national_results <- tdta_results_national_non_scaled_uncertainty |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 2),
+    indicator_value = round(indicator_value, 3),
     se = round(se, 2),
-    ci_lower = round(ci_lower, 2),
-    ci_upper = round(ci_upper, 2),
-    q1 = round(q1, 2),
-    median = round(median, 2),
-    q3 = round(q3, 2),
+    ci_lower = round(ci_lower, 3),
+    ci_upper = round(ci_upper, 3),
+    q1 = round(q1, 3),
+    median = round(median, 3),
+    q3 = round(q3, 3),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
-    `Indicator Value (%)` = indicator_value,
+    `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
-    `Median` = median,
     `Q3` = q3,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
   ) |>
   dplyr::select(
     Period,
-    `Indicator Value (%)`,
+    `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
     `CI Upper`,
     `Q1`,
-    `Median`,
     `Q3`,
     `Total Area (ha)`,
     `Number of Plots`
