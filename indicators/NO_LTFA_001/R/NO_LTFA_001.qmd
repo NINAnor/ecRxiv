@@ -434,7 +434,7 @@ lsk_data <- lsk_data |>
 
 ```
 
-The prepared dataset `lsk_data` now contains the plot-level indicator value (binary: 1 if plot has large trees, 0 otherwise) together with area weights and harmonised geographic identifiers, ready for aggregation to the reporting periods defined above.
+
 Reference values are not yet available for this indicator, so subsequent steps focus on summarising the raw indicator values.
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
@@ -470,14 +470,14 @@ ltfa_bootstrap <- ltfa_results |>
       county = .x$county,
       region = .x$region,
       national = .x$national,
-      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 200),
+      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 1000),
       county_boot = purrr::map(
         split(.x$data, .x$data$fylke_name),
-        ~ bootstrap_indicator(.x, n_bootstrap = 200)
+        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
       ),
       region_boot = purrr::map(
         split(.x$data, .x$data$region_code),
-        ~ bootstrap_indicator(.x, n_bootstrap = 200)
+        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
       )
     )
   )
@@ -490,7 +490,7 @@ ltfa_results_county_non_scaled_uncertainty <- purrr::map_dfr(
       function(boot, county_name) {
         dplyr::tibble(
           fylke_name = county_name,
-          indicator_value = boot$median,
+          mean = boot$mean,
           se = boot$se,
           ci_lower = boot$ci_lower,
           ci_upper = boot$ci_upper,
@@ -515,7 +515,7 @@ ltfa_results_region_non_scaled_uncertainty <- purrr::map_dfr(
       function(boot, region_code) {
         dplyr::tibble(
           region_code = region_code,
-          indicator_value = boot$median,
+          mean = boot$mean,
           se = boot$se,
           ci_lower = boot$ci_lower,
           ci_upper = boot$ci_upper,
@@ -536,7 +536,7 @@ ltfa_results_national_non_scaled_uncertainty <- purrr::map_dfr(
   ltfa_bootstrap,
   ~ .x$national |>
     dplyr::mutate(
-      indicator_value = .x$national_boot$median,
+      mean = .x$national_boot$mean,
       se = .x$national_boot$se,
       ci_lower = .x$national_boot$ci_lower,
       ci_upper = .x$national_boot$ci_upper,
@@ -548,7 +548,6 @@ ltfa_results_national_non_scaled_uncertainty <- purrr::map_dfr(
 
 ```
 
-The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles.
 
 ## 10. Results
 
@@ -557,29 +556,29 @@ The tables below present the non-scaled indicator values (proportion of forest a
 ### 10.1 County-level results (non-scaled with uncertainty)
 
 ```{r tbl-ltfa-county-results}
-#| tbl-cap: 'County-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'County-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 ltfa_county_results <- ltfa_results_county_non_scaled_uncertainty |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 3),
-    se = round(se, 3),
-    ci_lower = round(ci_lower, 3),
-    ci_upper = round(ci_upper, 3),
-    q1 = round(q1, 3),
-    median = round(median, 3),
-    q3 = round(q3, 3),
+    mean = round(mean, 2),
+    se = round(se, 2),
+    ci_lower = round(ci_lower, 2),
+    ci_upper = round(ci_upper, 2),
+    q1 = round(q1, 2),
+    median = round(median, 2),
+    q3 = round(q3, 2),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
     County = fylke_name,
-    `Indicator Value` = indicator_value,
+    `Bootstrapped (mean)` = mean,
+    `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
-    `Median` = median,
     `Q3` = q3,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
@@ -587,12 +586,12 @@ ltfa_county_results <- ltfa_results_county_non_scaled_uncertainty |>
   dplyr::select(
     Period,
     County,
-    `Indicator Value`,
+    `Bootstrapped (mean)`,
+    `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
     `CI Upper`,
     `Q1`,
-    `Median`,
     `Q3`,
     `Total Area (ha)`,
     `Number of Plots`
@@ -608,31 +607,31 @@ DT::datatable(
 ### 10.2 Regional results (non-scaled with uncertainty)
 
 ```{r tbl-ltfa-region-results}
-#| tbl-cap: 'Regional-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'Regional-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 ltfa_region_results <- ltfa_results_region_non_scaled_uncertainty |>
   dplyr::mutate(region_name = assign_region_name(region_code)) |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 3),
-    se = round(se %||% NA_real_, 3),
-    ci_lower = round(ci_lower %||% NA_real_, 3),
-    ci_upper = round(ci_upper %||% NA_real_, 3),
-    q1 = round(q1 %||% NA_real_, 3),
-    median = round(median %||% NA_real_, 3),
-    q3 = round(q3 %||% NA_real_, 3),
+    mean = round(mean %||% NA_real_, 2),
+    se = round(se %||% NA_real_, 2),
+    ci_lower = round(ci_lower %||% NA_real_, 2),
+    ci_upper = round(ci_upper %||% NA_real_, 2),
+    q1 = round(q1 %||% NA_real_, 2),
+    median = round(median %||% NA_real_, 2),
+    q3 = round(q3 %||% NA_real_, 2),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
     `Region Code` = region_code,
     Region = region_name,
-    `Indicator Value` = indicator_value,
+    `Bootstrapped (mean)` = mean,
+    `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
-    `Median` = median,
     `Q3` = q3,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
@@ -641,12 +640,12 @@ ltfa_region_results <- ltfa_results_region_non_scaled_uncertainty |>
     Period,
     `Region Code`,
     Region,
-    `Indicator Value`,
+    `Bootstrapped (mean)`,
+    `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
     `CI Upper`,
     `Q1`,
-    `Median`,
     `Q3`,
     `Total Area (ha)`,
     `Number of Plots`
@@ -660,40 +659,40 @@ ltfa_region_results |>
 ### 10.3 National results (non-scaled with uncertainty)
 
 ```{r tbl-ltfa-national-results}
-#| tbl-cap: 'National-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'National-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 ltfa_national_results <- ltfa_results_national_non_scaled_uncertainty |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 3),
-    se = round(se, 3),
-    ci_lower = round(ci_lower, 3),
-    ci_upper = round(ci_upper, 3),
-    q1 = round(q1, 3),
-    median = round(median, 3),
-    q3 = round(q3, 3),
+    mean = round(mean, 2),
+    se = round(se, 2),
+    ci_lower = round(ci_lower, 2),
+    ci_upper = round(ci_upper, 2),
+    q1 = round(q1, 2),
+    median = round(median, 2),
+    q3 = round(q3, 2),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
-    `Indicator Value` = indicator_value,
+    `Bootstrapped (mean)` = mean,
+    `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
-    `Median` = median,
     `Q3` = q3,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
   ) |>
   dplyr::select(
     Period,
-    `Indicator Value`,
+    `Bootstrapped (mean)`,
+    `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
     `CI Upper`,
     `Q1`,
-    `Median`,
     `Q3`,
     `Total Area (ha)`,
     `Number of Plots`
