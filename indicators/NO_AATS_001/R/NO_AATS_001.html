@@ -5392,7 +5392,7 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
 <section id="alien-coniferous-tree-species" class="level3">
 <h3 class="anchored" data-anchor-id="alien-coniferous-tree-species">7.1 Alien coniferous tree species</h3>
-<p>All trees larger than 5 cm dbh are recorded and identified for each 250 m² NFI plot according to methods described in (<span class="citation" data-cites="viken2021-feltinstruks">Viken (<a href="#ref-viken2021-feltinstruks" role="doc-biblioref">2021</a>)</span>). For this indicator, data for the NFI variables introgran_pr and introfuru_pr from the last 5 years including the relevant reporting year are used. Aggregated area-weighted data must be used for appropriate spatial units such as counties, regions or the whole country. As the NFI plots vary in density for forest below/above the coniferous forest line and in Finnmark, each type of plot represents a different part of all forest land. In addition, some NFI plots are divided in two parts in the data. These variations in plot representativity must be accounted for in aggregated estimates. Data from NFI contain an area-weighting variable to be used in aggregating NFI data for spatial units larger than individual NFI plots.</p>
+<p>All trees larger than 5 cm dbh are recorded and identified for each 250 m² NFI plot according to methods described in (<span class="citation" data-cites="viken2021-feltinstruks">Viken (<a href="#ref-viken2021-feltinstruks" role="doc-biblioref">2021</a>)</span>). For this indicator, data for the NFI variables <code>introgran_pr</code> and <code>introfuru_pr</code> from the last 5 years including the relevant reporting year are used. Aggregated area-weighted data must be used for appropriate spatial units such as counties, regions or the whole country. As the NFI plots vary in density for forest below/above the coniferous forest line and in Finnmark, each type of plot represents a different part of all forest land. In addition, some NFI plots are divided in two parts in the data. These variations in plot representativity must be accounted for in aggregated estimates. Data from NFI contain an area-weighting variable to be used in aggregating NFI data for spatial units larger than individual NFI plots.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5437,7 +5437,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>We then remove the Finnmark plots marked for removal, filter for data from 2010 onward and remove plots with missing data for alien species percentages. We then standardise geography fields used throughout the analysis: <code>region_code</code> (assigned based on county name per specification), the readable county name <code>fylke_name</code> (numeric prefixes removed and split counties merged), and a normalised join key <code>fylke_name_clean</code>. Next, at the plot levelwe compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100). Finally, we create area-weighted values by multiplying the indicator value for each plot by the variable <code>au_areal</code> (the area weight for that plot).</p>
+<p>We then remove the Finnmark plots marked for removal, filter for data from 2010 onward and remove plots with missing data for alien species percentages. We then standardise geography fields used throughout the analysis: <code>region_code</code> (assigned based on county name per specification), the readable county name <code>fylke_name</code> (numeric prefixes removed and split counties merged), and a normalised join key <code>fylke_name_clean</code>. Next, at the plot level we compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100). Finally, we create area-weighted values by multiplying the indicator value for each plot by the variable <code>au_areal</code> (the area weight for that plot).</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5551,7 +5551,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 </section>
 <section id="bootstrap-uncertainty-estimation-for-non-scaled-indicator-values" class="level3">
 <h3 class="anchored" data-anchor-id="bootstrap-uncertainty-estimation-for-non-scaled-indicator-values">9.4 Bootstrap uncertainty estimation for non-scaled indicator values</h3>
-<p>This section quantifies uncertainty in the non‑scaled indicator estimates for each period. For each period, we bootstrap the national estimate from all plots and, separately, bootstrap county and region estimates by resampling plots within each county/region. For testing and faster renders, the bootstrap iteration count is set to 200 (will be changed to 1000 for final reporting). We then bind the results across periods with standard errors, 95% confidence intervals and quartiles.</p>
+<p>This section quantifies uncertainty in the non‑scaled indicator estimates for each period. For each period, we bootstrap the national estimate from all plots and, separately, bootstrap county and region estimates by resampling plots within each county/region. The bootstrap iteration count is set to 1000 for robust uncertainty estimation. We then bind the results across periods with standard errors, 95% confidence intervals and quartiles.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5566,72 +5566,74 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rowwise</span>() <span class="sc">|&gt;</span></span>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(</span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>          <span class="at">county_data =</span> <span class="fu">list</span>(period_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(fylke_name <span class="sc">==</span> <span class="fu">pick</span>(fylke_name)[[<span class="dv">1</span>]])),</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>          <span class="at">bootstrap_result =</span> <span class="fu">list</span>(<span class="fu">bootstrap_indicator</span>(county_data, <span class="at">n_bootstrap =</span> <span class="dv">200</span>)),</span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>          <span class="co"># The median is guaranteed to be between q1 and q3, and typically close to the mean</span></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value_boot =</span> bootstrap_result<span class="sc">$</span>median,</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> bootstrap_result<span class="sc">$</span>se,</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> bootstrap_result<span class="sc">$</span>ci_lower,</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> bootstrap_result<span class="sc">$</span>ci_upper,</span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> bootstrap_result<span class="sc">$</span>q1,</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> bootstrap_result<span class="sc">$</span>median,</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> bootstrap_result<span class="sc">$</span>q3</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">|&gt;</span></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Explicitly keep fylke_name and other key columns</span></span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Use indicator_value_boot (bootstrap median) instead of original indicator_value</span></span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">select</span>(fylke_name, period, indicator_value_boot, total_area, n_plots, se, ci_lower, ci_upper, q1, median, q3) <span class="sc">|&gt;</span></span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rename</span>(<span class="at">indicator_value =</span> indicator_value_boot) <span class="sc">|&gt;</span></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ungroup</span>()</span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    }),</span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Region uncertainty: bootstrap within each region using the period&#39;s plot data</span></span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_boot =</span> <span class="fu">map</span>(res, <span class="sc">~</span>{</span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>      period_data <span class="ot">&lt;-</span> .x<span class="sc">$</span>data</span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>region <span class="sc">|&gt;</span></span>
-<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rowwise</span>() <span class="sc">|&gt;</span></span>
-<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(</span>
-<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>          <span class="at">region_data =</span> <span class="fu">list</span>(period_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(region_code <span class="sc">==</span> <span class="fu">pick</span>(region_code)[[<span class="dv">1</span>]])),</span>
-<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>          <span class="at">bootstrap_result =</span> <span class="fu">list</span>(<span class="fu">bootstrap_indicator</span>(region_data, <span class="at">n_bootstrap =</span> <span class="dv">200</span>)),</span>
-<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
-<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value_boot =</span> bootstrap_result<span class="sc">$</span>median,</span>
-<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> bootstrap_result<span class="sc">$</span>se,</span>
-<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> bootstrap_result<span class="sc">$</span>ci_lower,</span>
-<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> bootstrap_result<span class="sc">$</span>ci_upper,</span>
-<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> bootstrap_result<span class="sc">$</span>q1,</span>
-<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> bootstrap_result<span class="sc">$</span>median,</span>
-<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> bootstrap_result<span class="sc">$</span>q3</span>
-<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">|&gt;</span></span>
-<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">indicator_value =</span> indicator_value_boot) <span class="sc">|&gt;</span></span>
-<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>        <span class="fu">select</span>(<span class="sc">-</span>region_data, <span class="sc">-</span>bootstrap_result, <span class="sc">-</span>indicator_value_boot) <span class="sc">|&gt;</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>          <span class="at">bootstrap_result =</span> <span class="fu">list</span>(<span class="fu">bootstrap_indicator</span>(county_data, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)),</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Extract both bootstrap mean and median</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>          <span class="at">mean =</span> bootstrap_result<span class="sc">$</span>mean,</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> bootstrap_result<span class="sc">$</span>se,</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> bootstrap_result<span class="sc">$</span>ci_lower,</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> bootstrap_result<span class="sc">$</span>ci_upper,</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> bootstrap_result<span class="sc">$</span>q1,</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> bootstrap_result<span class="sc">$</span>median,</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> bootstrap_result<span class="sc">$</span>q3</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">|&gt;</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Explicitly keep fylke_name and other key columns</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">indicator_value =</span> median) <span class="sc">|&gt;</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">select</span>(fylke_name, period, indicator_value, mean, total_area, n_plots, se, ci_lower, ci_upper, q1, median, q3) <span class="sc">|&gt;</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ungroup</span>()</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    }),</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Region uncertainty: bootstrap within each region using the period&#39;s plot data</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_boot =</span> <span class="fu">map</span>(res, <span class="sc">~</span>{</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>      period_data <span class="ot">&lt;-</span> .x<span class="sc">$</span>data</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>region <span class="sc">|&gt;</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rowwise</span>() <span class="sc">|&gt;</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>          <span class="at">region_data =</span> <span class="fu">list</span>(period_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(region_code <span class="sc">==</span> <span class="fu">pick</span>(region_code)[[<span class="dv">1</span>]])),</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>          <span class="at">bootstrap_result =</span> <span class="fu">list</span>(<span class="fu">bootstrap_indicator</span>(region_data, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)),</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Extract both bootstrap mean and median</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>          <span class="at">mean =</span> bootstrap_result<span class="sc">$</span>mean,</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> bootstrap_result<span class="sc">$</span>se,</span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> bootstrap_result<span class="sc">$</span>ci_lower,</span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> bootstrap_result<span class="sc">$</span>ci_upper,</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> bootstrap_result<span class="sc">$</span>q1,</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> bootstrap_result<span class="sc">$</span>median,</span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> bootstrap_result<span class="sc">$</span>q3</span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">|&gt;</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">indicator_value =</span> median) <span class="sc">|&gt;</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>        <span class="fu">select</span>(<span class="sc">-</span>region_data, <span class="sc">-</span>bootstrap_result) <span class="sc">|&gt;</span></span>
 <span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ungroup</span>()</span>
 <span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>    }),</span>
 <span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    <span class="co"># National uncertainty: bootstrap from all plots in the period</span></span>
 <span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">national_boot =</span> <span class="fu">map</span>(res, <span class="sc">~</span>{</span>
 <span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>      period_data <span class="ot">&lt;-</span> .x<span class="sc">$</span>data</span>
-<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>      boot_nat <span class="ot">&lt;-</span> <span class="fu">bootstrap_indicator</span>(period_data, <span class="at">n_bootstrap =</span> <span class="dv">200</span>)</span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>      boot_nat <span class="ot">&lt;-</span> <span class="fu">bootstrap_indicator</span>(period_data, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)</span>
 <span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>national <span class="sc">|&gt;</span></span>
 <span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(</span>
-<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
-<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value =</span> boot_nat<span class="sc">$</span>median,</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Extract both bootstrap mean and median</span></span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>          <span class="at">mean =</span> boot_nat<span class="sc">$</span>mean,</span>
 <span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> boot_nat<span class="sc">$</span>se,</span>
 <span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> boot_nat<span class="sc">$</span>ci_lower,</span>
 <span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> boot_nat<span class="sc">$</span>ci_upper,</span>
 <span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> boot_nat<span class="sc">$</span>q1,</span>
 <span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> boot_nat<span class="sc">$</span>median,</span>
-<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> boot_nat<span class="sc">$</span>q3</span>
-<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine bootstrap results across all periods (non-scaled)</span></span>
-<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a>results_county_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>(bootstrap_results_tbl<span class="sc">$</span>county_boot)</span>
-<span id="cb7-70"><a href="#cb7-70" aria-hidden="true" tabindex="-1"></a>results_region_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>(bootstrap_results_tbl<span class="sc">$</span>region_boot)</span>
-<span id="cb7-71"><a href="#cb7-71" aria-hidden="true" tabindex="-1"></a>results_national_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>(bootstrap_results_tbl<span class="sc">$</span>national_boot)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> boot_nat<span class="sc">$</span>q3,</span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value =</span> median</span>
+<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-70"><a href="#cb7-70" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine bootstrap results across all periods (non-scaled)</span></span>
+<span id="cb7-71"><a href="#cb7-71" aria-hidden="true" tabindex="-1"></a>results_county_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>(bootstrap_results_tbl<span class="sc">$</span>county_boot)</span>
+<span id="cb7-72"><a href="#cb7-72" aria-hidden="true" tabindex="-1"></a>results_region_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>(bootstrap_results_tbl<span class="sc">$</span>region_boot)</span>
+<span id="cb7-73"><a href="#cb7-73" aria-hidden="true" tabindex="-1"></a>results_national_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>(bootstrap_results_tbl<span class="sc">$</span>national_boot)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
 <section id="scale-indicator-values-at-county-level-and-aggregate-to-regional-and-national-levels" class="level3">
 <h3 class="anchored" data-anchor-id="scale-indicator-values-at-county-level-and-aggregate-to-regional-and-national-levels">9.5 Scale indicator values at county level and aggregate to regional and national levels</h3>
-<p>We first scale the indicator values at the county level using the reference levels and then aggregate these scaled values to the regional and national scales using area weights. County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits and quartiles. For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 1000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.</p>
+<p>We first scale the indicator values at the county level using the reference levels and then aggregate these scaled values to the regional and national scales using area weights. County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits and quartiles. For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (1000 iterations) and then attach the resulting confidence intervals to the aggregated tables.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5683,71 +5685,81 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 <span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_value =</span> <span class="fu">scale_indicator</span>(indicator_value,</span>
 <span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>                                   reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
 <span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>                                   reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
-<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_ci_lower =</span> <span class="fu">scale_indicator</span>(ci_lower,</span>
-<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>                                      reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
-<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>                                      reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
-<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_ci_upper =</span> <span class="fu">scale_indicator</span>(ci_upper,</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_mean =</span> <span class="fu">scale_indicator</span>(mean,</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>                                   reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>                                   reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_ci_lower =</span> <span class="fu">scale_indicator</span>(ci_lower,</span>
 <span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>                                      reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
 <span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>                                      reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
-<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_q1 =</span> <span class="fu">scale_indicator</span>(q1,</span>
-<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
-<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
-<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_median =</span> <span class="fu">scale_indicator</span>(median,</span>
-<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>                                    reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
-<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>                                    reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
-<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_q3 =</span> <span class="fu">scale_indicator</span>(q3,</span>
-<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
-<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x100[<span class="dv">1</span>])</span>
-<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a><span class="co"># Bootstrap uncertainty for scaled-then-aggregated regions per period</span></span>
-<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>region_scaled_uncertainty <span class="ot">&lt;-</span> all_results <span class="sc">|&gt;</span></span>
-<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
-<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a>    period,</span>
-<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>    <span class="at">by_region =</span> <span class="fu">map</span>(res, <span class="sc">~</span> <span class="fu">bootstrap_region_scaled_agg</span>(</span>
-<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>data,</span>
-<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a>      <span class="at">x0 =</span> reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
-<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>      <span class="at">x100 =</span> reference_values<span class="sc">$</span>x100[<span class="dv">1</span>],</span>
-<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>      <span class="at">n_bootstrap =</span> <span class="dv">200</span></span>
-<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>    ))</span>
-<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">unnest</span>(by_region)</span>
-<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a><span class="co"># Bootstrap uncertainty for scaled-then-aggregated national per period</span></span>
-<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a>national_scaled_uncertainty <span class="ot">&lt;-</span> all_results <span class="sc">|&gt;</span></span>
-<span id="cb8-81"><a href="#cb8-81" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
-<span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a>    period,</span>
-<span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a>    <span class="at">bs =</span> <span class="fu">map</span>(res, <span class="sc">~</span> <span class="fu">bootstrap_national_scaled_agg</span>(</span>
-<span id="cb8-84"><a href="#cb8-84" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>data,</span>
-<span id="cb8-85"><a href="#cb8-85" aria-hidden="true" tabindex="-1"></a>      <span class="at">x0 =</span> reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
-<span id="cb8-86"><a href="#cb8-86" aria-hidden="true" tabindex="-1"></a>      <span class="at">x100 =</span> reference_values<span class="sc">$</span>x100[<span class="dv">1</span>],</span>
-<span id="cb8-87"><a href="#cb8-87" aria-hidden="true" tabindex="-1"></a>      <span class="at">n_bootstrap =</span> <span class="dv">200</span></span>
-<span id="cb8-88"><a href="#cb8-88" aria-hidden="true" tabindex="-1"></a>    ))</span>
-<span id="cb8-89"><a href="#cb8-89" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb8-90"><a href="#cb8-90" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb8-91"><a href="#cb8-91" aria-hidden="true" tabindex="-1"></a>    <span class="at">region =</span> <span class="st">&quot;National&quot;</span>,</span>
-<span id="cb8-92"><a href="#cb8-92" aria-hidden="true" tabindex="-1"></a>    <span class="at">se =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;se&quot;</span>),</span>
-<span id="cb8-93"><a href="#cb8-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_lower =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;ci_lower&quot;</span>),</span>
-<span id="cb8-94"><a href="#cb8-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_upper =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;ci_upper&quot;</span>),</span>
-<span id="cb8-95"><a href="#cb8-95" aria-hidden="true" tabindex="-1"></a>    <span class="at">q1 =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;q1&quot;</span>),</span>
-<span id="cb8-96"><a href="#cb8-96" aria-hidden="true" tabindex="-1"></a>    <span class="at">median =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;median&quot;</span>),</span>
-<span id="cb8-97"><a href="#cb8-97" aria-hidden="true" tabindex="-1"></a>    <span class="at">q3 =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;q3&quot;</span>)</span>
-<span id="cb8-98"><a href="#cb8-98" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb8-99"><a href="#cb8-99" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>bs)</span>
-<span id="cb8-100"><a href="#cb8-100" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-101"><a href="#cb8-101" aria-hidden="true" tabindex="-1"></a><span class="co"># attach uncertainty and use median as point estimate</span></span>
-<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a>region_scaled_agg_with_uncertainty <span class="ot">&lt;-</span> region_scaled_agg_all_periods <span class="sc">%&gt;%</span></span>
-<span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(region_scaled_uncertainty, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;period&quot;</span>, <span class="st">&quot;region_code&quot;</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
-<span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb8-106"><a href="#cb8-106" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_value =</span> median,</span>
-<span id="cb8-107"><a href="#cb8-107" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_name =</span> <span class="fu">assign_region_name</span>(region_code)</span>
-<span id="cb8-108"><a href="#cb8-108" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb8-109"><a href="#cb8-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-110"><a href="#cb8-110" aria-hidden="true" tabindex="-1"></a>national_scaled_agg_with_uncertainty <span class="ot">&lt;-</span> national_scaled_agg_all_periods <span class="sc">%&gt;%</span></span>
-<span id="cb8-111"><a href="#cb8-111" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(national_scaled_uncertainty, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;period&quot;</span>, <span class="st">&quot;region&quot;</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb8-112"><a href="#cb8-112" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
-<span id="cb8-113"><a href="#cb8-113" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">scaled_value =</span> median)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_ci_upper =</span> <span class="fu">scale_indicator</span>(ci_upper,</span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>                                      reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>                                      reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_q1 =</span> <span class="fu">scale_indicator</span>(q1,</span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_median =</span> <span class="fu">scale_indicator</span>(median,</span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>                                    reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>                                    reference_values<span class="sc">$</span>x100[<span class="dv">1</span>]),</span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_q3 =</span> <span class="fu">scale_indicator</span>(q3,</span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>                                reference_values<span class="sc">$</span>x100[<span class="dv">1</span>])</span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a><span class="co"># Bootstrap uncertainty for scaled-then-aggregated regions per period</span></span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>region_scaled_uncertainty <span class="ot">&lt;-</span> all_results <span class="sc">|&gt;</span></span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a>    period,</span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>    <span class="at">by_region =</span> <span class="fu">map</span>(res, <span class="sc">~</span> <span class="fu">bootstrap_region_scaled_agg</span>(</span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>data,</span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>      <span class="at">x0 =</span> reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>      <span class="at">x100 =</span> reference_values<span class="sc">$</span>x100[<span class="dv">1</span>],</span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>      <span class="at">n_bootstrap =</span> <span class="dv">1000</span></span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a>    ))</span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">unnest</span>(by_region)</span>
+<span id="cb8-81"><a href="#cb8-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a><span class="co"># Bootstrap uncertainty for scaled-then-aggregated national per period</span></span>
+<span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a>national_scaled_uncertainty <span class="ot">&lt;-</span> all_results <span class="sc">|&gt;</span></span>
+<span id="cb8-84"><a href="#cb8-84" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb8-85"><a href="#cb8-85" aria-hidden="true" tabindex="-1"></a>    period,</span>
+<span id="cb8-86"><a href="#cb8-86" aria-hidden="true" tabindex="-1"></a>    <span class="at">bs =</span> <span class="fu">map</span>(res, <span class="sc">~</span> <span class="fu">bootstrap_national_scaled_agg</span>(</span>
+<span id="cb8-87"><a href="#cb8-87" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>data,</span>
+<span id="cb8-88"><a href="#cb8-88" aria-hidden="true" tabindex="-1"></a>      <span class="at">x0 =</span> reference_values<span class="sc">$</span>x0[<span class="dv">1</span>],</span>
+<span id="cb8-89"><a href="#cb8-89" aria-hidden="true" tabindex="-1"></a>      <span class="at">x100 =</span> reference_values<span class="sc">$</span>x100[<span class="dv">1</span>],</span>
+<span id="cb8-90"><a href="#cb8-90" aria-hidden="true" tabindex="-1"></a>      <span class="at">n_bootstrap =</span> <span class="dv">1000</span></span>
+<span id="cb8-91"><a href="#cb8-91" aria-hidden="true" tabindex="-1"></a>    ))</span>
+<span id="cb8-92"><a href="#cb8-92" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-93"><a href="#cb8-93" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb8-94"><a href="#cb8-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">region =</span> <span class="st">&quot;National&quot;</span>,</span>
+<span id="cb8-95"><a href="#cb8-95" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;mean&quot;</span>),</span>
+<span id="cb8-96"><a href="#cb8-96" aria-hidden="true" tabindex="-1"></a>    <span class="at">se =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;se&quot;</span>),</span>
+<span id="cb8-97"><a href="#cb8-97" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_lower =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;ci_lower&quot;</span>),</span>
+<span id="cb8-98"><a href="#cb8-98" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_upper =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;ci_upper&quot;</span>),</span>
+<span id="cb8-99"><a href="#cb8-99" aria-hidden="true" tabindex="-1"></a>    <span class="at">q1 =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;q1&quot;</span>),</span>
+<span id="cb8-100"><a href="#cb8-100" aria-hidden="true" tabindex="-1"></a>    <span class="at">median =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;median&quot;</span>),</span>
+<span id="cb8-101"><a href="#cb8-101" aria-hidden="true" tabindex="-1"></a>    <span class="at">q3 =</span> <span class="fu">map_dbl</span>(bs, <span class="st">&quot;q3&quot;</span>)</span>
+<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>bs)</span>
+<span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a><span class="co"># attach uncertainty and retain both bootstrap mean and median</span></span>
+<span id="cb8-106"><a href="#cb8-106" aria-hidden="true" tabindex="-1"></a>region_scaled_agg_with_uncertainty <span class="ot">&lt;-</span> region_scaled_agg_all_periods <span class="sc">%&gt;%</span></span>
+<span id="cb8-107"><a href="#cb8-107" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(region_scaled_uncertainty, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;period&quot;</span>, <span class="st">&quot;region_code&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-108"><a href="#cb8-108" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb8-109"><a href="#cb8-109" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_mean =</span> mean,</span>
+<span id="cb8-110"><a href="#cb8-110" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_median =</span> median,</span>
+<span id="cb8-111"><a href="#cb8-111" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
+<span id="cb8-112"><a href="#cb8-112" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_value =</span> median,</span>
+<span id="cb8-113"><a href="#cb8-113" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_name =</span> <span class="fu">assign_region_name</span>(region_code)</span>
+<span id="cb8-114"><a href="#cb8-114" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-115"><a href="#cb8-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-116"><a href="#cb8-116" aria-hidden="true" tabindex="-1"></a>national_scaled_agg_with_uncertainty <span class="ot">&lt;-</span> national_scaled_agg_all_periods <span class="sc">%&gt;%</span></span>
+<span id="cb8-117"><a href="#cb8-117" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(national_scaled_uncertainty, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;period&quot;</span>, <span class="st">&quot;region&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-118"><a href="#cb8-118" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb8-119"><a href="#cb8-119" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_mean =</span> mean,</span>
+<span id="cb8-120"><a href="#cb8-120" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_median =</span> median,</span>
+<span id="cb8-121"><a href="#cb8-121" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Use bootstrap median as the point estimate for consistency with quartiles</span></span>
+<span id="cb8-122"><a href="#cb8-122" aria-hidden="true" tabindex="-1"></a>    <span class="at">scaled_value =</span> median</span>
+<span id="cb8-123"><a href="#cb8-123" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Note that the scaling can also be done directly at the regional and national levels, by using the non-scaled indicator values. For this indicator, it makes no difference, because the scaling is linear.</p>
@@ -5755,19 +5767,19 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">10. Results</h2>
-<p>The following tables present the indicator results at county, regional and national scales for each reporting period. All values are scaled between 0 and 1, where 0 represents the worst condition (0% absence of alien species) and 1 represents the best condition (100% absence of alien species). Where relevant, 95% confidence intervals are shown.</p>
+<p>The following tables present the indicator results at county, regional and national scales for each reporting period. All values are scaled between 0 and 1, where 0 represents the worst condition (0% absence of alien species) and 1 represents the best condition (100% absence of alien species). We report both bootstrap mean and median estimates together with standard errors, 95% confidence intervals, and quartiles.</p>
 <section id="county-level-results-scaled-with-uncertainty" class="level3">
 <h3 class="anchored" data-anchor-id="county-level-results-scaled-with-uncertainty">10.1 County-level results (scaled with uncertainty)</h3>
 <div class="cell">
 <div id="tbl-county-results-table" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-county-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 2: County-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
+Table 2: County-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
 </figcaption>
 <div aria-describedby="tbl-county-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<div class="datatables html-widget html-fill-item" id="htmlwidget-aac94be206500d5662bb" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-aac94be206500d5662bb">{"x":{"filter":"none","vertical":false,"data":[["2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024"],["Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold"],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.992,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[0.06,0.06,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.07000000000000001,0.07000000000000001,0.06,0.07000000000000001,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06],[0.991,0.992,0.992,0.991,0.992,0.991,0.991,0.992,0.991,0.992,0.992,0.991,0.991,0.992,0.991,0.992,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.992,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991],[0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.993,0.993,0.994,0.994,0.993,0.993,0.993,0.993,0.994,0.993,0.993,0.993,0.993,0.994,0.993,0.993,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994],[0.992,0.992,0.992,0.992,0.993,0.992,0.992,0.992,0.992,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[872221,751388,835227,1678782,445181,444715,1148473,972300,340848,252044,427797,802663,728017,1630494,137889,269831,875636,740302,1034885,1665805,442026,443634,1148115,959772,341119,251865,438232,794912,727036,1635901,140683,265505,874194,740753,1043091,1661571,449226,445975,1141466,951571,337784,257983,444250,795633,721097,1628952,139241,260818],[977,845,173,1874,502,495,1194,1065,419,250,471,904,790,1867,168,325,985,832,239,1861,500,495,1199,1056,420,250,480,894,790,1875,174,317,981,841,240,1865,510,499,1196,1050,419,259,484,895,790,1871,174,317]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>Period<\/th>\n      <th>County<\/th>\n      <th>Scaled Value<\/th>\n      <th>Standard Error<\/th>\n      <th>CI Lower<\/th>\n      <th>CI Upper<\/th>\n      <th>Q1<\/th>\n      <th>Q3<\/th>\n      <th>Total Area (ha)<\/th>\n      <th>Number of Plots<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":10,"scrollX":true,"lengthMenu":[10,25,50,100],"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6,7,8,9]},{"name":"Period","targets":0},{"name":"County","targets":1},{"name":"Scaled Value","targets":2},{"name":"Standard Error","targets":3},{"name":"CI Lower","targets":4},{"name":"CI Upper","targets":5},{"name":"Q1","targets":6},{"name":"Q3","targets":7},{"name":"Total Area (ha)","targets":8},{"name":"Number of Plots","targets":9}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-9a7795561894537cbcd4" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-9a7795561894537cbcd4">{"x":{"filter":"none","vertical":false,"data":[["2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024"],["Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Finnmark","Hedmark","Hordaland","Møre og Romsdal","Nordland","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Troms","Trøndelag","Vestfold","Østfold"],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[0.06,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.07000000000000001,0.06,0.07000000000000001,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.06,0.07000000000000001,0.06,0.07000000000000001,0.07000000000000001,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.06,0.07000000000000001,0.06,0.06,0.07000000000000001,0.06,0.06],[0.992,0.991,0.992,0.992,0.992,0.992,0.991,0.992,0.992,0.992,0.992,0.991,0.992,0.992,0.991,0.992,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991,0.991],[0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.993,0.993,0.993,0.993,0.994,0.993,0.993,0.993,0.994,0.994,0.993,0.993,0.994,0.993,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994,0.994],[0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992,0.992],[0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993,0.993],[872221,751388,835227,1678782,445181,444715,1148473,972300,340848,252044,427797,802663,728017,1630494,137889,269831,875636,740302,1034885,1665805,442026,443634,1148115,959772,341119,251865,438232,794912,727036,1635901,140683,265505,874194,740753,1043091,1661571,449226,445975,1141466,951571,337784,257983,444250,795633,721097,1628952,139241,260818],[977,845,173,1874,502,495,1194,1065,419,250,471,904,790,1867,168,325,985,832,239,1861,500,495,1199,1056,420,250,480,894,790,1875,174,317,981,841,240,1865,510,499,1196,1050,419,259,484,895,790,1871,174,317]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>Period<\/th>\n      <th>County<\/th>\n      <th>Bootstrapped (mean)<\/th>\n      <th>Bootstrapped (median)<\/th>\n      <th>Standard Error<\/th>\n      <th>CI Lower<\/th>\n      <th>CI Upper<\/th>\n      <th>Q1<\/th>\n      <th>Q3<\/th>\n      <th>Total Area (ha)<\/th>\n      <th>Number of Plots<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":10,"scrollX":true,"lengthMenu":[10,25,50,100],"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6,7,8,9,10]},{"name":"Period","targets":0},{"name":"County","targets":1},{"name":"Bootstrapped (mean)","targets":2},{"name":"Bootstrapped (median)","targets":3},{"name":"Standard Error","targets":4},{"name":"CI Lower","targets":5},{"name":"CI Upper","targets":6},{"name":"Q1","targets":7},{"name":"Q3","targets":8},{"name":"Total Area (ha)","targets":9},{"name":"Number of Plots","targets":10}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 </figure>
@@ -5780,7 +5792,7 @@ Table 2: County-level indicator values for absence of alien coniferous tree spe
 <div id="tbl-region-results-table" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-region-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 3: Regional-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
+Table 3: Regional-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
 </figcaption>
 <div aria-describedby="tbl-region-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -5789,9 +5801,10 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <thead>
 <tr class="header">
 <th style="text-align: left;" data-quarto-table-cell-role="th">Period</th>
-<th style="text-align: left;" data-quarto-table-cell-role="th">Region Code</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">region_code</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Region</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Scaled Value</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (mean)</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (median)</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">Standard Error</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">CI Lower</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">CI Upper</th>
@@ -5807,8 +5820,9 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
 <td style="text-align: right;">0.998</td>
-<td style="text-align: right;">0.000</td>
 <td style="text-align: right;">0.998</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.997</td>
 <td style="text-align: right;">0.999</td>
 <td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.999</td>
@@ -5819,6 +5833,7 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2010-2014</td>
 <td style="text-align: left;">2</td>
 <td style="text-align: left;">Sør</td>
+<td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.996</td>
@@ -5833,8 +5848,9 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
 <td style="text-align: right;">0.965</td>
+<td style="text-align: right;">0.965</td>
 <td style="text-align: right;">0.004</td>
-<td style="text-align: right;">0.955</td>
+<td style="text-align: right;">0.956</td>
 <td style="text-align: right;">0.973</td>
 <td style="text-align: right;">0.962</td>
 <td style="text-align: right;">0.968</td>
@@ -5846,7 +5862,8 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">4</td>
 <td style="text-align: left;">Midt</td>
 <td style="text-align: right;">0.992</td>
-<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.992</td>
+<td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.989</td>
 <td style="text-align: right;">0.995</td>
 <td style="text-align: right;">0.991</td>
@@ -5859,8 +5876,9 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">5</td>
 <td style="text-align: left;">Nord</td>
 <td style="text-align: right;">0.993</td>
+<td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.001</td>
-<td style="text-align: right;">0.991</td>
+<td style="text-align: right;">0.990</td>
 <td style="text-align: right;">0.995</td>
 <td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.994</td>
@@ -5871,6 +5889,7 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2015-2019</td>
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
+<td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.997</td>
@@ -5885,6 +5904,7 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2</td>
 <td style="text-align: left;">Sør</td>
 <td style="text-align: right;">0.996</td>
+<td style="text-align: right;">0.996</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.998</td>
@@ -5898,11 +5918,12 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
 <td style="text-align: right;">0.965</td>
-<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.965</td>
+<td style="text-align: right;">0.005</td>
 <td style="text-align: right;">0.955</td>
-<td style="text-align: right;">0.973</td>
+<td style="text-align: right;">0.974</td>
 <td style="text-align: right;">0.962</td>
-<td style="text-align: right;">0.968</td>
+<td style="text-align: right;">0.969</td>
 <td style="text-align: right;">1132123</td>
 <td style="text-align: right;">1230</td>
 </tr>
@@ -5910,6 +5931,7 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2015-2019</td>
 <td style="text-align: left;">4</td>
 <td style="text-align: left;">Midt</td>
+<td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.002</td>
 <td style="text-align: right;">0.989</td>
@@ -5924,11 +5946,12 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">5</td>
 <td style="text-align: left;">Nord</td>
 <td style="text-align: right;">0.993</td>
+<td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.990</td>
 <td style="text-align: right;">0.995</td>
 <td style="text-align: right;">0.992</td>
-<td style="text-align: right;">0.993</td>
+<td style="text-align: right;">0.994</td>
 <td style="text-align: right;">2910035</td>
 <td style="text-align: right;">2228</td>
 </tr>
@@ -5937,7 +5960,8 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
 <td style="text-align: right;">0.998</td>
-<td style="text-align: right;">0.001</td>
+<td style="text-align: right;">0.998</td>
+<td style="text-align: right;">0.000</td>
 <td style="text-align: right;">0.997</td>
 <td style="text-align: right;">0.999</td>
 <td style="text-align: right;">0.998</td>
@@ -5949,6 +5973,7 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">2</td>
 <td style="text-align: left;">Sør</td>
+<td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.998</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.997</td>
@@ -5962,7 +5987,8 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
-<td style="text-align: right;">0.963</td>
+<td style="text-align: right;">0.964</td>
+<td style="text-align: right;">0.964</td>
 <td style="text-align: right;">0.004</td>
 <td style="text-align: right;">0.955</td>
 <td style="text-align: right;">0.972</td>
@@ -5976,9 +6002,10 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">4</td>
 <td style="text-align: left;">Midt</td>
 <td style="text-align: right;">0.992</td>
+<td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.002</td>
 <td style="text-align: right;">0.989</td>
-<td style="text-align: right;">0.995</td>
+<td style="text-align: right;">0.994</td>
 <td style="text-align: right;">0.991</td>
 <td style="text-align: right;">0.993</td>
 <td style="text-align: right;">2074927</td>
@@ -5988,7 +6015,8 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">5</td>
 <td style="text-align: left;">Nord</td>
-<td style="text-align: right;">0.994</td>
+<td style="text-align: right;">0.993</td>
+<td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.991</td>
 <td style="text-align: right;">0.996</td>
@@ -6012,7 +6040,7 @@ Table 3: Regional-level indicator values for absence of alien coniferous tree s
 <div id="tbl-national-results-table" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-national-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 4: National-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
+Table 4: National-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).
 </figcaption>
 <div aria-describedby="tbl-national-results-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -6022,7 +6050,8 @@ Table 4: National-level indicator values for absence of alien coniferous tree s
 <tr class="header">
 <th style="text-align: left;" data-quarto-table-cell-role="th">Period</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Spatial Level</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Scaled Value</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (mean)</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (median)</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">Standard Error</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">CI Lower</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">CI Upper</th>
@@ -6037,6 +6066,7 @@ Table 4: National-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2010-2014</td>
 <td style="text-align: left;">National</td>
 <td style="text-align: right;">0.993</td>
+<td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.994</td>
@@ -6049,6 +6079,7 @@ Table 4: National-level indicator values for absence of alien coniferous tree s
 <td style="text-align: left;">2015-2019</td>
 <td style="text-align: left;">National</td>
 <td style="text-align: right;">0.992</td>
+<td style="text-align: right;">0.992</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.991</td>
 <td style="text-align: right;">0.993</td>
@@ -6060,6 +6091,7 @@ Table 4: National-level indicator values for absence of alien coniferous tree s
 <tr class="odd">
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">National</td>
+<td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.993</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.991</td>
@@ -6111,7 +6143,7 @@ LAPACK: /Library/Frameworks/R.framework/Versions/4.5-x86_64/Resources/lib/libRla
 locale:
 [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
 
-time zone: Europe/Oslo
+time zone: Europe/Amsterdam
 tzcode source: internal
 
 attached base packages:

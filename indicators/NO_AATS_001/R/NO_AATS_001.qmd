@@ -460,7 +460,7 @@ Additional uncertainties related to the setting of the lower reference value and
 ### 7.1 Alien coniferous tree species
 
 All trees larger than 5 cm dbh are recorded and identified for each 250 m² NFI plot according to methods described in (@viken2021-feltinstruks).
-For this indicator, data for the NFI variables introgran_pr and introfuru_pr from the last 5 years including the relevant reporting year are used.
+For this indicator, data for the NFI variables `introgran_pr` and `introfuru_pr` from the last 5 years including the relevant reporting year are used.
 Aggregated area-weighted data must be used for appropriate spatial units such as counties, regions or the whole country.
 As the NFI plots vary in density for forest below/above the coniferous forest line and in Finnmark, each type of plot represents a different part of all forest land.
 In addition, some NFI plots are divided in two parts in the data.
@@ -514,7 +514,7 @@ reporting_periods <- list(
 
 We then remove the Finnmark plots marked for removal, filter for data from 2010 onward and remove plots with missing data for alien species percentages.
 We then standardise geography fields used throughout the analysis: `region_code` (assigned based on county name per specification), the readable county name `fylke_name` (numeric prefixes removed and split counties merged), and a normalised join key `fylke_name_clean`.
-Next, at the plot levelwe compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100).
+Next, at the plot level we compute the total percentage of alien conifers and derive the absence indicator (100 minus the alien percentage, truncated at 0–100).
 Finally, we create area-weighted values by multiplying the indicator value for each plot by the variable `au_areal` (the area weight for that plot).
 
 ```{r create-derived-variables}
@@ -641,7 +641,7 @@ results_national_all_periods <- map_dfr(all_results$res, "national")
 
 This section quantifies uncertainty in the non‑scaled indicator estimates for each period.
 For each period, we bootstrap the national estimate from all plots and, separately, bootstrap county and region estimates by resampling plots within each county/region.
-For testing and faster renders, the bootstrap iteration count is set to 200 (will be changed to 1000 for final reporting).
+The bootstrap iteration count is set to 1000 for robust uncertainty estimation.
 We then bind the results across periods with standard errors, 95% confidence intervals and quartiles.
 
 ```{r bootstrap-all-periods}
@@ -657,10 +657,9 @@ bootstrap_results_tbl <- all_results |>
         rowwise() |>
         mutate(
           county_data = list(period_data |> filter(fylke_name == pick(fylke_name)[[1]])),
-          bootstrap_result = list(bootstrap_indicator(county_data, n_bootstrap = 200)),
-          # Use bootstrap median as the point estimate for consistency with quartiles
-          # The median is guaranteed to be between q1 and q3, and typically close to the mean
-          indicator_value_boot = bootstrap_result$median,
+          bootstrap_result = list(bootstrap_indicator(county_data, n_bootstrap = 1000)),
+          # Extract both bootstrap mean and median
+          mean = bootstrap_result$mean,
           se = bootstrap_result$se,
           ci_lower = bootstrap_result$ci_lower,
           ci_upper = bootstrap_result$ci_upper,
@@ -669,9 +668,9 @@ bootstrap_results_tbl <- all_results |>
           q3 = bootstrap_result$q3
         ) |>
         # Explicitly keep fylke_name and other key columns
-        # Use indicator_value_boot (bootstrap median) instead of original indicator_value
-        select(fylke_name, period, indicator_value_boot, total_area, n_plots, se, ci_lower, ci_upper, q1, median, q3) |>
-        rename(indicator_value = indicator_value_boot) |>
+        # Use bootstrap median as the point estimate for consistency with quartiles
+        mutate(indicator_value = median) |>
+        select(fylke_name, period, indicator_value, mean, total_area, n_plots, se, ci_lower, ci_upper, q1, median, q3) |>
         ungroup()
     }),
     # Region uncertainty: bootstrap within each region using the period's plot data
@@ -681,9 +680,9 @@ bootstrap_results_tbl <- all_results |>
         rowwise() |>
         mutate(
           region_data = list(period_data |> filter(region_code == pick(region_code)[[1]])),
-          bootstrap_result = list(bootstrap_indicator(region_data, n_bootstrap = 200)),
-          # Use bootstrap median as the point estimate for consistency with quartiles
-          indicator_value_boot = bootstrap_result$median,
+          bootstrap_result = list(bootstrap_indicator(region_data, n_bootstrap = 1000)),
+          # Extract both bootstrap mean and median
+          mean = bootstrap_result$mean,
           se = bootstrap_result$se,
           ci_lower = bootstrap_result$ci_lower,
           ci_upper = bootstrap_result$ci_upper,
@@ -691,24 +690,27 @@ bootstrap_results_tbl <- all_results |>
           median = bootstrap_result$median,
           q3 = bootstrap_result$q3
         ) |>
-        mutate(indicator_value = indicator_value_boot) |>
-        select(-region_data, -bootstrap_result, -indicator_value_boot) |>
+        # Use bootstrap median as the point estimate for consistency with quartiles
+        mutate(indicator_value = median) |>
+        select(-region_data, -bootstrap_result) |>
         ungroup()
     }),
     # National uncertainty: bootstrap from all plots in the period
     national_boot = map(res, ~{
       period_data <- .x$data
-      boot_nat <- bootstrap_indicator(period_data, n_bootstrap = 200)
+      boot_nat <- bootstrap_indicator(period_data, n_bootstrap = 1000)
       .x$national |>
         mutate(
-          # Use bootstrap median as the point estimate for consistency with quartiles
-          indicator_value = boot_nat$median,
+          # Extract both bootstrap mean and median
+          mean = boot_nat$mean,
           se = boot_nat$se,
           ci_lower = boot_nat$ci_lower,
           ci_upper = boot_nat$ci_upper,
           q1 = boot_nat$q1,
           median = boot_nat$median,
-          q3 = boot_nat$q3
+          q3 = boot_nat$q3,
+          # Use bootstrap median as the point estimate for consistency with quartiles
+          indicator_value = median
         )
     })
   )
@@ -724,7 +726,7 @@ results_national_non_scaled_uncertainty <- purrr::list_rbind(bootstrap_results_t
 
 We first scale the indicator values at the county level using the reference levels and then aggregate these scaled values to the regional and national scales using area weights.
 County‑level uncertainty is obtained by linearly transforming the non‑scaled confidence limits and quartiles.
-For the aggregated levels, we compute uncertainty by mirroring the “scale‑then‑aggregate” workflow under bootstrap (200 iterations for test runs, will be changed to 1000 for final reporting) and then attach the resulting confidence intervals to the aggregated tables.
+For the aggregated levels, we compute uncertainty by mirroring the "scale‑then‑aggregate" workflow under bootstrap (1000 iterations) and then attach the resulting confidence intervals to the aggregated tables.
 
 ```{r scale-and-aggregate}
 
@@ -776,6 +778,9 @@ county_scaled_with_uncertainty <- results_county_non_scaled_uncertainty %>%
     scaled_value = scale_indicator(indicator_value,
                                    reference_values$x0[1],
                                    reference_values$x100[1]),
+    scaled_mean = scale_indicator(mean,
+                                   reference_values$x0[1],
+                                   reference_values$x100[1]),
     scaled_ci_lower = scale_indicator(ci_lower,
                                       reference_values$x0[1],
                                       reference_values$x100[1]),
@@ -801,7 +806,7 @@ region_scaled_uncertainty <- all_results |>
       .x$data,
       x0 = reference_values$x0[1],
       x100 = reference_values$x100[1],
-      n_bootstrap = 200
+      n_bootstrap = 1000
     ))
   ) |>
   tidyr::unnest(by_region)
@@ -814,11 +819,12 @@ national_scaled_uncertainty <- all_results |>
       .x$data,
       x0 = reference_values$x0[1],
       x100 = reference_values$x100[1],
-      n_bootstrap = 200
+      n_bootstrap = 1000
     ))
   ) |>
   mutate(
     region = "National",
+    mean = map_dbl(bs, "mean"),
     se = map_dbl(bs, "se"),
     ci_lower = map_dbl(bs, "ci_lower"),
     ci_upper = map_dbl(bs, "ci_upper"),
@@ -828,19 +834,25 @@ national_scaled_uncertainty <- all_results |>
   ) |>
   select(-bs)
 
-# attach uncertainty and use median as point estimate
+# attach uncertainty and retain both bootstrap mean and median
 region_scaled_agg_with_uncertainty <- region_scaled_agg_all_periods %>%
   left_join(region_scaled_uncertainty, by = c("period", "region_code")) %>%
-  # Use bootstrap median as the point estimate for consistency with quartiles
   mutate(
+    scaled_mean = mean,
+    scaled_median = median,
+    # Use bootstrap median as the point estimate for consistency with quartiles
     scaled_value = median,
     region_name = assign_region_name(region_code)
   )
 
 national_scaled_agg_with_uncertainty <- national_scaled_agg_all_periods %>%
   left_join(national_scaled_uncertainty, by = c("period", "region")) %>%
-  # Use bootstrap median as the point estimate for consistency with quartiles
-  mutate(scaled_value = median)
+  mutate(
+    scaled_mean = mean,
+    scaled_median = median,
+    # Use bootstrap median as the point estimate for consistency with quartiles
+    scaled_value = median
+  )
 
 ```
 
@@ -852,19 +864,20 @@ For this indicator, it makes no difference, because the scaling is linear.
 
 The following tables present the indicator results at county, regional and national scales for each reporting period. 
 All values are scaled between 0 and 1, where 0 represents the worst condition (0% absence of alien species) and 1 represents the best condition (100% absence of alien species).
-Where relevant, 95% confidence intervals are shown.
+We report both bootstrap mean and median estimates together with standard errors, 95% confidence intervals, and quartiles.
 
 ### 10.1 County-level results (scaled with uncertainty)
 
 ```{r tbl-county-results-table}
-#| tbl-cap: 'County-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
+#| tbl-cap: 'County-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
 #| echo: false
 
 county_tbl_df <- county_scaled_with_uncertainty |>
-  select(period, fylke_name, scaled_value, se, scaled_ci_lower, scaled_ci_upper, 
+  select(period, fylke_name, scaled_mean, scaled_median, se, scaled_ci_lower, scaled_ci_upper, 
          scaled_q1, scaled_q3, total_area, n_plots) |>
   mutate(
-    scaled_value = round(scaled_value, 3),
+    scaled_mean = round(scaled_mean, 3),
+    scaled_median = round(scaled_median, 3),
     se = round(se, 2),
     scaled_ci_lower = round(scaled_ci_lower, 3),
     scaled_ci_upper = round(scaled_ci_upper, 3),
@@ -875,7 +888,8 @@ county_tbl_df <- county_scaled_with_uncertainty |>
   rename(
     Period = period,
     County = fylke_name,
-    `Scaled Value` = scaled_value,
+    `Bootstrapped (mean)` = scaled_mean,
+    `Bootstrapped (median)` = scaled_median,
     `Standard Error` = se,
     `CI Lower` = scaled_ci_lower,
     `CI Upper` = scaled_ci_upper,
@@ -896,13 +910,14 @@ DT::datatable(
 ### 10.2 Regional results (aggregated with uncertainty)
 
 ```{r tbl-region-results-table}
-#| tbl-cap: 'Regional-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
+#| tbl-cap: 'Regional-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
 #| echo: false
 
 region_scaled_agg_with_uncertainty |>
-  select(period, region_code, region_name, scaled_value, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
+  select(period, region_code, region_name, scaled_mean, scaled_median, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
   mutate(
-    scaled_value = round(scaled_value, 3),
+    scaled_mean = round(scaled_mean, 3),
+    scaled_median = round(scaled_median, 3),
     se = round(se %||% NA_real_, 3),
     ci_lower = round(ci_lower %||% NA_real_, 3),
     ci_upper = round(ci_upper %||% NA_real_, 3),
@@ -912,9 +927,9 @@ region_scaled_agg_with_uncertainty |>
   ) |>
   rename(
     Period = period,
-    `Region Code` = region_code,
     Region = region_name,
-    `Scaled Value` = scaled_value,
+    `Bootstrapped (mean)` = scaled_mean,
+    `Bootstrapped (median)` = scaled_median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
@@ -930,13 +945,14 @@ region_scaled_agg_with_uncertainty |>
 ### 10.3 National results (aggregated with uncertainty)
 
 ```{r tbl-national-results-table}
-#| tbl-cap: 'National-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes the scaled value (point estimate), standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
+#| tbl-cap: 'National-level indicator values for absence of alien coniferous tree species by reporting period. Values are scaled to 0-1 (where 0 = worst condition, 1 = best condition). The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3). To convert scaled values to the original percentage scale, multiply by 100 (e.g., scaled value 0.95 = 95% absence of alien species).'
 #| echo: false
 
 national_scaled_agg_with_uncertainty |>
-  select(period, region, scaled_value, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
+  select(period, region, scaled_mean, scaled_median, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
   mutate(
-    scaled_value = round(scaled_value, 3),
+    scaled_mean = round(scaled_mean, 3),
+    scaled_median = round(scaled_median, 3),
     se = round(se, 3),
     ci_lower = round(ci_lower, 3),
     ci_upper = round(ci_upper, 3),
@@ -947,7 +963,8 @@ national_scaled_agg_with_uncertainty |>
   rename(
     Period = period,
     `Spatial Level` = region,
-    `Scaled Value` = scaled_value,
+    `Bootstrapped (mean)` = scaled_mean,
+    `Bootstrapped (median)` = scaled_median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
