@@ -250,6 +250,7 @@ bootstrap_region_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 100
   # summarize per region_code
   out <- tibble::tibble(
     region_code = region_codes,
+    mean = apply(res_mat, 2, mean, na.rm = TRUE),
     se = apply(res_mat, 2, stats::sd, na.rm = TRUE),
     ci_lower = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.025, na.rm = TRUE)),
     ci_upper = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.975, na.rm = TRUE)),
