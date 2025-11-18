@@ -5099,7 +5099,7 @@ border-right: 1px solid #e0e0e0;
 <div class="cell quarto-layout-cell" style="flex-basis: 20.0%;justify-content: flex-start;">
 <div class="cell-output-display">
 <a href="https://github.com/NINAnor/ecRxiv/wiki#naming-convention">
-<img role="img" src="badge_version_000.001.svg" height="20px">
+<img role="img" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSJOVUxMIiBoZWlnaHQ9IjIwIj4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYiIgeDI9IjAiIHkyPSIxMDAlIj4KICAgICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiYmIiIHN0b3Atb3BhY2l0eT0iLjEiLz4KICAgICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3Atb3BhY2l0eT0iLjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFzayBpZD0iTlVMTCI+CiAgICAgICAgPHJlY3Qgd2lkdGg9Ik5VTEwiIGhlaWdodD0iMjAiIHJ4PSIzIiBmaWxsPSIjZmZmIi8+CiAgICA8L21hc2s+CiAgICA8ZyBtYXNrPSJ1cmwoI05VTEwpIj4KICAgICAgICA8cGF0aCBmaWxsPSIjNTU1IiBkPSJNMCAwaE5VTEx2MjBIMHoiLz4KICAgICAgICA8cGF0aCBmaWxsPSIjYWRkOGU2IiBkPSJNTlVMTCAwaE5VTEx2MjBITlVMTHoiLz4KICAgICAgICA8cGF0aCBmaWxsPSJ1cmwoI2IpIiBkPSJNMCAwaE5VTEx2MjBIMHoiLz4KICAgIDwvZz4KICAgIDxnIGZpbGw9Ik5VTEwiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJOVUxMIiBmb250LXNpemU9Ik5VTEwiPgogICAgICAgIDx0ZXh0IHg9Ik5VTEwiIHk9IjE1IiBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIj5WZXJzaW9uPC90ZXh0PgogICAgICAgIDx0ZXh0IHg9Ik5VTEwiIHk9IjE0Ij5WZXJzaW9uPC90ZXh0PgogICAgPC9nPgogICAgPGcgZmlsbD0iTlVMTCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ik5VTEwiIGZvbnQtc2l6ZT0iTlVMTCI+CiAgICAgICAgPHRleHQgeD0iTlVMTCIgeT0iMTUiIGZpbGw9IiMwMTAxMDEiIGZpbGwtb3BhY2l0eT0iLjMiPjAwMC4wMDE8L3RleHQ+CiAgICAgICAgPHRleHQgeD0iTlVMTCIgeT0iMTQiPjAwMC4wMDE8L3RleHQ+CiAgICA8L2c+Cjwvc3ZnPgo=" height="20px">
 </a>
 </div>
 </div>
@@ -5380,7 +5380,7 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>Next we filter the raw dataset to include only nemoral and boreonemoral plots and the two relevant forest area types, remove rows with missing values for <code>edellauv_pr</code> or <code>eik_pr</code>, standardise the geography fields, and compute the share of temperate deciduous trees as the capped sum of <code>edellauv_pr</code> and <code>eik_pr</code> (maximum 100). We then create a dummy variable (<code>meets_threshold</code>) that is 1 if the share of temperate deciduous trees is at least 30%, and 0 otherwise. We multiply it by <code>au_areal</code> to obtain an area-weighted dummy per plot and aggregate over all BN + NE plots. Dividing the sum of the weighted dummy by the total <code>au_areal</code> for all BN+NE plots yields the proportion of forest area with at least 30% temperate deciduous trees.</p>
+<p>Next we filter the raw dataset to include only nemoral and boreonemoral plots and the two relevant forest area types, remove rows with missing values for <code>edellauv_pr</code> or <code>eik_pr</code>, standardise the geography fields, and compute the share of temperate deciduous trees as the capped sum of <code>edellauv_pr</code> and <code>eik_pr</code> (maximum 100). We then create a dummy variable (<code>indicator_continuous</code>) that is 1 if the share of temperate deciduous trees is at least 30%, and 0 otherwise. We multiply it by <code>au_areal</code> to obtain an area-weighted dummy per plot and aggregate over all BN + NE plots. Dividing the sum of the weighted dummy by the total <code>au_areal</code> for all BN+NE plots yields the proportion of forest area with at least 30% temperate deciduous trees.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5390,30 +5390,31 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    vegsone_clean <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;boreonemoral&quot;</span>, <span class="st">&quot;nemoral&quot;</span>),</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    arealtype <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">12</span>)</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(edellauv_pr), <span class="sc">!</span><span class="fu">is.na</span>(eik_pr)) <span class="sc">|&gt;</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">fylke_name =</span> region_fylke <span class="sc">|&gt;</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_remove</span>(<span class="st">&quot;^</span><span class="sc">\\</span><span class="st">d+-</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">s+&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_remove</span>(<span class="st">&quot;^</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">s*&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_squish</span>(),</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">fylke_name =</span> <span class="fu">normalize_county_parts</span>(fylke_name),</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">fylke_name_clean =</span> stringi<span class="sc">::</span><span class="fu">stri_trans_general</span>(</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_squish</span>(</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">tolower</span>(stringr<span class="sc">::</span><span class="fu">str_replace_all</span>(fylke_name, <span class="st">&quot;[0-9.-]&quot;</span>, <span class="st">&quot; &quot;</span>))</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>      ),</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Latin-ASCII&quot;</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_code =</span> <span class="fu">assign_region_code</span>(fylke_name_clean),</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_name =</span> <span class="fu">assign_region_name</span>(region_code),</span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate total temperate deciduous share (capped at 100)</span></span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">temperate_deciduous_share =</span> <span class="fu">pmin</span>(edellauv_pr <span class="sc">+</span> eik_pr, <span class="dv">100</span>),</span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Binary indicator: 1 if share &gt;= 30%, 0 otherwise</span></span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">indicator_continuous =</span> <span class="fu">if_else</span>(temperate_deciduous_share <span class="sc">&gt;=</span> <span class="dv">30</span>, <span class="dv">1</span>, <span class="dv">0</span>),</span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Area-weighted dummy for aggregation to proportion of area</span></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">indicator_continuous_weighted =</span> indicator_continuous <span class="sc">*</span> au_areal</span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    arealtype <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">12</span>),</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(edellauv_pr),</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(eik_pr)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">fylke_name =</span> region_fylke <span class="sc">|&gt;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_remove</span>(<span class="st">&quot;^</span><span class="sc">\\</span><span class="st">d+-</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">s+&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_remove</span>(<span class="st">&quot;^</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">s*&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_squish</span>(),</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">fylke_name =</span> <span class="fu">normalize_county_parts</span>(fylke_name),</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">fylke_name_clean =</span> stringi<span class="sc">::</span><span class="fu">stri_trans_general</span>(</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>      stringr<span class="sc">::</span><span class="fu">str_squish</span>(</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">tolower</span>(stringr<span class="sc">::</span><span class="fu">str_replace_all</span>(fylke_name, <span class="st">&quot;[0-9.-]&quot;</span>, <span class="st">&quot; &quot;</span>))</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;Latin-ASCII&quot;</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_code =</span> <span class="fu">assign_region_code</span>(fylke_name_clean),</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_name =</span> <span class="fu">assign_region_name</span>(region_code),</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate total temperate deciduous share (capped at 100)</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">temperate_deciduous_share =</span> <span class="fu">pmin</span>(edellauv_pr <span class="sc">+</span> eik_pr, <span class="dv">100</span>),</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Binary indicator: 1 if share &gt;= 30%, 0 otherwise</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">indicator_continuous =</span> <span class="fu">if_else</span>(temperate_deciduous_share <span class="sc">&gt;=</span> <span class="dv">30</span>, <span class="dv">1</span>, <span class="dv">0</span>),</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Area-weighted dummy for aggregation to proportion of area</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">indicator_continuous_weighted =</span> indicator_continuous <span class="sc">*</span> au_areal</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Finally, we retain only the columns required for subsequent aggregation and reporting.</p>
@@ -5438,7 +5439,16 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>The prepared dataset <code>lsk_data</code> now contains all BN+NE plots with non-missing deciduous shares. For each plot we store a dummy (0/1) indicating whether the share of temperate deciduous trees is at least 30%, and its area-weighted counterpart. Aggregating the weighted dummy over all BN+NE plots yields the proportion of forest area meeting the ≥30% criterion. Together with area weights and harmonised geographic identifiers, the data are ready for aggregation to the reporting periods defined above.</p>
+<p>The prepared dataset <code>lsk_data</code> now contains only BN+NE plots with non-missing values for <code>edellauv_pr</code> and <code>eik_pr</code>. For each plot we store a dummy (0/1) indicating whether the share of temperate deciduous trees is at least 30%, and its area-weighted counterpart. Aggregating the weighted dummy over all BN+NE plots yields the proportion of forest area meeting the ≥30% criterion. Together with area weights and harmonised geographic identifiers, the data are ready for aggregation to the reporting periods defined above.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 8
+  n_total n_meets_threshold n_below_threshold prop_meets mean_share min_share
+    &lt;int&gt;             &lt;int&gt;             &lt;int&gt;      &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;
+1    5177               489              4688     0.0945       7.50         0
+# ℹ 2 more variables: max_share &lt;dbl&gt;, test_indicator &lt;dbl&gt;</code></pre>
+</div>
+</div>
 </section>
 <section id="calculate-non-scaled-area-weighted-indicator-values" class="level3">
 <h3 class="anchored" data-anchor-id="calculate-non-scaled-area-weighted-indicator-values">9.2 Calculate non-scaled area-weighted indicator values</h3>
@@ -5446,15 +5456,15 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>tdta_results <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap</span>(</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  reporting_periods,</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">calculate_period_indicators</span>(lsk_data, .y, .x)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">compact</span>()</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>tdta_results_county_all_periods <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(tdta_results, <span class="st">&quot;county&quot;</span>)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>tdta_results_region_all_periods <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(tdta_results, <span class="st">&quot;region&quot;</span>)</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>tdta_results_national_all_periods <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(tdta_results, <span class="st">&quot;national&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>tdta_results <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  reporting_periods,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">calculate_period_indicators</span>(lsk_data, .y, .x)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">compact</span>()</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>tdta_results_county_all_periods <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(tdta_results, <span class="st">&quot;county&quot;</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>tdta_results_region_all_periods <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(tdta_results, <span class="st">&quot;region&quot;</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>tdta_results_national_all_periods <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(tdta_results, <span class="st">&quot;national&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -5464,111 +5474,114 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>tdta_bootstrap <span class="ot">&lt;-</span> tdta_results <span class="sc">|&gt;</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">imap</span>(</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">list</span>(</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">period =</span> .y,</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">data =</span> .x<span class="sc">$</span>data,</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">county =</span> .x<span class="sc">$</span>county,</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">region =</span> .x<span class="sc">$</span>region,</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">national =</span> .x<span class="sc">$</span>national,</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">national_boot =</span> <span class="fu">bootstrap_indicator</span>(.x<span class="sc">$</span>data, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>),</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">county_boot =</span> purrr<span class="sc">::</span><span class="fu">map</span>(</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">split</span>(.x<span class="sc">$</span>data, .x<span class="sc">$</span>data<span class="sc">$</span>fylke_name),</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="sc">~</span> <span class="fu">bootstrap_indicator</span>(.x, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>      ),</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">region_boot =</span> purrr<span class="sc">::</span><span class="fu">map</span>(</span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">split</span>(.x<span class="sc">$</span>data, .x<span class="sc">$</span>data<span class="sc">$</span>region_code),</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="sc">~</span> <span class="fu">bootstrap_indicator</span>(.x, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>      ),</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">national_scaled_boot =</span> <span class="fu">bootstrap_national_scaled_agg</span>(.x<span class="sc">$</span>data, <span class="at">x0 =</span> <span class="dv">0</span>, <span class="at">x100 =</span> <span class="dv">100</span>, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>),</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>      <span class="at">region_scaled_boot =</span> <span class="fu">bootstrap_region_scaled_agg</span>(.x<span class="sc">$</span>data, <span class="at">x0 =</span> <span class="dv">0</span>, <span class="at">x100 =</span> <span class="dv">100</span>, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)</span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>tdta_results_county_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(</span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>  tdta_bootstrap,</span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> {</span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    county_summary <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap_dfr</span>(</span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>county_boot,</span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>      <span class="cf">function</span>(boot, county_name) {</span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">tibble</span>(</span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>          <span class="at">fylke_name =</span> county_name,</span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value =</span> boot<span class="sc">$</span>median,</span>
-<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> boot<span class="sc">$</span>se,</span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> boot<span class="sc">$</span>ci_lower,</span>
-<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> boot<span class="sc">$</span>ci_upper,</span>
-<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> boot<span class="sc">$</span>q1,</span>
-<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> boot<span class="sc">$</span>median,</span>
-<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> boot<span class="sc">$</span>q3</span>
-<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>      }</span>
-<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    .x<span class="sc">$</span>county <span class="sc">|&gt;</span></span>
-<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(fylke_name, period, total_area, n_plots) <span class="sc">|&gt;</span></span>
-<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">left_join</span>(county_summary, <span class="at">by =</span> <span class="st">&quot;fylke_name&quot;</span>)</span>
-<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>tdta_results_region_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(</span>
-<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>  tdta_bootstrap,</span>
-<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> {</span>
-<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>    region_summary <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap_dfr</span>(</span>
-<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>region_boot,</span>
-<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>      <span class="cf">function</span>(boot, region_code) {</span>
-<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">tibble</span>(</span>
-<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>          <span class="at">region_code =</span> region_code,</span>
-<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value =</span> boot<span class="sc">$</span>median,</span>
-<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> boot<span class="sc">$</span>se,</span>
-<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> boot<span class="sc">$</span>ci_lower,</span>
-<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> boot<span class="sc">$</span>ci_upper,</span>
-<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> boot<span class="sc">$</span>q1,</span>
-<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> boot<span class="sc">$</span>median,</span>
-<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> boot<span class="sc">$</span>q3</span>
-<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a>      }</span>
-<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>    .x<span class="sc">$</span>region <span class="sc">|&gt;</span></span>
-<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(region_code, period, total_area, n_plots) <span class="sc">|&gt;</span></span>
-<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">left_join</span>(region_summary, <span class="at">by =</span> <span class="st">&quot;region_code&quot;</span>)</span>
-<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a>tdta_results_national_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(</span>
-<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a>  tdta_bootstrap,</span>
-<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> .x<span class="sc">$</span>national <span class="sc">|&gt;</span></span>
-<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
-<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a>      <span class="at">indicator_value =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>median,</span>
-<span id="cb6-78"><a href="#cb6-78" aria-hidden="true" tabindex="-1"></a>      <span class="at">se =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>se,</span>
-<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a>      <span class="at">ci_lower =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>ci_lower,</span>
-<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a>      <span class="at">ci_upper =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>ci_upper,</span>
-<span id="cb6-81"><a href="#cb6-81" aria-hidden="true" tabindex="-1"></a>      <span class="at">q1 =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>q1,</span>
-<span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a>      <span class="at">median =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>median,</span>
-<span id="cb6-83"><a href="#cb6-83" aria-hidden="true" tabindex="-1"></a>      <span class="at">q3 =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>q3</span>
-<span id="cb6-84"><a href="#cb6-84" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-85"><a href="#cb6-85" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>tdta_bootstrap <span class="ot">&lt;-</span> tdta_results <span class="sc">|&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">imap</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">list</span>(</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">period =</span> .y,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">data =</span> .x<span class="sc">$</span>data,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">county =</span> .x<span class="sc">$</span>county,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">region =</span> .x<span class="sc">$</span>region,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">national =</span> .x<span class="sc">$</span>national,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">national_boot =</span> <span class="fu">bootstrap_indicator</span>(.x<span class="sc">$</span>data, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>),</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">county_boot =</span> purrr<span class="sc">::</span><span class="fu">map</span>(</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">split</span>(.x<span class="sc">$</span>data, .x<span class="sc">$</span>data<span class="sc">$</span>fylke_name),</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        <span class="sc">~</span> <span class="fu">bootstrap_indicator</span>(.x, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">region_boot =</span> purrr<span class="sc">::</span><span class="fu">map</span>(</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">split</span>(.x<span class="sc">$</span>data, .x<span class="sc">$</span>data<span class="sc">$</span>region_code),</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>        <span class="sc">~</span> <span class="fu">bootstrap_indicator</span>(.x, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">national_scaled_boot =</span> <span class="fu">bootstrap_national_scaled_agg</span>(.x<span class="sc">$</span>data, <span class="at">x0 =</span> <span class="dv">0</span>, <span class="at">x100 =</span> <span class="dv">100</span>, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>),</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>      <span class="at">region_scaled_boot =</span> <span class="fu">bootstrap_region_scaled_agg</span>(.x<span class="sc">$</span>data, <span class="at">x0 =</span> <span class="dv">0</span>, <span class="at">x100 =</span> <span class="dv">100</span>, <span class="at">n_bootstrap =</span> <span class="dv">1000</span>)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>tdta_results_county_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  tdta_bootstrap,</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> {</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    county_summary <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap_dfr</span>(</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>county_boot,</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>      <span class="cf">function</span>(boot, county_name) {</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>          <span class="at">fylke_name =</span> county_name,</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value =</span> boot<span class="sc">$</span>median,</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>          <span class="at">mean =</span> boot<span class="sc">$</span>mean,</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> boot<span class="sc">$</span>se,</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> boot<span class="sc">$</span>ci_lower,</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> boot<span class="sc">$</span>ci_upper,</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> boot<span class="sc">$</span>q1,</span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> boot<span class="sc">$</span>median,</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> boot<span class="sc">$</span>q3</span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>    .x<span class="sc">$</span>county <span class="sc">|&gt;</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(fylke_name, period, total_area, n_plots) <span class="sc">|&gt;</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">left_join</span>(county_summary, <span class="at">by =</span> <span class="st">&quot;fylke_name&quot;</span>)</span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>tdta_results_region_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(</span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>  tdta_bootstrap,</span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> {</span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>    region_summary <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap_dfr</span>(</span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>      .x<span class="sc">$</span>region_boot,</span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>      <span class="cf">function</span>(boot, region_code) {</span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>        dplyr<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>          <span class="at">region_code =</span> region_code,</span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>          <span class="at">indicator_value =</span> boot<span class="sc">$</span>median,</span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>          <span class="at">mean =</span> boot<span class="sc">$</span>mean,</span>
+<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>          <span class="at">se =</span> boot<span class="sc">$</span>se,</span>
+<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_lower =</span> boot<span class="sc">$</span>ci_lower,</span>
+<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>          <span class="at">ci_upper =</span> boot<span class="sc">$</span>ci_upper,</span>
+<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>          <span class="at">q1 =</span> boot<span class="sc">$</span>q1,</span>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>          <span class="at">median =</span> boot<span class="sc">$</span>median,</span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>          <span class="at">q3 =</span> boot<span class="sc">$</span>q3</span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a>    .x<span class="sc">$</span>region <span class="sc">|&gt;</span></span>
+<span id="cb7-70"><a href="#cb7-70" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(region_code, period, total_area, n_plots) <span class="sc">|&gt;</span></span>
+<span id="cb7-71"><a href="#cb7-71" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">left_join</span>(region_summary, <span class="at">by =</span> <span class="st">&quot;region_code&quot;</span>)</span>
+<span id="cb7-72"><a href="#cb7-72" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb7-73"><a href="#cb7-73" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-74"><a href="#cb7-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-75"><a href="#cb7-75" aria-hidden="true" tabindex="-1"></a>tdta_results_national_non_scaled_uncertainty <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(</span>
+<span id="cb7-76"><a href="#cb7-76" aria-hidden="true" tabindex="-1"></a>  tdta_bootstrap,</span>
+<span id="cb7-77"><a href="#cb7-77" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span> .x<span class="sc">$</span>national <span class="sc">|&gt;</span></span>
+<span id="cb7-78"><a href="#cb7-78" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb7-79"><a href="#cb7-79" aria-hidden="true" tabindex="-1"></a>      <span class="at">indicator_value =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>median,</span>
+<span id="cb7-80"><a href="#cb7-80" aria-hidden="true" tabindex="-1"></a>      <span class="at">mean =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>mean,</span>
+<span id="cb7-81"><a href="#cb7-81" aria-hidden="true" tabindex="-1"></a>      <span class="at">se =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>se,</span>
+<span id="cb7-82"><a href="#cb7-82" aria-hidden="true" tabindex="-1"></a>      <span class="at">ci_lower =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>ci_lower,</span>
+<span id="cb7-83"><a href="#cb7-83" aria-hidden="true" tabindex="-1"></a>      <span class="at">ci_upper =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>ci_upper,</span>
+<span id="cb7-84"><a href="#cb7-84" aria-hidden="true" tabindex="-1"></a>      <span class="at">q1 =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>q1,</span>
+<span id="cb7-85"><a href="#cb7-85" aria-hidden="true" tabindex="-1"></a>      <span class="at">median =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>median,</span>
+<span id="cb7-86"><a href="#cb7-86" aria-hidden="true" tabindex="-1"></a>      <span class="at">q3 =</span> .x<span class="sc">$</span>national_boot<span class="sc">$</span>q3</span>
+<span id="cb7-87"><a href="#cb7-87" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-88"><a href="#cb7-88" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles.</p>
+<p>The resulting tables contain bootstrap means and medians as point estimates alongside standard errors, confidence intervals, and quartiles.</p>
 </section>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">10. Results</h2>
-<p>The tables below present the non-scaled indicator values (area-weighted average share of temperate deciduous trees, calculated for plots with at least 30% temperate deciduous trees) together with bootstrap-derived uncertainty summaries for each 5-year reporting period.</p>
+<p>The tables below present the non-scaled indicator values expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees, together with bootstrap-derived uncertainty summaries for each 5-year reporting period.</p>
 <section id="county-level-results-non-scaled-with-uncertainty" class="level3">
 <h3 class="anchored" data-anchor-id="county-level-results-non-scaled-with-uncertainty">10.1 County-level results (non-scaled with uncertainty)</h3>
 <div class="cell">
 <div id="tbl-tdta-county-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-tdta-county-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 2: County-level non-scaled TDTA indicator values by reporting period. Values are expressed as area-weighted average percentage share of temperate deciduous trees (calculated for plots with at least 30% temperate deciduous trees). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).
+Table 2: County-level non-scaled TDTA indicator values by reporting period. Values are expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees. Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).
 </figcaption>
 <div aria-describedby="tbl-tdta-county-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<div class="datatables html-widget html-fill-item" id="htmlwidget-a655751f41d152ca28bc" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-a655751f41d152ca28bc">{"x":{"filter":"none","vertical":false,"data":[["2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024"],["Agder","Buskerud","Hedmark","Hordaland","Møre og Romsdal","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Hedmark","Hordaland","Møre og Romsdal","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Hedmark","Hordaland","Møre og Romsdal","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Trøndelag","Vestfold","Østfold"],[6.51,4.74,0.625,5.178,5.456,4.286,3.037,7.423,2.717,7.135,0,15.667,0.9419999999999999,6.623,4.938,0.86,5.233,5.832,3.472,3.196,7.175,2.806,6.962,0.126,17.332,0.967,6.655,6.045,0.794,5.06,5.817,3.472,3.41,7.346,2.916,7.223,0.245,20.018,0.901],[0.76,1.99,0.49,1.48,2.5,4.4,1.38,2.41,1.14,1.15,0,2.17,0.33,0.84,1.97,0.62,1.36,2.34,3.22,1.46,2.66,1.06,1.11,0.13,2.29,0.32,0.83,2.2,0.55,1.26,2.23,3.22,1.39,2.09,1.18,1.2,0.15,2.3,0.3],[5.037,1.79,0,2.637,2.059,0,1.138,3.585,0.762,4.878,0,11.778,0.403,5.086,1.541,0,2.572,2.397,0,0.997,2.765,1,5.342,0,13.41,0.488,5.137,2.578,0,2.941,2.008,0,1.165,3.833,1.006,5.14,0,15.496,0.45],[7.923,8.965999999999999,1.818,8.423,11.346,12.857,6.391,13.064,5.227,9.364000000000001,0,19.947,1.657,8.205,9.321999999999999,2.225,7.619,11.562,10.771,6.24,12.766,4.988,9.249000000000001,0.408,21.607,1.674,8.289999999999999,10.973,2.063,7.827,10.531,10.798,6.452,12.364,5.368,9.789999999999999,0.585,23.718,1.608],[5.942,3.495,0.268,4.211,4.009,0,2.223,5.817,1.92,6.453,0,14.245,0.717,6.141,3.808,0.342,4.173,4.51,0.118,2.19,5.414,1.93,6.199,0,15.838,0.834,6.058,4.392,0.31,4.232,4.325,0.176,2.494,5.935,2.226,6.511,0.133,18.391,0.715],[7.03,6.189,0.9320000000000001,6.236,7.549,8.571,4.011,9.275,3.46,7.881,0,17.197,1.162,7.187,6.194,1.27,6.043,7.553,5.125,4.261,9.355,3.37,7.758,0.246,18.738,1.223,7.256,7.567,1.27,5.89,7.495,4.601,4.295,8.734999999999999,3.728,7.812,0.333,21.657,1.087],[322813,73090,6579,134645,45042,6309,72640,53984,59211,180969,14059,99497,219271,322453,66962,5227,132302,45943,6309,71558,52632,59842,179436,14059,102291,217379,319479,68674,5678,135366,46664,6309,72099,55697,59842,180969,13879,100849,212061],[383,92,8,163,55,7,92,64,75,222,18,122,266,383,84,7,162,56,8,92,63,77,220,18,126,261,379,87,7,168,56,8,92,69,77,224,17,126,259]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>Period<\/th>\n      <th>County<\/th>\n      <th>Bootstrapped (median)<\/th>\n      <th>Standard Error<\/th>\n      <th>CI Lower<\/th>\n      <th>CI Upper<\/th>\n      <th>Q1<\/th>\n      <th>Q3<\/th>\n      <th>Total Area (ha)<\/th>\n      <th>Number of Plots<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":10,"scrollX":true,"lengthMenu":[10,25,50,100],"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6,7,8,9]},{"name":"Period","targets":0},{"name":"County","targets":1},{"name":"Bootstrapped (median)","targets":2},{"name":"Standard Error","targets":3},{"name":"CI Lower","targets":4},{"name":"CI Upper","targets":5},{"name":"Q1","targets":6},{"name":"Q3","targets":7},{"name":"Total Area (ha)","targets":8},{"name":"Number of Plots","targets":9}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-df1bf5ece23cd2b42058" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-df1bf5ece23cd2b42058">{"x":{"filter":"none","vertical":false,"data":[["2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2010-2014","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2015-2019","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024","2020-2024"],["Agder","Buskerud","Hedmark","Hordaland","Møre og Romsdal","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Hedmark","Hordaland","Møre og Romsdal","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Trøndelag","Vestfold","Østfold","Agder","Buskerud","Hedmark","Hordaland","Møre og Romsdal","Oppland","Oslo og Akershus","Rogaland","Sogn og Fjordane","Telemark","Trøndelag","Vestfold","Østfold"],[12.67,5.48,0,6.09,8.98,14.1,2.53,15.49,3.78,10.79,0,23.07,1.05,12.86,5.68,0,6.02,9,0,2.55,13.99,4.25,9.949999999999999,0,23.47,0.74,13.02,8.220000000000001,0,5.88,6.71,0,2.4,14.12,4.2,9.4,0,27.57,0.35],[12.61,5.15,0,5.98,8.65,14.29,2.45,15.2,3.7,10.72,0,22.9,1.06,12.82,5.54,0,5.97,8.73,0,2.49,13.96,3.96,9.85,0,23.37,0.74,13.03,8.029999999999999,0,5.77,6.43,0,2.46,13.9,3.88,9.33,0,27.5,0.34],[1.45,2.5,0,1.82,3.96,13.06,1.78,4.39,2.22,2.21,0,3.66,0.61,1.5,2.54,0,1.77,3.9,0,1.78,4.15,2.32,2.09,0,3.71,0.51,1.46,3.17,0,1.75,3.33,0,1.66,4.22,2.23,2.13,0,4.01,0.34],[10,1.23,0,2.9,2.09,0,0,7.71,0,6.77,0,16.17,0,9.99,1.31,0,2.68,2.08,0,0,6.45,0.44,5.9,0,16.67,0,10.18,2.64,0,2.77,0.97,0,0,6.37,0.45,5.4,0,20,0],[15.59,10.98,0,9.69,17.52,42.86,6.32,24.71,8.890000000000001,15.44,0,30.53,2.24,15.86,11.11,0,9.9,16.96,0,6.39,22.2,9.49,14.32,0,30.96,1.84,15.93,14.96,0,9.44,13.74,0,6.25,22.89,9.279999999999999,14.04,0,35.84,1.04],[11.66,3.7,0,4.83,6.01,0,1.23,12.38,2.28,9.27,0,20.47,0.66,11.8,3.88,0,4.75,6.14,0,1.26,11.04,2.5,8.48,0,20.83,0.34,12.05,5.95,0,4.58,4.23,0,1.25,11.29,2.68,7.9,0,24.78,0],[13.63,6.98,0,7.25,11.61,14.29,3.71,18.37,5.25,12.26,0,25.56,1.46,13.85,7.32,0,7.1,11.37,0,3.76,16.92,5.67,11.25,0,26.05,1.08,14.02,10.21,0,6.98,8.81,0,3.68,16.8,5.53,10.78,0,29.99,0.67],[454214,73090,6579,134645,45042,6309,72640,55787,59211,180969,14059,99497,219271,453493,66962,5227,132302,45943,6309,71558,54435,59842,179436,14059,102291,217379,453042,68674,5678,135366,46664,6309,72099,57499,59842,180969,13879,100849,212061],[540,92,8,163,55,7,92,66,75,222,18,122,266,543,84,7,162,56,8,92,65,77,220,18,126,261,540,87,7,168,56,8,92,71,77,224,17,126,259]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th>Period<\/th>\n      <th>County<\/th>\n      <th>Bootstrapped (mean)<\/th>\n      <th>Bootstrapped (median)<\/th>\n      <th>Standard Error<\/th>\n      <th>CI Lower<\/th>\n      <th>CI Upper<\/th>\n      <th>Q1<\/th>\n      <th>Q3<\/th>\n      <th>Total Area (ha)<\/th>\n      <th>Number of Plots<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"pageLength":10,"scrollX":true,"lengthMenu":[10,25,50,100],"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6,7,8,9,10]},{"name":"Period","targets":0},{"name":"County","targets":1},{"name":"Bootstrapped (mean)","targets":2},{"name":"Bootstrapped (median)","targets":3},{"name":"Standard Error","targets":4},{"name":"CI Lower","targets":5},{"name":"CI Upper","targets":6},{"name":"Q1","targets":7},{"name":"Q3","targets":8},{"name":"Total Area (ha)","targets":9},{"name":"Number of Plots","targets":10}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 </figure>
@@ -5581,7 +5594,7 @@ Table 2: County-level non-scaled TDTA indicator values by reporting period. Val
 <div id="tbl-tdta-region-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-tdta-region-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 3: Regional-level non-scaled TDTA indicator values by reporting period. Values are expressed as area-weighted average percentage share of temperate deciduous trees (calculated for plots with at least 30% temperate deciduous trees). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).
+Table 3: Regional-level non-scaled TDTA indicator values by reporting period. Values are expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees. Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).
 </figcaption>
 <div aria-describedby="tbl-tdta-region-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -5592,6 +5605,7 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <th style="text-align: left;" data-quarto-table-cell-role="th">Period</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Region Code</th>
 <th style="text-align: left;" data-quarto-table-cell-role="th">Region</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (mean)</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (median)</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">Standard Error</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">CI Lower</th>
@@ -5607,12 +5621,13 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <td style="text-align: left;">2010-2014</td>
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
-<td style="text-align: right;">5.100</td>
-<td style="text-align: right;">0.62</td>
-<td style="text-align: right;">3.880</td>
-<td style="text-align: right;">6.311</td>
-<td style="text-align: right;">4.689</td>
-<td style="text-align: right;">5.418</td>
+<td style="text-align: right;">6.65</td>
+<td style="text-align: right;">6.59</td>
+<td style="text-align: right;">1.03</td>
+<td style="text-align: right;">4.72</td>
+<td style="text-align: right;">8.75</td>
+<td style="text-align: right;">5.89</td>
+<td style="text-align: right;">7.35</td>
 <td style="text-align: right;">477386</td>
 <td style="text-align: right;">587</td>
 </tr>
@@ -5620,38 +5635,41 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <td style="text-align: left;">2010-2014</td>
 <td style="text-align: left;">2</td>
 <td style="text-align: left;">Sør</td>
-<td style="text-align: right;">6.802</td>
-<td style="text-align: right;">0.70</td>
-<td style="text-align: right;">5.386</td>
-<td style="text-align: right;">8.075</td>
-<td style="text-align: right;">6.266</td>
-<td style="text-align: right;">7.215</td>
-<td style="text-align: right;">503782</td>
-<td style="text-align: right;">605</td>
+<td style="text-align: right;">12.02</td>
+<td style="text-align: right;">11.99</td>
+<td style="text-align: right;">1.24</td>
+<td style="text-align: right;">9.62</td>
+<td style="text-align: right;">14.43</td>
+<td style="text-align: right;">11.19</td>
+<td style="text-align: right;">12.87</td>
+<td style="text-align: right;">635182</td>
+<td style="text-align: right;">762</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">2010-2014</td>
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
-<td style="text-align: right;">5.248</td>
-<td style="text-align: right;">0.93</td>
-<td style="text-align: right;">3.782</td>
-<td style="text-align: right;">7.173</td>
-<td style="text-align: right;">4.611</td>
-<td style="text-align: right;">5.852</td>
-<td style="text-align: right;">247840</td>
-<td style="text-align: right;">302</td>
+<td style="text-align: right;">7.55</td>
+<td style="text-align: right;">7.48</td>
+<td style="text-align: right;">1.46</td>
+<td style="text-align: right;">4.88</td>
+<td style="text-align: right;">10.55</td>
+<td style="text-align: right;">6.52</td>
+<td style="text-align: right;">8.53</td>
+<td style="text-align: right;">249643</td>
+<td style="text-align: right;">304</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">2010-2014</td>
 <td style="text-align: left;">4</td>
 <td style="text-align: left;">Midt</td>
-<td style="text-align: right;">4.398</td>
-<td style="text-align: right;">1.88</td>
-<td style="text-align: right;">1.453</td>
-<td style="text-align: right;">8.822</td>
-<td style="text-align: right;">3.158</td>
-<td style="text-align: right;">5.828</td>
+<td style="text-align: right;">7.05</td>
+<td style="text-align: right;">6.70</td>
+<td style="text-align: right;">3.24</td>
+<td style="text-align: right;">1.51</td>
+<td style="text-align: right;">14.05</td>
+<td style="text-align: right;">4.63</td>
+<td style="text-align: right;">9.13</td>
 <td style="text-align: right;">59101</td>
 <td style="text-align: right;">73</td>
 </tr>
@@ -5659,12 +5677,13 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <td style="text-align: left;">2015-2019</td>
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
-<td style="text-align: right;">5.356</td>
-<td style="text-align: right;">0.71</td>
-<td style="text-align: right;">4.135</td>
-<td style="text-align: right;">7.036</td>
-<td style="text-align: right;">4.972</td>
-<td style="text-align: right;">5.883</td>
+<td style="text-align: right;">6.65</td>
+<td style="text-align: right;">6.63</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: right;">4.72</td>
+<td style="text-align: right;">8.81</td>
+<td style="text-align: right;">5.93</td>
+<td style="text-align: right;">7.36</td>
 <td style="text-align: right;">469725</td>
 <td style="text-align: right;">578</td>
 </tr>
@@ -5672,38 +5691,41 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <td style="text-align: left;">2015-2019</td>
 <td style="text-align: left;">2</td>
 <td style="text-align: left;">Sør</td>
-<td style="text-align: right;">6.708</td>
-<td style="text-align: right;">0.64</td>
-<td style="text-align: right;">5.648</td>
-<td style="text-align: right;">8.111</td>
-<td style="text-align: right;">6.346</td>
-<td style="text-align: right;">7.156</td>
-<td style="text-align: right;">501889</td>
-<td style="text-align: right;">603</td>
+<td style="text-align: right;">12.02</td>
+<td style="text-align: right;">12.01</td>
+<td style="text-align: right;">1.20</td>
+<td style="text-align: right;">9.63</td>
+<td style="text-align: right;">14.41</td>
+<td style="text-align: right;">11.20</td>
+<td style="text-align: right;">12.78</td>
+<td style="text-align: right;">632929</td>
+<td style="text-align: right;">763</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">2015-2019</td>
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
-<td style="text-align: right;">5.153</td>
-<td style="text-align: right;">1.10</td>
-<td style="text-align: right;">3.168</td>
-<td style="text-align: right;">7.377</td>
-<td style="text-align: right;">4.417</td>
-<td style="text-align: right;">5.957</td>
-<td style="text-align: right;">244776</td>
-<td style="text-align: right;">302</td>
+<td style="text-align: right;">7.34</td>
+<td style="text-align: right;">7.28</td>
+<td style="text-align: right;">1.47</td>
+<td style="text-align: right;">4.63</td>
+<td style="text-align: right;">10.17</td>
+<td style="text-align: right;">6.28</td>
+<td style="text-align: right;">8.36</td>
+<td style="text-align: right;">246579</td>
+<td style="text-align: right;">304</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">2015-2019</td>
 <td style="text-align: left;">4</td>
 <td style="text-align: left;">Midt</td>
-<td style="text-align: right;">4.581</td>
-<td style="text-align: right;">1.72</td>
-<td style="text-align: right;">1.766</td>
-<td style="text-align: right;">8.224</td>
-<td style="text-align: right;">3.376</td>
-<td style="text-align: right;">5.885</td>
+<td style="text-align: right;">6.71</td>
+<td style="text-align: right;">6.48</td>
+<td style="text-align: right;">2.95</td>
+<td style="text-align: right;">1.50</td>
+<td style="text-align: right;">13.14</td>
+<td style="text-align: right;">4.60</td>
+<td style="text-align: right;">8.48</td>
 <td style="text-align: right;">60002</td>
 <td style="text-align: right;">74</td>
 </tr>
@@ -5711,12 +5733,13 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">1</td>
 <td style="text-align: left;">Øst</td>
-<td style="text-align: right;">6.139</td>
-<td style="text-align: right;">0.84</td>
-<td style="text-align: right;">4.702</td>
-<td style="text-align: right;">7.873</td>
-<td style="text-align: right;">5.656</td>
-<td style="text-align: right;">6.725</td>
+<td style="text-align: right;">7.73</td>
+<td style="text-align: right;">7.67</td>
+<td style="text-align: right;">1.12</td>
+<td style="text-align: right;">5.63</td>
+<td style="text-align: right;">9.97</td>
+<td style="text-align: right;">6.95</td>
+<td style="text-align: right;">8.50</td>
 <td style="text-align: right;">465670</td>
 <td style="text-align: right;">579</td>
 </tr>
@@ -5724,38 +5747,41 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">2</td>
 <td style="text-align: left;">Sør</td>
-<td style="text-align: right;">6.833</td>
-<td style="text-align: right;">0.69</td>
-<td style="text-align: right;">5.377</td>
-<td style="text-align: right;">8.116</td>
-<td style="text-align: right;">6.478</td>
-<td style="text-align: right;">7.311</td>
-<td style="text-align: right;">500447</td>
-<td style="text-align: right;">603</td>
+<td style="text-align: right;">11.88</td>
+<td style="text-align: right;">11.84</td>
+<td style="text-align: right;">1.20</td>
+<td style="text-align: right;">9.65</td>
+<td style="text-align: right;">14.34</td>
+<td style="text-align: right;">11.01</td>
+<td style="text-align: right;">12.64</td>
+<td style="text-align: right;">634011</td>
+<td style="text-align: right;">764</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">3</td>
 <td style="text-align: left;">Vest</td>
-<td style="text-align: right;">5.091</td>
-<td style="text-align: right;">0.97</td>
-<td style="text-align: right;">3.531</td>
-<td style="text-align: right;">7.370</td>
-<td style="text-align: right;">4.541</td>
-<td style="text-align: right;">5.689</td>
-<td style="text-align: right;">250905</td>
-<td style="text-align: right;">314</td>
+<td style="text-align: right;">7.44</td>
+<td style="text-align: right;">7.42</td>
+<td style="text-align: right;">1.53</td>
+<td style="text-align: right;">4.57</td>
+<td style="text-align: right;">10.40</td>
+<td style="text-align: right;">6.40</td>
+<td style="text-align: right;">8.50</td>
+<td style="text-align: right;">252707</td>
+<td style="text-align: right;">316</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">2020-2024</td>
 <td style="text-align: left;">4</td>
 <td style="text-align: left;">Midt</td>
-<td style="text-align: right;">4.364</td>
-<td style="text-align: right;">1.73</td>
-<td style="text-align: right;">1.513</td>
-<td style="text-align: right;">8.052</td>
-<td style="text-align: right;">3.159</td>
-<td style="text-align: right;">5.608</td>
+<td style="text-align: right;">5.32</td>
+<td style="text-align: right;">5.13</td>
+<td style="text-align: right;">2.66</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">11.55</td>
+<td style="text-align: right;">3.24</td>
+<td style="text-align: right;">7.06</td>
 <td style="text-align: right;">60543</td>
 <td style="text-align: right;">73</td>
 </tr>
@@ -5774,7 +5800,7 @@ Table 3: Regional-level non-scaled TDTA indicator values by reporting period. V
 <div id="tbl-tdta-national-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-tdta-national-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table 4: National-level non-scaled TDTA indicator values by reporting period. Values are expressed as area-weighted average percentage share of temperate deciduous trees (calculated for plots with at least 30% temperate deciduous trees). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).
+Table 4: National-level non-scaled TDTA indicator values by reporting period. Values are expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees. Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).
 </figcaption>
 <div aria-describedby="tbl-tdta-national-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -5783,6 +5809,7 @@ Table 4: National-level non-scaled TDTA indicator values by reporting period. V
 <thead>
 <tr class="header">
 <th style="text-align: left;" data-quarto-table-cell-role="th">Period</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (mean)</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">Bootstrapped (median)</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">Standard Error</th>
 <th style="text-align: right;" data-quarto-table-cell-role="th">CI Lower</th>
@@ -5796,36 +5823,39 @@ Table 4: National-level non-scaled TDTA indicator values by reporting period. V
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">2010-2014</td>
-<td style="text-align: right;">5.694</td>
-<td style="text-align: right;">0.43</td>
-<td style="text-align: right;">4.897</td>
-<td style="text-align: right;">6.480</td>
-<td style="text-align: right;">5.384</td>
-<td style="text-align: right;">5.975</td>
-<td style="text-align: right;">1288109</td>
-<td style="text-align: right;">1567</td>
+<td style="text-align: right;">9.28</td>
+<td style="text-align: right;">9.28</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">7.89</td>
+<td style="text-align: right;">10.63</td>
+<td style="text-align: right;">8.83</td>
+<td style="text-align: right;">9.75</td>
+<td style="text-align: right;">1421312</td>
+<td style="text-align: right;">1726</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">2015-2019</td>
-<td style="text-align: right;">5.938</td>
-<td style="text-align: right;">0.43</td>
-<td style="text-align: right;">5.056</td>
-<td style="text-align: right;">6.802</td>
-<td style="text-align: right;">5.628</td>
-<td style="text-align: right;">6.184</td>
-<td style="text-align: right;">1276393</td>
-<td style="text-align: right;">1557</td>
+<td style="text-align: right;">9.23</td>
+<td style="text-align: right;">9.21</td>
+<td style="text-align: right;">0.71</td>
+<td style="text-align: right;">7.93</td>
+<td style="text-align: right;">10.69</td>
+<td style="text-align: right;">8.71</td>
+<td style="text-align: right;">9.72</td>
+<td style="text-align: right;">1409236</td>
+<td style="text-align: right;">1719</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">2020-2024</td>
-<td style="text-align: right;">6.131</td>
-<td style="text-align: right;">0.43</td>
-<td style="text-align: right;">5.339</td>
-<td style="text-align: right;">6.953</td>
-<td style="text-align: right;">5.844</td>
-<td style="text-align: right;">6.417</td>
-<td style="text-align: right;">1277565</td>
-<td style="text-align: right;">1569</td>
+<td style="text-align: right;">9.48</td>
+<td style="text-align: right;">9.45</td>
+<td style="text-align: right;">0.73</td>
+<td style="text-align: right;">8.12</td>
+<td style="text-align: right;">10.90</td>
+<td style="text-align: right;">8.97</td>
+<td style="text-align: right;">9.94</td>
+<td style="text-align: right;">1412931</td>
+<td style="text-align: right;">1732</td>
 </tr>
 </tbody>
 </table>
@@ -5876,18 +5906,19 @@ other attached packages:
 [17] ggplot2_4.0.0    tidyverse_2.0.0  knitr_1.50      
 
 loaded via a namespace (and not attached):
- [1] config_0.3.2       generics_0.1.4     xml2_1.4.1         hms_1.1.4         
- [5] digest_0.6.37      magrittr_2.0.4     evaluate_1.0.5     grid_4.5.2        
- [9] timechange_0.3.0   RColorBrewer_1.1-3 fastmap_1.2.0      rprojroot_2.1.1   
-[13] jsonlite_2.0.0     viridisLite_0.4.2  scales_1.4.0       codetools_0.2-20  
-[17] textshaping_1.0.4  cli_3.6.5          crayon_1.5.3       rlang_1.1.6       
-[21] bit64_4.6.0-1      cachem_1.1.0       withr_3.0.2        parallel_4.5.2    
-[25] tools_4.5.2        tzdb_0.5.0         memoise_2.0.1      vctrs_0.6.5       
-[29] R6_2.6.1           lifecycle_1.0.4    snakecase_0.11.1   bit_4.6.0         
-[33] htmlwidgets_1.6.4  vroom_1.6.6        pkgconfig_2.0.3    pillar_1.11.1     
-[37] gtable_0.3.6       glue_1.8.0         systemfonts_1.3.1  xfun_0.54         
-[41] tidyselect_1.2.1   rstudioapi_0.17.1  farver_2.1.2       htmltools_0.5.8.1 
-[45] rmarkdown_2.30     svglite_2.2.2      compiler_4.5.2     S7_0.2.0          </code></pre>
+ [1] gtable_0.3.6       bslib_0.9.0        xfun_0.54          htmlwidgets_1.6.4 
+ [5] tzdb_0.5.0         vctrs_0.6.5        tools_4.5.2        crosstalk_1.2.2   
+ [9] generics_0.1.4     parallel_4.5.2     pkgconfig_2.0.3    RColorBrewer_1.1-3
+[13] S7_0.2.0           lifecycle_1.0.4    compiler_4.5.2     farver_2.1.2      
+[17] textshaping_1.0.4  codetools_0.2-20   snakecase_0.11.1   sass_0.4.10       
+[21] htmltools_0.5.8.1  jquerylib_0.1.4    pillar_1.11.1      crayon_1.5.3      
+[25] cachem_1.1.0       tidyselect_1.2.1   digest_0.6.37      rprojroot_2.1.1   
+[29] fastmap_1.2.0      grid_4.5.2         cli_3.6.5          magrittr_2.0.4    
+[33] withr_3.0.2        scales_1.4.0       bit64_4.6.0-1      timechange_0.3.0  
+[37] rmarkdown_2.30     config_0.3.2       bit_4.6.0          hms_1.1.4         
+[41] memoise_2.0.1      evaluate_1.0.5     viridisLite_0.4.2  rlang_1.1.6       
+[45] glue_1.8.0         xml2_1.4.1         svglite_2.2.2      rstudioapi_0.17.1 
+[49] vroom_1.6.6        jsonlite_2.0.0     R6_2.6.1           systemfonts_1.3.1 </code></pre>
 </div>
 </div>
 </div>

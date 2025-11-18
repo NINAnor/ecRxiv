@@ -80,14 +80,25 @@ assign_region_name <- function(region_code) {
 calculate_indicator <- function(data, group_var) {
   
   # Area-weighted calculation
+  # Only exclude plots with invalid area (NA or <= 0)
+  # Plots with NA for tree shares but valid area are included:
+  #   - They contribute 0 to numerator (indicator_continuous = 0 for NA)
+  #   - They contribute their au_areal to denominator (total area)
   result <- data %>%
+    filter(!is.na(au_areal), au_areal > 0) %>%
     group_by({{ group_var }}) %>%
     summarise(
-      # Total area represented
+      # Total area represented (includes all plots with valid area, even if tree shares are NA)
       total_area = sum(au_areal, na.rm = TRUE),
       
       # Area-weighted indicator value
-      indicator_value = sum(indicator_continuous_weighted, na.rm = TRUE) / total_area,
+      # Numerator: sum of weighted indicator (0 for plots that don't meet threshold or have NA, au_areal for those that do)
+      # Denominator: total area of all plots with valid area
+      indicator_value = if_else(
+        total_area > 0,
+        sum(indicator_continuous_weighted, na.rm = TRUE) / total_area,
+        0
+      ),
       
       # Number of plots
       n_plots = n(),
@@ -103,14 +114,35 @@ bootstrap_indicator <- function(data, n_bootstrap = 1000) {
   
   bootstrap_results <- numeric(n_bootstrap)
   
+  # Filter to only include plots with valid area (excludes plots with NA or <= 0 area)
+  # Plots with NA tree shares but valid area are included (they contribute 0 to numerator)
+  data_valid <- data %>%
+    filter(!is.na(au_areal), au_areal > 0)
+  
+  if (nrow(data_valid) == 0) {
+    return(list(
+      mean = NA_real_,
+      se = NA_real_,
+      ci_lower = NA_real_,
+      ci_upper = NA_real_,
+      q1 = NA_real_,
+      median = NA_real_,
+      q3 = NA_real_
+    ))
+  }
+  
   for (i in 1:n_bootstrap) {
     # Resample with replacement
-    boot_sample <- data %>%
-      slice_sample(n = nrow(data), replace = TRUE)
+    boot_sample <- data_valid %>%
+      slice_sample(n = nrow(data_valid), replace = TRUE)
     
     # Calculate indicator
-    bootstrap_results[i] <- sum(boot_sample$indicator_continuous_weighted, na.rm = TRUE) / 
-                            sum(boot_sample$au_areal, na.rm = TRUE)
+    total_area <- sum(boot_sample$au_areal, na.rm = TRUE)
+    if (total_area > 0) {
+      bootstrap_results[i] <- sum(boot_sample$indicator_continuous_weighted, na.rm = TRUE) / total_area
+    } else {
+      bootstrap_results[i] <- 0
+    }
   }
   
   return(list(
@@ -152,12 +184,18 @@ calculate_period_indicators <- function(data, period_name, years) {
     mutate(period = period_name)
   
   # Calculate national indicator
+  # Only exclude plots with invalid area (NA or <= 0)
+  # Plots with NA tree shares but valid area are included (contribute 0 to numerator, area to denominator)
   national_results <- period_data %>%
+    filter(!is.na(au_areal), au_areal > 0) %>%
     summarise(
       region = "National",
-      indicator_value = sum(indicator_continuous_weighted, na.rm = TRUE) / 
-                       sum(au_areal, na.rm = TRUE),
       total_area = sum(au_areal, na.rm = TRUE),
+      indicator_value = if_else(
+        total_area > 0,
+        sum(indicator_continuous_weighted, na.rm = TRUE) / total_area,
+        0
+      ),
       n_plots = n(),
       period = period_name
     )

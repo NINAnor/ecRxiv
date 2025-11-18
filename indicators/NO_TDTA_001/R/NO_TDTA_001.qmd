@@ -420,7 +420,7 @@ reporting_periods <- list(
 ```
 
 Next we filter the raw dataset to include only nemoral and boreonemoral plots and the two relevant forest area types, remove rows with missing values for `edellauv_pr` or `eik_pr`, standardise the geography fields, and compute the share of temperate deciduous trees as the capped sum of `edellauv_pr` and `eik_pr` (maximum 100).
-We then create a dummy variable (`meets_threshold`) that is 1 if the share of temperate deciduous trees is at least 30%, and 0 otherwise.
+We then create a dummy variable (`indicator_continuous`) that is 1 if the share of temperate deciduous trees is at least 30%, and 0 otherwise.
 We multiply it by `au_areal` to obtain an area-weighted dummy per plot and aggregate over all BN + NE plots.
 Dividing the sum of the weighted dummy by the total `au_areal` for all BN+NE plots yields the proportion of forest area with at least 30% temperate deciduous trees.
 
@@ -433,9 +433,10 @@ lsk_data <- lsk_data_raw |>
   ) |>
   filter(
     vegsone_clean %in% c("boreonemoral", "nemoral"),
-    arealtype %in% c(1, 12)
+    arealtype %in% c(1, 12),
+    !is.na(edellauv_pr),
+    !is.na(eik_pr)
   ) |>
-  filter(!is.na(edellauv_pr), !is.na(eik_pr)) |>
   mutate(
     fylke_name = region_fylke |>
       stringr::str_remove("^\\d+-\\d+\\s+") |>
@@ -483,10 +484,27 @@ lsk_data <- lsk_data |>
 
 ```
 
-The prepared dataset `lsk_data` now contains all BN+NE plots with non-missing deciduous shares.
+The prepared dataset `lsk_data` now contains only BN+NE plots with non-missing values for `edellauv_pr` and `eik_pr`.
 For each plot we store a dummy (0/1) indicating whether the share of temperate deciduous trees is at least 30%, and its area-weighted counterpart.
 Aggregating the weighted dummy over all BN+NE plots yields the proportion of forest area meeting the ≥30% criterion.
 Together with area weights and harmonised geographic identifiers, the data are ready for aggregation to the reporting periods defined above.
+
+```{r diagnostic-check}
+#| echo: false
+# Diagnostic check to verify calculations
+lsk_data |>
+  summarise(
+    n_total = n(),
+    n_meets_threshold = sum(indicator_continuous == 1, na.rm = TRUE),
+    n_below_threshold = sum(indicator_continuous == 0, na.rm = TRUE),
+    prop_meets = mean(indicator_continuous, na.rm = TRUE),
+    mean_share = mean(temperate_deciduous_share, na.rm = TRUE),
+    min_share = min(temperate_deciduous_share, na.rm = TRUE),
+    max_share = max(temperate_deciduous_share, na.rm = TRUE),
+    # Check the actual indicator calculation
+    test_indicator = sum(indicator_continuous_weighted, na.rm = TRUE) / sum(au_areal, na.rm = TRUE)
+  )
+```
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
@@ -545,6 +563,7 @@ tdta_results_county_non_scaled_uncertainty <- purrr::map_dfr(
         dplyr::tibble(
           fylke_name = county_name,
           indicator_value = boot$median,
+          mean = boot$mean,
           se = boot$se,
           ci_lower = boot$ci_lower,
           ci_upper = boot$ci_upper,
@@ -570,6 +589,7 @@ tdta_results_region_non_scaled_uncertainty <- purrr::map_dfr(
         dplyr::tibble(
           region_code = region_code,
           indicator_value = boot$median,
+          mean = boot$mean,
           se = boot$se,
           ci_lower = boot$ci_lower,
           ci_upper = boot$ci_upper,
@@ -591,6 +611,7 @@ tdta_results_national_non_scaled_uncertainty <- purrr::map_dfr(
   ~ .x$national |>
     dplyr::mutate(
       indicator_value = .x$national_boot$median,
+      mean = .x$national_boot$mean,
       se = .x$national_boot$se,
       ci_lower = .x$national_boot$ci_lower,
       ci_upper = .x$national_boot$ci_upper,
@@ -602,32 +623,34 @@ tdta_results_national_non_scaled_uncertainty <- purrr::map_dfr(
 
 ```
 
-The resulting tables contain bootstrap medians as point estimates alongside standard errors, confidence intervals, and quartiles.
+The resulting tables contain bootstrap means and medians as point estimates alongside standard errors, confidence intervals, and quartiles.
 
 ## 10. Results
 
-The tables below present the non-scaled indicator values (area-weighted average share of temperate deciduous trees, calculated for plots with at least 30% temperate deciduous trees) together with bootstrap-derived uncertainty summaries for each 5-year reporting period.
+The tables below present the non-scaled indicator values expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees, together with bootstrap-derived uncertainty summaries for each 5-year reporting period.
 
 ### 10.1 County-level results (non-scaled with uncertainty)
 
 ```{r tbl-tdta-county-results}
-#| tbl-cap: 'County-level non-scaled TDTA indicator values by reporting period. Values are expressed as area-weighted average percentage share of temperate deciduous trees (calculated for plots with at least 30% temperate deciduous trees). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'County-level non-scaled TDTA indicator values by reporting period. Values are expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees. Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 tdta_county_results <- tdta_results_county_non_scaled_uncertainty |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 3),
-    se = round(se, 2),
-    ci_lower = round(ci_lower, 3),
-    ci_upper = round(ci_upper, 3),
-    q1 = round(q1, 3),
-    median = round(median, 3),
-    q3 = round(q3, 3),
+    indicator_value = round(indicator_value * 100, 2),
+    mean = round(mean * 100, 2),
+    se = round(se * 100, 2),
+    ci_lower = round(ci_lower * 100, 2),
+    ci_upper = round(ci_upper * 100, 2),
+    q1 = round(q1 * 100, 2),
+    median = round(median * 100, 2),
+    q3 = round(q3 * 100, 2),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
     County = fylke_name,
+    `Bootstrapped (mean)` = mean,
     `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
@@ -640,6 +663,7 @@ tdta_county_results <- tdta_results_county_non_scaled_uncertainty |>
   dplyr::select(
     Period,
     County,
+    `Bootstrapped (mean)`,
     `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
@@ -660,25 +684,27 @@ DT::datatable(
 ### 10.2 Regional results (non-scaled with uncertainty)
 
 ```{r tbl-tdta-region-results}
-#| tbl-cap: 'Regional-level non-scaled TDTA indicator values by reporting period. Values are expressed as area-weighted average percentage share of temperate deciduous trees (calculated for plots with at least 30% temperate deciduous trees). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'Regional-level non-scaled TDTA indicator values by reporting period. Values are expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees. Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 tdta_region_results <- tdta_results_region_non_scaled_uncertainty |>
   dplyr::mutate(region_name = assign_region_name(region_code)) |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 3),
-    se = round(se %||% NA_real_, 2),
-    ci_lower = round(ci_lower %||% NA_real_, 3),
-    ci_upper = round(ci_upper %||% NA_real_, 3),
-    q1 = round(q1 %||% NA_real_, 3),
-    median = round(median %||% NA_real_, 3),
-    q3 = round(q3 %||% NA_real_, 3),
+    indicator_value = round(indicator_value * 100, 2),
+    mean = round((mean %||% NA_real_) * 100, 2),
+    se = round((se %||% NA_real_) * 100, 2),
+    ci_lower = round((ci_lower %||% NA_real_) * 100, 2),
+    ci_upper = round((ci_upper %||% NA_real_) * 100, 2),
+    q1 = round((q1 %||% NA_real_) * 100, 2),
+    median = round((median %||% NA_real_) * 100, 2),
+    q3 = round((q3 %||% NA_real_) * 100, 2),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
     `Region Code` = region_code,
     Region = region_name,
+    `Bootstrapped (mean)` = mean,
     `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
@@ -692,6 +718,7 @@ tdta_region_results <- tdta_results_region_non_scaled_uncertainty |>
     Period,
     `Region Code`,
     Region,
+    `Bootstrapped (mean)`,
     `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
@@ -710,22 +737,24 @@ tdta_region_results |>
 ### 10.3 National results (non-scaled with uncertainty)
 
 ```{r tbl-tdta-national-results}
-#| tbl-cap: 'National-level non-scaled TDTA indicator values by reporting period. Values are expressed as area-weighted average percentage share of temperate deciduous trees (calculated for plots with at least 30% temperate deciduous trees). Columns include the bootstrap median (Indicator Value), standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'National-level non-scaled TDTA indicator values by reporting period. Values are expressed as percentages (0-100%) representing the area-weighted proportion of forest area with at least 30% temperate deciduous trees. Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 tdta_national_results <- tdta_results_national_non_scaled_uncertainty |>
   dplyr::mutate(
-    indicator_value = round(indicator_value, 3),
-    se = round(se, 2),
-    ci_lower = round(ci_lower, 3),
-    ci_upper = round(ci_upper, 3),
-    q1 = round(q1, 3),
-    median = round(median, 3),
-    q3 = round(q3, 3),
+    indicator_value = round(indicator_value * 100, 2),
+    mean = round(mean * 100, 2),
+    se = round(se * 100, 2),
+    ci_lower = round(ci_lower * 100, 2),
+    ci_upper = round(ci_upper * 100, 2),
+    q1 = round(q1 * 100, 2),
+    median = round(median * 100, 2),
+    q3 = round(q3 * 100, 2),
     total_area = round(total_area, 0)
   ) |>
   dplyr::rename(
     Period = period,
+    `Bootstrapped (mean)` = mean,
     `Bootstrapped (median)` = median,
     `Standard Error` = se,
     `CI Lower` = ci_lower,
@@ -737,6 +766,7 @@ tdta_national_results <- tdta_results_national_non_scaled_uncertainty |>
   ) |>
   dplyr::select(
     Period,
+    `Bootstrapped (mean)`,
     `Bootstrapped (median)`,
     `Standard Error`,
     `CI Lower`,
