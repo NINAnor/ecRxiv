@@ -81,8 +81,8 @@ calculate_indicator <- function(data, group_var) {
   
   # Area-weighted calculation
   # Only exclude plots with invalid area (NA or <= 0)
-  # Plots with NA for tree shares but valid area are included:
-  #   - They contribute 0 to numerator (indicator_continuous = 0 for NA)
+  # Plots with NA for tree shares (indicator_continuous = NA) but valid area are included:
+  #   - They are excluded from numerator (na.rm = TRUE excludes NA values)
   #   - They contribute their au_areal to denominator (total area)
   result <- data %>%
     filter(!is.na(au_areal), au_areal > 0) %>%
@@ -92,8 +92,8 @@ calculate_indicator <- function(data, group_var) {
       total_area = sum(au_areal, na.rm = TRUE),
       
       # Area-weighted indicator value
-      # Numerator: sum of weighted indicator (0 for plots that don't meet threshold or have NA, au_areal for those that do)
-      # Denominator: total area of all plots with valid area
+      # Numerator: sum of weighted indicator (na.rm=TRUE excludes plots with NA indicator, includes 0 and 1 values)
+      # Denominator: total area of all plots with valid area (including those with NA indicator)
       indicator_value = if_else(
         total_area > 0,
         sum(indicator_continuous_weighted, na.rm = TRUE) / total_area,
@@ -115,7 +115,8 @@ bootstrap_indicator <- function(data, n_bootstrap = 1000) {
   bootstrap_results <- numeric(n_bootstrap)
   
   # Filter to only include plots with valid area (excludes plots with NA or <= 0 area)
-  # Plots with NA tree shares but valid area are included (they contribute 0 to numerator)
+  # Plots with NA tree shares (indicator_continuous = NA) but valid area are included
+  # They are excluded from numerator by na.rm = TRUE, but contribute to denominator
   data_valid <- data %>%
     filter(!is.na(au_areal), au_areal > 0)
   
@@ -185,7 +186,8 @@ calculate_period_indicators <- function(data, period_name, years) {
   
   # Calculate national indicator
   # Only exclude plots with invalid area (NA or <= 0)
-  # Plots with NA tree shares but valid area are included (contribute 0 to numerator, area to denominator)
+  # Plots with NA tree shares (indicator_continuous = NA) but valid area are included
+  # They are excluded from numerator by na.rm = TRUE, but contribute to denominator
   national_results <- period_data %>%
     filter(!is.na(au_areal), au_areal > 0) %>%
     summarise(

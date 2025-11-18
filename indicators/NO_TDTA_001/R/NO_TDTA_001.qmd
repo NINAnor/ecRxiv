@@ -332,7 +332,7 @@ Natural disturbances at various temporal and spatial scales will contribute to t
 
 ### 3.5 Spatial aggregation
 
-...
+
 
 ## 4. Reference condition and levels
 
@@ -419,10 +419,11 @@ reporting_periods <- list(
 
 ```
 
-Next we filter the raw dataset to include only nemoral and boreonemoral plots and the two relevant forest area types, remove rows with missing values for `edellauv_pr` or `eik_pr`, standardise the geography fields, and compute the share of temperate deciduous trees as the capped sum of `edellauv_pr` and `eik_pr` (maximum 100).
+Next we filter the raw dataset to include only nemoral and boreonemoral plots and the two relevant forest area types, standardise the geography fields, and compute the share of temperate deciduous trees as the capped sum of `edellauv_pr` and `eik_pr` (maximum 100).
 We then create a dummy variable (`indicator_continuous`) that is 1 if the share of temperate deciduous trees is at least 30%, and 0 otherwise.
-We multiply it by `au_areal` to obtain an area-weighted dummy per plot and aggregate over all BN + NE plots.
-Dividing the sum of the weighted dummy by the total `au_areal` for all BN+NE plots yields the proportion of forest area with at least 30% temperate deciduous trees.
+Plots with missing values for `edellauv_pr` or `eik_pr` are assigned NA for the indicator.
+We multiply the indicator by `au_areal` to obtain an area-weighted dummy per plot and aggregate over all BN + NE plots.
+Dividing the sum of the weighted dummy (excluding NAs) by the total `au_areal` for all nemoral and boreonemoral plots (including those with NA indicator values) yields the proportion of forest area with at least 30% temperate deciduous trees.
 
 ```{r create-derived-variables}
 #| cache: false
@@ -433,9 +434,7 @@ lsk_data <- lsk_data_raw |>
   ) |>
   filter(
     vegsone_clean %in% c("boreonemoral", "nemoral"),
-    arealtype %in% c(1, 12),
-    !is.na(edellauv_pr),
-    !is.na(eik_pr)
+    arealtype %in% c(1, 12)
   ) |>
   mutate(
     fylke_name = region_fylke |>
@@ -452,10 +451,19 @@ lsk_data <- lsk_data_raw |>
     region_code = assign_region_code(fylke_name_clean),
     region_name = assign_region_name(region_code),
     # Calculate total temperate deciduous share (capped at 100)
-    temperate_deciduous_share = pmin(edellauv_pr + eik_pr, 100),
-    # Binary indicator: 1 if share >= 30%, 0 otherwise
-    indicator_continuous = if_else(temperate_deciduous_share >= 30, 1, 0),
+    # Will be NA if either edellauv_pr or eik_pr is NA
+    temperate_deciduous_share = case_when(
+      is.na(edellauv_pr) | is.na(eik_pr) ~ NA_real_,
+      TRUE ~ pmin(edellauv_pr + eik_pr, 100)
+    ),
+    # Binary indicator: 1 if share >= 30%, NA if share is NA, 0 otherwise
+    indicator_continuous = case_when(
+      is.na(temperate_deciduous_share) ~ NA_real_,
+      temperate_deciduous_share >= 30 ~ 1,
+      TRUE ~ 0
+    ),
     # Area-weighted dummy for aggregation to proportion of area
+    # Will be NA if indicator_continuous is NA
     indicator_continuous_weighted = indicator_continuous * au_areal
   )
 
@@ -484,27 +492,6 @@ lsk_data <- lsk_data |>
 
 ```
 
-The prepared dataset `lsk_data` now contains only BN+NE plots with non-missing values for `edellauv_pr` and `eik_pr`.
-For each plot we store a dummy (0/1) indicating whether the share of temperate deciduous trees is at least 30%, and its area-weighted counterpart.
-Aggregating the weighted dummy over all BN+NE plots yields the proportion of forest area meeting the ≥30% criterion.
-Together with area weights and harmonised geographic identifiers, the data are ready for aggregation to the reporting periods defined above.
-
-```{r diagnostic-check}
-#| echo: false
-# Diagnostic check to verify calculations
-lsk_data |>
-  summarise(
-    n_total = n(),
-    n_meets_threshold = sum(indicator_continuous == 1, na.rm = TRUE),
-    n_below_threshold = sum(indicator_continuous == 0, na.rm = TRUE),
-    prop_meets = mean(indicator_continuous, na.rm = TRUE),
-    mean_share = mean(temperate_deciduous_share, na.rm = TRUE),
-    min_share = min(temperate_deciduous_share, na.rm = TRUE),
-    max_share = max(temperate_deciduous_share, na.rm = TRUE),
-    # Check the actual indicator calculation
-    test_indicator = sum(indicator_continuous_weighted, na.rm = TRUE) / sum(au_areal, na.rm = TRUE)
-  )
-```
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
@@ -623,7 +610,6 @@ tdta_results_national_non_scaled_uncertainty <- purrr::map_dfr(
 
 ```
 
-The resulting tables contain bootstrap means and medians as point estimates alongside standard errors, confidence intervals, and quartiles.
 
 ## 10. Results
 
