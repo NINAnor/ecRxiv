@@ -121,7 +121,7 @@ status(st)
 
 
 
-> **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+> **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_FUNC_001-004", sep="")`
 
 > **Version**: `r version`
 
@@ -183,17 +183,17 @@ ANO has no defined end date. 2025 is the first year of repeated sampling for abo
 
 ### 2.2 Original units
 
-Abundance data for vascular plants in ANO is given as % cover within a 1 m2 sample quadrat. This is transformed to relative abundance data per quadrat. Each ANO quadrat is classified to its respective ecosystem type according to ‘Nature in Norway’ (NiN; https://artsdatabanken.no/NiN). Environmental indicator values from Tyler et al. (2021) are given on an ordinal scale from 1 (lowest affinity to the respective variable) to n (highest affinity to the respective variable), the number of levels (n) varying between environmental indicators. Strategy indicator values from Grime (1974) range from 0 to 1, and for each species the three strategies sum to 1.
+Abundance data for vascular plants in ANO is given as % cover within a 1 m2 sample quadrat. This is transformed to relative abundance data per quadrat. Each ANO quadrat is classified to its respective ecosystem type according to ‘Nature in Norway’ (NiN; <https://artsdatabanken.no/NiN>). Environmental indicator values from Tyler et al. (2021) are given on an ordinal scale from 1 (lowest affinity to the respective variable) to n (highest affinity to the respective variable), the number of levels (n) varying between environmental indicators. Strategy indicator values from Grime (1974) range from 0 to 1, and for each species the three strategies sum to 1.
 
 ### 2.3 Additional comments about the dataset
 
-The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
+The ANO program is run by the Norwegian Environment Agency. On their [web site]( https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/) you may also find some additional summary data.
 
 #### 2.3.1 Instructions for citing, using and accessing data
 
-ANO data are available from Kartkatalogen on the webpages of the Norwegian Environment Agency (as used here, https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054) and via GBIF (https://doi.org/10.15468/4wc9r4).
+ANO data are available from Kartkatalogen on the webpages of the Norwegian Environment Agency (as used here, <https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054>) and via GBIF (<https://doi.org/10.15468/4wc9r4>).
 
-Reference species lists are available via https://artsdatabanken.no/Pages/281569/Generaliserte_artslistedatasett_til_artikkel_2.
+Reference species lists are available via <https://artsdatabanken.no/Pages/281569/Generaliserte_artslistedatasett_til_artikkel_2>.
 Plant indicator data from Grime and Tyler et al. are available via their references below. 
 
 ## 3. Indicator properties
@@ -2387,11 +2387,11 @@ st_geometry(res.ANO) <- st_geometry(ANO.all)
 # upload spatial Norway data
 nor <- st_read(here::here("indicators/NO_FUNC_001-004/data/spatial/outlineOfNorway_EPSG25833.shp"), quiet = T) %>%
   st_as_sf() %>%
-  st_transform(crs = crs(ANO.all))
+  st_transform(crs = sf::st_crs(ANO.all))
 
 reg <- st_read(here::here("indicators/NO_FUNC_001-004/data/spatial/regions.shp"), quiet = T) %>%
   st_as_sf() %>%
-  st_transform(crs = crs(ANO.all))
+  st_transform(crs = sf::st_crs(ANO.all))
 
 # change region names to something R-friendly
 #reg$region
