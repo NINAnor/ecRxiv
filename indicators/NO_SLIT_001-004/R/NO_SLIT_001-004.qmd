@@ -1,0 +1,1094 @@
+---
+title: "Erosive disturbance"
+subtitle: |
+  [NO_SLIT_001] (mountains) \
+  [NO_SLIT_002] (wetlands) \
+  [NO_SLIT_003] (forests) \
+  [NO_SLIT_004] (farmland and open lowland)
+indicatorID: 
+  - NO_SLIT_001
+  - NO_SLIT_002
+  - NO_SLIT_003
+  - NO_SLIT_004 
+indicatorName: 
+  - Erosive disturbance
+country: Norway
+continent: Europe
+ECT: A1 - Physical State Characteristics
+Realm: 
+  - Terrestrial
+  - Freshwater-Terrestrial (TF)
+  - Terrestrial
+  - Terrestrial
+Biome: 
+  - T6 Polar-alpine (cryogenic) biome
+  - TF1 Palustrine wetlands biome
+  - T2 Temperate-boreal forests and woodlands biome
+  - T3 Shrublands and shrubby woodlands biome; T4 Savannas and grasslands biome; T7 Intensive land-use biome
+Ecosystem: ""
+yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2025
+status: complete # options are complete, incomplete, or deprecated
+Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: First version to go on ecRxiv, althogh the same or very similar indicator has been developed in the 2022/23 project on indicators for wetlands, seminatural lands and naturally open lands below the tree line. 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_SLIT_001-004
+Normalised: Yes
+SpatialAggregationPathway: '[Scale-Transform] - Aggregate'  
+AuthorList: Töpper, J. and Framstad, E.
+data_availability: gold
+code_reproducibility: silver
+open_science_badge: silver
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
+author:
+  - name: Joachim Töpper
+    email: joachim.topper@nina.no
+    affiliations:
+      - id: myID
+        name: Norwegian Institute for Nature Research
+  - name: Erik Framstad
+    affiliations:
+      - ref: myID              
+date: April 9, 2025 # Enter date 
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+---
+
+<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
+
+<!--# Load all you dependencies here -->
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(kableExtra)
+library(here)
+library(sf)
+library(readxl)
+library(plyr)
+library(RColorBrewer)
+library("gridExtra") 
+library(ggridges)
+library(tmap)
+library(tmaptools)
+library(raster)
+library(stars)
+library(betareg)
+library(glmmTMB)
+library(flextable)
+library(conflicted)
+library(tidyverse)
+conflict_prefer_all("dplyr")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+source(here::here("_common.R"))
+```
+
+```{r extractFromYML}
+#| echo: false
+#| cache: false
+this_file <- get_file_info()
+
+# Read the YAML front matter
+lines <- readLines(this_file$path, warn = FALSE)
+dash_lines <- which(trimws(lines) == "---")
+yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
+yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
+
+# Robust flatten function
+flatten_to_string <- function(x) {
+  if (is.list(x)) {
+    # recursively flatten any nested lists
+    x <- unlist(x, recursive = TRUE)
+  }
+  # convert to single string
+  paste(x, collapse = "; ")
+}
+
+# Apply to all YAML entries
+yaml_data_flat <- lapply(yaml_data, flatten_to_string)
+
+# Create tibble
+meta <- tibble::enframe(yaml_data_flat, name = "Variable", value = "Value")
+
+# Check structure
+#str(meta)
+
+st <- meta |>
+  dplyr::filter(Variable == "status") |>
+  pull(Value)
+version <- meta |>
+  dplyr::filter(Variable == "Version") |>
+  pull(Value)
+auth <- meta |>
+  dplyr::filter(Variable == "AuthorList") |>
+  pull(Value)
+year <- meta |>
+  dplyr::filter(Variable == "yearAdded") |>
+  pull(Value)
+id <- meta |>
+  dplyr::filter(Variable == "indicatorID") |>
+  pull(Value)
+name <- meta |>
+  dplyr::filter(Variable == "indicatorName") |>
+  pull(Value)
+url <- meta |>
+  dplyr::filter(Variable == "url") |>
+  pull(Value)
+badges<-meta |> 
+  dplyr::filter(Variable %in% c("data_availability",
+         "code_reproducibility", "open_science_badge")) |> 
+  pull(Value)
+
+meta <- meta |>
+  dplyr::mutate(Variable = dplyr::case_match(Variable,
+    "indicatorID" ~ "Indicator ID" ,
+    "indicatorName" ~ "Indicator Name",
+    "continent" ~ "Continent",
+    "country" ~ "Country",
+    "ECT" ~ "Ecosystem Condition Typology Class",
+    "yearAdded" ~ "Year added",
+    "yearLastUpdate" ~ "Last update",
+    "VersionComment" ~ "Version comment",
+    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
+    .default = Variable
+  )) |>
+  dplyr::filter(Variable != "authors")
+
+```
+
+
+
+::: {layout-ncol="5"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+# Run this line of code in interactive mode once first (before rendering), to create and save the badge.
+version_badge(version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+
+::: {layout-ncol="2"}
+
+> **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: NO_SLIT_001-004", ") ", "v. ", version, ". ecRxiv: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_SLIT_001-004", sep="")`
+
+> **Version**: `r version`
+
+:::
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
+
+```
+
+:::
+
+::: {.callout-tip collapse="true"}
+
+## Logg
+
+<!--# Update this logg with short messages for each update -->
+- 09 Apr. 2025 - Original PR
+- medio 2025 - multiple review rounds
+- 20 Nov. 2025 - Restructuring to the new template structure. ALK.
+:::
+
+
+<hr />
+
+<!--# Document you work below.  -->
+
+## 1. Summary
+
+1. **Background and rationale**:
+<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
+What are the main anthropogenic impact factors? -->
+The 'Erosive disturbance' indicator describes to what degree an ecosystem is affected by human-caused disturbances, mainly linked to erosion from heavy vehicles or damage from intensive human use, based on the 'tungekjoretoy' and 'slitasje' variables registered in ANO monitoring sites.
+
+2. **Methods**:
+<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+The indicator uses data from the norwegian ANO nature monitoring program. 
+The indicator is one-sided as a lack of this kind of erosive disturbance obviously is not a problem. The reference condition is defined as an ecosystem without any erosive disturbance (applies to all types of ecosystems and all regions), and thus the reference threshold for scaling is set to 0 disturbance at a site. The reference level X~60~, i.e. the threshold between good and reduced ecological condition, as well as X~0~, are set on an expert-judgement basis: less than 1/16th of the area affected by both heavy vehicles and overuse represents good condition, and more than 1/2 of the area for one of heavy vehicles or overuse plus up to 1/2 of the area for the other represents X~0~ where the ecosystem for sure has transformed into something else (see also Nybø et al. 2023 for an implementation of this indicator for Norwegian wetland and open lowland ecosystems).
+
+3. **Interpretation**:
+<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
+An indicator value of 1 signifies that the median amount of erosive disturbance across ANO localities for that ecosystem, is zero.
+Values decreasing toward zero means more of the ANO localities have physical signs of erosive disturbance.
+
+4. **Results and development needs**:
+<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
+The indicator values are consistently 1 for all ecosystems. One way to improve this indicator is to increase the resolution that the variable is recorded at in the field. Today the variable is recorded on a very coarse four-step scale which hides a lot of information.
+
+
+ 
+
+## 2. About the underlying data
+
+Here, we evaluate the 'Erosive disturbance' indicator based on field sampled data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019). In ANO, two relevant variables are registered for this indicator, '7_TK' (erosion from heavy vehicles) and '7_SE' (erosion from overuse).
+
+### 2.1 Spatial and temporal resolution and extent
+
+The ANO monitoring data available now represent one cycle of sampling from 2019-2024 comprising ca. 1000 sites across Norway.
+ANO has no defined end date. 2025 is the first year of repeated sampling for about 20% of the approximately 1000 ANO sites for all of mainland Norway (i.e. the Ecosystem Accounting Area). Annual sampling is spatially representative, in principle allowing to compute area-representative estimates for single years but also 3-yr-reporting periods.
+
+### 2.2 Original units
+
+Data on erosive disturbance in both 7_TK and 7_SE in ANO are given on a coarse 4 step scale within a 250 m^2^ sample circle, indicating how much area is affected by either heavy vehicle or overuse erosion, where 0 = 0 cover, 1 = 0-1/16 cover, 2 = 1/16-1/2 cover, and 3 = 1/2-1 cover.
+
+### 2.3 Additional comments about the dataset
+
+The ANO program is run by the Norwegian Environment Agency. On their [web site](https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/) you may also find some additional summary data. 
+
+#### 2.3.1 Instructions for citing, using and accessing data
+
+ANO data are available from Kartkatalogen on the webpages of the Norwegian Environment Agency (as used here, <https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054>) and via GBIF (<https://doi.org/10.15468/4wc9r4>).
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+The 'Erosive disturbance' indicator reflects the physical environment and thus represents ECT class 'A1 Physical characteristics'.
+
+### 3.2 Ecosystem condition characteristic
+
+The 'Erosive disturbance' indicator addresses both the ecosystem characteristics 'primary productivity' and 'abiotic conditions', in the Norwegian standard on ecological condition (Nybø and Evju, 2017).
+
+### 3.3 Other standards
+
+None.
+
+### 3.4 Collinearities with other indicators
+
+None.
+
+### 3.5 Impact factors
+
+The main impact factor for this indicator is human overuse of an area.
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. Thus, in terms of erosive disturbance, the reference condition is defined as an ecosystem without any human caused erosion.
+
+### 4.2 Reference levels
+
+X~100~: 0 share of the monitoring site area with erosive disturbance. 
+
+X~60~: less than 1/16th of the area in both the heavy vehicle (7_tk) and the overuse (7_se) variables.
+
+X~0~: more than 1/2 of the area in either the heavy vehicle (7_tk) or the overuse (7_se) variables.
+
+#### 4.2.1 Spatial resolution and validity
+
+The same reference levels apply to all types of ecosystems and all regions.
+
+## 5. Uncertainties
+
+A significant amount of uncertainty stems From the coarse 4-level scale on which the data underlying this indicator are collected, where each category (other than 0) spans a differently large range of abundance.
+Uncertainties relate partly to sampling and observer variability (and possible observer bias) in the recording of the data. 
+Spatial variability as a source of uncertainty can be quantified. For every mean or median indicator value (after scaling) for every region (or any other delimited area of interest) we can calculate its corresponding standard error or confidence interval quantiles as a measure of spatial uncertainty for a geographical area.
+
+## 6. References
+
+Artsdatabanken (2023, 11. august). Fremmede arter i Norge - med økologisk risiko 2023. http://www.artsdatabanken.no/lister/fremmedartslista/2023.
+
+Nybø, S., Kolstad, A.L., Sandvik, H., Bakkestuen, V., Evju, M., Framstad, E., Grainger, M., Jepsen, J.U., Nater, C.R., Speed, J.D.M., Töpper, J.P., Venter, Z., Åström, J., Åström, S.C.H., Bargmann, T.B., Silvennoinen, H.M. & Sydenham, M.A.K. 2023. Indicators of ecological condition in wetlands, semi-natural land, and naturally open areas below the forest line. NINA Report 2336. Norwegian Institute for Natural Research.
+
+Tingstad, L., Evju, M., Sickel, H., & Töpper, J. 2019. Utvikling av nasjonal arealrepresentativ naturovervåking (ANO). Forslag til gjennomføring, protokoller og kostnadsvurderinger med utgangspunkt i erfaringer fra uttesting i Trøndelag. NINA Rapport 1642.
+
+
+## 7. Datasets
+
+### 7.1 ANO monitoring data
+
+ANO stands for areal-representativ naturovervåking, i.e. area representative nature monitoring. 1000 sites are randomly distributed across mainland Norway and visited within a 5-year cycle. Each ANO site spans a 500 x 500 m grid cell, and the data collection at each ANO site includes up to 18 evenly distributed 250 sqm monitoring circles (up to 18, because some of these evenly distributed points may be in water or otherwise inaccessible). The combined cover of all alien plant species in the circle is recorded, in addition to the ecosystem the circle lies in, including ecosystem type and some additional variables related to ecosystem-specific drivers of state. In the analyses described in this document, we use the data available on Miljødirektoratets kartkatalog (<https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054>), which comprises data from the first round of data collection in ANO, 2019-2024, and a total of 18 871 circles in 1052 sites.
+The timeframe of six years from 2019-2024 allows to create indicator values for the two 3-year reporting periods 2019-2021 and 2022-2024.
+
+## 8. Spatial units
+
+The spatial units for the 'Erosive disturbance' indicator are governed by the ANO data, which consist of 1000 randomly chosen sites in Norway. Each site is a 500 x 500 m grid cell with 18 monitoring circles of 250sqm and a central 1 x 1 m vegetation plot. The basic unit for which observational data on erosive disturbance from heavy vehicles and overuse exist, and for which every the 'Erosive disturbance' indicator is computed, is the 250sqm circle. Aggregation of these basic spatial units to higher ones - like sites, municipalities, counties, regions, or the national level - should be done with appropriate consideration of the spatial structure of the data, i.e. imbalances and clustering (highly unequal number of points of an ecosystem type between sites).
+
+## 9. Analyses
+
+Import ANO testing data:
+First, download from Miljødirektoratet...
+```{r, eval = F, echo = T}
+# download 
+url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
+download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
+unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
+```
+
+...then upload from local storage
+```{r}
+#Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
+#ANO.sp <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb",layer="ANO_Art", quiet = T)
+ANO.geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb",
+                   layer="ANO_SurveyPoint", quiet = T)
+#head(ANO.sp)
+#head(ANO.geo)
+```
+
+#### Data handling
+
+```{r, include = T, results='hide', warning=F, message=F}
+
+#### ANO monitoring data
+
+#head(ANO.geo)
+
+## fix NiN information
+ANO.geo$hovedtype_rute <- substr(ANO.geo$kartleggingsenhet_1m2,1,3) # take the 3 first characters
+ANO.geo$hovedtype_rute <- gsub("-", "", ANO.geo$hovedtype_rute) # remove hyphen
+unique(as.factor(ANO.geo$hovedtype_rute))
+
+ANO.geo$hovedoekosystem_rute <- ANO.geo$hovedtype_rute
+ANO.geo <- ANO.geo %>% mutate(hovedoekosystem_rute = recode(hovedoekosystem_rute,
+  "T4" = "Forest", "T30" = "Forest",
+  "T3" = "Mountain", "T7" = "Mountain", "T14" = "Mountain", "T22" = "Mountain",
+  "V1" = "Wetland", "V2" = "Wetland", "V3" = "Wetland", "V4" = "Wetland", "V5" = "Wetland", "V6" = "Wetland", "V7" = "Wetland", "V8" = "Wetland",
+  "T31" = "Seminat", "T32" = "Seminat", "T33" = "Seminat", "T34" = "Seminat", "V9" = "Seminat", "V10" = "Seminat",
+  "T2" = "Natopen", "T8" = "Natopen", "T11" = "Natopen", "T12" = "Natopen", "T13" = "Natopen", "T15" = "Natopen", "T16" = "Natopen", "T18" = "Natopen", "T21" = "Natopen", "T24" = "Natopen", "T29" = "Natopen"
+))
+
+
+## fix NiN-variables
+colnames(ANO.geo)
+ANO.geo <- ANO.geo %>% 
+           rename("tungekjoretoy" = "bv_7tk",
+           "slitasje" = "bv_7se")
+colnames(ANO.geo)
+
+# remove variable code in the data
+ANO.geo$tungekjoretoy <- gsub("7TK_", "", ANO.geo$tungekjoretoy) 
+unique(ANO.geo$tungekjoretoy)
+ANO.geo$tungekjoretoy <- gsub("X", "NA", ANO.geo$tungekjoretoy)
+unique(ANO.geo$tungekjoretoy)
+ANO.geo$tungekjoretoy <- as.numeric(ANO.geo$tungekjoretoy)
+unique(ANO.geo$tungekjoretoy)
+
+ANO.geo$slitasje <- gsub("7SE_", "", ANO.geo$slitasje) 
+unique(ANO.geo$slitasje)
+ANO.geo$slitasje <- gsub("X", "NA", ANO.geo$slitasje)
+unique(ANO.geo$slitasje)
+ANO.geo$slitasje <- as.numeric(ANO.geo$slitasje)
+unique(ANO.geo$slitasje)
+
+## we create a new erosion-variable for the indicator based on both the tungekjoretoy- and slitasje-variables
+# first we illustrate the two variables and the new levels representing the combination of the two variables in a matrix
+matrix(
+  data=c(0,1,2,3,1,1.5,2.5,3.25,2,2.5,2.75,5.5,3,3.25,3.5,4),
+  nrow=4,ncol=4,
+  dimnames = list(c("se_0","se_1","se_2","se_3"),c("tk_0","tk_1","tk_2","tk_3"))
+  )
+# we can see that this results in values on a scale from 0-4 representing all combinations of the heavy vehicles and overuse variables
+
+# next we introduce the erosion variable to the dataframe
+ANO.geo <- ANO.geo %>% 
+  mutate(erosion=case_when( (is.na(tungekjoretoy)|tungekjoretoy==0) & !is.na(slitasje) ~ slitasje,
+                             (is.na(slitasje)|slitasje==0) & !is.na(tungekjoretoy) ~ tungekjoretoy,
+                             tungekjoretoy==1 & slitasje==1 ~ 1.5,
+                             tungekjoretoy==2 & slitasje==2 ~ 2.75,
+                             tungekjoretoy==3 & slitasje==3 ~ 4,
+                             tungekjoretoy==2 & slitasje==1 ~ 2.5,
+                             tungekjoretoy==1 & slitasje==2 ~ 2.5,
+                             tungekjoretoy==3 & slitasje==1 ~ 3.25,
+                             tungekjoretoy==1 & slitasje==3 ~ 3.25,
+                             tungekjoretoy==3 & slitasje==2 ~ 3.5,
+                             tungekjoretoy==2 & slitasje==3 ~ 3.5
+                             )
+  )
+
+
+## check that every point is present only once
+#length(levels(as.factor(ANO.geo$ano_flate_id)))
+#length(levels(as.factor(ANO.geo$ano_punkt_id)))
+#summary(as.factor(ANO.geo$ano_punkt_id))
+# there's many double presences, probably some wrong registrations of point numbers,
+
+
+```
+
+Next we create a normalisation function for mapping the abundance values to indicator values.
+```{r}
+
+#### scaled values ####
+r.s <- 1    # reference value
+l.s <- 0.6  # limit value
+a.s <- 0    # abscence of indicator, or indicator at maximum
+
+#### function for calculating scaled values for measured value ####
+
+## scaling function including truncation
+scal <- function() {
+  # place to hold the result
+   x <- numeric()
+  if (maxmin < ref) {
+    # values >= the reference value equal 1
+    if (val >= ref) {x <- 1}
+    # values < the reference value and >= the limit value can be deducted from the linear relationship between these two
+    if (val < ref & val >= lim) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
+    # values < the limit value and > maxmin can be deducted from the linear relationship between these two
+    if (val < lim & val > maxmin) {x <- (a.s + (val-maxmin) * ( (l.s-a.s) / (lim-maxmin) ) )}
+    # value equals or lower than maxmin
+    if (val <= maxmin) {x <-0}
+  } else {
+    # values <= the reference value equal 1
+    if (val <= ref) {x <- 1}
+    # values > the reference value and <= the limit value can be deducted from the linear relationship between these two
+    if (val > ref & val <= lim) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
+    # values > the limit value and < maxmin can be deducted from the linear relationship between these two
+    if (val > lim) {x <- ( l.s - (l.s * (val - lim) / (maxmin - lim) ) )}
+    # value equals or larger than maxmin
+    if (val >= maxmin) {x <-0}
+  }
+  return(x)
+  
+}
+
+## function for calculating scaled values for measured value, without truncation
+scal.2 <- function() {
+  # place to hold the result
+  x <- numeric()
+  if (maxmin < ref) {
+    # values >= the reference value estimated from the linear relationship for lim < x < ref (line below)
+    if (val >= ref) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
+    # values < the reference value and >= the limit value can be deducted from the linear relationship between these two
+    if (val < ref & val >= lim) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
+    # values < the limit value and > maxmin can be deducted from the linear relationship between these two
+    if (val < lim & val > maxmin) {x <- (a.s + (val-maxmin) * ( (l.s-a.s) / (lim-maxmin) ) )}
+    # value equal or lower than maxmin
+    if (val <= maxmin) {x <-0}
+  } else {
+    # values <= the reference value estimated from the linear relationship for lim < x < ref (line below)
+    if (val <= ref) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
+    # values > the reference value and <= the limit value can be deducted from the linear relationship between these two
+    if (val > ref & val <= lim) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
+    # values > the limit value and < maxmin can be deducted from the linear relationship between these two
+    if (val > lim & val < maxmin) {x <- ( l.s - (l.s * (val - lim) / (maxmin - lim) ) )}
+    # value equal og larger than maxmin
+    if (val >= maxmin) {x <-0}
+  }
+  return(x)
+  
+}
+
+
+```
+
+We then can prepare a list of data frames to hold the results and perform the scaling according to the principles described in NINA report 1967 (Töpper and Jakobsson 2021).
+```{r aChunkName, results='hide', eval=F}
+
+unique(ANO.geo$hovedoekosystem_250m2) # major ecosystem types in circle data
+unique(ANO.geo$hovedoekosystem_rute) # major ecosystem types in plot data
+#### creating dataframe to hold the results for wetlands ####
+results.ANO.slit <- list()
+results.ANO.slit[['original']] <- ANO.geo
+# drop geometry
+st_geometry(results.ANO.slit[['original']]) <- NULL
+results.ANO.slit[['original']]
+# add columns for the indicator
+results.ANO.slit[['original']][,'tk'] <- NA
+results.ANO.slit[['original']][,'se'] <- NA
+results.ANO.slit[['original']][,'erosion'] <- NA
+results.ANO.slit[['original']][,'tk'] <-  as.numeric(results.ANO.slit[['original']][,'tk'])
+results.ANO.slit[['original']][,'se'] <- as.numeric(results.ANO.slit[['original']][,'se'])
+results.ANO.slit[['original']][,'erosion'] <- as.numeric(results.ANO.slit[['original']][,'erosion'])
+summary(results.ANO.slit[['original']])
+results.ANO.slit[['original']]$globalid <- as.factor(results.ANO.slit[['original']]$globalid)
+results.ANO.slit[['original']]$ano_flate_id <- as.factor(results.ANO.slit[['original']]$ano_flate_id)
+results.ANO.slit[['original']]$ano_punkt_id <- as.factor(results.ANO.slit[['original']]$ano_punkt_id)
+results.ANO.slit[['original']]$hovedoekosystem_250m2 <- as.factor(results.ANO.slit[['original']]$hovedoekosystem_250m2)
+results.ANO.slit[['original']]$hovedoekosystem_rute  <- as.factor(results.ANO.slit[['original']]$hovedoekosystem_rute)
+results.ANO.slit[['original']]$kartleggingsenhet_1m2 <- as.factor(results.ANO.slit[['original']]$kartleggingsenhet_1m2)
+results.ANO.slit[['original']]$hovedtype_rute    <- as.factor(results.ANO.slit[['original']]$hovedtype_rute)
+
+
+# roll out
+results.ANO.slit[['scaled']] <- results.ANO.slit[['original']]
+
+```
+
+```{r, eval = F, echo = F, warning = F}
+
+# calculating scaled values for the indicators based on the dataset
+for (i in 1:nrow(ANO.geo) ) {
+  tryCatch({
+    print(i)
+    print(paste(ANO.geo$ano_flate_id[i]))
+    print(paste(ANO.geo$ano_punkt_id[i]))
+
+    # scaling thresholds
+    ref <- 0
+    lim <- 1.5
+    maxmin <- 3.5
+    
+        # Disturbance evaluation for erosion
+    val <- ANO.geo$erosion[i]    
+    if ( !is.na(val) ) {
+      # coercing x into results.ANO dataframe
+      results.ANO.slit[["scaled"]][i,'erosion'] <- scal() 
+    }
+
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+#saveRDS(results.ANO.slit, paste0(here::here(),"/indicators/NO_SLIT_001-004/data/cache/results.ANO.slit.RDS"))
+
+```
+
+Now we have both variables on heavy vehicles and overuse scaled.
+
+```{r, include = F}
+# Use cache data
+results.ANO.slit<-readRDS(paste0(here::here(),"/indicators/NO_SLIT_001-004/data/cache/results.ANO.slit.RDS"))
+```
+
+
+#### Scaled value analyses
+
+In order to calculate regional indices for the indicator(s) in addition to national ones we need to add information on region to the results-object.
+```{r, message = F, echo = T, warning = F}
+#### preparing results data for calculating of indices ####
+## continuing with scaled
+res.ANO.slit <- results.ANO.slit[['scaled']]
+
+# add geometry again
+st_geometry(res.ANO.slit) <- st_geometry(ANO.geo)
+
+nor <- st_read(here::here("indicators/NO_SLIT_001-004/data/outlineOfNorway_EPSG25833.shp"),
+               quiet = T)%>%
+  st_as_sf() %>%
+  st_transform(crs = sf::st_crs(ANO.geo))
+
+reg <- st_read(here::here("indicators/NO_SLIT_001-004/data/regions.shp"),
+               quiet = T) %>%
+  st_as_sf() %>%
+  st_transform(crs = sf::st_crs(ANO.geo))
+
+# change region names to something R-friendly
+# reg$region
+reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
+
+regnor <- st_intersection(reg,nor)
+
+res.ANO.slit = st_join(res.ANO.slit, regnor, left = TRUE, join = st_nearest_feature)
+
+```
+
+### Calculating national and regional indices
+
+We can calculate national and region-wise medians and 0.25 and 0.75 quantiles. Calculating means is not recommended since these data do not follow a Gaussian distribution. The national and regional estimates are computed separately (i.e. regional estimates are not spatially aggregated)
+
+```{r}
+## forest ecosystems
+# list to hold the results
+NO_SLIT_003_2022to2024 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+NO_SLIT_003_2019to2021 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+  
+# calculation of the median and quantiles
+myQuantiles <- c(.25, .5, .75)
+# Norway 2022-2024
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_003_2022to2024$low[1] <- res[1]
+NO_SLIT_003_2022to2024$median[1] <- res[2]
+NO_SLIT_003_2022to2024$high[1] <- res[3]
+NO_SLIT_003_2022to2024$n[1] <- nrow(df[!is.na(df$erosion),])
+# regions 2022-2024
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region==NO_SLIT_003_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_003_2022to2024$low[i] <- res[1]
+NO_SLIT_003_2022to2024$median[i] <- res[2]
+NO_SLIT_003_2022to2024$high[i] <- res[3]
+NO_SLIT_003_2022to2024$n[i] <- nrow(df[!is.na(df$erosion),])
+}
+# Norway 2019-2021
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_003_2019to2021$low[1] <- res[1]
+NO_SLIT_003_2019to2021$median[1] <- res[2]
+NO_SLIT_003_2019to2021$high[1] <- res[3]
+NO_SLIT_003_2019to2021$n[1] <- nrow(df[!is.na(df$erosion),])
+# regions 2019-2021
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='skog' | res.ANO.slit$hovedoekosystem_rute=='Forest') & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region==NO_SLIT_003_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_003_2019to2021$low[i] <- res[1]
+NO_SLIT_003_2019to2021$median[i] <- res[2]
+NO_SLIT_003_2019to2021$high[i] <- res[3]
+NO_SLIT_003_2019to2021$n[i] <- nrow(df[!is.na(df$erosion),])
+}
+
+
+## mountain ecosystems
+# list to hold the results
+NO_SLIT_001_2022to2024 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+NO_SLIT_001_2019to2021 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+) 
+  
+# calculation of the median and quantiles
+# Norway 2022-2024
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_001_2022to2024$low[1] <- res[1]
+NO_SLIT_001_2022to2024$median[1] <- res[2]
+NO_SLIT_001_2022to2024$high[1] <- res[3]
+NO_SLIT_001_2022to2024$n[1] <- nrow(df[!is.na(df$erosion),])
+# regions 2022-2024
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region==NO_SLIT_001_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_001_2022to2024$low[i] <- res[1]
+NO_SLIT_001_2022to2024$median[i] <- res[2]
+NO_SLIT_001_2022to2024$high[i] <- res[3]
+NO_SLIT_001_2022to2024$n[i] <- nrow(df[!is.na(df$erosion),])
+}
+# Norway 2019-2021
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_001_2019to2021$low[1] <- res[1]
+NO_SLIT_001_2019to2021$median[1] <- res[2]
+NO_SLIT_001_2019to2021$high[1] <- res[3]
+NO_SLIT_001_2019to2021$n[1] <- nrow(df[!is.na(df$erosion),])
+# regions 2019-2021
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='fjell' | res.ANO.slit$hovedoekosystem_rute=='Mountain') & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region==NO_SLIT_001_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_001_2019to2021$low[i] <- res[1]
+NO_SLIT_001_2019to2021$median[i] <- res[2]
+NO_SLIT_001_2019to2021$high[i] <- res[3]
+NO_SLIT_001_2019to2021$n[i] <- nrow(df[!is.na(df$erosion),])
+}
+
+## wetland ecosystems
+# list to hold the results
+NO_SLIT_002_2022to2024 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+NO_SLIT_002_2019to2021 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+) 
+  
+# calculation of the median and quantiles
+# Norway 2022-2024
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 == "vaatmark" | res.ANO.slit$hovedoekosystem_rute == "Wetland") & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
+NO_SLIT_002_2022to2024$low[1] <- res[1]
+NO_SLIT_002_2022to2024$median[1] <- res[2]
+NO_SLIT_002_2022to2024$high[1] <- res[3]
+NO_SLIT_002_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
+# regions 2022-2024
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 == "vaatmark" | res.ANO.slit$hovedoekosystem_rute == "Wetland") & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_002_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
+  NO_SLIT_002_2019to2021$low[i] <- res[1]
+  NO_SLIT_002_2019to2021$median[i] <- res[2]
+  NO_SLIT_002_2019to2021$high[i] <- res[3]
+  NO_SLIT_002_2019to2021$n[i] <- nrow(df[!is.na(df$erosion), ])
+}
+# Norway 2019-2021
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='vaatmark' | res.ANO.slit$hovedoekosystem_rute=='Wetland') & res.ANO.slit$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_002_2019to2021$low[1] <- res[1]
+NO_SLIT_002_2019to2021$median[1] <- res[2]
+NO_SLIT_002_2019to2021$high[1] <- res[3]
+NO_SLIT_002_2019to2021$n[1] <- nrow(df[!is.na(df$erosion),])
+# regions 2019-2021
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2=='vaatmark' | res.ANO.slit$hovedoekosystem_rute=='Wetland') & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region==NO_SLIT_002_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','erosion')]
+res <-  quantile(df$erosion,myQuantiles, na.rm=T)
+NO_SLIT_002_2019to2021$low[i] <- res[1]
+NO_SLIT_002_2019to2021$median[i] <- res[2]
+NO_SLIT_002_2019to2021$high[i] <- res[3]
+NO_SLIT_002_2019to2021$n[i] <- nrow(df[!is.na(df$erosion),])
+}
+
+
+## open lowland ecosystems
+# list to hold the results
+NO_SLIT_004_2022to2024 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+NO_SLIT_004_2019to2021 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+  
+# calculation of the median and quantiles
+# Norway 2022-2024
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
+NO_SLIT_004_2022to2024$low[1] <- res[1]
+NO_SLIT_004_2022to2024$median[1] <- res[2]
+NO_SLIT_004_2022to2024$high[1] <- res[3]
+NO_SLIT_004_2022to2024$n[1] <- nrow(df[!is.na(df$erosion), ])
+# regions 2022-2024
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region == NO_SLIT_004_2022to2024$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
+  NO_SLIT_004_2022to2024$low[i] <- res[1]
+  NO_SLIT_004_2022to2024$median[i] <- res[2]
+  NO_SLIT_004_2022to2024$high[i] <- res[3]
+  NO_SLIT_004_2022to2024$n[i] <- nrow(df[!is.na(df$erosion), ])
+}
+# Norway 2019-2021
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
+NO_SLIT_004_2019to2021$low[1] <- res[1]
+NO_SLIT_004_2019to2021$median[1] <- res[2]
+NO_SLIT_004_2019to2021$high[1] <- res[3]
+NO_SLIT_004_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
+# regions 2019-2021
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_004_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
+  NO_SLIT_004_2019to2021$low[i] <- res[1]
+  NO_SLIT_004_2019to2021$median[i] <- res[2]
+  NO_SLIT_004_2019to2021$high[i] <- res[3]
+  NO_SLIT_004_2019to2021$n[i] <- nrow(df[!is.na(df$erosion), ])
+}
+
+
+## naturally open lowland ecosystems
+# list to hold the results
+NO_SLIT_004a_2022to2024 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+NO_SLIT_004a_2019to2021 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+  
+# calculation of the median and quantiles
+# Norway 2022-2024
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2022, 2023, 2024), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
+NO_SLIT_004a_2022to2024$low[1] <- res[1]
+NO_SLIT_004a_2022to2024$median[1] <- res[2]
+NO_SLIT_004a_2022to2024$high[1] <- res[3]
+NO_SLIT_004a_2022to2024$n[1] <- nrow(df[!is.na(df$erosion), ])
+# regions 2022-2024
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region == NO_SLIT_004a_2022to2024$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
+  NO_SLIT_004a_2022to2024$low[i] <- res[1]
+  NO_SLIT_004a_2022to2024$median[i] <- res[2]
+  NO_SLIT_004a_2022to2024$high[i] <- res[3]
+  NO_SLIT_004a_2022to2024$n[i] <- nrow(df[!is.na(df$erosion), ])
+}
+# Norway 2019-2021
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
+NO_SLIT_004a_2019to2021$low[1] <- res[1]
+NO_SLIT_004a_2019to2021$median[1] <- res[2]
+NO_SLIT_004a_2019to2021$high[1] <- res[3]
+NO_SLIT_004a_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
+# regions 2019-2021
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne") | res.ANO.slit$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_004a_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
+  NO_SLIT_004a_2019to2021$low[i] <- res[1]
+  NO_SLIT_004a_2019to2021$median[i] <- res[2]
+  NO_SLIT_004a_2019to2021$high[i] <- res[3]
+  NO_SLIT_004a_2019to2021$n[i] <- nrow(df[!is.na(df$erosion), ])
+}
+
+
+## semi-natural ecosystems
+# list to hold the results
+NO_SLIT_004b_2022to2024 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+NO_SLIT_004b_2019to2021 <- data.frame(
+  Indicator = "erosion",
+  region = c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
+  median = NA,
+  low = NA,
+  high = NA,
+  n = NA
+)
+  
+# calculation of the median and quantiles
+# Norway 2022-2024
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
+NO_SLIT_004b_2022to2024$low[1] <- res[1]
+NO_SLIT_004b_2022to2024$median[1] <- res[2]
+NO_SLIT_004b_2022to2024$high[1] <- res[3]
+NO_SLIT_004b_2022to2024$n[1] <- nrow(df[!is.na(df$erosion), ])
+# regions 2022-2024
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2022, 2023, 2024) & res.ANO.slit$region == NO_SLIT_004b_2022to2024$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
+  NO_SLIT_004b_2022to2024$low[i] <- res[1]
+  NO_SLIT_004b_2022to2024$median[i] <- res[2]
+  NO_SLIT_004b_2022to2024$high[i] <- res[3]
+  NO_SLIT_004b_2022to2024$n[i] <- nrow(df[!is.na(df$erosion), ])
+}
+# Norway 2019-2021
+df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021), c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+res <- quantile(df$erosion, myQuantiles, na.rm = T)
+NO_SLIT_004b_2019to2021$low[1] <- res[1]
+NO_SLIT_004b_2019to2021$median[1] <- res[2]
+NO_SLIT_004b_2019to2021$high[1] <- res[3]
+NO_SLIT_004b_2019to2021$n[1] <- nrow(df[!is.na(df$erosion), ])
+# regions 2019-2021
+for (i in 2:6) {
+  df <- res.ANO.slit[(res.ANO.slit$hovedoekosystem_250m2 %in% c("naturlig_apne", "semi_naturlig_mark") | res.ANO.slit$hovedoekosystem_rute %in% c("Seminat", "Natopen") | res.ANO.slit$hovedtype_rute %in% c("T40", "T41")) & res.ANO.slit$aar %in% c(2019, 2020, 2021) & res.ANO.slit$region == NO_SLIT_004b_2019to2021$region[i], c("ano_flate_id", "region", "hovedoekosystem_250m2", "hovedoekosystem_rute", "erosion")]
+  res <- quantile(df$erosion, myQuantiles, na.rm = T)
+  NO_SLIT_004b_2019to2021$low[i] <- res[1]
+  NO_SLIT_004b_2019to2021$median[i] <- res[2]
+  NO_SLIT_004b_2019to2021$high[i] <- res[3]
+  NO_SLIT_004b_2019to2021$n[i] <- nrow(df[!is.na(df$erosion), ])
+}
+
+
+```
+
+## 10. Results
+The results are shown in @tbl-results.
+
+```{r tbl-results}
+#| tbl-cap: 'Indicator values for the indicator Erosive disturbance.'
+
+### median indicator values for 'area without erosion plant species', lower and upper prediction intervals (low, high), and number of observations (n)
+# open lowland (natopen & seminat combined)
+bind_rows(
+  NO_SLIT_004_2022to2024 |> mutate(Indicator = "NO_SLIT_004", years = "2022-2024", ecosystem = "Open lowland"),
+  NO_SLIT_004_2019to2021 |> mutate(Indicator = "NO_SLIT_004", years = "2019-2021", ecosystem = "Open lowland"),
+# natopen
+  NO_SLIT_004a_2022to2024 |> mutate(Indicator = "NO_SLIT_004a", years = "2022-2024", ecosystem = "Naturally open ecosystems"),
+  NO_SLIT_004a_2019to2021 |> mutate(Indicator = "NO_SLIT_004a", years = "2019-2021", ecosystem = "Naturally open ecosystems"),
+# seminat
+  NO_SLIT_004b_2022to2024 |> mutate(Indicator = "NO_SLIT_004b", years = "2022-2024", ecosystem = "Semi-natural ecosystems"),
+  NO_SLIT_004b_2019to2021 |> mutate(Indicator = "NO_SLIT_004b", years = "2019-2021", ecosystem = "Semi-natural ecosystems"),
+# mountain ecosystems
+  NO_SLIT_001_2022to2024 |> mutate(Indicator = "NO_SLIT_001", years = "2022-2024", ecosystem = "Mountains"),
+  NO_SLIT_001_2019to2021 |> mutate(Indicator = "NO_SLIT_001", years = "2019-2021", ecosystem = "Mountains"),
+# wetland ecosystems
+  NO_SLIT_002_2022to2024 |> mutate(Indicator = "NO_SLIT_002", years = "2022-2024", ecosystem = "Wetlands"),
+  NO_SLIT_002_2019to2021 |> mutate(Indicator = "NO_SLIT_002", years = "2019-2021", ecosystem = "Wetlands"),
+# forest ecosystems
+  NO_SLIT_003_2022to2024 |> mutate(Indicator = "NO_SLIT_003", years = "2022-2024", ecosystem = "Forest"),
+  NO_SLIT_003_2019to2021 |> mutate(Indicator = "NO_SLIT_003", years = "2019-2021", ecosystem = "Forest")
+) |>
+  # removing 'norway' from the name of the other regions so it's possible to filter the datatable
+  mutate(region = str_remove(region, "\\.Norway$")) |>
+  DT::datatable(filter = "top")
+  
+```
+The summary statistics indicate very good condition with respect to this indicator, but since the summary statistics hide all information below 1 here, wen can illustrate the occurrence of condition values below 1 with showing histograms
+
+
+Across all ecosystem types, by period:
+```{r}
+#| message: false
+# period 2019-2021
+res.ANO.slit %>%
+  filter(aar %in% c(2019, 2020, 2021)) %>%
+  filter(erosion<0.99) %>%
+  ggplot( aes(x=erosion, color=region, fill=region)) +
+  geom_histogram() +
+  xlab("Erosive disturbance index (<1") +
+  ylab("Frequency (n)") +
+  facet_wrap(~region)
+
+# period 2022-2024
+res.ANO.slit %>%
+  filter(aar %in% c(2022, 2023, 2024)) %>%
+  filter(erosion<0.99) %>%
+  ggplot( aes(x=erosion, color=region, fill=region)) +
+  geom_histogram() +
+  xlab("Erosive disturbance index (<1)") +
+  ylab("Frequency (n)") +
+  facet_wrap(~region)
+```
+
+By ecosystem type (across both reporting periods):
+```{r}
+# mountains
+res.ANO.slit %>%
+  filter(hovedoekosystem_250m2=='fjell' | hovedoekosystem_rute=='Mountain') %>%
+  filter(erosion<0.99) %>%
+  ggplot( aes(x=erosion, color=region, fill=region)) +
+  geom_histogram() +
+  xlab("Erosive disturbance index (<1)") +
+  ylab("Frequency (n)") +
+  facet_wrap(~region)
+
+# forests
+res.ANO.slit %>%
+  filter(hovedoekosystem_250m2=='skog' | hovedoekosystem_rute=='Forest') %>%
+  filter(erosion<0.99) %>%
+  ggplot( aes(x=erosion, color=region, fill=region)) +
+  geom_histogram() +
+  xlab("Erosive disturbance index (<1)") +
+  ylab("Frequency (n)") +
+  facet_wrap(~region)
+
+# wetlands
+res.ANO.slit %>%
+  filter(hovedoekosystem_250m2=='vaatmark' | hovedoekosystem_rute=='Wetland') %>%
+  filter(erosion<0.99) %>%
+  ggplot( aes(x=erosion, color=region, fill=region)) +
+  geom_histogram() +
+  xlab("Erosive disturbance index (<1)") +
+  ylab("Frequency (n)") +
+  facet_wrap(~region)
+
+# naturally open lowland
+res.ANO.slit %>%
+  filter(hovedoekosystem_250m2=='naturlig_apne' | hovedoekosystem_rute=='Natopen') %>%
+  filter(erosion<0.99) %>%
+  ggplot( aes(x=erosion, color=region, fill=region)) +
+  geom_histogram() +
+  xlab("Erosive disturbance index (<1)") +
+  ylab("Frequency (n)") +
+  facet_wrap(~region)
+
+# semi-natural
+res.ANO.slit %>%
+  filter(hovedoekosystem_250m2=='semi_naturlig_mark' | hovedoekosystem_rute=='Seminat') %>%
+  filter(erosion<0.99) %>%
+  ggplot( aes(x=erosion, color=region, fill=region)) +
+  geom_histogram() +
+  xlab("Erosive disturbance index (<1)") +
+  ylab("Frequency (n)") +
+  facet_wrap(~region)
+
+```
+
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
