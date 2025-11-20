@@ -5,6 +5,35 @@ subtitle: |
   [NO_FUNC_002] (mountains) \
   [NO_FUNC_003] (wetlands) \
   [NO_FUNC_004] (forests)
+indicatorID: 
+  - NO_FUNC_001
+  - NO_FUNC_002
+  - NO_FUNC_003
+  - NO_FUNC_004
+indicatorName: 
+  - Functional plant community indicators
+  - Functional plant community indicators
+  - Functional plant community indicators
+  - Functional plant community indicators
+country: Norway
+continent: Europe
+ECT: B1 - Compositional State Characteristics
+Realm: 
+  - Terrestrial
+Biome: 
+  - T3 Shrublands and shrubby woodlands biome
+  - T6 Polar-alpine (cryogenic) biome
+  - T2 Temperate-boreal forests and woodlands biome
+Ecosystem: ""
+yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2025
+status: complete 
+Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: First version using indices and worst-rule prinsiples
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_FUNC_001-004
+# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: Yes 
+SpatialAggregationPathway: '[Scale, Transform] - Truncate - Aggregate'
 format: 
   html:
     embed-resources: true
@@ -23,8 +52,12 @@ author:
         name: Norwegian Institute for Nature Research
   - name: Erik Framstad
     affiliations:
-      - ref: myID               # To reuse affiliations referecen the id like this
-date: April 9, 2025 # Enter date 
+      - ref: myID               
+date: April 9, 2025
+AuthorList: Töpper, J. and Framstad, E.
+data_availability: silver
+code_reproducibility: silver
+open_science_badge: silver
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -68,44 +101,76 @@ knitr::opts_chunk$set(echo = TRUE)
 source(here::here("_common.R"))
 ```
 
-```{r}
+```{r extractFromYML}
 #| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
+#| cache: false
+this_file <- get_file_info()
+
+# Read the YAML front matter
+lines <- readLines(this_file$path, warn = FALSE)
+dash_lines <- which(trimws(lines) == "---")
+yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
+yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
+
+# Robust flatten function
+flatten_to_string <- function(x) {
+  if (is.list(x)) {
+    # recursively flatten any nested lists
+    x <- unlist(x, recursive = TRUE)
+  }
+  # convert to single string
+  paste(x, collapse = "; ")
+}
+
+# Apply to all YAML entries
+yaml_data_flat <- lapply(yaml_data, flatten_to_string)
+
+# Create tibble
+meta <- tibble::enframe(yaml_data_flat, name = "Variable", value = "Value")
+
+# Check structure
+#str(meta)
+
 st <- meta |>
-  filter(Variable == "status") |>
+  dplyr::filter(Variable == "status") |>
   pull(Value)
 version <- meta |>
-  filter(Variable == "Version") |>
+  dplyr::filter(Variable == "Version") |>
   pull(Value)
 auth <- meta |>
-  filter(Variable == "authors") |>
+  dplyr::filter(Variable == "AuthorList") |>
   pull(Value)
 year <- meta |>
-  filter(Variable == "yearAdded") |>
+  dplyr::filter(Variable == "yearAdded") |>
   pull(Value)
 id <- meta |>
-  filter(Variable == "indicatorID") |>
+  dplyr::filter(Variable == "indicatorID") |>
   pull(Value)
 name <- meta |>
-  filter(Variable == "indicatorName") |>
+  dplyr::filter(Variable == "indicatorName") |>
   pull(Value)
 url <- meta |>
-  filter(Variable == "url") |>
+  dplyr::filter(Variable == "url") |>
+  pull(Value)
+badges<-meta |> 
+  dplyr::filter(Variable %in% c("data_availability",
+         "code_reproducibility", "open_science_badge")) |> 
   pull(Value)
 
 meta <- meta |>
-  mutate(Variable = case_match(Variable,
+  dplyr::mutate(Variable = dplyr::case_match(Variable,
     "indicatorID" ~ "Indicator ID" ,
     "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
     "continent" ~ "Continent",
+    "country" ~ "Country",
     "ECT" ~ "Ecosystem Condition Typology Class",
     "yearAdded" ~ "Year added",
     "yearLastUpdate" ~ "Last update",
+    "VersionComment" ~ "Version comment",
+    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
     .default = Variable
-   )
-  ) |>
-  filter(Variable != "authors")
+  )) |>
+  dplyr::filter(Variable != "authors")
 
 ```
 
@@ -127,25 +192,33 @@ status(st)
 
 :::
 
-```{=html}
-<details>
-<summary>Show metadata</summary>
-```
+::: {.callout-tip collapse="true"}
 
-```{r tbl-meta}
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
 
-```{=html}
-</details>
-```
+:::
 
 ::: {.callout-tip collapse="true"}
 
@@ -154,6 +227,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - 09 Apr. 2025 - Original PR
 - 31 Oct. 2025 - moving Tyler data, fixing results table, rendering
+- 20 Nov. 2025 - Formatting to the new template structure and mergins some code review suggestsion
 :::
 
 
@@ -2861,3 +2935,16 @@ xxx2 = upper xxx indicator (i.e. deviations towards too much xxx)
 DT::datatable(NO_FUNC_001to004_supp)
 
 ```
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
