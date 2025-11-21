@@ -74,11 +74,11 @@ options(scipen = 999)
 # Set up conditional file paths
 dir <- substr(getwd(), 1,2)
 
-path <- ifelse(dir == "C:", 
-               "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/versjon2023/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
-               "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/versjon2023/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
+path <- ifelse(dir %in% c("C:","c:"), 
+               "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin(instruks)/Original/versjon2023/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
+               "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin(instruks)/Original/versjon2023/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
 
-pData <- ifelse(dir == "C:", 
+pData <- ifelse(dir %in% c("C:","c:"), 
                "P:/41201785_okologisk_tilstand_2022_2023/data/",
                "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/")
 
@@ -144,6 +144,9 @@ badges<-meta |>
   dplyr::filter(Variable %in% c("data_availability",
          "code_reproducibility", "open_science_badge")) |> 
   pull(Value)
+folder_name <-meta |> 
+  dplyr::filter(Variable == "folderName") |> 
+  pull(Value)
 
 meta <- meta |>
   dplyr::mutate(Variable = dplyr::case_match(Variable,
@@ -163,43 +166,74 @@ meta <- meta |>
 ```
 
 
-<!--# The following parts are autogenertaed. Do not edit. -->
+::: {layout-ncol="5"}
 
-```{r}
+```{r statusBadge}
 #| echo: false
-#| results: asis
-status(st)
+status_badge(as.character(st))
 ```
 
-::: {layout-ncol="2"}
-::: {.callout-note style="background: cornsilk;"}
-## Recomended citation
-
-`r paste(auth, year, name, "v.", version, "ecRxiv", url, sep=" ")`
-:::
-
-::: {.callout-note style="background: khaki;"}
-## Version
-
-`r version`
-:::
-:::
-
-```{=html}
-<details>
-<summary>Show metadata</summary>
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]),
+  folder_name = folder_name)
 ```
-```{r tbl-meta}
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  filter(Variable %in% c("Indicator ID","Indicator Name","Country","Continent","Ecosystem Condition Typology Class", "Year added", "Last update")) |>   kable()
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
+:::
 
-</details>
+::: {.callout-tip collapse="true"}
+
+## Log
+
+<!--# Update this logg with short messages for each update -->
+- 02 Dec. 2024 - Original PR
+- 21 Nov. 2025 - Restructured into the new template (ALK)
+:::
 
 ::: callout-note
 This indicator was developed in 2023. In 2024 we further developed the ideas about HIAs and stratified aggregation which we published on [EcoEvoRxiv](https://ecoevorxiv.org/repository/view/7221/). Before operationalisation, the indicator should be updated based on this paper.
@@ -305,7 +339,7 @@ The indicator is tagged as a **B1 Compositional state characteristics** indicato
 
 #### Norwegian standard
 
-The indicator is tagged to the *Økologisk egenskap* called **Biologisk mangfold**. This emphasises the negative effect that alien species have on for example supressing or excluding native species. In some cases, alien species can also affect nutrient cycling or recruitment and could then also be appropriate under *funksjonelt viktige arter og strukturer*.
+The indicator is tagged to the *Økologisk egenskap* called **Biologisk mangfold**. This emphasises the negative effect that alien species have on for example suppressing or excluding native species. In some cases, alien species can also affect nutrient cycling or recruitment and could then also be appropriate under *funksjonelt viktige arter og strukturer*.
 
 ## 3.4 Collinearities with other indicators
 
@@ -358,7 +392,7 @@ This indicator uses the data set `Naturtyper etter Miljødirektoratets Instruks`
 We also have a separate summary file where the nature types are manually mapped to the NiN variables and to the correct NiN-main types. We can use this to find the nature types of interest.
 
 ```{r readnatureTypeSummary}
-naturetypes_summary_import <- readRDS("../data/natureType_summary.rds")
+naturetypes_summary_import <- readRDS(here::here("indicators", folder_name, "data/natureType_summary.rds"))
 ```
 
 ### 7.2. GRUK
@@ -410,12 +444,17 @@ naturetypes <- sf::st_read(
   quiet = T
 ) %>%
   filter(naturtype %in% naturetypes_summary$Nature_type) %>%
+  rename(
+    hovedøkosystem = starts_with("hoved"),
+    data = kartleggingsdato,
+    kartleggingsår = starts_with("kartlegg")
+  ) |>
   mutate(
     hovedøkosystem = case_match(hovedøkosystem,
       "naturligÅpneOmråderILavlandet" ~ "naturligÅpneOmråderUnderSkoggrensa",
       .default = hovedøkosystem
-    ),
-    area = st_area(.)
+      ),
+    area = st_area(SHAPE)
   ) %>%
   separate_rows(ninBeskrivelsesvariable, sep = ",") %>%
   separate(
@@ -495,7 +534,7 @@ The content below this point is not updates are recently as the content above (e
 #| code-summary: "Read data"
 
 ano_eco <- c("vaatmark", "naturlig_apne", "semi_naturlig_mark")
-ano <- sf::st_read(paste0(pData, "naturovervaking_eksport.gdb/Naturovervaking_eksport.gdb"),
+ano <- sf::st_read(paste0(pData, "naturovervaking_eksport.gdb"),
                    layer = "ANO_SurveyPoint",
                    quiet = T) %>%
   dplyr::filter(hovedoekosystem_punkt %in% ano_eco) %>%
@@ -1516,7 +1555,7 @@ tm_shape(st_downsample(gran_rast_masked, 10))+
   tm_borders(col="red")
 ```
 
-From here it is easy to get zonal statistics using `exactextratr`. If I have this kind of map for all of Norway I can get the mean value for the regions (defined via a polygon set) and it will of course be area weighted (but no weight given to ecosystem occurences that don't have indicator values).
+From here it is easy to get zonal statistics using `exactextratr`. If I have this kind of map for all of Norway I can get the mean value for the regions (defined via a polygon set) and it will of course be area weighted (but no weight given to ecosystem occurrences that don't have indicator values).
 
 ## 10. Results
 
