@@ -21,9 +21,10 @@ status_badge <- function(type) {
 
 
 # Create and print version badge
-version_badge <- function(version_number){
-  version_badge_path <- paste0("badge_version_", version_number, ".svg")
-  anybadger::create_badge(version_badge_path, label = "Version", value = version_number, color = "#add8e6")
+version_badge <- function(my_version_number, folder_name){
+  version_badge_name <- paste0("badge_version_", my_version_number, ".svg")
+  version_badge_path <- here::here("indicators", folder_name, "img", version_badge_name)
+  anybadger::create_badge(version_badge_path, label = "Version", value = my_version_number, color = "#add8e6")
   image_link(version_badge_path, "https://github.com/NINAnor/ecRxiv/wiki#naming-convention")
 }
 
