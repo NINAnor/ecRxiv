@@ -1,7 +1,7 @@
 ---
 title: "Enter indicator name here"
 subtitle: |
-  [INDICATORID] \
+  [INDICATORID] (ECOSYSTEM A) \
   [INDICATORID2] (ECOSYSTEM B)  
 # delete the line with the second indicatorID (line 5) 
 # if it's not relevant for you.
@@ -21,6 +21,9 @@ indicatorID:
 # country once. 
 indicatorName: 
   - INDICATOR_NAME # add more by adding another line starting '-'
+folderName: template_copy_folder_then_rename # name of the folder under 'indicators/'. 
+# If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
+# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
 country: country
 continent: continent
 ECT: write ECT here # e.g. A2 - Chemical State characteristics
@@ -60,9 +63,9 @@ author:
       - ref: myID               # To reuse affiliations reference the id like this
 AuthorList: Doe, J. and Last, F.  
 date: January 1, 1901 # Enter date
-data_availability: gold
-code_reproducibility: bronze
-open_science_badge: silver
+data_availability: none
+code_reproducibility: none
+open_science_badge: none
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -157,6 +160,9 @@ badges<-meta |>
   dplyr::filter(Variable %in% c("data_availability",
          "code_reproducibility", "open_science_badge")) |> 
   pull(Value)
+folder_name <-meta |> 
+  dplyr::filter(Variable == "folderName") |> 
+  pull(Value)
 
 meta <- meta |>
   dplyr::mutate(Variable = dplyr::case_match(Variable,
@@ -188,8 +194,8 @@ status_badge(as.character(st))
 
 ```{r versionBadge}
 #| echo: false
-# Run this line of code in interactive mode once first (before rendering), to create and save the badge.
-version_badge(version_number = as.character(version[[1]]))
+version_badge(my_version_number = as.character(version[[1]]),
+  folder_name = folder_name)
 ```
 
 ```{r dataBadge}
@@ -209,7 +215,7 @@ open_science_badge(as.character(badges[[3]]))
 ::: 
  
 
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 
 
