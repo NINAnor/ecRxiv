@@ -1,10 +1,68 @@
 ---
 title: "Alien plant species"
-subtitle: |
+subtitle:  |
   [NO_ALIE_002] (mountains) \
   [NO_ALIE_003] (wetlands) \
   [NO_ALIE_004] (forests) \
   [NO_ALIE_005] (farmland and open lowland)
+# delete the line with the second indicatorID (line 5) 
+# if it's not relevant for you.
+# In the parentheses you can add a word to distinguish multiple indicators 
+# from each other, for example the ecosystem type that they cover
+indicatorID: 
+  - NO_ALIE_002
+  - NO_ALIE_003
+  - NO_ALIE_004
+  - NO_ALIE_005
+# If you are presenting multiple indicators, and have multiple 
+# indicator IDs, then add them as a list here, and make sure you add
+# the same number of list entries, 
+# and in the same order that corresponds to the indicator IDs,  
+# to the meta data fields where the indicators differ. 
+# For example, if the indicators cover different ecosystem types, 
+# add the ecosystems as a list under 'Ecosystems', but if they are in the
+# same realm, same country etc., then you only need to write the realm and
+# country once. 
+indicatorName: 
+  - "Alien plant species" # add more by adding another line starting '-'
+folderName: NO_ALIE_002-005
+country: Norway
+continent: Europe
+ECT: B1 - Compositional State Characteristics
+Realm: 
+  - Terrestrial
+  - Freshwater-Terrestrial (TF)
+  - Terrestrial
+  - Terrestrial
+Biome: 
+  - T6 Polar-alpine (cryogenic) biome
+  - TF1 Palustrine wetlands biome
+  - T2 Temperate-boreal forests and woodlands biome
+  - T3 Shrublands and shrubby woodlands biome; T4 Savannas and grasslands biome; T7 Intensive land-use biome
+Ecosystem: 
+  -  # e.g. F1.3 Freeze-thaw streams
+yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2025
+status: complete # options are complete, incomplete, or deprecated
+Version: "000.002" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: Similar to version 000.001, but with open science badges and some restructuring. Status set to operational.
+# Describe briefly how this version differs from earlier versions 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ALIE_002-005
+# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: '[Scale-Transform] - Aggregate'
+ # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+author:
+  - name: Joachim Töpper
+    email: joachim.topper@nina.no
+    affiliations:
+      - id: myID
+        name: Norwegian Institute for Nature Research
+  - name: Erik Framstad
+    affiliations:
+      - ref: myID               
+AuthorList: Töpper, J. and Framstad, E. 
+date: June 2, 2025 
 format: 
   html:
     embed-resources: true
@@ -15,23 +73,9 @@ format:
     smooth-scroll: true
 execute: 
   cache: true
-author:
-  - name: Joachim Töpper
-    email: joachim.topper@nina.no
-    affiliations:
-      - id: myID
-        name: Norwegian Institute for Nature Research
-  - name: Erik Framstad
-    affiliations:
-      - ref: myID               # To reuse affiliations referecen the id like this
-date: June 2, 2025 # Enter date 
-callout-icon: false
-lightbox: true
-css: ../../../style.css
-code-links:
-      - text: Add a review
-        icon: github
-        href: https://github.com/NINAnor/ecRxiv
+data_availability: gold
+code_reproducibility: silver
+open_science_badge: silver
 ---
 
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -64,95 +108,83 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r source}
 #| echo: false
+#| cache: false
 source(here::here("_common.R"))
+source(here::here("extract_yaml.R"))
 ```
 
-```{r}
-#| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
-st <- meta |>
-  filter(Variable == "status") |>
-  pull(Value)
-version <- meta |>
-  filter(Variable == "Version") |>
-  pull(Value)
-auth <- meta |>
-  filter(Variable == "authors") |>
-  pull(Value)
-year <- meta |>
-  filter(Variable == "yearAdded") |>
-  pull(Value)
-id <- meta |>
-  filter(Variable == "indicatorID") |>
-  pull(Value)
-name <- meta |>
-  filter(Variable == "indicatorName") |>
-  pull(Value)
-url <- meta |>
-  filter(Variable == "url") |>
-  pull(Value)
-
-meta <- meta |>
-  mutate(Variable = case_match(Variable,
-    "indicatorID" ~ "Indicator ID" ,
-    "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
-    "continent" ~ "Continent",
-    "ECT" ~ "Ecosystem Condition Typology Class",
-    "yearAdded" ~ "Year added",
-    "yearLastUpdate" ~ "Last update",
-    .default = Variable
-   )
-  ) |>
-  filter(Variable != "authors")
-
-```
 
 <!--# The following parts are autogenerated. Do not edit. -->
 
-```{r}
+::: {layout-ncol="5"}
+
+```{r statusBadge}
 #| echo: false
-#| results: asis
-status(st)
+status_badge(as.character(st))
 ```
 
-::: {layout-ncol="2"}
-
-
-
-> **Recomended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ALIE_002-005", sep="")`
-
-> **Version**: `r version`
-
-:::
-
-```{=html}
-<details>
-<summary>Show metadata</summary>
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]),
+  folder_name = folder_name)
 ```
 
-```{r tbl-meta}
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
+:::
 
-```{=html}
-</details>
-```
 
 ::: {.callout-tip collapse="true"}
 
-## Logg
+## Log
 
 <!--# Update this logg with short messages for each update -->
 - 09 Apr. 2025 - Original PR
 - 02 Jun. 2025 - Code review complete.
+- 21 Nov. 2025 - Restructure and adding badges (ALK)
 :::
 
 
@@ -493,12 +525,12 @@ st_geometry(res.ANO.alien) <- st_geometry(ANO.geo)
 nor <- st_read(here::here("indicators/NO_ALIE_002-005/data/outlineOfNorway_EPSG25833.shp"),
                quiet = T)%>%
   st_as_sf() %>%
-  st_transform(crs = crs(ANO.geo))
+  st_transform(crs = sf::st_crs(ANO.geo))
 
 reg <- st_read(here::here("indicators/NO_ALIE_002-005/data/regions.shp"),
                quiet = T) %>%
   st_as_sf() %>%
-  st_transform(crs = crs(ANO.geo))
+  st_transform(crs = sf::st_crs(ANO.geo))
 
 # change region names to something R-friendly
 # reg$region
