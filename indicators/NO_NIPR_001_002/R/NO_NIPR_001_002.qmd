@@ -1,11 +1,14 @@
 ---
-title: "Waterbirds"
+title: "Nature Index product"
 subtitle: |
-  [NO_NIPR_001] \
+  [NO_NIPR_001] (waterbirds) \
+  [NO_NIPR_002] (<i>Lutra lutra</i>)
 indicatorID: 
   - NO_NIPR_001
+  - NO_NIPR_002
 indicatorName: 
   - Waterbirds
+  - <i>Lutra lutra</i> (Eurasian otter)
 country: Norway
 continent: Europe
 ECT: B1 - Compositional State Characteristics
@@ -13,14 +16,16 @@ Realm:
   - Freshwater (F)
 Biome: 
   - F2 Lakes biome
+  - F1 Rivers and streams biome
 Ecosystem: 
   - F2.4 Freeze-thaw lakes
+  - F1.3 Freeze-thaw streams
 yearAdded: 2025
 yearLastUpdate: 2025
 status: complete
 Version: "001.000"
 VersionComment: First complete version
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_NIPR_001
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_NIPR_001_002
 Normalised: Yes
 SpatialAggregationPathway: Scale - Aggregate (area-weighted arithmetic mean) - Truncate
 format: 
@@ -40,7 +45,7 @@ author:
       - id: myID
         name: Norwegian Institute for Nature Research
 AuthorList: Sandvik, H.  
-date: October 28, 2025
+date: November 24, 2025
 data_availability: gold
 code_reproducibility: bronze
 open_science_badge: bronze
@@ -237,8 +242,9 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - 24 Oct 2025 - Version 001.000 started: first complete version
 - 28 Oct 2025 - Version 001.000 submitted to review
+- 24 Nov 2025 - Otter added to version 001.000
 :::
-
+  
 
 <hr />
 
@@ -251,8 +257,9 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
  -->
 
 1. **Background and rationale**: 
-The indicator consists of abundance indices for eleven waterbird species that are included in the [Nature Index for Norway](https://www.naturindeks.no/) (**NI**, hereafter). 
-These species breed in lakes and can be regarded as indicators of intact ecological condition, as they are sensitive to anthropogenic pressures such as climate change and habitat loss.
+The indicators consist of abundance indices for (1) eleven waterbird species and (2) Eurasian otters that are included in the [Nature Index for Norway](https://www.naturindeks.no/) (**NI**, hereafter). 
+Waterbirds breed in lakes, and otters live in rivers. 
+Both can be regarded as indicators of intact ecological condition, as they are sensitive to anthropogenic pressures such as habitat loss and pollution.
 <!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
 What are the main anthropogenic impact factors? -->
 2. **Methods**: 
@@ -260,18 +267,24 @@ The indicator is a "Nature Index product", meaning that it is not identical to, 
 The averaging across species involves weighting by functional group, so that the three trophic levels represented among waterbids (herbivores, mesopredators and top predators) receive the same weights.
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
 3. **Interpretation**:
-An indicator value of 1 signifies that waterbird abundances are equal to those in an intact lake ecosystem in the period 1961--1990. 
-Values decreasing toward zero reflect proportionally lower waterbird abundances.
+For the waterbird indicator, a value of 1 signifies that waterbird abundances are equal to those in an intact lake ecosystem in the period 1961--1990. 
+For the otter indicator, a value of 1 signifies that otters are present in all river systems with suitable habitat.  
+Values decreasing toward zero reflect proportionally lower abundances or presences.
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. -->
 4. **Results and development needs**:
-The indicator is ready for use. 
-Its value for 2024 means that the average waterbird abundance is approximately 77% of the one expected in an intact lake ecosystem.
+The indicators are ready for use. 
+Its values for 2024 mean that (1) the average waterbird abundance is approximately 77% of the one expected in an intact lake ecosystem, and that (2) otters are present in 78% of suitable habitat.
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
 
 ## 2. About the underlying data
 
 This indicator is a "Nature Index product" ([Nater 2023b](#nat23b)), i.e. it is estimated using data from the [Nature Index for Norway](https://www.naturindeks.no/) or **NI** ([Miljødirektoratet 2025](#mil25)). 
+
+This documentation focuses on the waterbird indicator (NO_NIPR_001). 
+The otter indicator (NO_NIPR_002) is calculated along the same lines but is not documented step-by-step. 
+For more information about the latter, please refer to the [Nature Index](https://www.naturindeks.no/Indicators/oter_ferskvannsbestand).
+
 The original source of the waterbird abundance data making up this indicator is the Norwegian Breeding Birds Monitoring Program ([*Hekkefulgovervåkingen*](https://hekkefuglovervakingen.nina.no/)).
 
 <!--# Describe the data you have used in more detail, it's origin, biases, availability ect.-->
@@ -610,17 +623,34 @@ Code folding is activated, meaning the code will be hidden by default in the htm
 Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
 -->
 
+### 9.1 Otter
+
+The otter indicator (NO_NIPR_002) is calculated along the same lines. 
+The main difference consists of the indicators to be omitted:
+
+```{r}
+omit <- 
+  c(1, 50, 11, 233, 31, 228, 231, 36, 38, 43, 268, 270, 287, 385, 386, 104,           146, 298, 275, 333, 277, 278, 296, 312, 279, 213)
+# c(1, 50, 11, 233, 31, 228, 231, 36, 38, 43, 268, 270, 287, 385, 386, 104, 134, 135, 146, 298, 275, 333, 277, 278, 296, 312, 279, 213),
+#   ål AUR pit aip BUNN aspt radd DPL krp EMU fmås FOSS have krik kvin laks OTER oter pti  sila smål stok stor stra svar svøm topp TIc
+```
+
+Trophic weighting is not needed. 
+The indicator is thus calculated as the average condition of the freshwater population and the coastal population of otters 
+(where "coastal population" refers to all otter populations in municipalities with a coastline, irrespective of the actual habitat use of the species).
+
 
 ## 10. Results
 
-The indicator is reported in terms of *scaled* indicator values.
+The indicators are reported in terms of *scaled* indicator values.
 
 
-| Best estimate | Lower quartile | Upper quartile |
-|:-------------:|:--------------:|:--------------:|
-| 0.774         | 0.742          | 0.804          |
+| Indicator   | Name | Ecosystem | Best estimate | Lower quartile | Upper quartile |
+|:------------|:-----------|:-------|:-------------:|:--------------:|:--------------:|
+| NO_NIPR_001 | Waterbirds | Lakes  | 0.774         | 0.742          | 0.804          |
+| NO_NIPR_002 | Otter      | Rivers | 0.782         | 0.781          | 0.783          |
 
-: Waterbird indicator values for Norwegian lakes in 2024 {.striped .hover}
+: Waterbird and otter indicator values for Norway in 2024 {.striped .hover}
 
 
 <!--# 
