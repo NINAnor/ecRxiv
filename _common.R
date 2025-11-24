@@ -21,9 +21,10 @@ status_badge <- function(type) {
 
 
 # Create and print version badge
-version_badge <- function(version_number){
-  version_badge_path <- paste0("badge_version_", version_number, ".svg")
-  anybadger::create_badge(version_badge_path, label = "Version", value = version_number, color = "#add8e6")
+version_badge <- function(my_version_number, folder_name){
+  version_badge_name <- paste0("badge_version_", my_version_number, ".svg")
+  version_badge_path <- here::here("indicators", folder_name, "img", version_badge_name)
+  anybadger::create_badge(version_badge_path, label = "Version", value = my_version_number, color = "#add8e6")
   image_link(version_badge_path, "https://github.com/NINAnor/ecRxiv/wiki#naming-convention")
 }
 
@@ -101,3 +102,35 @@ get_file_info <- function() {
   return(NULL)
 }
 
+# This is a legacy function that is not used in the current version of the qmd template
+# use results: "asis" when setting a status for a chapter
+status <- function(type) {
+  status <- switch(type,
+                   complete = "complete, and indicator values can be calculated as described below.",
+                   incomplete = "incomplete and needs further development before indicator values can be calculated.",
+                   deprecated = "describing an indicator that is deprecated.",
+                   stop("Invalid `type`", call. = FALSE)
+  )
+  
+  class <- switch(type,
+                  complete = "note",
+                  incomplete = "warning",
+                  deprecated = "important"
+  )
+  
+  color <- switch(type,
+                  complete = "lightgreen",
+                  incomplete = "orange",
+                  deprecated = "salmon"
+  )
+  
+  cat(paste0(
+    "\n",
+    ':::  {.callout-', class, ' style="background: ', color,  ';"}', " \n",
+    "## Status",  " \n",
+    "This indicator documentation is ",
+    status,
+    "\n",
+    ":::\n"
+  ))
+}
