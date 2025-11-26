@@ -1,0 +1,725 @@
+---
+title: "Large trees share of forest area"
+subtitle: |
+  [NO_LTFA_001]
+indicatorID: 
+  - NO_LTFA_001
+indicatorName: 
+  - NO_LTFA
+country: Norway
+continent: Europe
+ECT: B1 Biotic compositional characteristic
+Realm: 
+  - Terrestrial (T)
+Biome: 
+  - T2 Temperate-boreal forests and woodlands biome
+Ecosystem: 
+  - T2.1 Boreal/montane forests
+yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2025
+status: incomplete # options are complete, incomplete, or deprecated
+Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_LTFA_001
+# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: No # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Aggregate # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
+author:
+  - name: Erik Framstad
+    email: erik.framstad@nina.no
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Ken Olav Storaunet
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Aud Helen Halbritter
+    affiliations:
+      - name: University of Bergen
+AuthorList: Framstad, E., Storaunet, K. O. and Halbritter, A. H.
+date: November 8, 2025
+data_availability: gold
+code_reproducibility: bronze
+open_science_badge: silver
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+bibliography: bibliography.bib
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+---
+
+<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
+
+<!--# Load all you dependencies here -->
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+library(janitor)
+library(stringi)
+library(DT)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+source(here::here("_common.R"))
+source(here("indicators/NO_TDTA_001/R/functions.R"))
+```
+
+```{r extractFromYML}
+#| echo: false
+#| cache: false
+this_file <- get_file_info()
+
+# Read the YAML front matter
+lines <- readLines(this_file$path, warn = FALSE)
+dash_lines <- which(trimws(lines) == "---")
+yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
+yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
+
+# Robust flatten function
+flatten_to_string <- function(x) {
+  if (is.list(x)) {
+    # recursively flatten any nested lists
+    x <- unlist(x, recursive = TRUE)
+  }
+  # convert to single string
+  paste(x, collapse = "; ")
+}
+
+# Apply to all YAML entries
+yaml_data_flat <- lapply(yaml_data, flatten_to_string)
+
+# Create tibble
+meta <- tibble::enframe(yaml_data_flat, name = "Variable", value = "Value")
+
+# Check structure
+#str(meta)
+
+st <- meta |>
+  dplyr::filter(Variable == "status") |>
+  pull(Value)
+version <- meta |>
+  dplyr::filter(Variable == "Version") |>
+  pull(Value)
+auth <- meta |>
+  dplyr::filter(Variable == "AuthorList") |>
+  pull(Value)
+year <- meta |>
+  dplyr::filter(Variable == "yearAdded") |>
+  pull(Value)
+id <- meta |>
+  dplyr::filter(Variable == "indicatorID") |>
+  pull(Value)
+name <- meta |>
+  dplyr::filter(Variable == "indicatorName") |>
+  pull(Value)
+url <- meta |>
+  dplyr::filter(Variable == "url") |>
+  pull(Value)
+badges<-meta |> 
+  dplyr::filter(Variable %in% c("data_availability",
+         "code_reproducibility", "open_science_badge")) |> 
+  pull(Value)
+
+meta <- meta |>
+  dplyr::mutate(Variable = dplyr::case_match(Variable,
+    "indicatorID" ~ "Indicator ID" ,
+    "indicatorName" ~ "Indicator Name",
+    "continent" ~ "Continent",
+    "country" ~ "Country",
+    "ECT" ~ "Ecosystem Condition Typology Class",
+    "yearAdded" ~ "Year added",
+    "yearLastUpdate" ~ "Last update",
+    "VersionComment" ~ "Version comment",
+    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
+    .default = Variable
+  )) |>
+  dplyr::filter(Variable != "authors")
+
+```
+
+
+
+<!--# The following parts are autogenerated. Do not edit. -->
+
+::: {layout-ncol="5"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
+
+```
+:::
+
+::: {.callout-tip collapse="true"}
+
+## Log
+
+<!--# Update this logg with short messages for each update -->
+- 08 Nov. 2025 - Original PR
+:::
+
+
+<hr />
+
+<!--# Document you work below.  -->
+
+## 1. Summary
+
+1. **Background and rationale**:
+This indicator represents the proportion of the forest area with trees of all species with a diameter at breast height of at least 40 cm. In forests shaped by natural disturbances and succession, large trees are expected to occur to a much higher extent than today. Historical harvesting of large trees and short harvest rotations in current forestry tend to prevent trees from growing very large. 
+
+2. **Methods**:
+Data for this indicator come from the National Forest Inventory (NFI), where the diameter at breast height (dbh) of all trees larger than 5 cm dbh within the 250 m^2^ NFI plot has been recorded by current methods since the mid-1990s [@viken2021-feltinstruks].
+
+3. **Interpretation**:
+The share of forest with large trees will eventually be compared to a reference value for all forest, based on expert assessments supported by empirical data for near-natural forests and knowledge of ecosystem dynamics in intact forest ecosystems. Such reference values have not yet been determined for this indicator.
+
+4. **Results and development needs**:
+Otherwise, the indicator is ready for use as a non-scaled variable. The indicator should not be used at a finer spatial resolution than allows for reliable estimates, probably regions.
+
+
+## 2. About the underlying data
+
+The diameter at breast height (dbh) of all trees larger than 5 cm dbh is recorded for each 250 m^2^ NFI inventory plot [@viken2021-feltinstruks]. There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county. The indicator value is an unbiased area-weighted estimate of the proportion (%) of NFI plots with at least one tree with a dbh of at least 40 cm for included NFI plots in any selected region. All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year. For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024. The data are available upon request from NFI. 
+
+### 2.1 Spatial and temporal resolution and extent
+
+Data are available from the mid-1990s, when current recording methods were established. Annual estimates are possible due to representative sampling every year. For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. The data are representative for all forest land within the selected region. Spatial resolution should be limited to a resolution that allows reliable estimates, probably counties or ‘half-counties’.
+
+### 2.2 Sampling design
+
+...
+
+### 2.3 Original units
+
+The indicator is specified as the proportion (%) of NFI plots with at least one tree with dbh ≥ 40 cm.
+
+
+### 2.3 Instructions for citing, using and accessing data
+
+The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2025-10-20, between NIBIO and the specified users.
+Further use of these data requires a separate data user agreement with NIBIO.
+
+### 2.4 Additional comments about the dataset
+
+None
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+The indicator represents the proportion of forest area with large trees. Large trees are a functional property related to forests under long-term, rather stable conditions. This indicator represents a B3 Biotic functional characteristic.
+
+### 3.1.1 Other condition typologies
+
+None
+
+
+### 3.2 Ecosystem condition characteristic
+
+Large trees are indicative of forests under large-scale, long-term and rather stable conditions and represent important habitat for many species. The indicator is characterised as Functionally important species and biophysical structures.
+
+### 3.3 Collinearities with other indicators
+
+There may be positive correlations with indicators for old forest, e.g., Biologically old forest, Succession of old deciduous trees, and Dead wood volume.
+
+
+### 3.4 Impact factors
+
+Frequent natural disturbances, such as rock slides, fires, floods, or windthrows, will reduce the frequency of large trees (although large pines will often survive fires). Historical forestry practices of harvesting the largest trees or current clear-cutting with frequent recurrent harvesting will prevent the development of large trees. Human-induced climate change may result in more rapid tree growth with faster attainment of the dbh criterion for large trees. However, such climate change may also induce more frequent disturbances, drought events, or increased pressure of pathogens, all generally reducing the life span of forest trees.
+
+### 3.5 Spatial aggregation
+
+...
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+The reference condition is considered to be intact forest ecosystems, where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances. 
+
+### 4.2 Reference levels
+
+An upper reference value (X100) has not yet been determined. It would probably be based on expert assessments supported by information on (1) the frequency of large trees in NFI plots assessed to be little affected by recent human activities, (2) the distribution of dominating tree species in various regions/counties, and (3) general assessments of natural forest dynamics and the effects on the size of trees. Reference values would be expert assessments without estimated uncertainty. The lower reference value (X0) is set to 0. For lack of better knowledge, the relationship between indicator values and ecosystem condition is assumed to be linear for values between X100 and X0. Hence, indicator values are scaled between 0 and 1 based on a linear scaling function between X0 and X100; scaled indicator values above 1 are truncated to 1.
+
+
+#### 4.2.1 Spatial resolution and validity
+
+The reference value will eventually be given as an overall aggregated value for the proportion of forest with large trees over larger areas such as regions or counties. Although indicator values from NFI plots may technically be aggregated at finer spatial units than counties, scaling indicator values at such finer spatial levels may result in biases.
+
+## 5. Uncertainties
+
+### 5.1 General uncertainties
+
+Uncertainties relate to the variability in the frequency of large trees among NFI plots and measurement errors for trees within NFI plots. This combined uncertainty is quantified by bootstrapping. There will also be uncertainty related to the setting of the upper reference value and to the shape of the relationship between indicator values and ecosystem condition. These uncertainties will not be quantified.
+
+### 5.2 Reported uncertainties
+
+
+## 6. References
+
+::: {#refs}
+:::
+
+## 7. Import and prepare datasets
+
+### 7.1 Proportion of forest with large trees
+
+The diameter at breast height (dbh) is measured for all trees > 5cm dbh for each 250 m^2^ NFI plot according to methods described in @viken2021-feltinstruks. For this indicator data from each full 5-yr inventory cycle, starting in 2010, are used. The variable is specified as the proportion of NFI plots with at least one tree with dbh ≥ 40 cm.
+
+```{r load-data}
+
+# Load main data file
+lsk_data_raw <- read_csv(here("indicators/NO_LTFA_001/data/LSK_data_naturregnskap.csv"), 
+                     show_col_types = FALSE,
+                     locale = locale(encoding = "UTF-8")) |>
+  clean_names()
+
+```
+
+## 8. Spatial units
+
+Aggregated indicator values should not be applied for spatial units finer than those that allow reliable estimates, probably counties (i.e., de facto Ecosystem Assets).
+
+## 9. Analyses
+
+### 9.1 Prepare data and create derived variables
+
+This section prepares the NFI plot data for calculating the indicator.
+We retain both productive and unproductive forest plots (`arealtype` 1 and 12), and then create the derived variables used in subsequent aggregation steps.
+
+First we define the 5-year reporting periods that match the temporal structure of the indicator.
+
+```{r reporting-periods}
+
+# Define multiple 5-year reporting periods starting from 2010
+reporting_periods <- list(
+  "2010-2014" = 2010:2014,
+  "2015-2019" = 2015:2019,
+  "2020-2024" = 2020:2024
+)
+
+```
+
+Next we filter the raw dataset to include productive and unproductive forest plots and standardise the geography fields, and compute the indicator value.
+The indicator is based on the NFI variable `dbh_40`, which is binary (1 if the plot has at least one tree with dbh ≥ 40 cm, 0 otherwise).
+Area-weighted values are created using `au_areal`.
+
+```{r create-derived-variables}
+#| cache: false
+
+lsk_data <- lsk_data_raw |>
+  filter(
+    arealtype %in% c(1, 12)
+  ) |>
+  mutate(
+    fylke_name = region_fylke |>
+      stringr::str_remove("^\\d+-\\d+\\s+") |>
+      stringr::str_remove("^\\d+\\s*") |>
+      stringr::str_squish(),
+    fylke_name = normalize_county_parts(fylke_name),
+    fylke_name_clean = stringi::stri_trans_general(
+      stringr::str_squish(
+        tolower(stringr::str_replace_all(fylke_name, "[0-9.-]", " "))
+      ),
+      "Latin-ASCII"
+    ),
+    region_code = assign_region_code(fylke_name_clean),
+    region_name = assign_region_name(region_code),
+    # Indicator value: binary variable (1 = plot has at least one tree with dbh ≥ 40 cm, 0 = no large trees)
+    indicator_continuous = dbh_40,
+    indicator_continuous_weighted = indicator_continuous * au_areal
+  )
+
+```
+
+Finally, we retain only the columns required for subsequent aggregation and reporting.
+
+```{r select-downstream-fields}
+
+lsk_data <- lsk_data |>
+  dplyr::select(
+    sesong,
+    au_areal,
+    arealtype,
+    region_code,
+    region_name,
+    fylke_name,
+    fylke_name_clean,
+    dbh_40,
+    indicator_continuous,
+    indicator_continuous_weighted
+  )
+
+```
+
+
+Reference values are not yet available for this indicator, so subsequent steps focus on summarising the raw indicator values.
+
+### 9.2 Calculate non-scaled area-weighted indicator values
+
+With the indicator-specific values we can produce area-weighted summaries for each reporting period at county, region, and national scales.
+
+```{r calculate-ltfa-all-periods}
+
+ltfa_results <- purrr::imap(
+  reporting_periods,
+  ~ calculate_period_indicators(lsk_data, .y, .x)
+) |>
+  purrr::compact()
+
+ltfa_results_county_all_periods <- purrr::map_dfr(ltfa_results, "county")
+ltfa_results_region_all_periods <- purrr::map_dfr(ltfa_results, "region")
+ltfa_results_national_all_periods <- purrr::map_dfr(ltfa_results, "national")
+
+```
+
+### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
+
+Uncertainty in the non-scaled indicator estimates is quantified using bootstrapping.
+For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
+
+```{r bootstrap-ltfa-all-periods}
+
+ltfa_bootstrap <- ltfa_results |>
+  purrr::imap(
+    ~ list(
+      period = .y,
+      data = .x$data,
+      county = .x$county,
+      region = .x$region,
+      national = .x$national,
+      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 1000),
+      county_boot = purrr::map(
+        split(.x$data, .x$data$fylke_name),
+        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
+      ),
+      region_boot = purrr::map(
+        split(.x$data, .x$data$region_code),
+        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
+      )
+    )
+  )
+
+ltfa_results_county_non_scaled_uncertainty <- purrr::map_dfr(
+  ltfa_bootstrap,
+  ~ {
+    county_summary <- purrr::imap_dfr(
+      .x$county_boot,
+      function(boot, county_name) {
+        dplyr::tibble(
+          fylke_name = county_name,
+          mean = boot$mean,
+          se = boot$se,
+          ci_lower = boot$ci_lower,
+          ci_upper = boot$ci_upper,
+          q1 = boot$q1,
+          median = boot$median,
+          q3 = boot$q3
+        )
+      }
+    )
+
+    .x$county |>
+      dplyr::select(fylke_name, period, total_area, n_plots) |>
+      dplyr::left_join(county_summary, by = "fylke_name")
+  }
+)
+
+ltfa_results_region_non_scaled_uncertainty <- purrr::map_dfr(
+  ltfa_bootstrap,
+  ~ {
+    region_summary <- purrr::imap_dfr(
+      .x$region_boot,
+      function(boot, region_code) {
+        dplyr::tibble(
+          region_code = region_code,
+          mean = boot$mean,
+          se = boot$se,
+          ci_lower = boot$ci_lower,
+          ci_upper = boot$ci_upper,
+          q1 = boot$q1,
+          median = boot$median,
+          q3 = boot$q3
+        )
+      }
+    )
+
+    .x$region |>
+      dplyr::select(region_code, period, total_area, n_plots) |>
+      dplyr::left_join(region_summary, by = "region_code")
+  }
+)
+
+ltfa_results_national_non_scaled_uncertainty <- purrr::map_dfr(
+  ltfa_bootstrap,
+  ~ .x$national |>
+    dplyr::mutate(
+      mean = .x$national_boot$mean,
+      se = .x$national_boot$se,
+      ci_lower = .x$national_boot$ci_lower,
+      ci_upper = .x$national_boot$ci_upper,
+      q1 = .x$national_boot$q1,
+      median = .x$national_boot$median,
+      q3 = .x$national_boot$q3
+    )
+)
+
+```
+
+
+## 10. Results
+
+The tables below present the non-scaled indicator values (proportion of forest area with large trees) together with bootstrap-derived uncertainty summaries for each 5-year reporting period.
+
+### 10.1 County-level results (non-scaled with uncertainty)
+
+```{r tbl-ltfa-county-results}
+#| tbl-cap: 'County-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
+
+ltfa_county_results <- ltfa_results_county_non_scaled_uncertainty |>
+  dplyr::mutate(
+    mean = round(mean, 2),
+    se = round(se, 2),
+    ci_lower = round(ci_lower, 2),
+    ci_upper = round(ci_upper, 2),
+    q1 = round(q1, 2),
+    median = round(median, 2),
+    q3 = round(q3, 2),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    County = fylke_name,
+    `Bootstrapped (mean)` = mean,
+    `Bootstrapped (median)` = median,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  dplyr::select(
+    Period,
+    County,
+    `Bootstrapped (mean)`,
+    `Bootstrapped (median)`,
+    `Standard Error`,
+    `CI Lower`,
+    `CI Upper`,
+    `Q1`,
+    `Q3`,
+    `Total Area (ha)`,
+    `Number of Plots`
+  )
+
+DT::datatable(
+  ltfa_county_results,
+  rownames = FALSE,
+  options = list(pageLength = 10, scrollX = TRUE, lengthMenu = c(10, 25, 50, 100))
+)
+```
+
+### 10.2 Regional results (non-scaled with uncertainty)
+
+```{r tbl-ltfa-region-results}
+#| tbl-cap: 'Regional-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
+
+ltfa_region_results <- ltfa_results_region_non_scaled_uncertainty |>
+  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+  dplyr::mutate(
+    mean = round(mean %||% NA_real_, 2),
+    se = round(se %||% NA_real_, 2),
+    ci_lower = round(ci_lower %||% NA_real_, 2),
+    ci_upper = round(ci_upper %||% NA_real_, 2),
+    q1 = round(q1 %||% NA_real_, 2),
+    median = round(median %||% NA_real_, 2),
+    q3 = round(q3 %||% NA_real_, 2),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    `Region Code` = region_code,
+    Region = region_name,
+    `Bootstrapped (mean)` = mean,
+    `Bootstrapped (median)` = median,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  dplyr::select(
+    Period,
+    `Region Code`,
+    Region,
+    `Bootstrapped (mean)`,
+    `Bootstrapped (median)`,
+    `Standard Error`,
+    `CI Lower`,
+    `CI Upper`,
+    `Q1`,
+    `Q3`,
+    `Total Area (ha)`,
+    `Number of Plots`
+  )
+
+ltfa_region_results |>
+  kable() |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+### 10.3 National results (non-scaled with uncertainty)
+
+```{r tbl-ltfa-national-results}
+#| tbl-cap: 'National-level non-scaled LTFA indicator values by reporting period. Values are expressed as proportion of forest area with large trees (trees with dbh ≥ 40 cm). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| echo: false
+
+ltfa_national_results <- ltfa_results_national_non_scaled_uncertainty |>
+  dplyr::mutate(
+    mean = round(mean, 2),
+    se = round(se, 2),
+    ci_lower = round(ci_lower, 2),
+    ci_upper = round(ci_upper, 2),
+    q1 = round(q1, 2),
+    median = round(median, 2),
+    q3 = round(q3, 2),
+    total_area = round(total_area, 0)
+  ) |>
+  dplyr::rename(
+    Period = period,
+    `Bootstrapped (mean)` = mean,
+    `Bootstrapped (median)` = median,
+    `Standard Error` = se,
+    `CI Lower` = ci_lower,
+    `CI Upper` = ci_upper,
+    `Q1` = q1,
+    `Q3` = q3,
+    `Total Area (ha)` = total_area,
+    `Number of Plots` = n_plots
+  ) |>
+  dplyr::select(
+    Period,
+    `Bootstrapped (mean)`,
+    `Bootstrapped (median)`,
+    `Standard Error`,
+    `CI Lower`,
+    `CI Upper`,
+    `Q1`,
+    `Q3`,
+    `Total Area (ha)`,
+    `Number of Plots`
+  )
+
+ltfa_national_results |>
+  kable() |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+
+```{r export}
+#| eval: false
+```
+
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
