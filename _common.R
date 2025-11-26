@@ -22,10 +22,24 @@ status_badge <- function(type) {
 
 # Create and print version badge
 version_badge <- function(my_version_number, folder_name){
+
   version_badge_name <- paste0("badge_version_", my_version_number, ".svg")
+
   version_badge_path <- here::here("indicators", folder_name, "img", version_badge_name)
-  anybadger::create_badge(version_badge_path, label = "Version", value = my_version_number, color = "#add8e6")
-  image_link(version_badge_path, "https://github.com/NINAnor/ecRxiv/wiki#naming-convention")
+
+  dir_to_create <- dirname(version_badge_path)
+  if (!dir.exists(dir_to_create)) {
+    dir.create(dir_to_create, recursive = TRUE)
+  }
+  anybadger::create_badge(
+    version_badge_path, 
+    label = "Version", 
+    value = as.character(my_version_number), 
+    color = "#add8e6")
+  
+  image_link(
+    version_badge_path, 
+    "https://github.com/NINAnor/ecRxiv/wiki#naming-convention")
 }
 
 # print open science badges
