@@ -50,7 +50,7 @@ server <- function(input, output, session) {
   
   output$indicatorTable <- DT::renderDT(
     data |>
-      dplyr::select(!c(HTML_File, Variable, url)) ,
+      dplyr::select(!c(html_file_rel, url,html_file_abs, file)) ,
     selection = "single",
     filter = "top"
   )
@@ -64,21 +64,29 @@ server <- function(input, output, session) {
   
   output$documentation <- renderUI({
     selected_row <- input$indicatorTable_rows_selected
-    if (length(selected_row) == 0) {
-      return(NULL)
-    } else {
-      selected_ID <- data$ID[selected_row]
-      html_file_path <- data$HTML_File[data$ID == selected_ID]
-      html_file_path2 <- paste0("indicators/", selected_ID, "/R/", selected_ID, ".html")
-      if (!file.exists(html_file_path)) {
-        return(shiny::tags$p("No documentation available for the selected ecosystem."))
-      } else {
-        div(
-          tags$iframe(src = html_file_path2, style = 'width:100vw;height:100vh;')
-        )
-      }
+    
+    if (length(selected_row) == 0) return(NULL)
+    
+    # 1. Get selected indicator ID
+    selected_ID <- data$indicator_id[selected_row]
+    
+    # 2. Get the relative html path from metadata
+    html_rel <- data$html_file_rel[data$indicator_id == selected_ID]
+    
+    # 3. Convert to full path to check existence
+    html_full <- here::here(html_rel)
+    
+    if (!file.exists(html_full)) {
+      return(tags$p("No documentation available for the selected indicator."))
     }
+    
+    # 4. Show iframe using the RELATIVE path (Shiny serves it via addResourcePath)
+    tags$iframe(
+      src = html_rel,
+      style = "width:100%; height:90vh; border:none;"
+    )
   })
+  
   
   output$startpage <- renderUI({
     layout_columns(
