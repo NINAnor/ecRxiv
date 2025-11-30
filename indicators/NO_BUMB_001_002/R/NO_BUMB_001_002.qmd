@@ -3,6 +3,35 @@ title: "Bumblebees"
 subtitle: |
   [NO_BUMB_001] (grasslands) \
   [NO_BUMB_002] (forests)
+indicatorID: 
+  - NO_BUMB_001
+  - NO_BUMB_002
+indicatorName: 
+  - Bumblebees
+folderName: NO_BUMB_001_002
+country: Norway
+continent: Europe
+ECT: B1 - Compositional State Characteristics
+Realm: 
+  - Terrestrial
+Biome: 
+  - T4 Savannas and grasslands biome
+  - T2 Temperate-boreal forests and woodlands biome
+Ecosystem: 
+  - T4.5 Temperate grasslands
+  - T2.1 Boreal/montane forests
+yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2025
+status: complete # options are complete, incomplete, or deprecated
+Version: "000.003" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: Similar as 000.002, but with embedded metadata and new open science badges
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BUMB_001_002
+Normalised: Yes
+SpatialAggregationPathway: Scale - Aggregate
+AuthorList: Åström, J., Kolstad, A.
+data_availability: gold
+code_reproducibility: silver
+open_science_badge: silver
 format: 
   html:
     embed-resources: true
@@ -50,88 +79,77 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r source}
 #| echo: false
 source(here::here("_common.R"))
+source(here::here("extract_yaml.R"))
 ```
+::: {layout-ncol="5"}
 
-```{r}
+```{r statusBadge}
 #| echo: false
-meta <- readxl::read_xlsx(here::here("indicators/NO_BUMB_001_002/metadata.xlsx"))
-st <- meta |>
-  filter(Variable == "status") |>
-  pull(Value)
-version <- meta |>
-  filter(Variable == "Version") |>
-  pull(Value)
-auth <- meta |>
-  filter(Variable == "authors") |>
-  pull(Value)
-year <- meta |>
-  filter(Variable == "yearAdded") |>
-  pull(Value)
-id <- meta |>
-  filter(Variable == "indicatorID") |>
-  pull(Value)
-name <- meta |>
-  filter(Variable == "indicatorName") |>
-  pull(Value)
-url <- meta |>
-  filter(Variable == "url") |>
-  pull(Value)
-
-meta <- meta |>
-  mutate(Variable = case_match(Variable,
-    "indicatorID" ~ "Indicator ID" ,
-    "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
-    "continent" ~ "Continent",
-    "ECT" ~ "Ecosystem Condition Typology Class",
-    "yearAdded" ~ "Year added",
-    "yearLastUpdate" ~ "Last update",
-    .default = Variable
-   )
-  ) |>
-  filter(Variable != "authors")
-
+status_badge(as.character(st))
 ```
 
-```{r}
+```{r versionBadge}
 #| echo: false
-#| results: asis
-status(st)
+version_badge(my_version_number = as.character(version[[1]]),
+  folder_name = folder_name)
 ```
 
-
-
-::: {layout-ncol="2"}
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
-
-> **Version**: `r version`
-:::
-
-```{=html}
-<details>
-<summary>Show metadata</summary>
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
 ```
 
-```{r tbl-meta}
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  select(Variable, Value) |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
   kable()
 
 ```
-
-</details>
+:::
 
 ::: {.callout-tip collapse="true"}
-## Logg
+## Log
 
 <!--# Update this logg with short messages for each update -->
 
 -   21 Aug. 2025 - Started work
 -   02 Sep. 2025 - Added 3.6, 5.1 and 5.2
+-   24 Nov. 2025 - restructured metadata and added open science badges (ALK)
 :::
 
 <hr />
@@ -523,6 +541,8 @@ mid <- c(
   hInd2024TrondGress$`Randomization draws, community`)
 
 # sample
+
+
 east2 <- sample(east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
 west2 <- sample(vest, size = regTable |> filter(Region == "Vest") |> pull(area_weight)*10000, replace = T)
 south2 <- sample(south, size = regTable |> filter(Region == "Sør") |> pull(area_weight)*10000, replace = T)
@@ -595,3 +615,17 @@ tibble(
 
 
 ```
+
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::

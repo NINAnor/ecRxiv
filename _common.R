@@ -21,10 +21,25 @@ status_badge <- function(type) {
 
 
 # Create and print version badge
-version_badge <- function(version_number){
-  version_badge_path <- paste0("badge_version_", version_number, ".svg")
-  anybadger::create_badge(version_badge_path, label = "Version", value = version_number, color = "#add8e6")
-  image_link(version_badge_path, "https://github.com/NINAnor/ecRxiv/wiki#naming-convention")
+version_badge <- function(my_version_number, folder_name){
+
+  version_badge_name <- paste0("badge_version_", my_version_number, ".svg")
+
+  version_badge_path <- here::here("indicators", folder_name, "img", version_badge_name)
+
+  dir_to_create <- dirname(version_badge_path)
+  if (!dir.exists(dir_to_create)) {
+    dir.create(dir_to_create, recursive = TRUE)
+  }
+  anybadger::create_badge(
+    version_badge_path, 
+    label = "Version", 
+    value = as.character(my_version_number), 
+    color = "#add8e6")
+  
+  image_link(
+    version_badge_path, 
+    "https://github.com/NINAnor/ecRxiv/wiki#naming-convention")
 }
 
 # print open science badges
@@ -133,3 +148,21 @@ status <- function(type) {
     ":::\n"
   ))
 }
+
+get_root_NINA <- function(server = "P") {
+  server <- toupper(server)
+  if (!server %in% c("P", "R")) {
+    stop("server must be 'P' or 'R'")
+  }
+  if (.Platform$OS.type == "windows") {
+    base <- switch(server,
+                   P = "P:/",
+                   R = "R:/")
+  } else {
+    base <- switch(server,
+                   P = "/data/P-Prosjekter2/",
+                   R = "/data/R/")
+  } 
+  return(base)
+}
+

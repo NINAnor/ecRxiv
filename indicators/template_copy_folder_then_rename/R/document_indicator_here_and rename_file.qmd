@@ -1,7 +1,7 @@
 ---
 title: "Enter indicator name here"
 subtitle: |
-  [INDICATORID] \
+  [INDICATORID] (ECOSYSTEM A) \
   [INDICATORID2] (ECOSYSTEM B)  
 # delete the line with the second indicatorID (line 5) 
 # if it's not relevant for you.
@@ -21,6 +21,9 @@ indicatorID:
 # country once. 
 indicatorName: 
   - INDICATOR_NAME # add more by adding another line starting '-'
+folderName: template_copy_folder_then_rename # name of the folder under 'indicators/'. 
+# If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
+# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
 country: country
 continent: continent
 ECT: write ECT here # e.g. A2 - Chemical State characteristics
@@ -60,9 +63,9 @@ author:
       - ref: myID               # To reuse affiliations reference the id like this
 AuthorList: Doe, J. and Last, F.  
 date: January 1, 1901 # Enter date
-data_availability: gold
-code_reproducibility: bronze
-open_science_badge: silver
+data_availability: none
+code_reproducibility: none
+open_science_badge: none
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -100,80 +103,10 @@ knitr::opts_chunk$set(echo = TRUE)
 #| echo: false
 #| cache: false
 source(here::here("_common.R"))
+source(here::here("extract_yaml.R"))
 ```
 
-```{r extractFromYML}
-#| echo: false
-#| cache: false
-this_file <- get_file_info()
 
-# Read the YAML front matter
-lines <- readLines(this_file$path, warn = FALSE)
-dash_lines <- which(trimws(lines) == "---")
-yaml_block <- lines[(dash_lines[1] + 1):(dash_lines[2] - 1)]
-yaml_data <- yaml::yaml.load(paste(yaml_block, collapse = "\n"))
-
-# Robust flatten function
-flatten_to_string <- function(x) {
-  if (is.list(x)) {
-    # recursively flatten any nested lists
-    x <- unlist(x, recursive = TRUE)
-  }
-  # convert to single string
-  paste(x, collapse = "; ")
-}
-
-# Apply to all YAML entries
-yaml_data_flat <- lapply(yaml_data, flatten_to_string)
-
-# Create tibble
-meta <- tibble::enframe(yaml_data_flat, name = "Variable", value = "Value")
-
-# Check structure
-#str(meta)
-
-st <- meta |>
-  dplyr::filter(Variable == "status") |>
-  pull(Value)
-version <- meta |>
-  dplyr::filter(Variable == "Version") |>
-  pull(Value)
-auth <- meta |>
-  dplyr::filter(Variable == "AuthorList") |>
-  pull(Value)
-year <- meta |>
-  dplyr::filter(Variable == "yearAdded") |>
-  pull(Value)
-id <- meta |>
-  dplyr::filter(Variable == "indicatorID") |>
-  pull(Value)
-name <- meta |>
-  dplyr::filter(Variable == "indicatorName") |>
-  pull(Value)
-url <- meta |>
-  dplyr::filter(Variable == "url") |>
-  pull(Value)
-badges<-meta |> 
-  dplyr::filter(Variable %in% c("data_availability",
-         "code_reproducibility", "open_science_badge")) |> 
-  pull(Value)
-
-meta <- meta |>
-  dplyr::mutate(Variable = dplyr::case_match(Variable,
-    "indicatorID" ~ "Indicator ID" ,
-    "indicatorName" ~ "Indicator Name",
-    "continent" ~ "Continent",
-    "country" ~ "Country",
-    "ECT" ~ "Ecosystem Condition Typology Class",
-    "yearAdded" ~ "Year added",
-    "yearLastUpdate" ~ "Last update",
-    "VersionComment" ~ "Version comment",
-    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
-    .default = Variable
-  )) |>
-  dplyr::filter(Variable != "authors")
-
-```
 
 
 
@@ -188,7 +121,8 @@ status_badge(as.character(st))
 
 ```{r versionBadge}
 #| echo: false
-version_badge(version_number = as.character(version[[1]]))
+version_badge(my_version_number = as.character(version[[1]]),
+  folder_name = folder_name)
 ```
 
 ```{r dataBadge}
@@ -208,7 +142,7 @@ open_science_badge(as.character(badges[[3]]))
 ::: 
  
 
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 
 
