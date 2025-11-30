@@ -1,7 +1,7 @@
 library(shiny)
 library(DT)
 library(bslib)
-source("global.R")
+source("app/global.R")
 
 link_gh <- tags$a(
   shiny::icon("github"), "GitHub",
@@ -91,10 +91,10 @@ server <- function(input, output, session) {
   output$startpage <- renderUI({
     layout_columns(
       col_widths = c(6, 6, 6, 6),
-      bslib::card(includeMarkdown("overview.md")),
-      bslib::card(includeMarkdown("HowToUse.md")),
-      bslib::card(includeMarkdown("contribute.md")),
-      bslib::card(includeMarkdown("contact.md"))
+      bslib::card(includeMarkdown("app/overview.md")),
+      bslib::card(includeMarkdown("app/HowToUse.md")),
+      bslib::card(includeMarkdown("app/contribute.md")),
+      bslib::card(includeMarkdown("app/contact.md"))
     )
   })
 }
