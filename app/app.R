@@ -1,7 +1,7 @@
 library(shiny)
 library(DT)
 library(bslib)
-source("app/global.R")
+source("global.R")
 
 link_gh <- tags$a(
   shiny::icon("github"), "GitHub",
@@ -13,6 +13,7 @@ data <- App_data
 #tags$head(tags$link(rel="shortcut icon", href="www/favicon.png")),
 
 ui <- page_navbar(
+  window_title = "ecRxiv",
   id='nav',
   theme = bs_theme(version = 5, bootswatch = "minty") |>
     bslib::bs_add_rules(
@@ -23,11 +24,12 @@ ui <- page_navbar(
                     "
     ),
   bg = "#6c6c6c",
-    title = div(img(src='_ecrxiv_logo_hovedlogo.png',
-                    style="margin-top: 14px;
-                               padding-right:10px;
-                               padding-bottom:0px",
-                    height = 60)),
+    title = div(
+      img(
+        src = "_ecrxiv_logo_hovedlogo.png",
+        style = "margin-top:14px; padding-right:10px; padding-bottom:0px;",
+        height = 60
+      )),
     position = "static-top", # Ensures it stays at the top
     nav_panel("Start page",
         uiOutput('startpage')),
@@ -91,14 +93,13 @@ server <- function(input, output, session) {
   output$startpage <- renderUI({
     layout_columns(
       col_widths = c(6, 6, 6, 6),
-      bslib::card(includeMarkdown("app/overview.md")),
-      bslib::card(includeMarkdown("app/HowToUse.md")),
-      bslib::card(includeMarkdown("app/contribute.md")),
-      bslib::card(includeMarkdown("app/contact.md"))
+      bslib::card(includeMarkdown("overview.md")),
+      bslib::card(includeMarkdown("HowToUse.md")),
+      bslib::card(includeMarkdown("contribute.md")),
+      bslib::card(includeMarkdown("contact.md"))
     )
   })
 }
 
 
 shiny::shinyApp(ui = ui, server = server)
-
