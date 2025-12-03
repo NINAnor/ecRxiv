@@ -6,36 +6,29 @@ subtitle: |
 indicatorID: 
   - NO_WTPX_001
   - NO_WTPX_002
-# If you are presenting multiple indicators, and have multiple 
-# indicator IDs, then add them as a list here, and make sure you add
-# the same number of list entries, 
-# and in the same order that corresponds to the indicator IDs,  
-# to the meta data fields where the indicators differ. 
-# For example, if the indicators cover different ecosystem types, 
-# add the ecosystems as a list under 'Ecosystems', but if they are in the
-# same realm, same country etc., then you only need to write the realm and
-# country once. 
 indicatorName: 
-  - Total phosphorus # add more by adding another line starting '-'
+  - Total phosphorus
+folderName: NO_WTPX_001_002
 country: Norway
 continent: Europe
 ECT: A2 - Chemical State characteristics
- # e.g. A2 - Chemical State characteristics
 Realm: 
-  - Freshwater (F) # e.g. Freshwater (F)
+  - Freshwater (F)
+  - Freshwater (F)
 Biome: 
-  - F1 Rivers and streams biome # e.g. F1 Rivers and streams biome
+  - F1 Rivers and streams biome
+  - F2 Lakes biome
 Ecosystem: 
-  - F1.3 Freeze-thaw streams # e.g. F1.3 Freeze-thaw streams
-yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+  - F1.3 Freeze-thaw streams
+  - F2.4 Freeze-thaw lakes
+yearAdded: 2025
 yearLastUpdate: 2025
-status: complete # options are complete, incomplete, or deprecated
-Version: "001.000" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: First complete version # Describe briefly how this version differs from earlier versions 
+status: complete
+Version: "002.000"
+VersionComment: Improved functions, revised structure, updated with 2024 data
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WTPX_001_002
-# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
-Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Scale - Transform - Aggregate (size-weighted arithmetic mean) - Truncate# e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Normalised: Yes
+SpatialAggregationPathway: Scale - Transform - Aggregate (size-weighted arithmetic mean) - Truncate
 format: 
   html:
     embed-resources: true
@@ -47,15 +40,15 @@ format:
 execute: 
   cache: true
 author:
-  - name: Hanno Sandvik              # Enter name
-    email: hanno.sandvik@nina.no # Enter email
+  - name: Hanno Sandvik
+    email: hanno.sandvik@nina.no
     affiliations:
       - id: myID
-        name: Norwegian Institute for Nature Research # 
+        name: Norwegian Institute for Nature Research
 AuthorList: Sandvik, H.  
-date: October 10, 2025 # Enter date
+date: December 03, 2025
 data_availability: gold
-code_reproducibility: bronze
+code_reproducibility: silver
 open_science_badge: silver
 callout-icon: false
 lightbox: true
@@ -66,17 +59,27 @@ code-links:
         href: https://github.com/NINAnor/ecRxiv
 ---
 
-
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
 
 <!--# Load all you dependencies here -->
 
 ```{r setup}
 #| include: false
+#| cache: false
 library(knitr)
 library(tidyverse)
 library(kableExtra)
 library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
+
 knitr::opts_chunk$set(echo = TRUE)
 
 library(foreign)
@@ -89,92 +92,88 @@ library(sp)
 
 ```{r source}
 #| echo: false
+#| cache: false
 source(here::here("_common.R"))
+source(here::here("extract_yaml.R"))
 ```
 
-```{r}
-#| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
-st <- meta |>
-  filter(Variable == "status") |>
-  pull(Value)
-version <- meta |>
-  filter(Variable == "Version") |>
-  pull(Value)
-auth <- meta |>
-  filter(Variable == "authors") |>
-  pull(Value)
-year <- meta |>
-  filter(Variable == "yearAdded") |>
-  pull(Value)
-id <- meta |>
-  filter(Variable == "indicatorID") |>
-  pull(Value)
-name <- meta |>
-  filter(Variable == "indicatorName") |>
-  pull(Value)
-url <- meta |>
-  filter(Variable == "url") |>
-  pull(Value)
 
-meta <- meta |>
-  mutate(Variable = case_match(Variable,
-    "indicatorID" ~ "Indicator ID" ,
-    "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
-    "continent" ~ "Continent",
-    "ECT" ~ "Ecosystem Condition Typology Class",
-    "yearAdded" ~ "Year added",
-    "yearLastUpdate" ~ "Last update",
-    .default = Variable
-   )
-  ) |>
-  filter(Variable != "authors")
 
-```
+
 
 <!--# The following parts are autogenerated. Do not edit. -->
 
-```{r}
+::: {layout-ncol="5"}
+
+```{r statusBadge}
 #| echo: false
-#| results: asis
-status(st)
+status_badge(as.character(st))
 ```
 
-> **Recommended citation, indicator 1**: `r paste("\n", auth, " ", year, ". ", name, " (ID: ", id[1], ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
-
-> **Recommended citation, indicator 2**: `r paste("\n", auth, " ", year, ". ", name, " (ID: ", id[2], ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
-
-> **Version**: `r version`
-
-```{=html}
-<details>
-<summary>Show metadata</summary>
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]),
+  folder_name = folder_name)
 ```
 
-```{r tbl-meta}
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
-
-```{=html}
-</details>
-```
+:::
 
 ::: {.callout-tip collapse="true"}
 
-## Logg
+## Log
 
 <!--# Update this logg with short messages for each update -->
 - 12 May 2025 - Version 001.000 started: first complete version
 - 05 Sep 2025 - Version 001.000 submitted to review
 - 16 Oct 2025 - Version 001.000 revised and ready for publication
+- 02 Dec 2025 - Version 002.000 started: improved functions, revised structure, updated with 2024 data
+- 03 Dec 2025 - Version 002.000 submitted to review
 :::
 
 
@@ -184,45 +183,34 @@ meta |>
 
 ## 1. Summary
 
+1. **Background and rationale**:
 Freshwater ecosystems are negatively affected by anthropogenic activities that change the chemical composition of the water, such as pollution or run-off causing eutrophication. 
 Phosphorous compounds, summarised as total phosphorus, are the most important cause of eutrophication. 
 Therefore, the total phosphorus concentration in lakes and rivers is a direct indicator of their eutrophication. 
-
-"Total phosphorus" (TP) is a measure of all phosphorus in a water sample. 
-As such it includes particulate phosphorus, dissolved inorganic phosphorus (i.e. phosphate ions PO~4~^2&minus;^) and dissolved organic phosphorus.
-
+<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
+What are the main anthropogenic impact factors? -->
+2. **Methods**:
 Total phosphorus is one of the indicators that is measured and reported in connection with the [*Water Framework Directive*](#wfd) (hereafter **WFD**). 
 In Norway, the WFD is implemented by means of [*Vannforskriften*](#vannf), and relevant indicators ("parameters", in WFD terminology) are described in national guidelines ([DGVF 2025](#veil2)). 
-The data collected are archived and made available in the [*Vannmiljø*](#vannm) database. 
-
-These WFD data can be used in other contexts, including ecosystem condition accounts. 
-The procedure implemented here follows a dataflow that has been described and documented earlier ([Sandvik 2019](#san19), [Sandvik 2025](#san25)) and that consists of the following steps:
-
-* Selecting measurements from the relevant time period.
-* Removing measurements that do not fulfil the requirements for the specific indicator.
-* Identifying the water body for each measurement.
-* Scaling and transforming measurements to "modified Ecological Quality Ratios" according to the normative definitions for "ecological status" categories provided by the WFD.
-* Fitting a linear model to the measurements, with explanatory variables being typology factors of the water bodies, reporting periods, and surveillance activities.
-* Averaging measurements taken in the same water body.
-* Extrapolating mEQR values to water bodies that lack data, based on the model fitted.
-* Using simulations to estimate confidence and prediction intervals.
-* Aggregating estimates geographically using area-weighted averages.
-* Truncating the values obtained to the interval from 0 to 1.
-
-> ### Interpretation
-An indicator value of 1 signifies a condition where there is little or no human impact on the water body. Values decreasing toward zero reflect negative ecological change, specifically an increase of total phosphorus, indicating eutrophication.
-
-<!--# 
-With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of commmon language summary. It is a good idea to include a bullet point list of the spesific steps in the workflow. Include a mention of the following aspects:
-
-What does the metric represent?
-Why is this relevant for describing ecosystem condition in this ecosystem?
-What are the main anthropogenig impact factors?
-What kind of data is used? 
-Shortly, how is the data customized (modified, estimated, integarted) to fit its purpuse as an indicator?
-What is the current status of  the metric (can it be used or is it still in development)?
-How should the metric be used and interpretted, and how should it not be used/interpretted?
--->
+The data collected are archived and made available in the [*Vannmiljø*](#vannm) database.
+Estimation follows a dataflow that has been described and documented earlier ([Sandvik 2019](#san19), [Sandvik 2025](#san25)) and that consists of the following steps:
+    * Removing measurements that do not fulfil the requirements for the specific indicator.
+    * Identifying the water body for each measurement.
+    * Scaling and transforming measurements to "modified Ecological Quality Ratios" according to the normative definitions of "ecological status" categories provided by the WFD.
+    * Fitting a linear model to the measurements, with explanatory variables being typology factors of the water bodies, reporting periods, and surveillance activities.
+    * Extrapolating mEQR values to water bodies that lack data, based on the model fitted.
+    * Using simulations to estimate confidence and prediction intervals.
+    * Aggregating estimates geographically using area-weighted averages.
+    * Truncating the values obtained to the interval from 0 to 1.
+<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+3. **Interpretation**:
+An indicator value of 1 signifies a condition where there is little or no human impact on the water body. 
+Values decreasing toward zero reflect negative ecological change, specifically an increase of total phosphorus, indicating eutrophication.
+<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
+4. **Results and development needs**:
+The indicator is ready for use. 
+The value for 2024 indicates that Norwegian river and lake ecosystems are in "good ecological status" on average.
+<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
 
 ## 2. About the underlying data
@@ -238,7 +226,7 @@ Finally, detailed information on Norwegian lakes is available from the [*Innsjø
 ### 2.1 Spatial and temporal resolution and extent
 
 The **spatial** resolution of WFD indicators is on the level of *water bodies*. 
-The WFD defines a water body (specifically a "body of surface water") as "a discrete and significant element of surface water such as a lake, a reservoir, a stream, river or canal, [or] part of a stream, river or canal" (WFD, Article 2, paragraph 10; cf. *Vannforskriften* §&nbsp;3, letter a; for implementation, see [DGVF 2018](#veil1), ch. 2).
+The WFD defines a water body (specifically a "body of surface water") as "a discrete and significant element of surface water such as a lake, a reservoir, a stream, river or canal, [or] part of a stream, river or canal" (WFD, Article&nbsp;2, paragraph&nbsp;10; cf. *Vannforskriften* §&nbsp;3, letter&nbsp;a; for implementation, see [DGVF 2018](#veil1), ch.&nbsp;2).
 
 There is no specific **temporal** resolution, as measurements of WFD indicators are reported sporadically. 
 Some water bodies are sampled regularly (e.g., every fifth year). 
@@ -274,7 +262,7 @@ However, in the connection with the WFD, values are normally reported as "normal
 For suggestions on how to cite the datasets, see [*Vannmiljø*](#vannm), [*Karteksport*](#kartx), [*Vann-nett*](#vannn), and [*Innsjødatabase*](#innsj). 
 All data used are publicly available. 
 However, with the exception of *Vannmiljø*, they are not accessible via an API but need to be downloaded manually. 
-Some required files are currently unavailable from from *Vann-nett* (temporarily so, it seems); they are therefore read from a previous *Vann-nett* download, which is archived in the GitHub repo [WFD2ECA](https://github.com/NINAnor/WFD2ECA/). 
+Some required files are currently unavailable from *Vann-nett* (temporarily so, it seems); they are therefore read from a previous *Vann-nett* download, which is archived in the GitHub repo [WFD2ECA](https://github.com/NINAnor/WFD2ECA/). 
 For further details, see [chapter&nbsp;7](#import-and-prepare-datasets) below.
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
@@ -292,7 +280,7 @@ indikator <- tittel <- "P-TOT"
 vannkategori <- c("L", "R")
 ```
 
-Eurostat has listed total phosphorus as a **voluntary condition variable** for reporting in connection with the EU Regulation 2024/3024 ([EU 2024](#eu24), Annex&nbsp;IX; cf. [Czúcz el at. 2025](#czu25)).
+Eurostat has listed total phosphorus as a *voluntary condition variable* for reporting in connection with the EU Regulation 2024/3024 ([EU 2024](#eu24), Annex&nbsp;IX; cf. [Czúcz el at. 2025](#czu25)).
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
@@ -453,7 +441,7 @@ However, the variation in the mean is defined by the spatial variation only, and
 
 <span id="san19">Sandvik H.</span> 2019. Ferskvann i vannforskriften og naturindeksen. Forslag til samordning og dataflyt. *NINA Rapp* **1723**: 1&ndash;38. [[hdl:11250/2631056](http://hdl.handle.net/11250/2631056)]
 
-<span id="san25">Sandvik H.</span> 2025. WFD2ECA: Dataflyt fra vannforskriften til økologisk tilstandsregnskap og naturindeks, version 2.0. <https://github.com/NINAnor/WFD2ECA> [[doi:10.5281/zenodo.10278000](https://doi.org/10.5281/zenodo.10278000)]
+<span id="san25">Sandvik H.</span> 2025. WFD2ECA: Dataflyt fra vannforskriften til økologisk tilstandsregnskap og naturindeks, version 2.1. <https://github.com/NINAnor/WFD2ECA> [[doi:10.5281/zenodo.10278000](https://doi.org/10.5281/zenodo.10278000)]
 
 <span id="seeaea">**SEEA EA**:</span> United Nations et al. 2024. *System of Environmental-Economic Accounting -- Ecosystem Accounting.* UN, New York. <https://seea.un.org/ecosystem-accounting>
 
@@ -471,11 +459,11 @@ However, the variation in the mean is defined by the spatial variation only, and
 ### 7.1 WFD2ECA
 
 The dataflow used here has been described in the GitHub repository [WFD2ECA](https://github.com/NINAnor/WFD2ECA/) ([Sandvik 2025](#san25)). 
-We start by downloading the functions and data files from archived version 2.0 of that repo.
+We start by downloading the functions and data files from archived version 2.1 of that repo.
 
 ```{r}
 if(!file.exists("../data/VF.RData")) {
-  download.file("https://zenodo.org/records/16811526/files/NINAnor/WFD2ECA-v2.0.zip",
+  download.file("https://zenodo.org/records/17702361/files/NINAnor/WFD2ECA-v2.1.zip",
                 "../data/WFD2ECA.zip")
   folder <- "../data/WFD2ECA"
   unzip("../data/WFD2ECA.zip", exdir = folder)
@@ -545,7 +533,9 @@ Other information available from *Vannmiljø* includes lists of WFD variables an
 The database has long been available for manual download via [https://vannmiljo.miljodirektoratet.no](https://vannmiljo.miljodirektoratet.no/). 
 Recently, the data have also been made available via an [API](https://vannmiljowebapi.miljodirektoratet.no/swagger/ui/index#/), which is utilised here. 
 
-First we read the measurements of the specified indicator from the *Vannmiljø* API.
+First we read the measurements of the specified indicator from *Vannmiljø*. 
+(The following code reads data from the API. 
+To read data from a manual download, replace "indicator" by the file name of the spreadsheet.)
 
 ```{r}
 DATA <- lesMaalinger(indikator)
@@ -566,11 +556,12 @@ This is how the dataset looks like:
 
 An explanation of the columns (in Norwegian) is given [elsewhere](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/lesMaalinger.md#funksjonsverdi).
 
-A list of water localities (*vannlokaliteter*) is likewise read from the *Vannmiljø* API. 
-The main function argument is the surface water category.
+A list of water localities (*vannlokaliteter*) is likewise read from *Vannmiljø*. 
+(The following code reads data from the API. 
+To read data from a manual download, ensure that the spreadsheet is named "VL-L.xlsx" for lakes and "VL-R.xlsx" for rivers, and set the argument `API = FALSE`.)
 
 ```{r}
-VL <- lesVannlokaliteter(vannkategori)
+VL <- lesVannlokaliteter(API = TRUE)
 ```
 
 The output informs us that the operation was successful and how many water localities there are.
@@ -930,18 +921,21 @@ As reference values of total phosphorus differ between water body types and the 
 Therefore, this indicator is reported in terms of *scaled* values only (nEQR sensu WFD; *indicator* values sensu SEEA&nbsp;EA).
 
 The results are here tabulated (a) for the whole country and different years, and (b) for regions in 2024. 
-These estimates are based on all available data and 10,000 iterations and therefore differ from the ones above.
-
-*NB: Please note that these results are not the final ones for 2024. The deadline for reporting WFD measurements taken in 2024 is September 2025, meaning that the values for 2024 are so far based mainly on measurements taken in 2022 and 2023.* 
+These estimates are based on a manual download from *Vannmiljø* and on 10,000 iterations and therefore differ from the ones above.
 
 
 | Ecosystem  | Year | Best estimate | Lower quartile | Upper quartile |
 |:----------:|:-----|:-------------:|:--------------:|:--------------:|
-| **Rivers** | 2024 | 0.925         | 0.922          | 0.928          |
-| **Rivers** | 2021 | 0.945         | 0.943          | 0.948          |
-| **Rivers** | 2018 | 0.939         | 0.936          | 0.942          |
-| **Lakes**  | 2024 | 0.876         | 0.872          | 0.881          |
-| **Lakes**  | 2021 | 0.924         | 0.920          | 0.928          |
+| **Rivers** | 2024 | 0.962         | 0.959          | 0.965          |
+| **Rivers** | 2021 | 0.934         | 0.931          | 0.937          |
+| **Rivers** | 2018 | 0.965         | 0.962          | 0.967          |
+| **Rivers** | 2015 | 0.963         | 0.960          | 0.965          |
+| **Rivers** | 2012 | 0.942         | 0.939          | 0.945          |
+| **Lakes**  | 2024 | 0.933         | 0.929          | 0.937          |
+| **Lakes**  | 2021 | 0.942         | 0.938          | 0.946          |
+| **Lakes**  | 2018 | 0.861         | 0.856          | 0.866          |
+| **Lakes**  | 2015 | 0.847         | 0.841          | 0.853          |
+| **Lakes**  | 2012 | 0.920         | 0.915          | 0.926          |
 
 : Indicator values for total phosphorus in rivers and lakes for Norway in different years {.striped .hover}
 
@@ -949,18 +943,19 @@ These estimates are based on all available data and 10,000 iterations and theref
 
 | Ecosystem  | Region     | Best estimate | Lower quartile | Upper quartile |
 |:----------:|:-----------|:-------------:|:--------------:|:--------------:|
-| **Rivers** | Østlandet  | 0.881         | 0.875          | 0.886          |
-| **Rivers** | Sørlandet  | 0.907         | 0.900          | 0.913          |
-| **Rivers** | Vestlandet | 0.989         | 0.983          | 0.994          |
-| **Rivers** | Midt-Norge | 0.887         | 0.880          | 0.895          |
-| **Rivers** | Nord-Norge | 0.945         | 0.941          | 0.950          |
-| **Lakes**  | Østlandet  | 0.875         | 0.866          | 0.883          |
-| **Lakes**  | Sørlandet  | 0.994         | 0.988          | 1.000          |
-| **Lakes**  | Vestlandet | 0.728         | 0.718          | 0.737          |
-| **Lakes**  | Midt-Norge | 0.860         | 0.848          | 0.872          |
-| **Lakes**  | Nord-Norge | 0.877         | 0.867          | 0.886          |
+| **Rivers** | Østlandet  | 0.932         | 0.927          | 0.938          |
+| **Rivers** | Sørlandet  | 1.000         | 1.000          | 1.000          |
+| **Rivers** | Vestlandet | 0.949         | 0.942          | 0.956          |
+| **Rivers** | Midt-Norge | 0.901         | 0.894          | 0.910          |
+| **Rivers** | Nord-Norge | 0.990         | 0.986          | 0.995          |
+| **Lakes**  | Østlandet  | 0.872         | 0.862          | 0.881          |
+| **Lakes**  | Sørlandet  | 0.955         | 0.948          | 0.963          |
+| **Lakes**  | Vestlandet | 0.824         | 0.816          | 0.833          |
+| **Lakes**  | Midt-Norge | 0.974         | 0.965          | 0.982          |
+| **Lakes**  | Nord-Norge | 0.991         | 0.984          | 0.998          |
 
 : Indicator values for total phosphorus in rivers and lakes for regions of Norway in 2024 {.striped .hover}
+
 
 <!--# 
 Repeat the final results here. Typically this is a map or table of indicator values.
@@ -971,9 +966,25 @@ This is typically where people will harvest data from, so make sure to include a
 <!--# 
 ## 11. Export file
 
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+
 -->
 
 ```{r export}
 #| eval: false
 ```
+
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
