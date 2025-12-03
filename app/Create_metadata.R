@@ -1,7 +1,6 @@
 library(yaml)
 library(tidyverse)
-library(here)
-
+#library(here)
 #' Recursively flatten YAML metadata
 #' Converts nested lists or vectors into single strings
 
@@ -44,61 +43,11 @@ flatten_meta <- function(x, parent_key = NULL) {
 #' @param path Path to the indicators folder
 #' @return A list of one-row tibbles with flattened metadata
 #' @export
-# create_metadata_table <- function(path) {
-#   
-#   qmd_files <- list.files(
-#     here::here(path),
-#     pattern = "\\.qmd$",
-#     recursive = TRUE,
-#     full.names = TRUE
-#   )
-#   
-#   qmd_files <- qmd_files[
-#     !grepl("template", qmd_files, ignore.case = TRUE) &
-#       !grepl("sandbox", qmd_files, ignore.case = TRUE) &
-#       !grepl("version", qmd_files, ignore.case = TRUE)
-#   ]
-#   
-#   html_file <- sub("\\.qmd$", ".html", qmd_files)
-#   
-#   html_file_relative <- file.path("indicators", basename(dirname(qmd_files)), basename(html_file))
-#  
-#    metadata_list <- map(qmd_files, function(file) {
-#     lines <- readLines(file, warn = FALSE)
-#     yaml_start <- which(trimws(lines) == "---")[1]
-#     yaml_end <- which(trimws(lines) == "---")[2]
-#     if (is.na(yaml_start) || is.na(yaml_end)) return(NULL)
-#     
-#     yaml_text <- paste(lines[(yaml_start + 1):(yaml_end - 1)], collapse = "\n")
-#     meta <- tryCatch(yaml::yaml.load(yaml_text), error = function(e) NULL)
-#     if (is.null(meta)) return(NULL)
-#     
-#     # Recursively flatten
-#     meta_flat <- flatten_meta(meta)
-#     
-#     df <- tibble::tibble(
-#       file = file,
-#       html_file_abs = html_file,
-#       html_file_rel = html_file_relative,
-#       !!!set_names(meta_flat),
-#       .name_repair = "unique"
-#     )
-#     
-#     # Add fallback indicator ID if missing
-#     if (!"indicatorID" %in% names(df)) {
-#       df$indicatorID <- basename(dirname(file))
-#     }
-#     
-#     df
-#   })
-#   
-#   compact(metadata_list)
-# }
 
 create_metadata_table <- function(path) {
   
   qmd_files <- list.files(
-    here::here(path),
+    file.path(app_dir, path),
     pattern = "\\.qmd$",
     recursive = TRUE,
     full.names = TRUE
@@ -173,4 +122,33 @@ combined_metadata<-combined_metadata |>
   janitor::clean_names() |>
   distinct()
 App_data <- create_data(combined_metadata)
+#print(App_data)
+App_data<-App_data |> 
+  filter(hide=="FALSE") 
+App_data <- App_data %>%
+  transmute(
+    indicator_id,
+    title,
+    indicator_name,
+    ECT = str_to_upper(ect),                 # Capitalise to ECT
+    continent,
+    country,
+    realm,
+    biome,
+    ecosystem,                               # Assuming this is the correct ecosystem column
+    authors = author_list,                   # Renamed
+    year_added,
+    year_last_update,
+    status,
+    version,
+    version_comment,
+    normalised,
+    data_availability,
+    code_reproducibility,
+    open_science_badge,
+    html_file_rel, url,html_file_abs, file
+  ) |> 
+  filter(!indicator_id=="R")
+
+
 
