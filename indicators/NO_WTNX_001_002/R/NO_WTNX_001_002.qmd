@@ -3,46 +3,32 @@ title: "Total nitrogen"
 subtitle: |
   [NO_WTNX_001] (rivers) \
   [NO_WTNX_002] (lakes)
-# delete the line with the second indicatorID (line 5) 
-# if it's not relevant for you.
-# In the parentheses you can add a word to distinguish multiple indicators 
-# from each other, for example the ecosystem type that they cover
 indicatorID: 
   - NO_WTNX_001
   - NO_WTNX_002
- # delete whole line if not needed
-# If you are presenting multiple indicators, and have multiple 
-# indicator IDs, then add them as a list here, and make sure you add
-# the same number of list entries, 
-# and in the same order that corresponds to the indicator IDs,  
-# to the meta data fields where the indicators differ. 
-# For example, if the indicators cover different ecosystem types, 
-# add the ecosystems as a list under 'Ecosystems', but if they are in the
-# same realm, same country etc., then you only need to write the realm and
-# country once. 
 indicatorName: 
-  - Total nitrogen # add more by adding another line starting '-'
+  - Total nitrogen
+folderName: NO_WTNX_001_002
 country: Norway
 continent: Europe
-ECT: A2 - Chemical State characteristics # e.g. A2 - Chemical State characteristics
+ECT: A2 - Chemical State characteristics
 Realm: 
-  - Freshwater (F) # e.g. Freshwater (F)
+  - Freshwater (F)
+  - Freshwater (F)
 Biome: 
-  - F1 Rivers and streams biome # e.g. F1 Rivers and streams biome
+  - F1 Rivers and streams biome
   - F2 Lakes biome
 Ecosystem: 
-  - F1.3 Freeze-thaw streams # e.g. F1.3 Freeze-thaw
+  - F1.3 Freeze-thaw streams
   - F2.4 Freeze-thaw lakes
-yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearAdded: 2025
 yearLastUpdate: 2025
-status: deprecated # options are complete, incomplete, or deprecated
-Version: "000.900" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: First complete version # Describe briefly how this version differs from earlier versions 
+status: deprecated
+Version: "000.990"
+VersionComment: Improved functions, revised structure, updated with 2024 data
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WTNX_001_002
-# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
-Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Aggregate (size-weighted arithmetic mean)
- # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Normalised: Yes
+SpatialAggregationPathway: Scale - Transform - Aggregate (size-weighted arithmetic mean) - Truncate
 format: 
   html:
     embed-resources: true
@@ -59,10 +45,10 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research
-AuthorList: Sandvik, H.
-date: October 16, 2025 
+AuthorList: Sandvik, H.  
+date: December 3, 2025
 data_availability: gold
-code_reproducibility: bronze
+code_reproducibility: silver
 open_science_badge: silver
 callout-icon: false
 lightbox: true
@@ -71,6 +57,7 @@ code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
+hide: false
 ---
 
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -79,10 +66,21 @@ code-links:
 
 ```{r setup}
 #| include: false
+#| cache: false
 library(knitr)
 library(tidyverse)
 library(kableExtra)
 library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
+
 knitr::opts_chunk$set(echo = TRUE)
 
 library(foreign)
@@ -95,92 +93,88 @@ library(sp)
 
 ```{r source}
 #| echo: false
+#| cache: false
 source(here::here("_common.R"))
+source(here::here("extract_yaml.R"))
 ```
 
-```{r}
-#| echo: false
-meta <- readxl::read_xlsx("../metadata.xlsx")
-st <- meta |>
-  filter(Variable == "status") |>
-  pull(Value)
-version <- meta |>
-  filter(Variable == "Version") |>
-  pull(Value)
-auth <- meta |>
-  filter(Variable == "authors") |>
-  pull(Value)
-year <- meta |>
-  filter(Variable == "yearAdded") |>
-  pull(Value)
-id <- meta |>
-  filter(Variable == "indicatorID") |>
-  pull(Value)
-name <- meta |>
-  filter(Variable == "indicatorName") |>
-  pull(Value)
-url <- meta |>
-  filter(Variable == "url") |>
-  pull(Value)
 
-meta <- meta |>
-  mutate(Variable = case_match(Variable,
-    "indicatorID" ~ "Indicator ID" ,
-    "indicatorName" ~ "Indicator Name",
-    "country" ~ "Country",
-    "continent" ~ "Continent",
-    "ECT" ~ "Ecosystem Condition Typology Class",
-    "yearAdded" ~ "Year added",
-    "yearLastUpdate" ~ "Last update",
-    .default = Variable
-   )
-  ) |>
-  filter(Variable != "authors")
 
-```
+
 
 <!--# The following parts are autogenerated. Do not edit. -->
 
-```{r}
+::: {layout-ncol="5"}
+
+```{r statusBadge}
 #| echo: false
-#| results: asis
-status(st)
+status_badge(as.character(st))
 ```
 
-> **Recommended citation, indicator 1**: `r paste("\n", auth, " ", year, ". ", name, " (ID: ", id[1], ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
-
-> **Recommended citation, indicator 2**: `r paste("\n", auth, " ", year, ". ", name, " (ID: ", id[2], ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
-
-> **Version**: `r version`
-
-```{=html}
-<details>
-<summary>Show metadata</summary>
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]),
+  folder_name = folder_name)
 ```
 
-```{r tbl-meta}
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-
 meta |>
-  select(Variable, Value) |>
-  kbl(col.names = NULL) 
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
 
 ```
-
-```{=html}
-</details>
-```
+:::
 
 ::: {.callout-tip collapse="true"}
 
-## Logg
+## Log
 
 <!--# Update this logg with short messages for each update -->
 - 12 May 2025 - Version 000.900 started: first complete version
 - 05 Sep 2025 - Version 000.900 ready for code review
 - 16 Oct 2025 - Version 000.900 revised and ready for publication
+- 03 Dec 2025 - Version 000.990 started: improved functions, revised structure, updated with 2024 data
+- 04 Dec 2025 - Version 000.990 submitted to review
 :::
 
 
@@ -190,43 +184,33 @@ meta |>
 
 ## 1. Summary
 
+1. **Background and rationale**:
 Freshwater ecosystems are negatively affected by anthropogenic activities that change the chemical composition of the water, such as pollution or run-off causing eutrophication. 
 Nitrogenous compounds, summarised as total nitrogen, are a contributing factor of eutrophication. 
-Therefore, the total nitrogen concentration in lakes and rivers may be an indicator of their eutrophication. 
-
-"Total nitrogen" (TN) is a measure of all nitrogen in a water sample. 
-As such it includes inorganic nitrogen (i.e. nitrate, nitrite and ammonia/ammonium) as well as organic nitrogen (e.g. amines, proteins and urea).
-
+Therefore, the total nitrogen concentration in lakes and rivers may be an indicator of their eutrophication.
+<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
+What are the main anthropogenic impact factors? -->
+2. **Methods**:
 Total nitrogen is one of the indicators that is measured and reported in connection with the [*Water Framework Directive*](#wfd) (hereafter **WFD**). 
 In Norway, the WFD is implemented by means of [*Vannforskriften*](#vannf), and relevant indicators ("parameters", in WFD terminology) are described in national guidelines ([DGVF 2025](#veil2)). 
-The data collected are archived and made available in the [*Vannmiljø*](#vannm) database. 
-
-These WFD data can be used in other contexts, including ecosystem condition accounts. 
-The procedure implemented here consists of the following steps:
-
-* Selecting measurements from the relevant time period.
-* Removing measurements that do not fulfil the requirements for the specific indicator.
-* Identifying the water body for each measurement.
-* Fitting a linear model to the measurements, with explanatory variables being typology factors of the water bodies, reporting periods, and surveillance activities.
-* Averaging measurements taken in the same water body.
-* Extrapolating variable values to water bodies that lack data, based on the model fitted.
-* Using simulations to estimate confidence and prediction intervals.
-* Aggregating estimates geographically using area-weighted averages.
-
-> ### Interpretation
-Variable values are not easily interpretable ecologically, which is why the indicator is deprecated. Generally, low variable values signify conditions where there is little or no human impact on the water body, whereas high variable values may reflect negative ecological change, specifically eutrophication. However, what can be regarded as low or high varies among water body types and depends on the concentration of other nutrients.
-
-<!--# 
-With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of commmon language summary. It is a good idea to include a bullet point list of the spesific steps in the workflow. Include a mention of the following aspects:
-
-What does the metric represent?
-Why is this relevant for describing ecosystem condition in this ecosystem?
-What are the main anthropogenig impact factors?
-What kind of data is used? 
-Shortly, how is the data customized (modified, estimated, integarted) to fit its purpuse as an indicator?
-What is the current status of  the metric (can it be used or is it still in development)?
-How should the metric be used and interpretted, and how should it not be used/interpretted?
--->
+The data collected are archived and made available in the [*Vannmiljø*](#vannm) database.
+Estimation follows a dataflow that has been described and documented earlier ([Sandvik 2019](#san19), [Sandvik 2025](#san25)) and that consists of the following steps:
+    * Removing measurements that do not fulfil the requirements for the specific indicator.
+    * Identifying the water body for each measurement.
+    * Fitting a linear model to the measurements, with explanatory variables being typology factors of the water bodies, reporting periods, and surveillance activities.
+    * Extrapolating mEQR values to water bodies that lack data, based on the model fitted.
+    * Using simulations to estimate confidence and prediction intervals.
+    * Aggregating estimates geographically using area-weighted averages.
+<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+3. **Interpretation**:
+Variable values are not easily interpretable ecologically, which is why the indicator is deprecated. 
+Generally, low variable values signify conditions where there is little or no human impact on the water body, whereas high variable values may reflect negative ecological change, specifically eutrophication. 
+However, what can be regarded as low or high varies among water body types and depends on the concentration of other nutrients.
+<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
+4. **Results and development needs**:
+The indicator is deprecated. 
+This is not because there are further development needs but because the variable was considered to be unsuitable for an ecosystem condition account. 
+<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
 
 ## 2. About the underlying data
@@ -242,7 +226,7 @@ Finally, detailed information on Norwegian lakes is available from the [*Innsjø
 ### 2.1 Spatial and temporal resolution and extent
 
 The **spatial** resolution of WFD indicators is on the level of *water bodies*. 
-The WFD defines a water body (specifically a "body of surface water") as "a discrete and significant element of surface water such as a lake, a reservoir, a stream, river or canal, [or] part of a stream, river or canal" (WFD, Article 2, paragraph 10; cf. *Vannforskriften* §&nbsp;3, letter a; for implementation, see [DGVF 2018](#veil1), ch. 2).
+The WFD defines a water body (specifically a "body of surface water") as "a discrete and significant element of surface water such as a lake, a reservoir, a stream, river or canal, [or] part of a stream, river or canal" (WFD, Article&nbsp;2, paragraph&nbsp;10; cf. *Vannforskriften* §&nbsp;3, letter&nbsp;a; for implementation, see [DGVF 2018](#veil1), ch.&nbsp;2).
 
 There is no specific **temporal** resolution, as measurements of WFD indicators are reported sporadically. 
 Some water bodies are sampled regularly (e.g., every fifth year). 
@@ -269,7 +253,7 @@ The main reasons are the following:
 
 ### 2.3 Original units
 
-Total nitrogens is the sum of inorganic nitrogen (i.e. nitrate NO~3~^&minus;^, nitrite NO~2~^&minus;^ and ammonia NH~3~ / ammonium NH~4~^+^) and organic nitrogen (e.g. amines, proteins and urea CH~4~N~2~O). 
+Total nitrogen is the sum of inorganic nitrogen (i.e. nitrate NO~3~^&minus;^, nitrite NO~2~^&minus;^ and ammonia NH~3~ / ammonium NH~4~^+^) and organic nitrogen (e.g. amines, proteins and urea CH~4~N~2~O). 
 The total nitrogen concentration in water is measured in µg/L.
 
 <!--# What are the original units for the most relevant  variables in the data-->
@@ -279,7 +263,7 @@ The total nitrogen concentration in water is measured in µg/L.
 For suggestions on how to cite the datasets, see [*Vannmiljø*](#vannm), [*Karteksport*](#kartx), [*Vann-nett*](#vannn), and [*Innsjødatabase*](#innsj). 
 All data used are publicly available. 
 However, with the exception of *Vannmiljø*, they are not accessible via an API but need to be downloaded manually. 
-Some required files are currently unavailable from from *Vann-nett* (temporarily so, it seems); they are therefore read from a previous *Vann-nett* download, which is archived in the GitHub repo [WFD2ECA](https://github.com/NINAnor/WFD2ECA/). 
+Some required files are currently unavailable from *Vann-nett* (temporarily so, it seems); they are therefore read from a previous *Vann-nett* download, which is archived in the GitHub repo [WFD2ECA](https://github.com/NINAnor/WFD2ECA/). 
 For further details, see [chapter&nbsp;7](#import-and-prepare-datasets) below.
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
@@ -297,7 +281,7 @@ indikator <- tittel <- "N-TOT"
 vannkategori <- c("L", "R")
 ```
 
-Eurostat has listed total nitrogen as a **voluntary condition variable** for reporting in connection with the EU Regulation 2024/3024 ([EU 2024](#eu24), Annex&nbsp;IX; cf. [Czúcz el at. 2025](#czu25)).
+Eurostat has listed total nitrogen as a *voluntary condition variable* for reporting in connection with the EU Regulation 2024/3024 ([EU 2024](#eu24), Annex&nbsp;IX; cf. [Czúcz el at. 2025](#czu25)).
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
@@ -340,7 +324,7 @@ Total nitrogen may be broadly correlated to other measures of river and lake eut
 
 Total nitrogen concentration is a cause of eutrophication.
 A natural source is the decay of plant matter in soils. 
-Anthropogenic sources of nitrogen include local or up-stream run-off (e.g. from fertilised lawns or croplands and livestock manure) or direct pollution (e.g. from wastewater treatment).
+Anthropogenic sources of nitrogen include local or up-stream run-off (e.g. from fertilised lawns or croplands and livestock manure) or direct pollution (e.g. from sewage treatment).
 
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
 
@@ -449,7 +433,7 @@ However, the variation in the mean is defined by the spatial variation only, and
 
 <span id="san19">Sandvik H.</span> 2019. Ferskvann i vannforskriften og naturindeksen. Forslag til samordning og dataflyt. *NINA Rapp* **1723**: 1--38. [[hdl:11250/2631056](http://hdl.handle.net/11250/2631056)]
 
-<span id="san25">Sandvik H.</span> 2025. WFD2ECA: Dataflyt fra vannforskriften til økologisk tilstandsregnskap og naturindeks, version 2.0. <https://github.com/NINAnor/WFD2ECA> [[doi:10.5281/zenodo.10278000](https://doi.org/10.5281/zenodo.10278000)]
+<span id="san25">Sandvik H.</span> 2025. WFD2ECA: Dataflyt fra vannforskriften til økologisk tilstandsregnskap og naturindeks, version 2.1. <https://github.com/NINAnor/WFD2ECA> [[doi:10.5281/zenodo.10278000](https://doi.org/10.5281/zenodo.10278000)]
 
 <span id="seeaea">**SEEA EA**:</span> United Nations et al. 2024. *System of Environmental-Economic Accounting -- Ecosystem Accounting.* UN, New York. <https://seea.un.org/ecosystem-accounting>
 
@@ -467,11 +451,11 @@ However, the variation in the mean is defined by the spatial variation only, and
 ### 7.1 WFD2ECA
 
 The dataflow used here has been described in the GitHub repository [WFD2ECA](https://github.com/NINAnor/WFD2ECA/) ([Sandvik 2025](#san25)). 
-We start by downloading the functions and data files from archived version 2.0 of that repo.
+We start by downloading the functions and data files from archived version 2.1 of that repo.
 
 ```{r}
 if(!file.exists("../data/VF.RData")) {
-  download.file("https://zenodo.org/records/16811526/files/NINAnor/WFD2ECA-v2.0.zip",
+  download.file("https://zenodo.org/records/17702361/files/NINAnor/WFD2ECA-v2.1.zip",
                 "../data/WFD2ECA.zip")
   folder <- "../data/WFD2ECA"
   unzip("../data/WFD2ECA.zip", exdir = folder)
@@ -529,7 +513,9 @@ Other information available from *Vannmiljø* includes lists of WFD variables an
 The database has long been available for manual download via [https://vannmiljo.miljodirektoratet.no](https://vannmiljo.miljodirektoratet.no/). 
 Recently, the data have also been made available via an [API](https://vannmiljowebapi.miljodirektoratet.no/swagger/ui/index#/), which is utilised here. 
 
-First we read the measurements of the specified indicator from the *Vannmiljø* API.
+First we read the measurements of the specified indicator from *Vannmiljø*. 
+(The following code reads data from the API. 
+To read data from a manual download, replace "indicator" by the file name of the spreadsheet.)
 
 ```{r}
 DATA <- lesMaalinger(indikator)
@@ -550,11 +536,12 @@ This is how the dataset looks like:
 
 An explanation of the columns (in Norwegian) is given [elsewhere](https://github.com/NINAnor/WFD2ECA/blob/main/forklar/lesMaalinger.md#funksjonsverdi).
 
-A list of water localities (*vannlokaliteter*) is likewise read from the *Vannmiljø* API. 
-The main function argument is the surface water category.
+A list of water localities (*vannlokaliteter*) is likewise read from *Vannmiljø*. 
+(The following code reads data from the API. 
+To read data from a manual download, ensure that the spreadsheet is named "VL-L.xlsx" for lakes and "VL-R.xlsx" for rivers, and set the argument `API = FALSE`.)
 
 ```{r}
-VL <- lesVannlokaliteter(vannkategori)
+VL <- lesVannlokaliteter(API = TRUE)
 ```
 
 The output informs us that the operation was successful and how many water localities there are.
@@ -842,7 +829,7 @@ Therefore, total nitrogen is reported in terms of *unscaled* values only (*varia
 These values *should not* be interpreted as indicating ecosystem condition.
 
 The results are here tabulated (a) for the whole country and different years, and (b) for regions in 2024. 
-These estimates are based on all available data and 10,000 iterations and therefore differ from the ones above.
+These estimates are based on a manual download from *Vannmiljø* and on 10,000 iterations and therefore differ from the ones above.
 
 
 | Ecosystem  | Year | Best estimate | Lower quartile | Upper quartile |
@@ -872,6 +859,7 @@ These estimates are based on all available data and 10,000 iterations and theref
 
 : Unscaled values for total nitrogen (in µg/L) in rivers and lakes for regions of Norway in 2024 {.striped .hover}
 
+
 <!--# 
 Repeat the final results here. Typically this is a map or table of indicator values.
 
@@ -881,9 +869,25 @@ This is typically where people will harvest data from, so make sure to include a
 <!--# 
 ## 11. Export file
 
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+
 -->
 
 ```{r export}
 #| eval: false
 ```
+
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
