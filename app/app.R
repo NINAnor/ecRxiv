@@ -12,45 +12,73 @@ link_gh <- tags$a(
 data <- App_data
 #tags$head(tags$link(rel="shortcut icon", href="www/favicon.png")),
 
-ui <- page_navbar(
-  id='nav',
-  theme = bs_theme(version = 5, bootswatch = "minty") |>
-    bslib::bs_add_rules(
-      rules = "
-                    .navbar.navbar-default {
-                        background-color: $primary !important;
-                    }
-                    "
+ui <- navbarPage(
+  id = "nav",
+  windowTitle = "ecRxiv",
+  
+  # --- Logo + title ---
+  title = div(
+    tags$img(
+      src = "_ecrxiv_logo_hovedlogo.png",
+      height = 60,
+      style = "margin-right: 12px;"
     ),
-  bg = "#6c6c6c",
-    title = div(img(src='_ecrxiv_logo_hovedlogo.png',
-                    style="margin-top: 14px;
-                               padding-right:10px;
-                               padding-bottom:0px",
-                    height = 60)),
-    position = "static-top", # Ensures it stays at the top
-    nav_panel("Start page",
-        uiOutput('startpage')),
-    nav_panel("Find indicator",
-      DT::DTOutput("indicatorTable")
-        ),
-    nav_panel("Documentation",
-      htmlOutput("documentation")),
-    nav_spacer(),
-    nav_menu(
-      title = "Links",
-      align = "right",
-      nav_item(link_gh)
-    )
-
+    "ecRxiv"   # optional text, remove if you want just logo
+  ),
+  
+  # --- Theme (Bootstrap 5 Minty) ---
+  theme = bs_theme(
+    version = 5,
+    bootswatch = "minty"
+  ) |> 
+    bs_add_rules(
+      rules = "
+        .navbar.navbar-default {
+          background-color: $primary !important;
+        }
+      "
+    ),
+  
+  # --- Background colour for the whole navbar ---
+  inverse = FALSE,     # keeps text dark on light bg
+  collapsible = TRUE,
+  
+  # ======================
+  # NAV PANELS
+  # ======================
+  
+  tabPanel(
+    "Start page",
+    uiOutput("startpage")
+  ),
+  
+  tabPanel(
+    "Find indicator",
+    DTOutput("indicatorTable")
+  ),
+  
+  tabPanel(
+    "Documentation",
+    htmlOutput("documentation")
+  ),
+  
+  # ======================
+  # RIGHT-SIDE MENU
+  # ======================
+  
+  navbarMenu(
+    "Links",
+    link_gh
+  )
 )
 
+
 server <- function(input, output, session) {
-  shiny::addResourcePath("indicators", here::here("indicators"))
-  
+  shiny::addResourcePath("indicators", file.path(app_dir, "indicators"))
   output$indicatorTable <- DT::renderDT(
     data |>
-      dplyr::select(!c(HTML_File, Variable, url)) ,
+      dplyr::select(!c(html_file_rel, url,html_file_abs, file)) ,
+    
     selection = "single",
     filter = "top"
   )
@@ -64,21 +92,25 @@ server <- function(input, output, session) {
   
   output$documentation <- renderUI({
     selected_row <- input$indicatorTable_rows_selected
-    if (length(selected_row) == 0) {
-      return(NULL)
-    } else {
-      selected_ID <- data$ID[selected_row]
-      html_file_path <- data$HTML_File[data$ID == selected_ID]
-      html_file_path2 <- paste0("indicators/", selected_ID, "/R/", selected_ID, ".html")
-      if (!file.exists(html_file_path)) {
-        return(shiny::tags$p("No documentation available for the selected ecosystem."))
-      } else {
-        div(
-          tags$iframe(src = html_file_path2, style = 'width:100vw;height:100vh;')
-        )
-      }
+    
+    if (length(selected_row) == 0) return(NULL)
+    
+    selected_ID <- data$indicator_id[selected_row]
+    html_rel <- data$html_file_rel[data$indicator_id == selected_ID]
+    
+    html_full <- normalizePath(file.path(app_dir, html_rel), mustWork = FALSE)
+    
+    if (!file.exists(html_full)) {
+      return(tags$p("No documentation available for the selected indicator."))
     }
+    
+    tags$iframe(
+      src = html_rel,
+      style = "width:100%; height:90vh; border:none;"
+    )
   })
+  
+  
   
   output$startpage <- renderUI({
     layout_columns(
@@ -93,4 +125,3 @@ server <- function(input, output, session) {
 
 
 shiny::shinyApp(ui = ui, server = server)
-
