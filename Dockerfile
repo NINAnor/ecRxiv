@@ -26,7 +26,7 @@ COPY --chown=shiny:shiny app/www/ /srv/shiny-server/www/
 COPY --chown=shiny:shiny R/Create_metadata.R /srv/shiny-server/R/
 COPY --chown=shiny:shiny data/ /srv/shiny-server/data/
 COPY --chown=shiny:shiny indicators/ /srv/shiny-server/indicators/
-COPY --chown=shiny:shiny style.css _common.R controlled_vocab.yaml /srv/shiny-server/
+COPY --chown=shiny:shiny style.css _common.R /srv/shiny-server/
 
 # Healthcheck (basic)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
