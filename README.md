@@ -4,7 +4,7 @@
 
 ## NEWS
 
-The [ecRxiv web app](https://view.nina.no/ecRxiv/) is now available.
+The [ecRxiv web app](https://ecRxiv.com) is now available.
 
 
 ## Rationale
