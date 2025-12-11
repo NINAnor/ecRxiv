@@ -14,17 +14,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Optional: use install2.r for faster R package install (comes with rocker)
 ENV CRAN_REPO=https://cloud.r-project.org
 RUN install2.r --error --skipinstalled -r $CRAN_REPO \
-    shiny DT bslib dplyr here rmarkdown readxl tidyverse markdown
+    shiny DT bslib dplyr here rmarkdown readxl tidyverse markdown janitor yaml
 
 # Prepare directories
-RUN mkdir -p /srv/shiny-server/R /srv/shiny-server/data /srv/shiny-server/indicators \
+RUN mkdir -p /srv/shiny-server/indicators \
     && chown -R shiny:shiny /srv/shiny-server
 
 # Copy app in fewer layers
 COPY --chown=shiny:shiny app/app.R app/global.R app/*.md /srv/shiny-server/
 COPY --chown=shiny:shiny app/www/ /srv/shiny-server/www/
-COPY --chown=shiny:shiny R/Create_metadata.R /srv/shiny-server/R/
-COPY --chown=shiny:shiny data/ /srv/shiny-server/data/
+COPY --chown=shiny:shiny app/Create_metadata.R /srv/shiny-server/
 COPY --chown=shiny:shiny indicators/ /srv/shiny-server/indicators/
 COPY --chown=shiny:shiny style.css _common.R /srv/shiny-server/
 
