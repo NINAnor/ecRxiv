@@ -1,2 +1,2 @@
-This folder contains the documentation for the ecological condition indicator **NO_ASPT_001**. 
-For a readable description of the indicator, [see here](https://raw.githack.com/NINAnor/ecRxiv/main/indicators/NO_ASPT_001/R/NO_ASPT_001.html) or look it up in the [ecRxiv web app](https://view.nina.no/ecRxiv/).
+The ecosystem condition indicator **NO_ASPT_001** has been superseded by **NO_WSPT_001**. 
+For documentation, please refer to <https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WSPT_001>.

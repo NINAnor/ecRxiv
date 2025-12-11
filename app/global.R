@@ -6,7 +6,7 @@ get_app_dir <- function() {
   if (!is.null(ofile)) {
     return(dirname(normalizePath(ofile)))
   }
-  
+
   # Case 2: Running via runApp(), fallback to app.R
   # app.R becomes sys.frame(2)$ofile
   for (i in 1:5) {
@@ -15,8 +15,13 @@ get_app_dir <- function() {
       return(dirname(normalizePath(f)))
     }
   }
-  
-  # Case 3: Last fallback: assume working directory *has been locked* by Shiny (after app loads)
+
+  # Case 3: Docker container specific - check if we're in /srv/shiny-server
+  if (dir.exists("/srv/shiny-server") && file.exists("/srv/shiny-server/app.R")) {
+    return("/srv/shiny-server")
+  }
+
+  # Case 4: Last fallback: assume working directory *has been locked* by Shiny (after app loads)
   return(normalizePath("."))
 }
 
