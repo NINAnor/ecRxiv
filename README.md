@@ -2,9 +2,11 @@
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
+# To browse ecosystem condition indicators, please visit the [ecRxiv web app](https://ecRxiv.com). 
+
 ## NEWS
 
-The [ecRxiv web app](https://ecRxiv.com) is now available.
+- ecRxiv was used to document ecosystem condition indicators for the Norwegian pilot condition account. The report can be found [here](https://www.miljodirektoratet.no/publikasjoner/2025/desember-2025/nasjonal-pilot-for-okologisk-tilstandsregnskap/)
 
 
 ## Rationale
