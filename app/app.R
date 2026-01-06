@@ -9,21 +9,22 @@ link_gh <- tags$a(
   target = "_blank"
 )
 
+
 data <- App_data
 #tags$head(tags$link(rel="shortcut icon", href="www/favicon.png")),
 
 ui <- navbarPage(
+  
   id = "nav",
   windowTitle = "ecRxiv",
-  
+  bg = "#FDE6D2",
   # --- Logo + title ---
   title = div(
     tags$img(
       src = "_ecrxiv_logo_hovedlogo.png",
       height = 60,
       style = "margin-right: 12px;"
-    ),
-    "ecRxiv"   # optional text, remove if you want just logo
+    )
   ),
   
   # --- Theme (Bootstrap 5 Minty) ---
@@ -65,10 +66,11 @@ ui <- navbarPage(
   # ======================
   # RIGHT-SIDE MENU
   # ======================
-  
+  nav_spacer(),
   navbarMenu(
-    "Links",
-    link_gh
+    title = "Links",
+    align = "right",
+    nav_item(link_gh)
   )
 )
 
