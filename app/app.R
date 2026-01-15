@@ -9,13 +9,15 @@ link_gh <- tags$a(
   target = "_blank"
 )
 
+
 data <- App_data
 #tags$head(tags$link(rel="shortcut icon", href="www/favicon.png")),
 
 ui <- navbarPage(
+  
   id = "nav",
   windowTitle = "ecRxiv",
-  
+  bg = "#FDE6D2",
   # --- Logo + title ---
   title = div(
     tags$img(
@@ -64,7 +66,7 @@ ui <- navbarPage(
   # ======================
   # RIGHT-SIDE MENU
   # ======================
-  
+  nav_spacer(),
   navbarMenu(
     "Links",
     bslib::nav_item(link_gh)
