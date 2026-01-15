@@ -1,36 +1,65 @@
-# Base image med R, Shiny og s6-overlay
-FROM rocker/shiny:latest
+# Base image with pinned version
+FROM rocker/shiny:4.5.2
 
-# --- Root setup-fase ---
+# Metadata labels
+LABEL maintainer="ecRxiv"
+LABEL description="Shiny application for ecRxiv indicators"
+LABEL version="1.0"
+LABEL org.opencontainers.image.source="https://github.com/NINANor/ecRxiv"
+
+# --- Root setup phase ---
 USER root
 
-# Consolidated apt install with --no-install-recommends and explicit cleanup
+# Install system dependencies with cleanup
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl libcurl4-openssl-dev libssl-dev libxml2-dev \
-    libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
-    libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+    curl \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    libfontconfig1-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Optional: use install2.r for faster R package install (comes with rocker)
+# Set CRAN repository
 ENV CRAN_REPO=https://cloud.r-project.org
-RUN install2.r --error --skipinstalled -r $CRAN_REPO \
-    shiny DT bslib dplyr here rmarkdown readxl tidyverse markdown janitor yaml
 
-# Prepare directories
+# Install R packages (separate layer for better caching)
+RUN install2.r --error --skipinstalled -r $CRAN_REPO \
+    shiny \
+    DT \
+    bslib \
+    dplyr \
+    here \
+    rmarkdown \
+    readxl \
+    tidyverse \
+    markdown \
+    janitor \
+    yaml
+
+# Set working directory
+WORKDIR /srv/shiny-server
+
+# Prepare directories and permissions
 RUN rm -rf /srv/shiny-server/* \
-    &&mkdir -p /srv/shiny-server/indicators \
+    && mkdir -p /srv/shiny-server/indicators \
     && chown -R shiny:shiny /srv/shiny-server
 
-# Copy app in fewer layers
-COPY --chown=shiny:shiny app/app.R app/global.R app/*.md /srv/shiny-server/
-COPY --chown=shiny:shiny app/www/ /srv/shiny-server/www/
-COPY --chown=shiny:shiny app/Create_metadata.R /srv/shiny-server/
-COPY --chown=shiny:shiny indicators/ /srv/shiny-server/indicators/
-COPY --chown=shiny:shiny style.css _common.R /srv/shiny-server/
+# Copy application files in a single consolidated layer
+COPY --chown=shiny:shiny app/ indicators/ style.css _common.R ./
 
-# Healthcheck (basic)
+# Switch to non-root user
+USER shiny
+
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:3838 || exit 1
 
 EXPOSE 3838
+
 CMD ["/init"]
