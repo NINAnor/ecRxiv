@@ -17,7 +17,8 @@ RUN install2.r --error --skipinstalled -r $CRAN_REPO \
     shiny DT bslib dplyr here rmarkdown readxl tidyverse markdown janitor yaml
 
 # Prepare directories
-RUN mkdir -p /srv/shiny-server/indicators \
+RUN rm -rf /srv/shiny-server/* \
+    &&mkdir -p /srv/shiny-server/indicators \
     && chown -R shiny:shiny /srv/shiny-server
 
 # Copy app in fewer layers

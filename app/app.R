@@ -20,10 +20,9 @@ ui <- navbarPage(
   title = div(
     tags$img(
       src = "_ecrxiv_logo_hovedlogo.png",
-      height = 60,
-      style = "margin-right: 12px;"
-    ),
-    "ecRxiv"   # optional text, remove if you want just logo
+      style = "margin-top: 14px; padding-right:10px; padding-bottom:0px",
+      height = 60
+    )
   ),
   
   # --- Theme (Bootstrap 5 Minty) ---
@@ -33,14 +32,14 @@ ui <- navbarPage(
   ) |> 
     bs_add_rules(
       rules = "
-        .navbar.navbar-default {
-          background-color: $primary !important;
+        .navbar {
+          background-color: #6C6C6C !important;
         }
       "
     ),
   
   # --- Background colour for the whole navbar ---
-  inverse = FALSE,     # keeps text dark on light bg
+  inverse = TRUE,     # keeps text light on dark bg
   collapsible = TRUE,
   
   # ======================
@@ -68,7 +67,7 @@ ui <- navbarPage(
   
   navbarMenu(
     "Links",
-    link_gh
+    bslib::nav_item(link_gh)
   )
 )
 
