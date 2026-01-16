@@ -1,0 +1,188 @@
+name: PR review checklist (for admin)
+description: For Admin only - A checklist for processing new PRs (submissions)
+title: '[New PR]: "indicatorID"'
+labels: PR-checklist
+assignees: anders-kolstad
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please add the PR number below, prefixed with #. 
+        Add the same PR number to the issue title above.
+        Then click 'create'. Then you can go through the tick boxes one by one. 
+  - type: input
+    id: prid
+    attributes:
+      label: PR number
+      description: Link to the PR
+      placeholder: "#123"
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: I confirm that I read and will adhere to the [code of conduct](https://github.com/NINAnor/ecRxiv/blob/main/docs/code_of_conduct.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
+  - type: checkboxes
+    id: coi
+    attributes:
+      label: Conflict of Interest
+      description: I confirm that I have **no** conflict of interest that makes me unsuited to review this indicator. If not, I will declare my conflict of interest in a comment below.
+      options:
+        - label: I confirm that I have **no** conflict of interest
+          required: false
+  - type: checkboxes
+    id: landing
+    attributes:
+      label: Change base branch
+      description: |
+        PRs should be made to the _submission_ branch, 
+        but in order to keep that branch clean, 
+        we edit the PR so that it goes to a new branch.
+        Start by creating a new branch from template. 
+        Name it _submission-INDICATORID_,
+        where you replace INDICATORID with the actual ID.
+        Then open the PR and click edit.
+        Change the base branch to submission-INDICATORID.
+      options:
+        - label: PR updated with new base branch 
+          required: false
+  - type: checkboxes
+    id: id
+    attributes:
+      label: Indicator ID 
+      description: You can read about the naming convention on the wiki page.
+      options:
+        - label: The indicator has an ID that follows the naming convention
+          required: false
+  - type: checkboxes
+    id: modfiles
+    attributes:
+      label: Modified files
+      description: 
+      options:
+        - label: |
+            The number of new files is correct; 
+            there are no unreasonably big files or too many files 
+            (e.g. html_files, old drafts or cashed files folders). 
+            Are any non-relevant files included? 
+          required: false
+  - type: checkboxes
+    id: meta
+    attributes:
+      label: Metadata
+      description: 
+      options:
+        - label: |
+            The top yaml is fillout correctly with all the metadata.
+          required: false
+  - type: checkboxes
+    id: permissions
+    attributes:
+      label: Data permissions
+      description: |
+        Do the authors have permission to use the data; is the data properly cited, and; 
+        in case the data is not openly available - do the authors describe how it can be accessed?
+      options:
+        - label: Data permission in order
+          required: false
+  - type: checkboxes
+    id: str
+    attributes:
+      label: File structure
+      description: 
+      options:
+        - label: |
+            look at the quarto file and check that the 
+            document structure (headers etc.) is more or less according to the template.
+          required: false
+  - type: checkboxes
+    id: refs
+    attributes:
+      label: Bibliography
+      description: |
+        How are the references handled?
+        Is there a bibliography file? If not, should there be? (note: hyperlinks break over time).
+      options:
+        - label: References are in order
+          required: false
+  - type: checkboxes
+    id: html
+    attributes:
+      label: HTML
+      description: |
+        The HTML is included and looks good. 
+        To view it, open the html from the PR and view it
+        by pasting this string to the start of the URL: `http://htmlpreview.github.io/?`.
+      options:
+        - label: HTML is OK
+          required: false        
+  - type: checkboxes
+    id: render
+    attributes:
+      label: Render
+      description: |
+        We need to be able to render the .qmd locally, even 
+        if we don't have access to all the data via the PR.
+        You can clone the PR with this command:
+        `git fetch origin pull/ID/head:BRANCH_NAME`.      
+        , where `ID` is the ID for the PR which you can see 
+        in the PR's title following a hash tag. 
+        It's usually a three or four digit number. `BRANCH_NAME` you can make up yourself. 
+        A suggestion is to use the indicator ID followed by `code-review`.
+        The switch to that branch:
+        `git switch BRANCH_NAME`
+      options:
+        - label: The quarto file renders locally
+          required: false        
+  - type: checkboxes
+    id: review
+    attributes:
+      label: Add a review
+      description: |
+        Go to the PR and start a review.
+        You can make general comments,
+        or specific comments referring to specific lines of code. 
+      options:
+        - label: Code review started and completed
+          required: false                      
+  - type: checkboxes
+    id: after
+    attributes:
+      label: After acceptance
+      description: |
+        After the PR is accepted,
+        you can merge the PR into the submission-INDICATORID branch.
+        Then you put all the relevant files into a folder named after the indicator ID(s).
+      options:
+        - label: PR merged and folder added
+          required: false                                                  
+  - type: checkboxes
+    id: readme
+    attributes:
+      label: Add README
+      description: |
+        The README.md should be placed directly under indicators/newfolder/
+      options:
+        - label: Add a README following the current structure of the READMEs used on ecRxiv.
+          required: false    
+  - type: checkboxes
+    id: stablehtml
+    attributes:
+      label: Stable HTML
+      description: |
+        Each version of the indicator should have a stable HTML located in the same  
+        folder as the most recent HTML. 
+        HTML's on ecRxiv are self-contained, so if there is a myHTML_files/ folder
+        in the PR, it can be deleted and it should
+        not affect the HTML. This means you can simply make a copy of the HTML and rename it
+        to make a stable HTML. Name it like this: 
+        INDICATORID_XXX_version_VVV_vvv; where XXX is the indicator ID number, 
+        and VVV and vvv is the version number, 
+        before and after the periond, respectively
+      options:
+        - label: Stable HTML created
+          required: false                    
