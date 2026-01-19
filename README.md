@@ -26,9 +26,7 @@ The documentation must be submitted in the form of a quarto file (.qmd) followin
 
 Please see you author tutorial video, and/or read the part below.
 
-OBS, the video is outdated and will be updated soon
-
-[![Tutorial video](https://img.youtube.com/vi/wLYnORKZ1ZQ/0.jpg)](https://www.youtube.com/watch?v=wLYnORKZ1ZQ)
+[![Tutorial video](https://img.youtube.com/vi/87AZPUFCNnI/0.jpg)](https://www.youtube.com/watch?v=87AZPUFCNnI)
 
 #### Submission workflow
 (to update an existing indicator, jump to point 8)
@@ -61,6 +59,7 @@ Ecosystem condition indicators are used in ecosystem condition assessments and a
 ### How to review a PR and update the shiny app (for admins)
 This is for ecRxiv administrators who first come incontact with a new PR. 
 Open a new issue on GitHub and chose the *PR review - checklist* template. Follow the instructions there.
+
 
 
 
