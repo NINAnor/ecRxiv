@@ -37,6 +37,22 @@ ui <- navbarPage(
         .navbar {
           background-color: #6C6C6C !important;
         }
+
+         /* Tab text */
+        .navbar-nav .nav-link {
+          color: #000000 !important;
+        }
+      
+        /* Active tab */
+        .navbar-nav .nav-link.active {
+          color: #000000 !important;
+          font-weight: 600;
+        }
+      
+        /* Hover */
+        .navbar-nav .nav-link:hover {
+          color: #000000 !important;
+        }
       "
     ),
 
