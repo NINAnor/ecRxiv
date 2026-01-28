@@ -54,7 +54,7 @@ create_metadata_table <- function(path) {
   )
   
   qmd_files <- qmd_files[
-    !grepl("template|sandbox|version", qmd_files, ignore.case = TRUE)
+    !grepl("([/\\\\]_.*$)|template|sandbox|version", qmd_files, ignore.case = TRUE)
   ]
   
   metadata_list <- map(qmd_files, function(qmd_path) {
@@ -124,7 +124,7 @@ combined_metadata<-combined_metadata |>
 App_data <- create_data(combined_metadata)
 #print(App_data)
 App_data<-App_data |> 
-  filter(hide=="FALSE") 
+  filter(is.na(hide) | hide!="TRUE") 
 App_data <- App_data %>%
   transmute(
     indicator_id,
