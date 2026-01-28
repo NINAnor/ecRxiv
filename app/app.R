@@ -42,13 +42,13 @@ ui <- navbarPage(
         .navbar-nav .nav-link {
           color: #000000 !important;
         }
-      
+
         /* Active tab */
         .navbar-nav .nav-link.active {
           color: #000000 !important;
           font-weight: 600;
         }
-      
+
         /* Hover */
         .navbar-nav .nav-link:hover {
           color: #000000 !important;
@@ -94,11 +94,24 @@ server <- function(input, output, session) {
   shiny::addResourcePath("indicators", file.path(app_dir, "indicators"))
   output$indicatorTable <- DT::renderDT(
     data |>
-      dplyr::select(!c(html_file_rel, url,html_file_abs, file)) ,
-
+      dplyr::select(!c(html_file_rel, url,html_file_abs, file)),
     selection = "single",
-    filter = "top"
-  )
+    filter = "top",
+    options = list(
+      pageLength = 30,
+      lengthMenu = c(10,20,30, 50, 100),
+      columnDefs = list(list(
+        targets = "_all",
+        render = JS(
+          "function(data, type, row, meta) {",
+          "return type === 'display' && data != null && data.length > 30 ?",
+          "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;",
+          "}"
+        )
+      ))),
+    class = "display"
+)
+
 
   # Automatically switch to documentation tab when a row is selected
   observeEvent(input$indicatorTable_rows_selected, {
