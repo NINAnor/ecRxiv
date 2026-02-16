@@ -1,9 +1,19 @@
 ## How to contact us
 
-### Bug reports 
+**Bug reports**
 
 Please submit Bug reports as [issues](https://github.com/NINAnor/ecRxiv/issues)
 
-### General queries
+**Indicator review or feedback**
 
-Please contact [Anders Kolstad](anders.kolstad@nina.no)
+To provide simple feedback or comprehensive reviews on any f th indicators on ecRxiv, 
+create a new [issue](https://github.com/NINAnor/ecRxiv/issues/new/choose) using one of the isse templates.
+
+**General queries**
+
+Please contact:
+
+[Anders Kolstad](anders.kolstad@nina.no)
+[Matthew Grainger](matthew.grainger@nina.no)
+
+
