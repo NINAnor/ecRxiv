@@ -1,4 +1,4 @@
-# Base image with pinned version
+# Base image with pinned version 4.5.2
 FROM rocker/shiny:4.5.2
 
 # Metadata labels
