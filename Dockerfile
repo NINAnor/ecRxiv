@@ -1,4 +1,4 @@
-# Base image with pinned version
+# Base image with pinned version 4.5.2
 FROM rocker/shiny:4.5.2
 
 # Metadata labels
@@ -51,7 +51,7 @@ RUN rm -rf /srv/shiny-server/* \
     && chown -R shiny:shiny /srv/shiny-server
 
 # Copy application files in a single consolidated layer
-COPY --chown=shiny:shiny app/ indicators/ style.css _common.R ./
+COPY --chown=shiny:shiny app/ indicators/ style.css ./
 
 # Switch to non-root user
 USER shiny
