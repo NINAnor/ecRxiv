@@ -9,7 +9,8 @@
 
 ## NEWS
 
-- 15.01.2026 We now have a new submission workflow whic is hopefully easier to use and requires less git knowledge
+- 20.03.2026 NINA is starting up a new project to do ecosystem condition assessments for mountains and forests. Indicators will be documented on ecRxiv.
+- 15.01.2026 We now have a new submission workflow which is hopefully easier to use and requires less git knowledge
 - 19.12.2025 ecRxiv was used to document ecosystem condition indicators for the Norwegian pilot condition account. The report can be found [here](https://www.miljodirektoratet.no/publikasjoner/2025/desember-2025/nasjonal-pilot-for-okologisk-tilstandsregnskap/)
 - 19.12.2025 ecRxiv maintainer and inventor [Anders Kolstad](https://github.com/anders-kolstad) recently won an [award for good open science pratices](https://norrn.substack.com/p/norrn-december-newsletter) based on his work with ecRxiv.
 
