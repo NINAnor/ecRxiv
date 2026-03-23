@@ -78,6 +78,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r source}
 #| echo: false
+# here find the project root and create relative paths from there. 
+# The project root will be different when this is on ecRxiv.
+# For example, now as I write this, R/ and data/ are at the root. 
 source(here::here("_common.R"))
 ```
 
@@ -172,7 +175,7 @@ The workflow for calculating indicator values, and for storing data, is integrat
 An indicator value of 1 signifies an intact butterfly community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species.
 
 4. **Results and development needs**:
-<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
+
 The indicator values for both forests and semi-natural meadow habitats are low, indicating considerable deviations from the reference condition. There is some uncertainty around the validity of reference level X~100~, which is based on export opinion, and there is a need to develop more reference levels, especially around the critical part of the range around X~60~.
  
 
@@ -182,7 +185,7 @@ The Norwegian monitoring of bumblebees and butterflies (NMBB) is initiated and f
 
 NMBB is designed to be area representative, within the respective habitat types (forest and grasslands) and regions. It uses stratified randomized selection of localities. Localities are selected from a predefined continuous network of survey squares, within which individual transects are then manually placed. Some subjective decisions are made in the definition of habitat criteria and in discarding unpractical survey locations.
 
-### 2.1 Spatial and temporal resolution
+### 2.1 Spatial and temporal resolution and extent
 
 The NMBB program started in 2009 in a subset of south-eastern Norway (counties of Vestfold and Østfold), and was expanded to central Norway (Trøndelag and Møre og Romsdal) in 2010, south-western Norway in 2013 (Rogaland and Vest Agder), and to western Norway (Vestland) in 2022. The spatial resolution aligns with these (as of now) 4 regions, and it is not recommended to downscale the predictions due to the limited number of sampling locations in each region.
 
@@ -190,17 +193,22 @@ There are in total 71 sampling locations as of 2024, divided between the forests
 
 Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
 
-### 2.2 Original units
+### 2.2 Sampling design
+
+A number of 50 m transects are selected from each sampling locality. All butterflues (and bumblebees) are identified along this transect, with 2,5 m buffer to each side. Field work was only done if it ws either above 15 degree C, or less than 60% cloud cover [@öberg2011].
+
+### 2.3 Original units
 
 Original units are number of individuals of each species within a transect, although only presences in transects (as presence frequencies) are used for the indicator calculations.
 
-### 2.3 Additional comments about the dataset
+### 2.4 Instructions for citing, using and accessing data
+
+The version of the data used here is only only stored at NINA, but will be made available upon request. Most of the data is, however, available on GBIF [@dataset].
+
+### 2.5 Additional comments about the dataset
 
 This indicator was developed for the Nature Index of Norway back in 2010 [@öberg2011], and is calculated routinely on a yearly basis (see @åström2024 for the latest report). The indicator is also described in detail [here](https://ninanor.github.io/ecosystemCondition/insect-indicators.html), from where most of the text and code in the current document is taken (often directly).
 
-#### 2.3.1 Instructions for citing, using and accessing data
-
-The version of the data used here is only only stored at NINA, but will be made available upon request. Most of the data is, however, available on GBIF [@dataset].
 
 ## 3. Indicator properties
 
@@ -208,17 +216,26 @@ The version of the data used here is only only stored at NINA, but will be made 
 
 B1 - Compositional state characteristics. This indicator fits here as it describes biotic communities.
 
+#### 3.1.1 Other condition typologies
+
+In the Norwegian *fagsystem [@nybø2017]*, the indicator fits with the *Biologisk mangfold* characteristic.
+
 ### 3.2 Ecosystem condition characteristic
 
 Intakt biotic communities.
 
-### 3.3 Other standards
 
-In the Norwegian *fagsystem [@nybø2017]*, the indicator fits with the *Biologisk mangfold* characteristic.
-
-### 3.4 Collinearities with other indicators
+### 3.3 Collinearities with other indicators
 
 None that are very obvious.
+
+### 3.4 Impact factors
+
+...
+
+### 3.5 Spatial aggregation
+
+...
 
 ## 4. Reference condition and levels
 
@@ -232,7 +249,7 @@ Assessing the current state of insect communities is a complicated task, due to 
 
 For the butterfly indicator, the communities are small enough and well-known enough to identify reference communities by expert opinion. These reference communities specify the expected rate of observing each species. The current rates of observation are then compared to the expected rates. The calculations are further explained below.
 
-We have not specified a value for good ecological condition (X~0~) as of yet, since we lack a straightforward empirical basis to do so. By default then, the values is set to 0.6 , following the general framework.
+We have not specified a value for good ecological condition (X~60~) as of yet, since we lack a straightforward empirical basis to do so. By default then, the values is set to 0.6 , following the general framework.
 
 The indicator summarize the state of a butterfly community by estimating the difference from a reference community. Formally, the community indicator (CI) is expressed as the relative change of the community from a state of reference (SR), were the change is calculated by a state of change (SC).
 
@@ -258,6 +275,17 @@ The reference levels are the unique to each region. They reflect the assumed *me
 
 ## 5. Uncertainties
 
+
+### 5.1 General uncertainties
+
+The spatial sampling is limited in space, and we are exptrapolating quite a lot when we say that data from one region is representativ for that entire region. 
+
+Another source for uncertainty is the definition of the reference community, which is based on expert opinion an not validated empirically. 
+Also, the assumption that 40% deviation from the reference level X~100~ represents a clear shift or transition from good to bad or deteriorated state, is very arbitrary and in need of some empirical validation.
+
+
+### 5.2 Reported uncertainties
+
 The indicator values are estimated with uncertainty in the sense of spatial variation, by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples. The uncertainties for indicator values are constituted by a distribution of discrete values, and therefore we only provide confidence intervals and not a standard deviation.
 
 ## 6. References
@@ -278,8 +306,9 @@ We here import a shape file with the regional delineations used in this monitori
 ```{r}
 #| eval: false
 
-# Path to counties pre 2020 merge
-path <- here("indicators/NO_BFLY_001/data/Basisdata_0000_Norge_25833_Fylker2019_FGDB.gdb")
+# This chunk writes regions.rds
+# Path to counties pre 2020 merge. Data no longer available.
+path <- here("data/Basisdata_0000_Norge_25833_Fylker2019_FGDB.gdb")
 
 # print layer names
 #st_layers(path)
@@ -335,7 +364,7 @@ counties4 <- counties3 |>
 
 # Take out the marine areas
 # import outline of Norway
-nor2 <- sf::st_read(here::here("data/outlineOfNorway_EPSG25833.gpkg"), quiet = T)
+nor2 <- sf::st_read(here("data/outlineOfNorway_EPSG25833.gpkg", quiet = T))
 # remove marine areas
 counties <- sf::st_intersection(counties4, nor)
 
@@ -343,13 +372,13 @@ tm_shape(counties) +
   tm_polygons(col = "Region") 
 
 # Save
-saveRDS(counties, here::here("indicators/NO_BFLY_001/data/regions.rds"))
+saveRDS(counties, here("data/regions.rds"))
 ```
 
 ```{r fig-regions}
 #| fig-cap: 'Regions in Norway'
 
-readRDS(here::here("indicators/NO_BFLY_001_002/data/regions.rds")) -> counties
+readRDS(here("data/regions.rds")) -> counties
 tm_shape(counties) + 
   tm_polygons(col = "Region") +
   tm_layout(legend.position = c("right", "bottom"))
@@ -381,7 +410,7 @@ Here I illustrate how to connect to the database. Since the database is only acc
 ```{r connect}
 #| eval: false
 # get secret username and password. I just keep mine in a local .R file that I also put in the gitignore file.
-source(here::here("_pw.R"))
+source(here("R/_pw.R"))
 # connect
 bombLepiSurv::humlesommerfConnect(
   username = BOMB_USER,
@@ -401,15 +430,15 @@ habitat = "Gressmark",
       mutate_if(bit64::is.integer64, as.numeric)
 
 ggsave(
-  here::here("indicators/NO_BFLY_001_002/img/fig_allLepiGressmark2024.png"),
+  here("img/fig_allLepiGressmark2024.png"),
   surveyBarplot(allLepiGressmark2024),
   width = 10,
   height = 10)
 ```
 
-```{r fig-allLepiGressmark2023}
+```{r fig-allLepiGressmark2024}
 #| fig-cap: 'Butterflies in grasslands 2024.'
-knitr::include_graphics(here::here("indicators/NO_BFLY_001_002/img/fig_allLepiGressmark2024.png"))
+knitr::include_graphics(here("img/fig_allLepiGressmark2024.png"))
 ```
 
 Indicator data is already processed and we can get them from the R package like this:
@@ -664,3 +693,20 @@ tibble(
 ) |>
   kable()
 ```
+
+## 11. Export file
+
+...
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
