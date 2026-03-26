@@ -21,11 +21,11 @@ status_badge <- function(type) {
 
 
 # Create and print version badge
-version_badge <- function(my_version_number, folder_name){
+version_badge <- function(my_version_number){
 
   version_badge_name <- paste0("badge_version_", my_version_number, ".svg")
 
-  version_badge_path <- here::here("indicators", folder_name, "img", version_badge_name)
+  version_badge_path <- here::here("img", version_badge_name)
 
   dir_to_create <- dirname(version_badge_path)
   if (!dir.exists(dir_to_create)) {
@@ -82,6 +82,10 @@ open_science_badge <- function(openScienceBadge = none) {
 
 }
 
+license_badge <- function(){
+  image_link("https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_gplv3.svg",
+   "https://www.gnu.org/licenses/gpl-3.0")
+}
 
 # function to get the current file path
 # irrespective of rendering or being in interactive mode
