@@ -2,10 +2,6 @@
 title: "Ptarmigan"
 subtitle: |
   [NO_PTAR_001]
-# delete the line with the second indicatorID (line 5) 
-# if it's not relevant for you.
-# In the parentheses you can add a word to distinguish multiple indicators 
-# from each other, for example the ecosystem type that they cover
 indicatorID: 
   - NO_PTAR_001
 indicatorName: 
@@ -15,20 +11,19 @@ country: Norway
 continent: Europe
 ECT: B1 - Compositional state characteristics
 Realm: 
-  - write realm here # e.g. Freshwater (F)
+  - Terrestrial (T)
 Biome: 
-  - write biome here # e.g. F1 Rivers and streams biome
+  - T6 Polar-alpine (cryogenic) biome
 Ecosystem: 
-  - write ecosystem here # e.g. F1.3 Freeze-thaw streams
-yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
-yearLastUpdate: 2025
-status: incomplete # options are complete, incomplete, or deprecated
-Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: Comment here # Describe briefly how this version differs from earlier versions 
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
-# Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
-Normalised: # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Describe the aggregation using the standrdaise terminology # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+  - NA
+yearAdded: 2026
+yearLastUpdate: 2026
+status: complete
+Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+VersionComment: First version on ecRxiv, but this indicator is already pubslised and described in the Norwegian Nature Index
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_PTAR_001
+Normalised: Yes
+SpatialAggregationPathway: Aggregate (population model, county level) - [Scale - Trunkate] - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -40,19 +35,16 @@ format:
 execute: 
   cache: true
 author:
-  - name: John Doe              # Enter name
-    email: john.doe@example.no  # Enter email
+  - name: Anders Kolstad
+    email: anders.kolstad@nina.no
     affiliations:
       - id: myID
-        name: A Fictive Institute for Nature Research # Enter affiliations
-  - name: First Last              #  Enter subsequent authors like this, or remove if not relevant
-    affiliations:
-      - ref: myID               # To reuse affiliations reference the id like this
-AuthorList: Doe, J. and Last, F.  
-date: January 1, 1901 # Enter date
-data_availability: none
-code_reproducibility: none
-open_science_badge: none
+        name: The Norwegian Institute for Nature Research (NINA)
+AuthorList: Kolstad, A.
+date: April 16, 2026
+data_availability: silver
+code_reproducibility: silver
+open_science_badge: silver
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -60,12 +52,9 @@ code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
-hide: TRUE # Change to FALSE
+hide: FALSE
+bibliography: references.bib
 ---
-
-<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
-
-<!--# Load all you dependencies here -->
 
 ```{r setup}
 #| include: false
@@ -170,7 +159,7 @@ meta |>
 ## Log
 
 <!--# Update this logg with short messages for each update -->
-- 01 Jan. 1901 - Original PR
+- 16 Apr. 2026 - Original PR
 :::
 
 
@@ -187,38 +176,55 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 1. **Background and rationale**:
 <!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
 What are the main anthropogenic impact factors? -->
+Rock ptarmigan (_Lagopus muta_) is a herbivourous alpine bird that is found throughout the Norwegian mountain range where it lives year round. It responds to anthropogenic disturbance, including climate change, through their effects on both survival and reporoduction. We also have a relatively good amount of data and knowledge about this species and the different populations. This combines to make ptarmigan a suitable indicator for ecosystem condition in Norwegian mountains. The species is also a popular game bird.
+
 2. **Methods**:
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+
+The ptarmigan population size is estimated from a statistical model, using hunting statistics as the main data source, and with the assumption that 10% of the population is shot each year. This value is then normalised based on a reference level, which is an expert-assessed population estimate based on known breeding density and the amount of suitable habitat. 
+
+The indicator is developed in the work with [Norwegian Nature Index](https://www.naturindeks.no/Indicators/fjellrype) where the methods are described in full. 
+
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
-An indicator value of 1 signifies ...
-Values decreasing toward zero reflect...
+An indicator value of 1 means that the ptamigan is as numerous, or more, as we expect under the reference condition.
+Values decreasing toward zero indicates that the average county-level populaton size is decreasing.
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-
+...coming later...
 
 
 ## 2. About the underlying data
 
 <!--# Give a general introduction the datasets you have used, and provide more specific details in the sub-chapters.  -->
+The data comes from hunting statistics (harvest bag data) published by SSB (Statistics Norway). The procedure to download the data is described [here](https://naturindeks.nina.no/docs/24dda0ba-5855-4131-9168-d874980ec6aa.pdf). 
 
 ### 2.1 Spatial and temporal resolution and extent
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
+Indicator values are available for the assessment year that have been used in the _Natureineksen_: 1990, 2020, 2010, 2011, 2012, 2013, 2014, 2019 and 2024. To produce indicator estimates for these years, one uses the average of 2-3 year. For the year 2024, data from two hunting seasons were included (2022/23-2023/24).
+
+The indicator is calculated for all counties in Norway. 
 
 ### 2.2 Sampling design
 
 <!-- How was the data sampled? Describe potential sampling biases -->
 
+The data originates from hunters when they report their catches, something they are required to do. The sampling/hunting effort is not known, and assumed to be stable. This is a rather big assumption.  
+
 ### 2.3 Original units
 
 <!--# What are the original units for the most relevant  variables in the data-->
-
+The original units of the raw data is the number of individuals. The data are assigned to spatial units, so this can easily be turned into measures of density.
 
 ### 2.4 Instructions for citing, using and accessing data
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
+The underlying data (hunting statistics) are available via SSB, but not in a prepared format (see [here](https://naturindeks.nina.no/docs/24dda0ba-5855-4131-9168-d874980ec6aa.pdf)).
+
+Indicator point estimates and quantiles, for different geographic units, are freely available [nater_ni2025_2025].
+
 
 ### 2.5 Additional comments about the dataset
 
@@ -288,6 +294,7 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 ## 5. Uncertainties
 ### 5.1 General uncertainties
 <!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
+There are obvious limitations to using havest bag data, rather than more standardised monitoring data. This is elaborated in the [indicator documentation on Naturindeksen](https://naturindeks.nina.no/docs/24dda0ba-5855-4131-9168-d874980ec6aa.pdf). However, we feel the hunting data still has considerable value and that it is indeed suitable for this purpose of estimating population sizes. 
 
 ### 5.2 Reported uncertainties
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
