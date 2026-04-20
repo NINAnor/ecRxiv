@@ -72,7 +72,7 @@ conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
-
+library(NIcalc)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -269,6 +269,8 @@ Ptarmigan is sensitive to several antropogenic pressures, especially climate cha
 
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
+
+
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
@@ -318,9 +320,57 @@ However, the variation in the mean is defined by the spatial variation only, and
 
 <!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
 
-### 7.1 Dataset A
+### 7.1 Naturindeks
 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
+
+I get the indicator values, cleaned, normalised and aggregated, from the NIcalc package and the NI database. 
+I use NIcalc::calculateIndex() to create an index from a single indicator. 
+This forces NIcalc to output 1000 draws regardless of the indicator using
+a custum distribution or if the uncertainty is give by just the point estimate,
+the quartiles and the distribution family.
+
+```{r getData}
+#| eval: false
+
+# password is hidden for now
+source(here::here("R", "_pw.R"))
+
+# Import data set
+ptarImport <- NIcalc::importDatasetApi(username = myUser,password = myPwd,
+                        eco = NULL, indic = c("Fjellrype"),
+                        year = c("2010","2014","2019", "2024"))
+# Assemble
+ptarInput <- NIcalc::assembleNiObject(inputData = ptarImport,
+                        predefNIunits = c(allArea = T, parts = T, counties = F),
+                        indexType = "thematic")
+# Calculate index for amphibians 
+ptarIndex <- NIcalc::calculateIndex(
+  x = ptarInput, 
+  nsim = 1000,
+  fids = FALSE, # use fidelity to the ecosystem in the weigthing 
+  tgroups = FALSE, # Use weighting based on trophic groups
+  keys = "ignore", # What do do with key indicators 
+  w = 0, # Controls how much influence key indicators get relative to others. Only used in one specific mode (keys = "specialWeight")
+  awbs = TRUE, # Use area-weighted BSunits. BS units are municipalities or counties, and the area is the total area, not the mountain area.
+  awBSunit = "Fjell")
+
+# I checked the outputs and NIunitWeights corresponds to the area of mountains in each municipality.
+# I cannot change the mountain area used in the weighting. This is not ideal since we now have a new moutain definition,
+# but I'ts probably not adding a big systematic bias either.
+
+saveRDS(ptarIndex, here::here("data/_temp.RDS"))
+```
+
+```{r readDat}
+ptarIndex <- readRDS(here::here("data/_temp.RDS"))
+```
+
+```{r}
+hist(ptarIndex$wholeArea$'2024'$index )
+# The point estimate (median) and the 95% CI math those on the Naturindeks website pretty close. 
+```
+
 
 ### 7.2. Dataset B
 
