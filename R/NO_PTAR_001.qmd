@@ -152,6 +152,7 @@ meta |>
   kable()
 
 ```
+
 :::
 
 ::: {.callout-tip collapse="true"}
@@ -410,7 +411,7 @@ do not plot the variable values against the indicator values.
 
 The indicator does not uses scaling and truncation, but not any transformation (i.e. there's a linear relationship between the variable values and the indicator values within the zero to 1 range). 
 
-Now we prepare the data for export. We do thus using a generic function.
+Now we prepare the data for export (@tbl-exp). We do thus using a generic function.
 
 ```{r NIprepare_export}
 create_output <- function(dat) {
@@ -438,9 +439,15 @@ create_output <- function(dat) {
 
 
 ```{r export}
+#| eval: false
 ptarExport <- create_output(dat = ptarIndex)
+write.csv(ptarExport, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
+```
 
-write.csv(ptarExport, here::here("data/results_NO_PTAR_001_v1.0.0.csv"))
+```{r tbl-exp}
+#| tbl-cap: 'Table showing the first 6 (out of 1000) rows from the exported indicator values file.'
+ptarExport <- read.csv(here::here("data/results_NO_PTAR_001_v1.0.0.csv"))
+head(ptarExport)
 ```
 
 ## 10. Results
@@ -453,12 +460,51 @@ This is typically where people will harvest data from, so make sure to include a
 
 -->
 
-```{r results}
-
+```{r tbl-results}
+#| warning: false
+#| message: false
+#| tbl-cap: 'Indicator values and uncertainty estimates for NO_PTAR_001.'
 ptarResults <- ptarExport |>
-  pivot
+  pivot_longer(cols = everything(), names_to = "name", values_to = "value") |>
+  separate(col = name, into = c("Region", "Year"), sep = "_") |>
+  group_by(Region, Year) |>
+  summarise(
+    median = round(median(value), 2),
+    p_025 = round(quantile(value, probs = 0.0025), 2),
+    p_25 = round(quantile(value, probs = 0.25), 2),
+    p_75 = round(quantile(value, probs = 0.75), 2),
+    p_975 = round(quantile(value, probs = 0.975), 2),
+  ) |>
+  add_column(
+    ECT = "B1",
+    Indicator = "Ptarmigan",
+    Ecosystem = "Mountains",
+    ID = "NO_PTAR_001"
+  )
+
+ptarResults |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = Region,
+    Ecosystem,
+    "Closing year" = Year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  kable()
+```
 
 
+```{r}
+ptarResults |>
+  ggplot(aes(x = as.numeric(Year), y = median, group = Region, colour = Region)) +
+  geom_line() +
+  geom_point()
 ```
 
 ## 11. Export file
