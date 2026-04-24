@@ -5,7 +5,7 @@ subtitle: |
 indicatorID: 
   - NO_PTAR_001
 indicatorName: 
-  - Ptarmigan
+  - Ptarmigan (Fjellrype)
 folderName: NO_PTAR_001
 country: Norway
 continent: Europe
@@ -183,7 +183,7 @@ Rock ptarmigan (_Lagopus muta_) is a herbivourous alpine bird that is found thro
 
 The ptarmigan population size is estimated from a statistical model, using hunting statistics as the main data source, and with the assumption that 10% of the population is shot each year. This value is then normalised based on a reference level, which is an expert-assessed population estimate based on known breeding density and the amount of suitable habitat. 
 
-The indicator is developed in the work with [Norwegian Nature Index](https://www.naturindeks.no/Indicators/fjellrype) where the methods are described in full. 
+The indicator is developed in the work with Norwegian Nature Index [@nater_naturindeks_2025]. The methods are are described in full on the [Nature index web site]([Norwegian Nature Index](https://www.naturindeks.no/Indicators/fjellrype). 
 
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
@@ -276,6 +276,7 @@ Ptarmigan is sensitive to several antropogenic pressures, especially climate cha
 ### 4.1 Reference condition
 
 <!--# Define the reference condition (or refer to where it is defined). Note the distinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
+The reference condition is a moutain ecosystem with minimal human impact and a climate similar to the period 1961-1990 [@nybo_fagsystem_2017].
 
 ### 4.2 Reference levels
 
@@ -289,6 +290,11 @@ Why was the current option chosen and how were the reference levels quantified? 
 
  -->
 
+X~100~ is defined based on the predicted number of ptarmigan individuals based on a statistical model. This value varies between counties.
+
+X~0~ is defined as a complete absence of ptarmigan.
+
+X~60~ is not specified and defaults to 60% of the X~100~ value. 
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -297,6 +303,8 @@ Why was the current option chosen and how were the reference levels quantified? 
 Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
 
  -->
+ The reference values vary with counties, and normalisation of variable values should be done after aggregating those first to the same county scale. 
+
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
@@ -307,7 +315,7 @@ There are obvious limitations to using havest bag data, rather than more standar
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
 However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
 
-
+The reported uncertainties reflect both the uncertainty in the reference levels (something which is accomodated in the naturindeks workflow), the uncertainty in the county estimates, and when spatially aggregating, also the spatial variation between counties.  
 
 ## 6. References
 
@@ -324,14 +332,17 @@ However, the variation in the mean is defined by the spatial variation only, and
 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
 
-I get the indicator values, cleaned, normalised and aggregated, from the NIcalc package and the NI database. 
+I get the indicator values, cleaned, normalised and aggregated, from the NIcalc package and the NI database (@fig-hist). 
+The variable values and reference values are not imported. 
 I use NIcalc::calculateIndex() to create an index from a single indicator. 
-This forces NIcalc to output 1000 draws regardless of the indicator using
-a custum distribution or if the uncertainty is give by just the point estimate,
-the quartiles and the distribution family.
+This forces NIcalc to output 1000 draws regardless of the indicator uses
+a custum distribution or if the uncertainty is reported by just the point estimate,
+the quartiles and the distribution family (as in this case).
 
 ```{r getData}
 #| eval: false
+#| code-fold: true
+#| code-summary: 'Import data from Naturindeks'
 
 # password is hidden for now
 source(here::here("R", "_pw.R"))
@@ -359,26 +370,27 @@ ptarIndex <- NIcalc::calculateIndex(
 # I cannot change the mountain area used in the weighting. This is not ideal since we now have a new moutain definition,
 # but I'ts probably not adding a big systematic bias either.
 
-saveRDS(ptarIndex, here::here("data/_temp.RDS"))
+saveRDS(ptarIndex, here::here("data/ptarIndex_data.RDS"))
 ```
 
 ```{r readDat}
-ptarIndex <- readRDS(here::here("data/_temp.RDS"))
+#| echo: false
+ptarIndex <- readRDS(here::here("data/ptarIndex_data.RDS"))
 ```
 
-```{r}
+```{r fig-hist}
+#| fig-cap: 'Histogram of the aggregated indicator values for Norway.'
 hist(ptarIndex$wholeArea$'2024'$index )
 # The point estimate (median) and the 95% CI math those on the Naturindeks website pretty close. 
 ```
 
 
-### 7.2. Dataset B
-
-<!--# Repeat the process for each dataset -->
 
 ## 8. Spatial units
 
 <!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+
+We treat the Norwegian counties as BSunits, and the five geographic regions in Norway (east, south, west, central, north) as the Ecosystem assets. The Ecosystem accounting Area is the whole of mainland Norway.
 
 ## 9. Analyses
 
@@ -392,6 +404,45 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 -->
 
+The data imported from Naturindeks contains the indicator values.
+We have not imported the variable or reference values, and therefore 
+do not plot the variable values against the indicator values.
+
+The indicator does not uses scaling and truncation, but not any transformation (i.e. there's a linear relationship between the variable values and the indicator values within the zero to 1 range). 
+
+Now we prepare the data for export. We do thus using a generic function.
+
+```{r NIprepare_export}
+create_output <- function(dat) {
+  regions <- names(dat)
+
+  out <- list()
+
+  for (region in regions) {
+    years <- names(ptarIndex[[region]])
+
+    for (year in years) {
+      col_name <- paste(region, year, sep = "_")
+
+      # Optional renaming: wholeArea becomes All
+      col_name <- gsub("^wholeArea_", "All_", col_name)
+
+      out[[col_name]] <- dat[[region]][[as.character(year)]][["index"]]
+    }
+  }
+
+  as_tibble(out)
+}
+
+```
+
+
+```{r export}
+ptarExport <- create_output(dat = ptarIndex)
+
+write.csv(ptarExport, here::here("data/results_NO_PTAR_001_v1.0.0.csv"))
+```
+
 ## 10. Results
 
 <!--# 
@@ -401,6 +452,14 @@ Repeat the final results here. Typically this is a map or table of indicator val
 This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
 
 -->
+
+```{r results}
+
+ptarResults <- ptarExport |>
+  pivot
+
+
+```
 
 ## 11. Export file
 
