@@ -54,6 +54,7 @@ code-links:
         href: https://github.com/NINAnor/ecRxiv
 hide: FALSE
 bibliography: references.bib
+csl: ambio.csl
 ---
 
 ```{r setup}
@@ -73,6 +74,7 @@ conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
 library(NIcalc)
+library(gghighlight)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -181,19 +183,26 @@ Rock ptarmigan (_Lagopus muta_) is a herbivourous alpine bird that is found thro
 
 2. **Methods**:
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
-
-The ptarmigan population size is estimated from a statistical model, using hunting statistics as the main data source, and with the assumption that 10% of the population is shot each year. This value is then normalised based on a reference level, which is an expert-assessed population estimate based on known breeding density and the amount of suitable habitat. 
-
-The indicator is developed in the work with Norwegian Nature Index [@nater_naturindeks_2025]. The methods are are described in full on the [Nature index web site]([Norwegian Nature Index](https://www.naturindeks.no/Indicators/fjellrype). 
+The ptarmigan population size is estimated from a statistical model, using hunting statistics as the main data source, and with the assumption that 10% of the population is shot each year. This value is then normalised based on a reference level, which is an expert-assessed population estimate based on known breeding density and the amount of suitable habitat. The indicator is developed in the work with the Norwegian Nature Index [@nater_naturindeks_2025]. The methods are are described in full on the [Nature index web site](https://www.naturindeks.no/Indicators/fjellrype). 
 
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
-An indicator value of 1 means that the ptamigan is as numerous, or more, as we expect under the reference condition.
+An indicator value of 1 means that the ptamigan is as numerous, or more, than what we expect under the reference condition.
 Values decreasing toward zero indicates that the average county-level populaton size is decreasing.
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-...coming later...
+The indicator value for 2024 for Norway as a whole is 0.35	(95% CI = 0.15 - 0.52), which indicates a relatively severe deviation from the reference condition. The development over time is showing a negative trend. 
+
+## 1.2 Native language summary - Norwegian
+
+1. **Bakgrunn og begrunnelse**: Rype (_Lagopus muta_) er en hønsefugl som finnes over hele den norske fjellkjeden, hvor den lever hele året. Arten er følsom på menneskeskapte forstyrrelser, inkludert klimaendringer, gjennom deres effekter på både overlevelse og reproduksjon. Vi har relativt gode mengder data og kunnskap om denne arten og de ulike bestandene. Dette gjør rypa til en egnet indikator for økologisk tilstand i norske fjellområder. Arten er også en populær jaktfugl og reguleres delvsis gjennom kvotesettingen.
+
+2. **Metoder**: Bestandsstørrelsen av rype estimeres ved hjelp av en statistisk modell, der jaktstatistikk er hoveddatakilden. Det brukes en antakelse om at 10 % av bestanden skytes hvert år. Denne verdien normaliseres deretter basert på en referanseverdi, som er et ekspertvurdert bestandsestimat basert på kjent hekketetthet og mengden egnet habitat. Indikatoren er utviklet i arbeidet med Naturindeksen [@nater_naturindeks_2025]. Metodene er beskrevet i detalj på [Naturindeksens nettsider](https://www.naturindeks.no/Indicators/fjellrype).
+
+3. **Tolkning**: En indikatorverdi på 1 betyr at rypebestanden er like stor eller større enn det vi forventer under referansetilstanden. Verdier som nærmer seg null indikerer at den gjennomsnittlige bestandsstørrelsen på fylkesnivå er avtagende.
+
+4. **Resultater og utviklingsbehov**: Indikatorverdien for 2024 for Norge er 0,35 (95 % KI = 0,15–0,52), noe som indikerer et relativt stort avvik fra referansetilstanden. Utviklingen over tid viser en negativ trend.
 
 
 ## 2. About the underlying data
@@ -204,9 +213,9 @@ The data comes from hunting statistics (harvest bag data) published by SSB (Stat
 ### 2.1 Spatial and temporal resolution and extent
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
-Indicator values are available for the assessment year that have been used in the _Natureineksen_: 1990, 2020, 2010, 2011, 2012, 2013, 2014, 2019 and 2024. To produce indicator estimates for these years, one uses the average of 2-3 year. For the year 2024, data from two hunting seasons were included (2022/23-2023/24).
+Indicator values are available for the different assessment years in  _Naturindeksen_: 1990, 2020, 2010, 2011, 2012, 2013, 2014, 2019 and 2024. To produce indicator estimates for these years, one uses the average over 2-3 year. For the year 2024, data from two hunting seasons were included (2022/23-2023/24).
 
-The indicator is calculated for all counties in Norway. 
+The indicator is calculated for all counties in Norway. Here we report the values for five geographic regions. 
 
 ### 2.2 Sampling design
 
@@ -217,7 +226,7 @@ The data originates from hunters when they report their catches, something they 
 ### 2.3 Original units
 
 <!--# What are the original units for the most relevant  variables in the data-->
-The original units of the raw data is the number of individuals. The data are assigned to spatial units, so this can easily be turned into measures of density.
+The original units of the raw data is the number of individuals. The data are assigned to spatial units, so this could be turned into measures of density.
 
 ### 2.4 Instructions for citing, using and accessing data
 
@@ -270,6 +279,7 @@ Ptarmigan is sensitive to several antropogenic pressures, especially climate cha
 
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
+The hunting statistics are aggregated to county level using a population model. There the variable value is normalised by scaling and truncating against X~100~ and X~0~. The indicator values are then resampled to five geographic regions, and then to Norway, with a sampling weight proportional to the mountain area in each region or area. 
 
 
 ## 4. Reference condition and levels
@@ -335,9 +345,9 @@ The reported uncertainties reflect both the uncertainty in the reference levels 
 
 I get the indicator values, cleaned, normalised and aggregated, from the NIcalc package and the NI database (@fig-hist). 
 The variable values and reference values are not imported. 
-I use NIcalc::calculateIndex() to create an index from a single indicator. 
-This forces NIcalc to output 1000 draws regardless of the indicator uses
-a custum distribution or if the uncertainty is reported by just the point estimate,
+I use ´NIcalc::calculateIndex()´ to create an index from a single indicator. 
+This forces NIcalc to output 1000 draws regardless of whether the indicator uses
+a custom distribution or if the uncertainty is reported by just the point estimate,
 the quartiles and the distribution family (as in this case).
 
 ```{r getData}
@@ -380,7 +390,8 @@ ptarIndex <- readRDS(here::here("data/ptarIndex_data.RDS"))
 ```
 
 ```{r fig-hist}
-#| fig-cap: 'Histogram of the aggregated indicator values for Norway.'
+#| code-summary: 'Simple histogram'
+#| fig-cap: 'Histogram of some aggregated indicator values for Norway.'
 hist(ptarIndex$wholeArea$'2024'$index )
 # The point estimate (median) and the 95% CI math those on the Naturindeks website pretty close. 
 ```
@@ -391,7 +402,7 @@ hist(ptarIndex$wholeArea$'2024'$index )
 
 <!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
 
-We treat the Norwegian counties as BSunits, and the five geographic regions in Norway (east, south, west, central, north) as the Ecosystem assets. The Ecosystem accounting Area is the whole of mainland Norway.
+We treat the Norwegian counties as BSunits, and the five geographic regions in Norway (east, south, west, central, north) as the Ecosystem assets. The Ecosystem accounting Area is the alpine areas within the whole of mainland Norway.
 
 ## 9. Analyses
 
@@ -409,11 +420,12 @@ The data imported from Naturindeks contains the indicator values.
 We have not imported the variable or reference values, and therefore 
 do not plot the variable values against the indicator values.
 
-The indicator does not uses scaling and truncation, but not any transformation (i.e. there's a linear relationship between the variable values and the indicator values within the zero to 1 range). 
+The indicator uses scaling and truncation, but not any transformation (i.e. there's a linear relationship between the variable values and the indicator values within the zero to 1 range). 
 
 Now we prepare the data for export (@tbl-exp). We do thus using a generic function.
 
 ```{r NIprepare_export}
+#| code-summary: 'Function'
 create_output <- function(dat) {
   regions <- names(dat)
 
@@ -440,11 +452,13 @@ create_output <- function(dat) {
 
 ```{r export}
 #| eval: false
+#| #| code-summary: 'Export data'
 ptarExport <- create_output(dat = ptarIndex)
 write.csv(ptarExport, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
 ```
 
 ```{r tbl-exp}
+#| code-summary: 'Print dataframe'
 #| tbl-cap: 'Table showing the first 6 (out of 1000) rows from the exported indicator values file.'
 ptarExport <- read.csv(here::here("data/results_NO_PTAR_001_v1.0.0.csv"))
 head(ptarExport)
@@ -500,72 +514,29 @@ ptarResults |>
 ```
 
 
-```{r}
+```{r fig-trend}
+#| fig-cap: 'Trend in indicator values over time for NO_PTAR_001. The indicator values are for the national scale (mountains on mainland Norway), with regional trend lines shown as unlabeled grey lines. Errorbars are 95% confidence intervals.'
+#| warning: false
 ptarResults |>
-  ggplot(aes(x = as.numeric(Year), y = median, group = Region, colour = Region)) +
-  geom_line() +
-  geom_point()
+  ggplot(aes(x = as.numeric(Year), y = median, colour = Region)) +
+  geom_line(linetype = 2) +
+  gghighlight::gghighlight(Region == "All", use_direct_label =F) +
+  geom_point(size = 10) +
+  gghighlight::gghighlight(Region == "All", unhighlighted_params = list(size = 2), use_direct_label =F) +
+  geom_errorbar(aes(ymin = p_025, ymax = p_975), width = 0.2) +
+  theme_bw(base_size = 15) +
+  labs(x = "Year", y = "Indicator value") +
+  guides(colour = "none") +
+  scale_x_continuous(breaks = c(2010, 2014, 2019, 2024))
 ```
 
 ## 11. Export file
 
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
-
-```{r export}
-#| eval: false
-```
-
+The indicator values are exported and can be found under `data/results_NO_PTAR_001_v1.0.0.csv`.
 
 ## 12. Author contributions
 
-<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
-
-**CRediT statement**
-
-* Conceptualization: [Initials]
-* Methodology: [Initials]
-* Data curation: [Initials]
-* Formal analysis: [Initials]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [Initials]
-* Visualization: [Initials]
-* Resources: [Initials]
-* Writing – original draft: [Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
-
-
-**MeRIT attribution**
-
-This part supplements the CRediT statement with more granularity for method section.
-
-**Study design**
-The study was designed by [AB, CD].
-
-**Data collection / fieldwork**
-Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
-
-**Laboratory procedures**
-DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
-
-**Data processing**
-Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
-
-**Statistical analysis**
-All analyses were conducted by [CD] using [software], with verification by [AB].
-
-**Visualization**
-Figures were produced by [KL], with input from [CD].
-
-**Reproducibility**
-All code was reviewed and validated by [AB, CD].
+Not relevant, as this is the work of a single author. I would, however, like to acknowledge the work of those that created the indicator on _Naturindeks_ [@nater_naturindeks_2025].
 
 
 
