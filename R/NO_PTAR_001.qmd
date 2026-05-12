@@ -5,7 +5,9 @@ subtitle: |
 indicatorID: 
   - NO_PTAR_001
 indicatorName: 
-  - Ptarmigan (Fjellrype)
+  - Ptarmigan
+verbatimName: 
+  - Fjellrype # the indicator name that us used in the native language
 folderName: NO_PTAR_001
 country: Norway
 continent: Europe
@@ -16,6 +18,7 @@ Biome:
   - T6 Polar-alpine (cryogenic) biome
 Ecosystem: 
   - NA
+verbatimEcosystem: Fjell
 yearAdded: 2026
 yearLastUpdate: 2026
 status: complete
@@ -76,6 +79,8 @@ pull<-dplyr::pull
 library(NIcalc)
 library(gghighlight)
 knitr::opts_chunk$set(echo = TRUE)
+#install.packages('logrittr', repos = 'https://guillaumepressiat.r-universe.dev')
+library(logrittr)
 ```
 
 ```{r source}
@@ -326,7 +331,7 @@ There are obvious limitations to using havest bag data, rather than more standar
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
 However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
 
-The reported uncertainties reflect both the uncertainty in the reference levels (something which is accomodated in the naturindeks workflow), the uncertainty in the county estimates, and when spatially aggregating, also the spatial variation between counties.  
+The reported uncertainties reflect both the uncertainty in the reference levels (something which is accommodated in the naturindeks workflow), the uncertainty in the county estimates, and when spatially aggregating, also the spatial variation between counties.  
 
 ## 6. References
 
@@ -343,17 +348,20 @@ The reported uncertainties reflect both the uncertainty in the reference levels 
 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
 
-I get the indicator values, cleaned, normalised and aggregated, from the NIcalc package and the NI database (@fig-hist). 
-The variable values and reference values are not imported. 
-I use ´NIcalc::calculateIndex()´ to create an index from a single indicator. 
-This forces NIcalc to output 1000 draws regardless of whether the indicator uses
-a custom distribution or if the uncertainty is reported by just the point estimate,
-the quartiles and the distribution family (as in this case).
+In the Naturindeks database I can get indicator values directly, like this:
 
 ```{r getData}
 #| eval: false
 #| code-fold: true
 #| code-summary: 'Import data from Naturindeks'
+
+
+#I get the indicator values, cleaned, normalised and aggregated, from the NIcalc package and the NI database (@fig-hist). 
+#The variable values and reference values are not imported. 
+#I use ´NIcalc::calculateIndex()´ to create an index from a single indicator. 
+#This forces NIcalc to output 1000 draws regardless of whether the indicator uses
+#a custom distribution or if the uncertainty is reported by just the point estimate,
+#the quartiles and the distribution family (as in this case).
 
 # password is hidden for now
 source(here::here("R", "_pw.R"))
@@ -381,8 +389,201 @@ ptarIndex <- NIcalc::calculateIndex(
 # I cannot change the mountain area used in the weighting. This is not ideal since we now have a new moutain definition,
 # but I'ts probably not adding a big systematic bias either.
 
-saveRDS(ptarIndex, here::here("data/ptarIndex_data.RDS"))
+#saveRDS(ptarIndex, here::here("data/ptarIndex_data.RDS"))
 ```
+
+However, we will use a slightly different approach where we get the variable values and the reference values from the NI database.
+The reference values have uncertainties attached to them, which we will ignore here.
+The variable values have uncertainties as well, in the form of probability function. 
+
+```{r}
+# password is hidden for now
+source(here::here("R", "_pw.R"))
+
+# Import data set
+ptarImport <- NIcalc::importDatasetApi(
+  username = myUser,
+  password = myPwd,
+  eco = NULL,
+  indic = c("Fjellrype"),
+  year = c("2010", "2014", "2019", "2024")
+)
+
+# Assemble
+ptarAssemble <- NIcalc::assembleNiObject(
+  inputData = ptarImport,
+  predefNIunits = c(allArea = T, parts = T, counties = F),
+  indexType = "thematic"
+)
+```
+
+
+Nå simulerer jeg *n* verdier fra sannsynelighetsfunksjonen til indikatoren. 
+
+First I get the reference values
+
+
+```{r refs}
+x100 <- ptarImport$referenceValues$referenceValues |>
+  select(ICunitId, ICunitName, x100 = expectedValue)
+x100
+```
+
+These are unique to each county (ICunit)
+
+Then we get the variable values as resamples values from a probability distribution.
+Jeg bruker ´tradObs´ der det er en vanlig fordelingsfamilie, og customObs der customDist!= NA. Når distributionFamilyName == NA så er customDistribution != NA.
+
+```{r vars} 
+myYears <- as.character(c(2010, 2014, 2019, 2024))
+obstype <- NULL
+
+for (i in 1:length(myYears)) {
+  obs <- ptarAssemble$indicatorValues[[i]]$distributionFamilyName
+
+  obs[!is.na(obs)] <- "tradObs"
+  obs[is.na(obs)] <- "customObs"
+
+  obstype[[i]] <- obs
+}
+
+allVariableValues <- tibble(ICunitId = NULL, value = NULL, year = NULL)
+
+for (i in 1:length(myYears)) {
+  #print(i)
+  myMat <- NIcalc::sampleObsMat(
+    ICunitId = ptarAssemble$indicatorValues[[i]]$ICunitId,
+    value = ptarAssemble$indicatorValues[[i]]$expectedValue,
+    distrib = ptarAssemble$indicatorValues[[i]]$distributionFamilyName,
+    mu = ptarAssemble$indicatorValues[[i]]$distParameter1,
+    sig = ptarAssemble$indicatorValues[[i]]$distParameter2,
+    customDistribution = ptarAssemble$indicatorValues[[i]]$customDistribution,
+    obsType = obstype[[i]],
+    nsim = 1000
+  )
+  ICunitIds <- row.names(myMat)
+  
+  myMat <-  myMat |>
+    as_tibble() |>
+    add_column(ICunitId = ICunitIds, .before = 1) |>
+    pivot_longer(cols = -any_of("ICunitId")) |>
+    select(-name) |>
+    add_column(year = myYears[i])
+  
+  allVariableValues <- allVariableValues |> 
+    bind_rows(myMat)
+  #assign(paste0("myMat", myYears[i]), myMat)
+}
+```
+
+This is the point in the spatial aggregation where we should normalise against the reference values.
+So let's add inn the X100 values.
+
+```{r}
+allVariableValues <- allVariableValues |>
+  left_join(x100 |> mutate(ICunitId = as.character(ICunitId)), by = join_by(ICunitId))
+```
+
+Then we can normalise also the scatter plot with variables against indicator values.
+
+```{r}
+library(ecTools)
+
+```
+
+
+Then we can aggregate by a weighted resampling from counties to geographic regions, and then to Norway, making sure sample from the the inferential confidence intervals and not the descriptive ones we have now.
+
+Let's first join all the data into one very long dataframe, before we add in the region names and the mountain area for each county.
+
+```{r}
+
+```
+
+```{r getRegNames}
+
+# Radene i denne matrisen er ICunitIDs (fylker). Jeg kan knytte de til navnene til NIunits.
+link <- as.data.frame(ptarAssemble$NIunits) |>
+  select(-wholeArea) %>=%
+  rownames_to_column("BCunit") %>=%
+  pivot_longer(cols = -any_of("BCunit")) %>=%
+  filter(value > 0) %>=%
+  select(-value) %>=%
+  rename(region = name)
+
+anyDuplicated(link$ICunit)
+
+
+link2 <- as.data.frame(ptarAssemble$ICunits) %>=%
+  rename(ICunitID = Fjellrype) |>
+  rownames_to_column("BCunit")
+
+link <- link %>=%
+  left_join(link2, by = join_by(BCunit)) |>
+  distinct(ICunitID, region)
+
+
+#nord <- link$ICunitID[link$region == "N"]
+#midt <- link$ICunitID[link$region == "C"]
+#vest <- link$ICunitID[link$region == "W"]
+#sor <-  link$ICunitID[link$region == "S"]
+#ost <-  link$ICunitID[link$region == "E"]
+
+
+```
+
+
+
+```{r}
+
+# Here are the variable values estimates per region
+regions <- c("N", "C", "W", "S", "E")
+
+varVal <- data.frame(
+  reg = rep(regions, each = length(myYears)),
+  year = rep(myYears, length(regions)),
+  low = NA,
+  med = NA,
+  upp = NA
+)
+
+for (i in regions) {
+  for (n in myYears) {
+    tempMat <- get(paste0("myMat", n))
+    tempMat <- as.data.frame(tempMat)
+    myMatrX <- x100
+
+    if (i == "N") {
+      tempMat <- tempMat[row.names(tempMat) %in% nord, ]
+    }
+    if (i == "C") {
+      tempMat <- tempMat[row.names(tempMat) %in% midt, ]
+    }
+    if (i == "W") {
+      tempMat <- tempMat[row.names(tempMat) %in% vest, ]
+    }
+    if (i == "S") {
+      tempMat <- tempMat[row.names(tempMat) %in% sor]
+    }
+    if (i == "E") {
+      tempMat <- tempMat[row.names(tempMat) %in% ost, ]
+    }
+
+    #   if(i == "N") x100 <- x100[row.names(x100) %in% nord,]
+    #   if(i == "C") x100 <- x100[row.names(x100) %in% midt,]
+    #   if(i == "W") x100 <- x100[row.names(x100) %in% vest,]
+    #   if(i == "S") x100 <- x100[row.names(x100) %in% sor,]
+    #   if(i == "E") x100 <- x100[row.names(x100) %in% ost,]
+
+    varVal[varVal$reg == i & varVal$year == n, 3:5] <-
+      quantile(colSums(tempMat), c(0.025, .5, .975))
+  }
+}
+```
+
+
+
+
 
 ```{r readDat}
 #| echo: false
