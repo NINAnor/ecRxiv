@@ -447,7 +447,7 @@ for (i in 1:length(myYears)) {
   obstype[[i]] <- obs
 }
 
-allVariableValues <- tibble(ICunitId = NULL, value = NULL, year = NULL)
+dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
 
 for (i in 1:length(myYears)) {
   #print(i)
@@ -470,7 +470,7 @@ for (i in 1:length(myYears)) {
     select(-name) |>
     add_column(year = myYears[i])
   
-  allVariableValues <- allVariableValues |> 
+  dat <- dat |> 
     bind_rows(myMat)
   #assign(paste0("myMat", myYears[i]), myMat)
 }
@@ -480,7 +480,7 @@ This is the point in the spatial aggregation where we should normalise against t
 So let's add inn the X100 values.
 
 ```{r}
-allVariableValues <- allVariableValues |>
+dat <- dat |>
   left_join(x100 |> mutate(ICunitId = as.character(ICunitId)), by = join_by(ICunitId))
 ```
 
@@ -489,8 +489,30 @@ Then we can normalise also the scatter plot with variables against indicator val
 ```{r}
 library(ecTools)
 
+ind <- ec_normalise(
+  variable = allVariableValues$value,
+  x100 = allVariableValues$x100
+)
+
+dat <- dat |> add_column(indicator = ind)
 ```
 
+```{r fig-norm}
+#| fig-cap: "Normalisation (scaling and truncation) of variable values into indicator values. The X100 value differs between 15 counties in Norway."
+ec_norm_plot(dat$value, dat$indicator) +
+  facet_wrap(.~dat$ICunitName)
+```
+
+I also export a figure for the Norwegian fact sheet:
+
+```{r}
+ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
+  facet_wrap(.~dat$ICunitName)
+ggsave(here::here("img/norm_plot_facet.png"))
+
+ec_norm_plot(dat$value, dat$indicator, lan = "norsk")
+ggsave(here::here("img/norm_plot.png"))
+```
 
 Then we can aggregate by a weighted resampling from counties to geographic regions, and then to Norway, making sure sample from the the inferential confidence intervals and not the descriptive ones we have now.
 
