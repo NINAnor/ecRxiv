@@ -448,3 +448,118 @@ bootstrap_region_scaled_agg <- function(
 
   return(out)
 }
+
+# MLFA: same scaled-then-aggregated bootstrap as bootstrap_national_scaled_agg,
+# but county non-scaled values use the MLFA ratio (mlfa_num / mlfa_den).
+bootstrap_national_scaled_agg_mlfa <- function(
+  period_data,
+  x0 = 0,
+  x100 = 0.30,
+  county_reference = NULL,
+  n_bootstrap = 1000
+) {
+  bootstrap_results <- numeric(n_bootstrap)
+
+  for (i in seq_len(n_bootstrap)) {
+    boot_sample <- period_data %>%
+      dplyr::slice_sample(n = nrow(period_data), replace = TRUE)
+
+    boot_county <- calculate_mlfa_indicator(boot_sample, fylke_name)
+
+    county_meta <- boot_sample %>%
+      dplyr::distinct(dplyr::across(dplyr::any_of(c("fylke_name", "county_part"))))
+
+    boot_county <- boot_county %>%
+      dplyr::left_join(county_meta, by = "fylke_name")
+
+    if (!is.null(county_reference)) {
+      boot_county <- boot_county %>%
+        dplyr::left_join(county_reference, by = "county_part")
+    } else {
+      boot_county$x100 <- x100
+    }
+
+    boot_county_scaled <- boot_county %>%
+      dplyr::mutate(
+        scaled_value = scale_indicator(indicator_value, x0, x100)
+      )
+
+    boot_national_scaled <- boot_county_scaled %>%
+      dplyr::summarise(
+        scaled_value = sum(scaled_value * total_area, na.rm = TRUE) /
+          sum(total_area, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      dplyr::pull(scaled_value)
+
+    bootstrap_results[i] <- boot_national_scaled
+  }
+
+  list(
+    mean = mean(bootstrap_results, na.rm = TRUE),
+    se = stats::sd(bootstrap_results, na.rm = TRUE),
+    ci_lower = as.numeric(stats::quantile(bootstrap_results, 0.025, na.rm = TRUE)),
+    ci_upper = as.numeric(stats::quantile(bootstrap_results, 0.975, na.rm = TRUE)),
+    q1 = as.numeric(stats::quantile(bootstrap_results, 0.25, na.rm = TRUE)),
+    median = as.numeric(stats::quantile(bootstrap_results, 0.50, na.rm = TRUE)),
+    q3 = as.numeric(stats::quantile(bootstrap_results, 0.75, na.rm = TRUE))
+  )
+}
+
+# MLFA: regional scaled-then-aggregated bootstrap (county ratio → scale → area-weight to region).
+bootstrap_region_scaled_agg_mlfa <- function(
+  period_data,
+  x0 = 0,
+  x100 = 0.30,
+  county_reference = NULL,
+  n_bootstrap = 1000
+) {
+  region_codes <- stats::na.omit(unique(period_data$region_code))
+  res_mat <- matrix(NA_real_, nrow = n_bootstrap, ncol = length(region_codes))
+  colnames(res_mat) <- region_codes
+
+  for (i in seq_len(n_bootstrap)) {
+    boot_sample <- period_data %>%
+      dplyr::slice_sample(n = nrow(period_data), replace = TRUE)
+
+    boot_county <- calculate_mlfa_indicator(boot_sample, fylke_name)
+
+    county_to_region <- boot_sample %>%
+      dplyr::distinct(dplyr::across(dplyr::any_of(c("fylke_name", "county_part", "region_code"))))
+
+    boot_county <- boot_county %>%
+      dplyr::left_join(county_to_region, by = "fylke_name")
+
+    if (!is.null(county_reference)) {
+      boot_county <- boot_county %>%
+        dplyr::left_join(county_reference, by = "county_part")
+    } else {
+      boot_county$x100 <- x100
+    }
+
+    boot_county_scaled <- boot_county %>%
+      dplyr::mutate(scaled_value = scale_indicator(indicator_value, x0, x100))
+
+    boot_region_scaled <- boot_county_scaled %>%
+      dplyr::group_by(region_code) %>%
+      dplyr::summarise(
+        scaled_value = sum(scaled_value * total_area, na.rm = TRUE) /
+          sum(total_area, na.rm = TRUE),
+        .groups = "drop"
+      )
+
+    res_mat[i, match(boot_region_scaled$region_code, region_codes)] <-
+      boot_region_scaled$scaled_value
+  }
+
+  tibble::tibble(
+    region_code = region_codes,
+    mean = apply(res_mat, 2, mean, na.rm = TRUE),
+    se = apply(res_mat, 2, stats::sd, na.rm = TRUE),
+    ci_lower = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.025, na.rm = TRUE)),
+    ci_upper = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.975, na.rm = TRUE)),
+    q1 = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.25, na.rm = TRUE)),
+    median = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.50, na.rm = TRUE)),
+    q3 = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.75, na.rm = TRUE))
+  )
+}
