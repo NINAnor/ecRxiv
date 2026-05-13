@@ -5,7 +5,7 @@ subtitle: |
 indicatorID: 
   - NO_PTAR_001
 indicatorName: 
-  - Ptarmigan
+  - Ptarmigan [Fjellrype]
 verbatimName: 
   - Fjellrype # the indicator name that us used in the native language
 folderName: NO_PTAR_001
@@ -45,7 +45,7 @@ author:
         name: The Norwegian Institute for Nature Research (NINA)
 AuthorList: Kolstad, A.
 date: April 16, 2026
-data_availability: silver
+data_availability: gold
 code_reproducibility: gold
 open_science_badge: gold
 callout-icon: false
@@ -81,6 +81,10 @@ library(gghighlight)
 knitr::opts_chunk$set(echo = TRUE)
 #install.packages('logrittr', repos = 'https://guillaumepressiat.r-universe.dev')
 library(logrittr)
+library(ecTools)
+
+# This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
+# renv::restore()
 ```
 
 ```{r source}
@@ -197,7 +201,7 @@ Values decreasing toward zero indicates that the average county-level populaton 
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-The indicator value for 2024 for Norway as a whole is 0.35	(95% CI = 0.15 - 0.52), which indicates a relatively severe deviation from the reference condition. The development over time is showing a negative trend. 
+The indicator value for 2024 for Norway as a whole is 0.31	(95% CI = 0.0 - 1), which indicates a relatively severe deviation from the reference condition. The development over time is showing a negative trend. The errors are extremely wide, representing large model uncertainties. The 50% CI is 0.12 - 0.58.
 
 ## 1.2 Native language summary - Norwegian
 
@@ -348,56 +352,10 @@ The reported uncertainties reflect both the uncertainty in the reference levels 
 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
 
-In the Naturindeks database I can get indicator values directly, like this:
-
-```{r getData}
-#| eval: false
-#| code-fold: true
-#| code-summary: 'Import data from Naturindeks'
-
-
-#I get the indicator values, cleaned, normalised and aggregated, from the NIcalc package and the NI database (@fig-hist). 
-#The variable values and reference values are not imported. 
-#I use ´NIcalc::calculateIndex()´ to create an index from a single indicator. 
-#This forces NIcalc to output 1000 draws regardless of whether the indicator uses
-#a custom distribution or if the uncertainty is reported by just the point estimate,
-#the quartiles and the distribution family (as in this case).
-
-# password is hidden for now
-source(here::here("R", "_pw.R"))
-
-# Import data set
-ptarImport <- NIcalc::importDatasetApi(username = myUser,password = myPwd,
-                        eco = NULL, indic = c("Fjellrype"),
-                        year = c("2010","2014","2019", "2024"))
-# Assemble
-ptarInput <- NIcalc::assembleNiObject(inputData = ptarImport,
-                        predefNIunits = c(allArea = T, parts = T, counties = F),
-                        indexType = "thematic")
-# Calculate index for amphibians 
-ptarIndex <- NIcalc::calculateIndex(
-  x = ptarInput, 
-  nsim = 1000,
-  fids = FALSE, # use fidelity to the ecosystem in the weigthing 
-  tgroups = FALSE, # Use weighting based on trophic groups
-  keys = "ignore", # What do do with key indicators 
-  w = 0, # Controls how much influence key indicators get relative to others. Only used in one specific mode (keys = "specialWeight")
-  awbs = TRUE, # Use area-weighted BSunits. BS units are municipalities or counties, and the area is the total area, not the mountain area.
-  awBSunit = "Fjell")
-
-# I checked the outputs and NIunitWeights corresponds to the area of mountains in each municipality.
-# I cannot change the mountain area used in the weighting. This is not ideal since we now have a new moutain definition,
-# but I'ts probably not adding a big systematic bias either.
-
-#saveRDS(ptarIndex, here::here("data/ptarIndex_data.RDS"))
-```
-
-However, we will use a slightly different approach where we get the variable values and the reference values from the NI database.
-The reference values have uncertainties attached to them, which we will ignore here.
-The variable values have uncertainties as well, in the form of probability function. 
-
+We download the dataset from the Naturindeks database using the API. 
 ```{r}
-# password is hidden for now
+#| eval: false
+# password is hidden for now, but the plan is to set up a read only guest access. Therefore I upload teh database export to github for now to ensure reproducibility.
 source(here::here("R", "_pw.R"))
 
 # Import data set
@@ -408,7 +366,33 @@ ptarImport <- NIcalc::importDatasetApi(
   indic = c("Fjellrype"),
   year = c("2010", "2014", "2019", "2024")
 )
+saveRDS(ptarImport, here::here("data/ptarImport.rds"))
+```
 
+```{r}
+#| include: false
+
+ptarImport <- readRDS(here::here("data/ptarImport.rds"))
+```
+
+
+## 8. Spatial units
+
+<!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+
+Accorinf to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units. 
+We can think of the counties as ecosystem assets, and mainland Norway as the Ecosystem accounting Area.
+
+## 9. Analyses
+
+Here I use a generic approach to handling dta from the Naturindeks where I get both the variable values and the reference values, separately, from the NI database, and perform the normalisation and spatial aggregation ourselves.
+
+The reference values have uncertainties attached to them, which we will ignore here.
+The variable values have uncertainties as well, in the form of probability function. 
+The uncertainties are from a statistical model, and so we think of them as inferrential uncertainties. 
+
+Here I use an NIcalc function to just prepare and structure the data a little differently.  
+```{r assemble}
 # Assemble
 ptarAssemble <- NIcalc::assembleNiObject(
   inputData = ptarImport,
@@ -418,10 +402,9 @@ ptarAssemble <- NIcalc::assembleNiObject(
 ```
 
 
-Nå simulerer jeg *n* verdier fra sannsynelighetsfunksjonen til indikatoren. 
-
-First I get the reference values
-
+Then I get the reference values. 
+These are unique to each county (ICunit). 
+I only have an X~100~ value. X~0~ is a natural zero.
 
 ```{r refs}
 x100 <- ptarImport$referenceValues$referenceValues |>
@@ -429,10 +412,12 @@ x100 <- ptarImport$referenceValues$referenceValues |>
 x100
 ```
 
-These are unique to each county (ICunit)
 
-Then we get the variable values as resamples values from a probability distribution.
-Jeg bruker ´tradObs´ der det er en vanlig fordelingsfamilie, og customObs der customDist!= NA. Når distributionFamilyName == NA så er customDistribution != NA.
+The variable values are stored as a parameterised probability function, and I need to draw *n* samples from this function. 
+The probability function differs between indicators in the Naturindeks.
+It could also differ within an indicator.
+Here I create a vector defining which probability function to use. 
+I use ´tradObs´ where there is a regular probability distribution family, and `customObs` where  customDist!= NA. When `distributionFamilyName == NA`, `customDistribution != NA`.
 
 ```{r vars} 
 myYears <- as.character(c(2010, 2014, 2019, 2024))
@@ -446,7 +431,13 @@ for (i in 1:length(myYears)) {
 
   obstype[[i]] <- obs
 }
+```
 
+Now I am ready to sample the probability distributions. 
+I set *n* to be 1000.
+```{r draw}
+#| warning: false
+#| message: false
 dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
 
 for (i in 1:length(myYears)) {
@@ -472,8 +463,8 @@ for (i in 1:length(myYears)) {
   
   dat <- dat |> 
     bind_rows(myMat)
-  #assign(paste0("myMat", myYears[i]), myMat)
 }
+head(dat)
 ```
 
 This is the point in the spatial aggregation where we should normalise against the reference values.
@@ -484,227 +475,168 @@ dat <- dat |>
   left_join(x100 |> mutate(ICunitId = as.character(ICunitId)), by = join_by(ICunitId))
 ```
 
-Then we can normalise also the scatter plot with variables against indicator values.
+Then we can normalise also the scatter plot with variables against indicator values (@fig-norm).
 
 ```{r}
-library(ecTools)
-
 ind <- ec_normalise(
-  variable = allVariableValues$value,
-  x100 = allVariableValues$x100
+  variable = dat$value,
+  x100 = dat$x100
 )
 
 dat <- dat |> add_column(indicator = ind)
 ```
 
+```{r normplot}
+#| eval: false
+ec_norm_plot(dat$value, dat$indicator) +
+  facet_wrap(.~dat$ICunitName) 
+ggsave(here::here("img/norm_plot_eng.png"), scale =1.5)
+```
+
 ```{r fig-norm}
 #| fig-cap: "Normalisation (scaling and truncation) of variable values into indicator values. The X100 value differs between 15 counties in Norway."
-ec_norm_plot(dat$value, dat$indicator) +
-  facet_wrap(.~dat$ICunitName)
+knitr::include_graphics(here::here("img/norm_plot_eng.png"))
 ```
 
 I also export a figure for the Norwegian fact sheet:
 
-```{r}
+```{r expPlot}
+#| code-summary: 'Export normalisation function plots'
+#| eval: false
 ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
   facet_wrap(.~dat$ICunitName)
-ggsave(here::here("img/norm_plot_facet.png"))
+ggsave(here::here("img/norm_plot_facet.png"), scale =1.5)
 
 ec_norm_plot(dat$value, dat$indicator, lan = "norsk")
-ggsave(here::here("img/norm_plot.png"))
+ggsave(here::here("img/norm_plot.png"), scale =1)
 ```
 
-Then we can aggregate by a weighted resampling from counties to geographic regions, and then to Norway, making sure sample from the the inferential confidence intervals and not the descriptive ones we have now.
-
-Let's first join all the data into one very long dataframe, before we add in the region names and the mountain area for each county.
-
-```{r}
-
-```
+Then we can aggregate by a weighted resampling from counties to geographic regions, and then to Norway.
+For this we need to know which geographic region (N, M, E, S, W) the ICunits belong to.
 
 ```{r getRegNames}
-
-# Radene i denne matrisen er ICunitIDs (fylker). Jeg kan knytte de til navnene til NIunits.
-link <- as.data.frame(ptarAssemble$NIunits) |>
-  select(-wholeArea) %>=%
-  rownames_to_column("BCunit") %>=%
-  pivot_longer(cols = -any_of("BCunit")) %>=%
-  filter(value > 0) %>=%
-  select(-value) %>=%
-  rename(region = name)
-
-anyDuplicated(link$ICunit)
-
-
-link2 <- as.data.frame(ptarAssemble$ICunits) %>=%
-  rename(ICunitID = Fjellrype) |>
-  rownames_to_column("BCunit")
-
-link <- link %>=%
-  left_join(link2, by = join_by(BCunit)) |>
-  distinct(ICunitID, region)
-
-
-#nord <- link$ICunitID[link$region == "N"]
-#midt <- link$ICunitID[link$region == "C"]
-#vest <- link$ICunitID[link$region == "W"]
-#sor <-  link$ICunitID[link$region == "S"]
-#ost <-  link$ICunitID[link$region == "E"]
-
-
+# In this object we get the rows per municipality (BSunits), with mountain area ("Fjell") and geographic region ("part").  
+aux <- as_tibble(ptarAssemble$BSunits) |>
+  rename(BSunitId = id)
+head(aux)
 ```
 
+The data is at the ICunit level (counties) so wee need to add the ICunitId into here.
+
+```{r}
+IC_BC_link <- ptarImport$ICunits |>
+  select(ICunitId = id, BSunitId)
+
+aux <- aux |>
+  left_join(IC_BC_link, by = join_by(BSunitId))
+```
+
+Then we can sum the mountain area, and move that value, and the geographic region, into the main dataset.
+We use the alpine area that is recorded in the Naturindeks database. 
+They should represenet the area above the empirical forest line.
 
 
 ```{r}
+aux <- aux |>
+  group_by(ICunitId) |>
+  summarise(alpine_area = sum(Fjell), part = unique(part)) |>
+  mutate(ICunitId = as.character(ICunitId))
 
-# Here are the variable values estimates per region
+dat <- dat |>
+  left_join(aux, by = join_by(ICunitId))
+```
+
+
+Then we do a weighted resampling from counties to geographic regions.  
+
+```{r}
 regions <- c("N", "C", "W", "S", "E")
 
-varVal <- data.frame(
-  reg = rep(regions, each = length(myYears)),
-  year = rep(myYears, length(regions)),
-  low = NA,
-  med = NA,
-  upp = NA
-)
+
+out <- tibble(id = seq(1,1000))
 
 for (i in regions) {
+  temp_reg <- dat |>
+    filter(part == i)
   for (n in myYears) {
-    tempMat <- get(paste0("myMat", n))
-    tempMat <- as.data.frame(tempMat)
-    myMatrX <- x100
+    temp_year <- temp_reg |>
+      filter(year == n)
 
-    if (i == "N") {
-      tempMat <- tempMat[row.names(tempMat) %in% nord, ]
-    }
-    if (i == "C") {
-      tempMat <- tempMat[row.names(tempMat) %in% midt, ]
-    }
-    if (i == "W") {
-      tempMat <- tempMat[row.names(tempMat) %in% vest, ]
-    }
-    if (i == "S") {
-      tempMat <- tempMat[row.names(tempMat) %in% sor]
-    }
-    if (i == "E") {
-      tempMat <- tempMat[row.names(tempMat) %in% ost, ]
-    }
+    col <- sample(
+      x = temp_year$indicator,
+      prob = temp_year$alpine_area,
+      size = 1000,
+      replace = TRUE
+    )
 
-    #   if(i == "N") x100 <- x100[row.names(x100) %in% nord,]
-    #   if(i == "C") x100 <- x100[row.names(x100) %in% midt,]
-    #   if(i == "W") x100 <- x100[row.names(x100) %in% vest,]
-    #   if(i == "S") x100 <- x100[row.names(x100) %in% sor,]
-    #   if(i == "E") x100 <- x100[row.names(x100) %in% ost,]
+    name <- paste(i, n, sep = "_")
 
-    varVal[varVal$reg == i & varVal$year == n, 3:5] <-
-      quantile(colSums(tempMat), c(0.025, .5, .975))
+    out <- out |>
+      add_column(!!name := col)
   }
 }
+head(out)
 ```
 
+To get the national indicator distribution, we will do a weighted resampling from geographic regions to national scale. 
+So we need the summed mountain area per geographic region.
 
-
-
-
-```{r readDat}
-#| echo: false
-ptarIndex <- readRDS(here::here("data/ptarIndex_data.RDS"))
+```{r}
+aux2 <- aux |>
+  group_by(part) |>
+  summarise(alpine_area = sum(alpine_area))
+aux2
 ```
 
-```{r fig-hist}
-#| code-summary: 'Simple histogram'
-#| fig-cap: 'Histogram of some aggregated indicator values for Norway.'
-hist(ptarIndex$wholeArea$'2024'$index )
-# The point estimate (median) and the 95% CI math those on the Naturindeks website pretty close. 
-```
+```{r aggToNorway}
+national <- out |>
+  pivot_longer(cols = !any_of("id")) |>
+  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
+  left_join(aux2, by = join_by(part))
 
+out2 <- tibble(id = seq(1,1000))
 
+for (n in myYears) {
+    temp_year <- national |>
+      filter(year == n)
 
-## 8. Spatial units
+    col <- sample(
+      x = temp_year$value,
+      prob = temp_year$alpine_area,
+      size = 1000,
+      replace = TRUE
+    )
 
-<!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+    name <- paste("All", n, sep = "_")
 
-We treat the Norwegian counties as BSunits, and the five geographic regions in Norway (east, south, west, central, north) as the Ecosystem assets. The Ecosystem accounting Area is the alpine areas within the whole of mainland Norway.
-
-## 9. Analyses
-
-<!--# 
-
-Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
-
-Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
-
-Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
-
--->
-
-The data imported from Naturindeks contains the indicator values.
-We have not imported the variable or reference values, and therefore 
-do not plot the variable values against the indicator values.
-
-The indicator uses scaling and truncation, but not any transformation (i.e. there's a linear relationship between the variable values and the indicator values within the zero to 1 range). 
-
-Now we prepare the data for export (@tbl-exp). We do thus using a generic function.
-
-```{r NIprepare_export}
-#| code-summary: 'Function'
-create_output <- function(dat) {
-  regions <- names(dat)
-
-  out <- list()
-
-  for (region in regions) {
-    years <- names(ptarIndex[[region]])
-
-    for (year in years) {
-      col_name <- paste(region, year, sep = "_")
-
-      # Optional renaming: wholeArea becomes All
-      col_name <- gsub("^wholeArea_", "All_", col_name)
-
-      out[[col_name]] <- dat[[region]][[as.character(year)]][["index"]]
-    }
-  }
-
-  as_tibble(out)
+    out2 <- out2 |>
+      add_column(!!name := col)
 }
 
+head(out2)
+```
+
+Then we append this to the main dataset
+
+```{r}
+out <- out |>
+  cbind(out2 |> select(-id))
 ```
 
 
-```{r export}
-#| eval: false
-#| #| code-summary: 'Export data'
-ptarExport <- create_output(dat = ptarIndex)
-write.csv(ptarExport, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
-```
-
-```{r tbl-exp}
-#| code-summary: 'Print dataframe'
-#| tbl-cap: 'Table showing the first 6 (out of 1000) rows from the exported indicator values file.'
-ptarExport <- read.csv(here::here("data/results_NO_PTAR_001_v1.0.0.csv"))
-head(ptarExport)
-```
 
 ## 10. Results
 
-<!--# 
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+Then we create some summary statistics (@tbl-results) and plot them (@fig-timeSeries).
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
-
--->
-
-```{r tbl-results}
+```{r summaryStats}
 #| warning: false
 #| message: false
-#| tbl-cap: 'Indicator values and uncertainty estimates for NO_PTAR_001.'
-ptarResults <- ptarExport |>
-  pivot_longer(cols = everything(), names_to = "name", values_to = "value") |>
-  separate(col = name, into = c("Region", "Year"), sep = "_") |>
-  group_by(Region, Year) |>
+summary_out <- out |>
+  pivot_longer(cols = !any_of("id")) |>
+  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
+  group_by(part, year) |>
   summarise(
     median = round(median(value), 2),
     p_025 = round(quantile(value, probs = 0.0025), 2),
@@ -719,16 +651,40 @@ ptarResults <- ptarExport |>
     ID = "NO_PTAR_001"
   )
 
-ptarResults |>
+```
+
+```{r fig-timeSeries}
+#| fig-cap: 'Indicator values fro NO_PTAR_001 (ptarmigan) plotted over time and for five different regions, as well as the combined national estimated. The error bars are 95% confidence intervals.'
+summary_out |>
+  ggplot(aes(x = year, y = median, colour = part, group = part)) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975),
+    size = 2,
+    position = position_dodge(width = 0.3)
+  ) +
+  geom_line(position = position_dodge(width = 0.3)) +
+  theme_bw(base_size = 16) +
+  labs(y = "Indicator value", x = "Year") +
+  scale_colour_viridis_d(option = "turbo", name = "Region") 
+```
+
+
+
+```{r tbl-results}
+#| warning: false
+#| message: false
+#| tbl-cap: 'Indicator values and uncertainty estimates for NO_PTAR_001.'
+
+summary_out |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
   unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
   select(
     ECT,
     Indicator,
     ID,
-    "Accounting area" = Region,
+    "Accounting area" = part,
     Ecosystem,
-    "Closing year" = Year,
+    "Closing year" = year,
     "Indicator value" = median,
     "95% CI" = CI_95,
     "50% CI" = IQR
@@ -737,25 +693,15 @@ ptarResults |>
 ```
 
 
-```{r fig-trend}
-#| fig-cap: 'Trend in indicator values over time for NO_PTAR_001. The indicator values are for the national scale (mountains on mainland Norway), with regional trend lines shown as unlabeled grey lines. Errorbars are 95% confidence intervals.'
-#| warning: false
-ptarResults |>
-  ggplot(aes(x = as.numeric(Year), y = median, colour = Region)) +
-  geom_line(linetype = 2) +
-  gghighlight::gghighlight(Region == "All", use_direct_label =F) +
-  geom_point(size = 10) +
-  gghighlight::gghighlight(Region == "All", unhighlighted_params = list(size = 2), use_direct_label =F) +
-  geom_errorbar(aes(ymin = p_025, ymax = p_975), width = 0.2) +
-  theme_bw(base_size = 15) +
-  labs(x = "Year", y = "Indicator value") +
-  guides(colour = "none") +
-  scale_x_continuous(breaks = c(2010, 2014, 2019, 2024))
-```
-
 ## 11. Export file
 
 The indicator values are exported and can be found under `data/results_NO_PTAR_001_v1.0.0.csv`.
+
+```{r export}
+#| eval: false
+#| code-summary: 'Export data'
+write.csv(out, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
+```
 
 ## 12. Author contributions
 
