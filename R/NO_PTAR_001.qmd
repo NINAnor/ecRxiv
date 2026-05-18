@@ -491,7 +491,7 @@ dat <- dat |> add_column(indicator = ind)
 #| eval: true
 temp <- ec_norm_plot(dat$value, dat$indicator) +
   facet_wrap(.~dat$ICunitName) 
-ggsave(temp, here::here("img/norm_plot_eng.png"), scale =1.5)
+ggsave(here::here("img/norm_plot_eng.png"), scale =1.5, plot =temp)
 ```
 
 ```{r fig-norm}
@@ -506,10 +506,10 @@ I also export a figure for the Norwegian fact sheet:
 #| eval: false
 temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
   facet_wrap(.~dat$ICunitName)
-ggsave(temp, here::here("img/norm_plot_facet.png"), scale =1.5)
+ggsave(here::here("img/norm_plot_facet.png"), scale =1.5, plot =temp)
 
 temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk")
-ggsave(temp, here::here("img/norm_plot.png"), scale =1)
+ggsave(here::here("img/norm_plot.png"), scale =1, plot =temp)
 ```
 
 Then we can aggregate by a weighted resampling from counties to geographic regions, and then to Norway.
@@ -547,33 +547,39 @@ dat <- dat |>
   left_join(aux, by = join_by(ICunitId))
 ```
 
+### Spatial aggregation
 
 Then we do a weighted resampling from counties to geographic regions.  
 
 ```{r}
 regions <- c("N", "C", "W", "S", "E")
-
-
+myYears <- as.character(c(2010, 2014, 2019, 2024))
+n <- 1000
 out <- tibble(id = seq(1,1000))
 
 for (i in regions) {
   temp_reg <- dat |>
     filter(part == i)
-  for (n in myYears) {
+  for (y in myYears) {
     temp_year <- temp_reg |>
-      filter(year == n)
+      filter(year == y)
+  multiple <- as.numeric()
 
-    col <- sample(
-      x = temp_year$indicator,
-      prob = temp_year$alpine_area,
-      size = 1000,
-      replace = TRUE
-    )
+    for(j in 1:n) {
+      single <- temp_year |>
+        group_by(ICunitId) |>
+        slice_sample(n = 1) |>
+        ungroup() |>
+        summarise(mean = weighted.mean(indicator, alpine_area)) |>
+        pull(mean)
 
-    name <- paste(i, n, sep = "_")
+      multiple <- c(multiple, single)
+    }
+
+    name <- paste(i, y, sep = "_")
 
     out <- out |>
-      add_column(!!name := col)
+      add_column(!!name := multiple)
   }
 }
 head(out)
