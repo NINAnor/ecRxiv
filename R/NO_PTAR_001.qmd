@@ -82,7 +82,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #install.packages('logrittr', repos = 'https://guillaumepressiat.r-universe.dev')
 library(logrittr)
 library(ecTools)
-
+#remotes::install_github("NINAnor/ecTools")
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
 # logritt, NIcalc, and ecTools may need to be installed manually
@@ -551,49 +551,8 @@ dat <- dat |>
 
 Then we do a weighted resampling from counties to geographic regions.  
 
-```{r aggreatateFunc}
-ec_upscale <- function(
-  data,
-  variable,
-  weight,
-  currentUnits,
-  newUnits,
-  year = NULL,
-  n = 1000
-) {
-  variable <- rlang::ensym(variable)
-  weight <- rlang::ensym(weight)
-  currentUnits <- rlang::ensym(currentUnits)
-  newUnits <- rlang::ensym(newUnits)
-  year <- rlang::ensym(year)
-
-  one_sample <- function(df) {
-    df |>
-      dplyr::group_by(!!currentUnits) |>
-      dplyr::slice_sample(n = 1) |>
-      dplyr::ungroup() |>
-      dplyr::summarise(
-        mean = weighted.mean(!!variable, !!weight, na.rm = TRUE),
-        .groups = "drop"
-      ) |>
-      dplyr::pull(mean)
-  }
-
-  data |>
-    group_by(!!year, !!newUnits) |>
-    dplyr::group_modify(\(df, ...) {
-      tibble::tibble(
-        mean = replicate(n, one_sample(df))
-      )
-    }) |>
-    dplyr::ungroup() |>
-    rename(area_name = !!newUnits, sampled_mean = mean)
-}
-```
-
-
 ```{r aggregate1}
-mc_propagated <- ec_upscale(
+mc_propagated <- ecTools::ec_upscale(
   data = dat,
   variable = indicator,
   weight = alpine_area,
@@ -622,7 +581,7 @@ mc_propagated <- mc_propagated |>
   left_join(aux2, by = join_by(area_name)) |>
   add_column(newUnits = "Norway")
 
-mc_propagated2 <- ec_upscale(
+mc_propagated2 <- ecTools::ec_upscale(
   data = mc_propagated,
   variable = sampled_mean,
   weight = alpine_area,
@@ -653,7 +612,7 @@ Then we create some summary statistics (@tbl-results) and plot them (@fig-timeSe
 ```{r summaryStats}
 #| warning: false
 #| message: false
-summary_out <- out |>
+summary_out <- mc_propagated |>
   pivot_longer(cols = !any_of("id")) |>
   separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
   group_by(part, year) |>
