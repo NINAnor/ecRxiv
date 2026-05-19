@@ -68,6 +68,7 @@ bibliography: references.bib
 library(knitr)
 library(tidyverse)
 library(kableExtra)
+library(gt)
 library(here)
 library(anybadger)
 library(yaml)
@@ -79,6 +80,7 @@ conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
 library(NIcalc)
+library(ecTools)
 
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
@@ -90,9 +92,6 @@ knitr::opts_chunk$set(echo = TRUE)
 #| echo: false
 #| cache: false
 source(here::here("_common.R"))
-if (file.exists(here::here("R/spatial_regions.R"))) {
-  source(here::here("R/spatial_regions.R"))
-}
 ```
 
 
@@ -299,23 +298,26 @@ _X~0~_ is defined as no brown bears in the unit (functional absence).
 
 #### 4.2.1 Spatial resolution and validity
 
-<!--# 
-
-Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
-
- -->
-
 Reference levels and indicator values apply at the scale of forvaltningsregioner for rovvilt (IC units).
 Aggregated results for the five Naturindeks geographic regions and for Norway are summaries of those units with area weights.
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
-<!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
+
+Reference levels are held fixed in this workflow (their own uncertainties are not propagated).
+Regional and national values are area-weighted summaries of forvaltningsregioner for rovvilt, so they inherit model uncertainty at management-region scale and any mismatch between administrative regions and ecological variation within the five Naturindeks geographic regions.
+Monitoring design and sample effort differ between species and regions; uneven coverage can affect the population models that enter Naturindeksen.
 
 ### 5.2 Reported uncertainties
-<!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
-However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
 
+The intervals in @tbl-bbab-results and @fig-bbab-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.
+
+For each management region and assessment year, Naturindeks provides a predictive distribution for the population index (on the variable scale before scaling).
+We draw many random values from that distribution per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then build a large set of possible management-region indicators.
+To obtain uncertainty for a geographic region, we repeat the following 1000 times: draw one random management-region indicator per region in that NI area, take the terrestrial-area-weighted average across those regions, and record that geographic mean.
+The median of those geographic means is reported as the point estimate; the 2.5% and 97.5% quantiles form an approximate 95% interval, and the 25% and 75% quantiles form an approximate interquartile range.
+For Norway, the same idea is applied one level up: in each replicate we combine the five regional means from that same replicate using weights proportional to total terrestrial area in each region, then summarise the resulting national means in the same way.
+This approach reflects uncertainty in the management-region models and in the scaled values, while treating the regional or national figure as a single summary parameter rather than as a random draw from one management region.
 
 
 ## 6. References
@@ -325,20 +327,14 @@ However, the variation in the mean is defined by the spatial variation only, and
 
 ## 7. Import and prepare datasets
 
-<!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
-
-### 7.1 Naturindeks
-
-Run the download chunk once when you have API credentials. Credentials are read from `R/_pw.R` (not committed to git). The export is saved under `data/` (also gitignored).
+Run the download chunk once to refresh the local export. This project’s renv environment installs `NIcalc` from GitHub `ChloeRN/NIcalc`, branch `include_ReadOnly_access` (see `renv.lock` and `install_deps.R`); that build defaults to the Naturindeks read-only API user, so you do not need `username` / `password` arguments here. When [NINAnor/NIcalc PR #59](https://github.com/NINAnor/NIcalc/pull/59) is merged into `NINAnor/NIcalc`, you can switch the renv install back to the main repo and update the lockfile.
+We save the RDS export under `data/` so that we do not need to download the data every time we run the analysis.
 
 ```{r bbab-import-api}
-#| eval: false
 #| code-summary: "Download brown bear data from Naturindeks API"
-source(here::here("R", "_pw.R"))
+#| eval: false
 
 bbabImport <- NIcalc::importDatasetApi(
-  username = myUser,
-  password = myPwd,
   eco = NULL,
   indic = c("Brunbjørn"),
   year = c("1990", "2000", "2010", "2014", "2019", "2024")
@@ -358,44 +354,347 @@ bbabImport <- readRDS(here::here("data/bbabImport.rds"))
 
 ## 8. Spatial units
 
-The primary reporting units are forvaltningsregioner for rovvilt (large-carnivore management regions 5–8), which function as ecosystem-relevant IC units for brown bear.
-Aggregated results for the five Naturindeks geographic regions (NI units: east, south, west, central, north) and for mainland Norway are built from those management-region values with area weights.
-Indicator values should be read at management-region scale for detail, and at geographic-region or national scale for overview.
+The eight forvaltningsregioner for rovvilt (rovvilt regions 1–8) are the IC units in Naturindeks for this indicator.
+The five Naturindeks geographic regions (east, south, west, central, north; codes E, S, W, C, N) are taken from the `part` field on municipality-level `BSunits` in the same import, aggregated up to each management region (see Section 9).
+Mainland Norway is the ecosystem accounting area.
 
 ## 9. Analyses
 
-<!--# 
+This section takes variable values and reference levels from the Naturindeks import, normalises at management-region scale with linear scaling, then propagates uncertainty and aggregates spatially with terrestrial area weights. At geographic-region and national scale, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per management region (then per geographic region), not a random draw from a pooled mixture of regions.
 
-Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+Management-region population indices in the database are stored as predictive distributions, not only as point estimates.
+Reference levels per region (_X~0~_ = 0, _X~100~_ from the download) are applied before any geographic or national aggregation.
+We ignore uncertainty in the reference levels themselves.
 
-Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
+### Assemble import and indicator object
 
-Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
+`assembleNiObject()` reshapes `bbabImport` so that indicator observations are in one list element per assessment year, and so that underlying spatial units (`BSunits`) are aligned with the thematic index structure used in Naturindeks.
 
--->
+```{r bbab-assemble}
+#| code-summary: "Assemble brown bear NI object (thematic, predefined regions)"
+bbabAssemble <- NIcalc::assembleNiObject(
+  inputData = bbabImport,
+  predefNIunits = c(allArea = T, parts = T, counties = F),
+  indexType = "thematic"
+)
+```
+
+### Reference levels (X~0~ and X~100~)
+
+Before scaling, we read regional reference levels from `referenceValues` in the RDS export (rows with `yearId == 0` or reference year name).
+For this indicator, _X~0~_ is zero individuals in the unit and _X~100~_ is the expert reference population index per rovvilt region (`expectedValue` in the reference slice).
+
+```{r bbab-refs}
+#| code-summary: "Management-region reference levels from downloaded Naturindeks data"
+refs <- bbabImport$referenceValues$referenceValues |>
+  dplyr::filter(.data$yearId == 0L | grepl("Referanse", .data$yearName, fixed = FALSE)) |>
+  dplyr::distinct(ICunitId, ICunitName, x100 = expectedValue) |>
+  dplyr::mutate(x0 = 0)
+refs |>
+  gt::gt()
+```
+
+### Resample non-scaled management-region variables
+
+For each assessment year, Naturindeks stores one value per rovvilt region as a parameterised distribution (or a custom distribution).
+We draw `nsim = 1000` random values per region with `NIcalc::sampleObsMat()`.
+Rows with a standard distribution family use observation type `tradObs`; rows with only a custom distribution use `customObs`.
+
+Assessment years are 1990, 2000, 2010, 2014, 2019, and 2024.
+The result `dat` is a long table of simulated population indices (`value`) by `ICunitId` and `year`, not yet on the 0–1 indicator scale.
+
+```{r bbab-vars}
+#| code-summary: "Observation types for sampleObsMat"
+myYears <- as.character(c(1990, 2000, 2010, 2014, 2019, 2024))
+obstype <- vector("list", length(myYears))
+for (i in seq_along(myYears)) {
+  obs <- bbabAssemble$indicatorValues[[i]]$distributionFamilyName
+  obs[!is.na(obs)] <- "tradObs"
+  obs[is.na(obs)] <- "customObs"
+  obstype[[i]] <- obs
+}
+```
+
+```{r bbab-draw}
+#| code-summary: "Resample management-region variables (non-scaled)"
+#| warning: false
+#| message: false
+dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
+
+for (i in seq_along(myYears)) {
+  myMat <- NIcalc::sampleObsMat(
+    ICunitId = bbabAssemble$indicatorValues[[i]]$ICunitId,
+    value = bbabAssemble$indicatorValues[[i]]$expectedValue,
+    distrib = bbabAssemble$indicatorValues[[i]]$distributionFamilyName,
+    mu = bbabAssemble$indicatorValues[[i]]$distParameter1,
+    sig = bbabAssemble$indicatorValues[[i]]$distParameter2,
+    customDistribution = bbabAssemble$indicatorValues[[i]]$customDistribution,
+    obsType = obstype[[i]],
+    nsim = 1000
+  )
+  ICunitIds <- row.names(myMat)
+  colnames(myMat) <- paste0("s", seq_len(ncol(myMat)))
+  myMat <- myMat |>
+    as_tibble() |>
+    add_column(ICunitId = ICunitIds, .before = 1) |>
+    pivot_longer(cols = -any_of("ICunitId"), names_to = "sim_col", values_to = "value") |>
+    mutate(
+      sim_id = readr::parse_number(.data$sim_col),
+      year = myYears[i]
+    ) |>
+    select(ICunitId, sim_id, value, year)
+
+  dat <- dat |>
+    bind_rows(myMat)
+}
+head(dat) |>
+  gt::gt()
+```
+
+### Scaling to indicator values (linear)
+
+Normalisation is done at management-region scale before any geographic or national aggregation.
+Each draw is joined to its regional `x0` and `x100`, then mapped to `[0, 1]` with `ecTools::ec_normalise()` using linear increasing scaling from _X~0~_ to _X~100~_ (no upper-tail unimodal anchor).
+
+```{r bbab-join-scale}
+#| code-summary: "Join reference levels and linear scaling to indicator scale"
+dat <- dat |>
+  left_join(
+    refs |> mutate(ICunitId = as.character(ICunitId)),
+    by = join_by(ICunitId)
+  )
+
+ind <- ec_normalise(
+  variable = dat$value,
+  x0 = dat$x0,
+  x100 = dat$x100,
+  fun = "linear"
+)
+
+dat <- dat |> add_column(indicator = ind)
+```
+
+The scatter plot below (@fig-bbab-norm) shows the mapping from variable to indicator for each rovvilt region (one facet per `ICunitName`). The figure is saved when the document is rendered.
+
+```{r bbab-normplot}
+#| eval: true
+#| code-summary: "Save normalisation diagnostic figure (English)"
+bear_plot <- ec_norm_plot(dat$value, dat$indicator) +
+  facet_wrap(. ~ dat$ICunitName)
+ggsave(filename = here::here("img/bbab_norm_plot_eng.png"), plot = bear_plot, scale = 1.5)
+```
+
+```{r bbab-fig-norm}
+#| label: fig-bbab-norm
+#| fig-cap: "Linear normalisation of brown bear population index to indicator values (one panel per management region)."
+knitr::include_graphics(here::here("img/bbab_norm_plot_eng.png"))
+```
+
+### Aggregation weights (terrestrial area by management region)
+
+Spatial aggregation uses terrestrial area on each underlying spatial unit in `BSunits`, summed to management region (`ICunitId`).
+Municipalities are linked to rovvilt regions via `ICunits`, as for counties in the cervid indicators.
+Each `BSunit` carries a Naturindeks geographic region code (`part`: E, S, W, C, N).
+We sum terrestrial area by management region and by `part`, assign each management region to the `part` with the largest area share, and use total terrestrial area per management region as the weight in geographic and national means.
+
+```{r bbab-weights}
+#| code-summary: "Terrestrial area and NI part from BSunits in the import"
+aux <- as_tibble(bbabAssemble$BSunits) |>
+  rename(BSunitId = id)
+
+IC_BC_link <- bbabImport$ICunits |>
+  distinct(ICunitId = as.character(id), BSunitId)
+
+aux <- aux |>
+  left_join(IC_BC_link, by = join_by(BSunitId))
+
+ic_names <- bbabAssemble$indicatorValues[[1]] |>
+  transmute(ICunitId = as.character(ICunitId), ICunitName)
+
+part_from_data <- aux |>
+  group_by(ICunitId, part) |>
+  summarise(area_in_part = sum(terrestrialArea), .groups = "drop") |>
+  group_by(ICunitId) |>
+  slice_max(area_in_part, n = 1, with_ties = FALSE) |>
+  select(ICunitId, part)
+
+aux <- aux |>
+  group_by(ICunitId) |>
+  summarise(area_weight = sum(terrestrialArea), .groups = "drop") |>
+  left_join(part_from_data, by = join_by(ICunitId)) |>
+  left_join(ic_names, by = join_by(ICunitId))
+
+dat <- dat |>
+  left_join(aux, by = join_by(ICunitId))
+```
+
+### Aggregate to geographic regions (inferential uncertainty)
+
+For each Monte Carlo replicate \(b = 1, \ldots, 1000\) and each geographic region–year, we draw one posterior sample per management region in that area (from that region’s 1000 simulations in `dat`), then compute the terrestrial-area-weighted mean across regions.
+The resulting 1000 values describe uncertainty around the geographic mean indicator.
+
+```{r bbab-agg-regions}
+#| code-summary: "Bootstrap distribution of area-weighted geographic means"
+#| warning: false
+#| message: false
+regions <- c("N", "C", "W", "S", "E")
+B <- 1000L
+
+out <- tibble(id = seq_len(B))
+
+for (i in regions) {
+  for (n in myYears) {
+    d_yr <- dat |>
+      filter(.data$part == i, .data$year == n)
+
+    mgmt_regions <- sort(unique(d_yr$ICunitId))
+    w <- aux |>
+      filter(.data$ICunitId %in% mgmt_regions) |>
+      arrange(match(.data$ICunitId, mgmt_regions))
+
+    by_region <- split(d_yr$indicator, d_yr$ICunitId)[mgmt_regions]
+
+    col_vals <- vapply(
+      seq_len(B),
+      function(b) {
+        draws <- vapply(by_region, sample, numeric(1), size = 1L)
+        stats::weighted.mean(draws, w$area_weight, na.rm = TRUE)
+      },
+      numeric(1)
+    )
+
+    out <- out |>
+      add_column(!!paste(i, n, sep = "_") := col_vals)
+  }
+}
+head(out)
+```
+
+### Aggregate to national level (inferential uncertainty)
+
+For each year and replicate \(b\), the national value is the terrestrial-area-weighted mean of the five geographic regional values from that same replicate (`aux2` gives total area per geographic region).
+This propagates uncertainty to the national mean in the same way as at geographic scale.
+
+```{r bbab-agg-national}
+#| code-summary: "Bootstrap distribution of area-weighted national means"
+#| warning: false
+#| message: false
+aux2 <- aux |>
+  group_by(part) |>
+  summarise(area_weight = sum(.data$area_weight), .groups = "drop")
+
+w_region <- aux2$area_weight[match(regions, aux2$part)]
+
+out2 <- tibble(id = seq_len(B))
+
+for (n in myYears) {
+  nat_vals <- vapply(
+    seq_len(B),
+    function(b) {
+      reg_draws <- vapply(
+        regions,
+        function(r) out[[paste(r, n, sep = "_")]][b],
+        numeric(1)
+      )
+      stats::weighted.mean(reg_draws, w_region, na.rm = TRUE)
+    },
+    numeric(1)
+  )
+
+  out2 <- out2 |>
+    add_column(!!paste("All", n, sep = "_") := nat_vals)
+}
+
+head(out2)
+
+out <- out |>
+  bind_cols(out2 |> select(-id))
+```
 
 ## 10. Results
 
-<!--# 
+From the 1000 bootstrap replicates per region and year in `out`, we report the median as the point estimate and use the 0.25% and 99.75% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
+The table (@tbl-bbab-results) and time series (@fig-bbab-timeSeries) summarise geographic and national (`All`) values.
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+```{r bbab-summaryStats}
+#| warning: false
+#| message: false
+#| tbl-cap: "Brown bear indicator summaries by region and year (inferential uncertainty for area-weighted means)."
+summary_out <- out |>
+  pivot_longer(cols = !any_of("id")) |>
+  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
+  group_by(part, year) |>
+  summarise(
+    median = round(median(value, na.rm = TRUE), 2),
+    p_025 = round(quantile(value, probs = 0.0025, na.rm = TRUE), 2),
+    p_25 = round(quantile(value, probs = 0.25, na.rm = TRUE), 2),
+    p_75 = round(quantile(value, probs = 0.75, na.rm = TRUE), 2),
+    p_975 = round(quantile(value, probs = 0.975, na.rm = TRUE), 2),
+  ) |>
+  add_column(
+    ECT = "B3",
+    Indicator = "Brown bear abundance",
+    Ecosystem = "Boreal/montane forests",
+    ID = "NO_BBAB_001"
+  ) |>
+  mutate(
+    part = case_when(
+      part == "All" ~ "Norway",
+      part == "N" ~ "North",
+      part == "C" ~ "Central",
+      part == "W" ~ "West",
+      part == "S" ~ "South",
+      part == "E" ~ "East",
+      TRUE ~ part
+    )
+  )
+```
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+```{r bbab-fig-timeSeries}
+#| label: fig-bbab-timeSeries
+#| fig-cap: "Indicator values for brown bear abundance by geographic region and nationally, with uncertainty bands from the resampled distribution."
+summary_out |>
+  ggplot(aes(x = year, y = median, colour = part, group = part)) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975),
+    size = 2,
+    position = position_dodge(width = 0.3)
+  ) +
+  geom_line(position = position_dodge(width = 0.3)) +
+  theme_bw(base_size = 12) +
+  labs(y = "Indicator value", x = "Year") +
+  scale_colour_viridis_d(option = "turbo", name = "Region")
+```
 
--->
+```{r bbab-tbl-results}
+#| label: tbl-bbab-results
+#| warning: false
+#| message: false
+#| tbl-cap: "Indicator values and uncertainty estimates for brown bear abundance."
+
+summary_out |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = part,
+    Ecosystem,
+    "Closing year" = year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  kable()
+```
 
 ## 11. Export file
 
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
-
 ```{r export}
-#| eval: false
+#| code-summary: "Export resampled indicator draws"
+write.csv(out, here::here("data/results_NO_BBAB_001_v0.1.0.csv"), row.names = FALSE)
 ```
-
 
 ## 12. Author contributions
 
