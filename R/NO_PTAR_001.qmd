@@ -23,10 +23,10 @@ yearAdded: 2026
 yearLastUpdate: 2026
 status: complete
 Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: First version on ecRxiv, but this indicator is already pubslised and described in the Norwegian Nature Index
+VersionComment: First version on ecRxiv, but this indicator is already published and described in the Norwegian Nature Index
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_PTAR_001
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (population model, county level) - [Scale - Trunkate] - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (population model, county level) - [Scale - Truncate] - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -82,9 +82,10 @@ knitr::opts_chunk$set(echo = TRUE)
 #install.packages('logrittr', repos = 'https://guillaumepressiat.r-universe.dev')
 library(logrittr)
 library(ecTools)
-
+# remotes::install_github("NINAnor/ecTools") #version 0.0.0.9002
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
+# logritt, NIcalc, and ecTools may need to be installed manually
 ```
 
 ```{r source}
@@ -188,20 +189,20 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 1. **Background and rationale**:
 <!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
 What are the main anthropogenic impact factors? -->
-Rock ptarmigan (_Lagopus muta_) is a herbivourous alpine bird that is found throughout the Norwegian mountain range where it lives year round. It responds to anthropogenic disturbance, including climate change, through their effects on both survival and reporoduction. We also have a relatively good amount of data and knowledge about this species and the different populations. This combines to make ptarmigan a suitable indicator for ecosystem condition in Norwegian mountains. The species is also a popular game bird.
+Rock ptarmigan (_Lagopus muta_) is a herbivorous alpine bird that is found throughout the Norwegian mountain range where it lives year round. It responds to anthropogenic disturbance, including climate change, through their effects on both survival and reporoduction. We also have a relatively good amount of data and knowledge about this species and the different populations. This combines to make ptarmigan a suitable indicator for ecosystem condition in Norwegian mountains. The species is also a popular game bird.
 
 2. **Methods**:
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
-The ptarmigan population size is estimated from a statistical model, using hunting statistics as the main data source, and with the assumption that 10% of the population is shot each year. This value is then normalised based on a reference level, which is an expert-assessed population estimate based on known breeding density and the amount of suitable habitat. The indicator is developed in the work with the Norwegian Nature Index [@nater_naturindeks_2025]. The methods are are described in full on the [Nature index web site](https://www.naturindeks.no/Indicators/fjellrype). 
+The ptarmigan population size is estimated from a statistical model, using hunting statistics as the main data source, and with the assumption that 10% of the population is shot each year. This value is then normalised based on a reference level, which is an expert-assessed population estimate based on known breeding density and the amount of suitable habitat. The indicator is developed in the work with the Norwegian Nature Index [@nater_naturindeks_2025]. The methods are described in full on the [Nature index web site](https://www.naturindeks.no/Indicators/fjellrype). 
 
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
-An indicator value of 1 means that the ptamigan is as numerous, or more, than what we expect under the reference condition.
-Values decreasing toward zero indicates that the average county-level populaton size is decreasing.
+An indicator value of 1 means that the ptarmigan is as numerous, or more, than what we expect under the reference condition.
+Values decreasing toward zero indicates that the average county-level population size is decreasing.
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-The indicator value for 2024 for Norway as a whole is 0.31	(95% CI = 0.0 - 1), which indicates a relatively severe deviation from the reference condition. The development over time is showing a negative trend. The errors are extremely wide, representing large model uncertainties. The 50% CI is 0.12 - 0.58.
+The indicator value for 2024 for Norway as a whole is 0.35	(95% CI = 0.21 - 0.54), which indicates a relatively severe deviation from the reference condition. The development over time is showing a negative trend. 
 
 ## 1.2 Native language summary - Norwegian
 
@@ -211,7 +212,7 @@ The indicator value for 2024 for Norway as a whole is 0.31	(95% CI = 0.0 - 1), w
 
 3. **Tolkning**: En indikatorverdi på 1 betyr at rypebestanden er like stor eller større enn det vi forventer under referansetilstanden. Verdier som nærmer seg null indikerer at den gjennomsnittlige bestandsstørrelsen på fylkesnivå er avtagende.
 
-4. **Resultater og utviklingsbehov**: Indikatorverdien for 2024 for Norge er 0,35 (95 % KI = 0,15–0,52), noe som indikerer et relativt stort avvik fra referansetilstanden. Utviklingen over tid viser en negativ trend.
+4. **Resultater og utviklingsbehov**: Indikatorverdien for 2024 for Norge er 0,35 (95 % KI = 0,21–0,54), noe som indikerer et relativt stort avvik fra referansetilstanden. Utviklingen over tid viser en negativ trend.
 
 
 ## 2. About the underlying data
@@ -222,9 +223,9 @@ The data comes from hunting statistics (harvest bag data) published by SSB (Stat
 ### 2.1 Spatial and temporal resolution and extent
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
-Indicator values are available for the different assessment years in  _Naturindeksen_: 1990, 2020, 2010, 2011, 2012, 2013, 2014, 2019 and 2024. To produce indicator estimates for these years, one uses the average over 2-3 year. For the year 2024, data from two hunting seasons were included (2022/23-2023/24).
+Indicator values are available for the different assessment years in  _Naturindeksen_: 1990, 2000, 2010, 2011, 2012, 2013, 2014, 2019 and 2024. To produce indicator estimates for these years, one uses the average over 2-3 year. For the year 2024, data from two hunting seasons were included (2022/23-2023/24).
 
-The indicator is calculated for all counties in Norway. Here we report the values for five geographic regions. 
+The indicator is calculated for all counties in Norway. Here we report the values for five geographic regions, and for Norway as a whole. 
 
 ### 2.2 Sampling design
 
@@ -329,7 +330,7 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 ## 5. Uncertainties
 ### 5.1 General uncertainties
 <!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
-There are obvious limitations to using havest bag data, rather than more standardised monitoring data. This is elaborated in the [indicator documentation on Naturindeksen](https://naturindeks.nina.no/docs/24dda0ba-5855-4131-9168-d874980ec6aa.pdf). However, we feel the hunting data still has considerable value and that it is indeed suitable for this purpose of estimating population sizes. 
+There are obvious limitations to using harvest bag data, rather than more standardised monitoring data. This is elaborated in the [indicator documentation on Naturindeksen](https://naturindeks.nina.no/docs/24dda0ba-5855-4131-9168-d874980ec6aa.pdf). However, we feel the hunting data still has considerable value and that it is indeed suitable for this purpose of estimating population sizes. 
 
 ### 5.2 Reported uncertainties
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
@@ -355,7 +356,7 @@ The reported uncertainties reflect both the uncertainty in the reference levels 
 We download the dataset from the Naturindeks database using the API. 
 ```{r}
 #| eval: false
-# password is hidden for now, but the plan is to set up a read only guest access. Therefore I upload teh database export to github for now to ensure reproducibility.
+# password is hidden for now, but the plan is to set up a read only guest access. Therefore I upload thh database export to github for now to ensure reproducibility.
 source(here::here("R", "_pw.R"))
 
 # Import data set
@@ -380,16 +381,16 @@ ptarImport <- readRDS(here::here("data/ptarImport.rds"))
 
 <!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
 
-Accorinf to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units. 
+According to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units. 
 We can think of the counties as ecosystem assets, and mainland Norway as the Ecosystem accounting Area.
 
 ## 9. Analyses
 
-Here I use a generic approach to handling dta from the Naturindeks where I get both the variable values and the reference values, separately, from the NI database, and perform the normalisation and spatial aggregation ourselves.
+Here I use a generic approach to handling data from the Naturindeks where I get both the variable values and the reference values, separately, from the NI database, and perform the normalisation and spatial aggregation ourselves.
 
 The reference values have uncertainties attached to them, which we will ignore here.
 The variable values have uncertainties as well, in the form of probability function. 
-The uncertainties are from a statistical model, and so we think of them as inferrential uncertainties. 
+The uncertainties are from a statistical model, and so we think of them as inferential uncertainties. 
 
 Here I use an NIcalc function to just prepare and structure the data a little differently.  
 ```{r assemble}
@@ -487,10 +488,10 @@ dat <- dat |> add_column(indicator = ind)
 ```
 
 ```{r normplot}
-#| eval: false
-ec_norm_plot(dat$value, dat$indicator) +
+#| eval: true
+temp <- ec_norm_plot(dat$value, dat$indicator) +
   facet_wrap(.~dat$ICunitName) 
-ggsave(here::here("img/norm_plot_eng.png"), scale =1.5)
+ggsave(here::here("img/norm_plot_eng.png"), scale =1.5, plot =temp)
 ```
 
 ```{r fig-norm}
@@ -503,12 +504,12 @@ I also export a figure for the Norwegian fact sheet:
 ```{r expPlot}
 #| code-summary: 'Export normalisation function plots'
 #| eval: false
-ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
+temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
   facet_wrap(.~dat$ICunitName)
-ggsave(here::here("img/norm_plot_facet.png"), scale =1.5)
+ggsave(here::here("img/norm_plot_facet.png"), scale =1.5, plot =temp)
 
-ec_norm_plot(dat$value, dat$indicator, lan = "norsk")
-ggsave(here::here("img/norm_plot.png"), scale =1)
+temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk")
+ggsave(here::here("img/norm_plot.png"), scale =1, plot =temp)
 ```
 
 Then we can aggregate by a weighted resampling from counties to geographic regions, and then to Norway.
@@ -546,84 +547,76 @@ dat <- dat |>
   left_join(aux, by = join_by(ICunitId))
 ```
 
+### Spatial aggregation
 
-Then we do a weighted resampling from counties to geographic regions.  
-
-```{r}
-regions <- c("N", "C", "W", "S", "E")
+Then aggregate from counties to geographic regions using ecTools.
+This uses a Monte Carlo propagation of the uncertainties. 
 
 
-out <- tibble(id = seq(1,1000))
-
-for (i in regions) {
-  temp_reg <- dat |>
-    filter(part == i)
-  for (n in myYears) {
-    temp_year <- temp_reg |>
-      filter(year == n)
-
-    col <- sample(
-      x = temp_year$indicator,
-      prob = temp_year$alpine_area,
-      size = 1000,
-      replace = TRUE
-    )
-
-    name <- paste(i, n, sep = "_")
-
-    out <- out |>
-      add_column(!!name := col)
-  }
-}
-head(out)
+```{r aggregate1}
+#| eval: false
+mc_propagated <- ecTools::ec_upscale(
+  data = dat,
+  variable = indicator,
+  weight = alpine_area,
+  start_units = ICunitId,
+  end_units = part,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated, here::here("data/mc_propagated.rds"))
 ```
 
-To get the national indicator distribution, we will do a weighted resampling from geographic regions to national scale. 
+```{r}
+#| include: false
+mc_propagated <- readRDS(here::here("data/mc_propagated.rds"))
+head(mc_propagated)
+```
+
+To get the national indicator estimate, we will do another MC propagation from geographic regions to national scale. 
 So we need the summed mountain area per geographic region.
 
 ```{r}
 aux2 <- aux |>
   group_by(part) |>
-  summarise(alpine_area = sum(alpine_area))
+  summarise(alpine_area = sum(alpine_area)) 
 aux2
 ```
 
 ```{r aggToNorway}
-national <- out |>
-  pivot_longer(cols = !any_of("id")) |>
-  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
-  left_join(aux2, by = join_by(part))
+#| eval: false
+mc_propagated <- mc_propagated |>
+  left_join(aux2, by = join_by(part)) |>
+  add_column(end_units = "Norway")
 
-out2 <- tibble(id = seq(1,1000))
-
-for (n in myYears) {
-    temp_year <- national |>
-      filter(year == n)
-
-    col <- sample(
-      x = temp_year$value,
-      prob = temp_year$alpine_area,
-      size = 1000,
-      replace = TRUE
-    )
-
-    name <- paste("All", n, sep = "_")
-
-    out2 <- out2 |>
-      add_column(!!name := col)
-}
-
-head(out2)
+mc_propagated2 <- ecTools::ec_upscale(
+  data = mc_propagated,
+  variable = sampled_mean,
+  weight = alpine_area,
+  start_units = part,
+  end_units = end_units,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated2, here::here("data/mc_propagated2.rds"))
 ```
+
+```{r}
+#| include: false
+mc_propagated2 <- readRDS(here::here("data/mc_propagated2.rds"))
+head(mc_propagated2)
+```
+
 
 Then we append this to the main dataset
 
 ```{r}
-out <- out |>
-  cbind(out2 |> select(-id))
+mc_propagated3 <- mc_propagated |>
+  select(year, part, sampled_mean) |>
+  bind_rows(mc_propagated2)
 ```
-
-
 
 ## 10. Results
 
@@ -633,16 +626,14 @@ Then we create some summary statistics (@tbl-results) and plot them (@fig-timeSe
 ```{r summaryStats}
 #| warning: false
 #| message: false
-summary_out <- out |>
-  pivot_longer(cols = !any_of("id")) |>
-  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
+summary_out <- mc_propagated3 |>
   group_by(part, year) |>
   summarise(
-    median = round(median(value), 2),
-    p_025 = round(quantile(value, probs = 0.0025), 2),
-    p_25 = round(quantile(value, probs = 0.25), 2),
-    p_75 = round(quantile(value, probs = 0.75), 2),
-    p_975 = round(quantile(value, probs = 0.975), 2),
+    median = round(median(sampled_mean), 2),
+    p_025 = round(quantile(sampled_mean, probs = 0.025), 2),
+    p_25 = round(quantile(sampled_mean, probs = 0.25), 2),
+    p_75 = round(quantile(sampled_mean, probs = 0.75), 2),
+    p_975 = round(quantile(sampled_mean, probs = 0.975), 2),
   ) |>
   add_column(
     ECT = "B1",
@@ -650,11 +641,10 @@ summary_out <- out |>
     Ecosystem = "Mountains",
     ID = "NO_PTAR_001"
   )
-
 ```
 
 ```{r fig-timeSeries}
-#| fig-cap: 'Indicator values fro NO_PTAR_001 (ptarmigan) plotted over time and for five different regions, as well as the combined national estimated. The error bars are 95% confidence intervals.'
+#| fig-cap: 'Indicator values for NO_PTAR_001 (ptarmigan) plotted over time and for five different regions, as well as the combined national estimated. The error bars are 95% confidence intervals.'
 summary_out |>
   ggplot(aes(x = year, y = median, colour = part, group = part)) +
   geom_pointrange(
@@ -700,7 +690,7 @@ The indicator values are exported and can be found under `data/results_NO_PTAR_0
 ```{r export}
 #| eval: false
 #| code-summary: 'Export data'
-write.csv(out, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
+write.csv(mc_propagated, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
 ```
 
 ## 12. Author contributions
