@@ -408,7 +408,7 @@ We draw `nsim = 1000` random values per county with `NIcalc::sampleObsMat()`.
 Rows with a standard distribution family use observation type `tradObs`; rows with only a custom distribution use `customObs`.
 
 Assessment years are the following: 1990, 2000, 2010, 2014, 2019, 2024.
-The result `dat` is a long table of simulated variable values (`value`) by `ICunitId` and `year` (not yet on the 0–1 indicator scale).
+The result `county_draws` is a long table of simulated variable values (`value`) by `ICunitId` and `year` (not yet on the 0–1 indicator scale).
 
 ```{r moos-vars}
 #| code-summary: "Observation types for sampleObsMat"
@@ -426,7 +426,7 @@ for (i in seq_along(myYears)) {
 #| code-summary: "Resample county-scale variables (non-scaled)"
 #| warning: false
 #| message: false
-dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
+county_draws <- tibble(ICunitId = NULL, value = NULL, year = NULL)
 
 for (i in seq_along(myYears)) {
   myMat <- NIcalc::sampleObsMat(
@@ -451,10 +451,10 @@ for (i in seq_along(myYears)) {
     ) |>
     select(ICunitId, sim_id, value, year)
 
-  dat <- dat |>
+  county_draws <- county_draws |>
     bind_rows(myMat)
 }
-head(dat) |>
+head(county_draws) |>
   gt::gt()
 ```
 
@@ -466,18 +466,18 @@ The `sigmoid` option applies a non-linear transform after the piecewise linear m
 
 ```{r moos-join-scale}
 #| code-summary: "Join X100 and unimodal scaling to indicator scale"
-dat <- dat |>
+county_draws <- county_draws |>
   left_join(x100 |> mutate(ICunitId = as.character(ICunitId)), by = join_by(ICunitId))
 
 ind <- ec_normalise(
-  variable = dat$value,
+  variable = county_draws$value,
   x0 = 0,
-  x100 = dat$x100,
-  x0h = 2 * dat$x100,
+  x100 = county_draws$x100,
+  x0h = 2 * county_draws$x100,
   fun = "sigmoid"
 )
 
-dat <- dat |> add_column(indicator = ind)
+county_draws <- county_draws |> add_column(indicator = ind)
 ```
 
 The scatter plot below (@fig-moos-norm) shows the mapping from variable to indicator for each county (one facet per `ICunitName`). The figure is saved when the document is rendered.
@@ -485,8 +485,8 @@ The scatter plot below (@fig-moos-norm) shows the mapping from variable to indic
 ```{r moos-normplot}
 #| eval: true
 #| code-summary: "Save normalisation diagnostic figure (English)"
-moose_plot <- ec_norm_plot(dat$value, dat$indicator) +
-  facet_wrap(. ~ dat$ICunitName)
+moose_plot <- ec_norm_plot(county_draws$value, county_draws$indicator) +
+  facet_wrap(. ~ county_draws$ICunitName)
 ggsave(filename = here::here("img/moos_norm_plot_eng.png"), plot = moose_plot, scale = 1.5)
 ```
 
@@ -500,26 +500,26 @@ knitr::include_graphics(here::here("img/moos_norm_plot_eng.png"))
 
 Spatial aggregation uses area below the tree line recorded in Naturindeks (`Skog` on each municipality in `BSunits`).
 Municipalities are linked to counties via `ICunits`, then forest area is summed to county (`ICunitId`) and the NI region `part` (N, C, W, S, E) is kept for the next step.
-Each row in `dat` then carries `forest_area` and `part` for weighting.
+Each row in `county_draws` then carries `forest_area` and `part` for weighting.
 
 ```{r moos-weights}
 #| code-summary: "Forest area by county and NI region for aggregation weights"
-aux <- as_tibble(moosAssemble$BSunits) |>
+county_weights <- as_tibble(moosAssemble$BSunits) |>
   rename(BSunitId = id)
 
 IC_BC_link <- moosImport$ICunits |>
   select(ICunitId = id, BSunitId)
 
-aux <- aux |>
+county_weights <- county_weights |>
   left_join(IC_BC_link, by = join_by(BSunitId))
 
-aux <- aux |>
+county_weights <- county_weights |>
   group_by(ICunitId) |>
   summarise(forest_area = sum(Skog), part = unique(part)) |>
   mutate(ICunitId = as.character(ICunitId))
 
-dat <- dat |>
-  left_join(aux, by = join_by(ICunitId))
+county_draws <- county_draws |>
+  left_join(county_weights, by = join_by(ICunitId))
 ```
 
 ### Spatial aggregation
@@ -532,7 +532,7 @@ Aggregate from counties to geographic regions with `ecTools::ec_upscale()`, usin
 #| warning: false
 #| message: false
 mc_propagated <- ecTools::ec_upscale(
-  data = dat,
+  data = county_draws,
   variable = indicator,
   weight = forest_area,
   start_units = ICunitId,
@@ -541,24 +541,24 @@ mc_propagated <- ecTools::ec_upscale(
   end_units_name = "part",
   n = 1000
 )
-saveRDS(mc_propagated, here::here("data/moos_mc_propagated.rds"))
+saveRDS(mc_propagated, here::here("data/moos_mc_propagated_regional.rds"))
 ```
 
 ```{r moos-load-mc-regional}
 #| include: false
-mc_propagated <- readRDS(here::here("data/moos_mc_propagated.rds"))
+mc_propagated <- readRDS(here::here("data/moos_mc_propagated_regional.rds"))
 head(mc_propagated)
 ```
 
 For the national indicator, propagate again from regions to Norway.
 Summed forest area per geographic region is used as weight at this step.
 
-```{r moos-aux2}
+```{r moos-region-weights}
 #| code-summary: "Total forest area per NI region"
-aux2 <- aux |>
+region_weights <- county_weights |>
   group_by(part) |>
   summarise(forest_area = sum(.data$forest_area), .groups = "drop")
-aux2
+region_weights
 ```
 
 ```{r moos-agg-national}
@@ -566,12 +566,12 @@ aux2
 #| eval: false
 #| warning: false
 #| message: false
-mc_propagated <- mc_propagated |>
-  left_join(aux2, by = join_by(part)) |>
+mc_propagated_for_national <- mc_propagated |>
+  left_join(region_weights, by = join_by(part)) |>
   add_column(end_units = "Norway")
 
-mc_propagated2 <- ecTools::ec_upscale(
-  data = mc_propagated,
+mc_propagated_national <- ecTools::ec_upscale(
+  data = mc_propagated_for_national,
   variable = sampled_mean,
   weight = forest_area,
   start_units = part,
@@ -580,27 +580,27 @@ mc_propagated2 <- ecTools::ec_upscale(
   end_units_name = "part",
   n = 1000
 )
-saveRDS(mc_propagated2, here::here("data/moos_mc_propagated2.rds"))
+saveRDS(mc_propagated_national, here::here("data/moos_mc_propagated_national.rds"))
 ```
 
 ```{r moos-load-mc-national}
 #| include: false
-mc_propagated2 <- readRDS(here::here("data/moos_mc_propagated2.rds"))
-head(mc_propagated2)
+mc_propagated_national <- readRDS(here::here("data/moos_mc_propagated_national.rds"))
+head(mc_propagated_national)
 ```
 
 Regional and national MC draws are combined for summarisation and export.
 
 ```{r moos-mc-combined}
 #| code-summary: "Bind regional and national MC outputs"
-mc_propagated3 <- mc_propagated |>
+mc_propagated_combined <- mc_propagated |>
   select(year, part, sampled_mean) |>
-  bind_rows(mc_propagated2)
+  bind_rows(mc_propagated_national)
 ```
 
 ## 10. Results
 
-From the 1000 Monte Carlo replicates per region and year in `mc_propagated3`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive between-county spread).
+From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive between-county spread).
 The table (@tbl-moos-results) and time series (@fig-moos-timeSeries) summarise regional and national (`Norway`) values.
 
 ```{r moos-part-labels}
@@ -622,7 +622,7 @@ moos_region_levels <- c("Norway", "Central", "East", "North", "South", "West")
 #| message: false
 #| cache: false
 #| tbl-cap: "Moose indicator summaries by region and year (inferential uncertainty for area-weighted means)."
-summary_out <- mc_propagated3 |>
+summary_out <- mc_propagated_combined |>
   mutate(part = dplyr::recode(part, !!!moos_part_labels)) |>
   group_by(part, year) |>
   summarise(
@@ -721,11 +721,13 @@ summary_out |>
 
 ## 11. Export file
 
+Regional Monte Carlo draws are exported.
+
 ```{r export}
-#| code-summary: "Export MC-propagated indicator draws"
 #| eval: false
+#| code-summary: "Export regional MC-propagated indicator draws"
 write.csv(
-  mc_propagated3,
+  mc_propagated,
   here::here("data/results_NO_MOOS_001_v1.0.0.csv"),
   row.names = FALSE
 )
