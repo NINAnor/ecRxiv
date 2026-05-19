@@ -394,6 +394,7 @@ These are read from `referenceValues` in the RDS export (rows with `yearId == 0`
 
 ```{r moos-refs}
 #| code-summary: "County reference optimum (X100) from downloaded Naturindeks data"
+#| tbl-cap: "County reference optimum (X100) by county (IC unit)."
 x100 <- moosImport$referenceValues$referenceValues |>
   dplyr::filter(.data$yearId == 0L | grepl("Referanse", .data$yearName, fixed = FALSE)) |>
   dplyr::distinct(ICunitId, ICunitName, x100 = expectedValue)
@@ -424,6 +425,7 @@ for (i in seq_along(myYears)) {
 
 ```{r moos-draw}
 #| code-summary: "Resample county-scale variables (non-scaled)"
+#| tbl-cap: "Preview of resampled county-scale variable values (first rows)."
 #| warning: false
 #| message: false
 county_draws <- tibble(ICunitId = NULL, value = NULL, year = NULL)
@@ -462,7 +464,7 @@ head(county_draws) |>
 
 Normalisation is done at county scale before any regional or national aggregation.
 Each draw is joined to its county `x100`, then mapped to `[0, 1]` with `ecTools::ec_normalise()` in two-sided mode: `x0 = 0` and `x100` = optimum from the download define the best condition; `x0h = 2 * x100` is a simple upper anchor for “too high” density (adjust if you adopt explicit upper limits from NI documentation).
-The `sigmoid` option applies a non-linear transform after the piecewise linear mapping, in line with unimodal indicators in Naturindeks [@nater_naturindeks_2025].
+The `sigmoid` option applies a non-linear transform after the piecewise linear mapping.
 
 ```{r moos-join-scale}
 #| code-summary: "Join X100 and unimodal scaling to indicator scale"
@@ -490,8 +492,7 @@ moose_plot <- ec_norm_plot(county_draws$value, county_draws$indicator) +
 ggsave(filename = here::here("img/moos_norm_plot_eng.png"), plot = moose_plot, scale = 1.5)
 ```
 
-```{r moos-fig-norm}
-#| label: fig-moos-norm
+```{r fig-moos-norm}
 #| fig-cap: "Unimodal normalisation of moose density to indicator values (one panel per county)."
 knitr::include_graphics(here::here("img/moos_norm_plot_eng.png"))
 ```
@@ -642,8 +643,7 @@ summary_out <- mc_propagated_combined |>
   )
 ```
 
-```{r moos-fig-timeSeries}
-#| label: fig-moos-timeSeries
+```{r fig-moos-timeSeries}
 #| cache: false
 #| fig-cap: "Indicator values for moose abundance by region and nationally, with uncertainty bands from the resampled distribution."
 moos_plot_years <- as.character(c(1990, 2000, 2010, 2014, 2019, 2024))
@@ -665,9 +665,8 @@ ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
   ) +
   geom_pointrange(
     aes(ymin = p_025, ymax = p_975, shape = series_type),
-    size = 0.65,
-    linewidth = 0.5,
-    fatten = 3,
+    size = 0.8,
+    linewidth = 0.45,
     position = position_dodge(width = 0.18)
   ) +
   scale_colour_manual(values = moos_region_cols, name = NULL) +
@@ -689,13 +688,12 @@ ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
   ) +
   guides(
     colour = guide_legend(nrow = 2, override.aes = list(size = 0.7, linewidth = 0.45)),
-    shape = guide_legend(override.aes = list(size = 1.1, linewidth = 0.45))
+    shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
   ) +
   labs(y = "Indicator value", x = "")
 ```
 
-```{r moos-tbl-results}
-#| label: tbl-moos-results
+```{r tbl-moos-results}
 #| warning: false
 #| message: false
 #| cache: false
