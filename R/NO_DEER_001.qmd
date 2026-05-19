@@ -1,14 +1,14 @@
 ---
 title: "Red deer abundance"
 subtitle: |
-  [NO_REDA_001]
+  [NO_DEER_001]
 indicatorID: 
-  - NO_REDA_001
+  - NO_DEER_001
 indicatorName: 
   - Red deer abundance [Hjortebestand]
 verbatimName: 
   - Hjortebestand
-folderName: NO_REDA_001
+folderName: NO_DEER_001
 country: Norway
 continent: Europe
 ECT: B3 Functional state characteristics
@@ -23,9 +23,9 @@ yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: First version on ecRxiv; indicator described in the Norwegian Nature Index
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_REDA_001
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DEER_001
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (population model, county level) - [Scale - Truncate] - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (county level) - [Scale - Truncate] - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -81,6 +81,7 @@ conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
 library(NIcalc)
 library(ecTools)
+library(MetBrewer)
 
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
@@ -306,13 +307,13 @@ Regional and national values are area-weighted summaries of counties, so they in
 
 ### 5.2 Reported uncertainties
 
-The intervals in @tbl-reda-results and @fig-reda-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for county-level abundance in Naturindeksen.
+The intervals in @tbl-deer-results and @fig-deer-timeSeries are **inferential**: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for county-level abundance in Naturindeksen.
 
 For each county and assessment year, Naturindeks provides a predictive distribution for abundance (expressed on the variable scale before scaling).
 We draw many random values from that distribution per county, scale each draw to the 0–1 indicator scale using the county reference optimum and unimodal scaling, then build a large set of possible county indicators.
 To obtain uncertainty for a region, we repeat the following 1000 times: draw one random county indicator per county in that region, take the forest-area-weighted average across those counties, and record that regional mean.
 The median of those regional means is reported as the point estimate; the 2.5% and 97.5% quantiles form an approximate 95% interval, and the 25% and 75% quantiles form an approximate interquartile range.
-For Norway, the same idea is applied one level up: in each replicate we combine the five regional means from that same replicate using weights proportional to total forest area in each region, then summarise the resulting national means in the same way.
+For Norway, we apply a second Monte Carlo step at regional scale: draw one value from each region’s uncertainty distribution, take the forest-area-weighted mean across the five regions, and repeat 1000 times to obtain a national distribution, then summarise in the same way.
 This approach reflects uncertainty in the county models and in the scaled values, while treating the regional or national figure as a single summary parameter rather than as a random draw from one county.
 
 
@@ -326,25 +327,25 @@ This approach reflects uncertainty in the county models and in the scaled values
 Run the download chunk once to refresh the local export. This project’s renv environment installs `NIcalc` from GitHub `ChloeRN/NIcalc`, branch `include_ReadOnly_access` (see `renv.lock` and `install_deps.R`); that build defaults to the Naturindeks read-only API user, so you do not need `username` / `password` arguments here. When [NINAnor/NIcalc PR #59](https://github.com/NINAnor/NIcalc/pull/59) is merged into `NINAnor/NIcalc`, you can switch the renv install back to the main repo and update the lockfile.
 We save the RDS export under `data/` so that we do not need to download the data every time we run the analysis.
 
-```{r reda-import-api}
+```{r deer-import-api}
 #| code-summary: "Download red deer data from Naturindeks API"
 #| eval: false
 
-redaImport <- NIcalc::importDatasetApi(
+deerImport <- NIcalc::importDatasetApi(
   eco = NULL,
   indic = c("Hjort"),
   year = c("1990", "2000", "2010", "2014", "2019", "2024")
 )
 
-saveRDS(redaImport, here::here("data/redaImport.rds"))
+saveRDS(deerImport, here::here("data/deerImport.rds"))
 ```
 
-```{r reda-load-import}
+```{r deer-load-import}
 #| include: false
 #| cache: false
-#| code-summary: "Load saved Naturindeks import (enable when data/redaImport.rds exists)"
+#| code-summary: "Load saved Naturindeks import (enable when data/deerImport.rds exists)"
 
-redaImport <- readRDS(here::here("data/redaImport.rds"))
+deerImport <- readRDS(here::here("data/deerImport.rds"))
 ```
 
 
@@ -355,7 +356,7 @@ We can think of the counties as ecosystem assets, and mainland Norway as the Eco
 
 ## 9. Analyses
 
-This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at county scale, then propagate uncertainty and aggregate spatially with area weights. At regional and national scale, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per county (then per region), not a random draw from a pooled mixture of counties.
+This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at county scale, then propagate uncertainty and aggregate spatially with area weights using `ecTools::ec_upscale()`. At regional and national scale, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per county (then, for Norway, one draw per region), not a random draw from a pooled mixture of counties.
 We use unimodal scaling and forest area (`Skog`) as weights.
 
 County-level abundance in the database is stored as a predictive distribution (parameters or custom distributions), not only as a point estimate.
@@ -364,12 +365,12 @@ We ignore uncertainty in reference levels.
 
 ### Assemble import and indicator object
 
-`assembleNiObject()` reshapes `redaImport` so that indicator observations are in one list element per assessment year, and so that municipality-level `BSunits` (with forest area and NI region code `part`) are aligned with the thematic index structure used in Naturindeks.
+`assembleNiObject()` reshapes `deerImport` so that indicator observations are in one list element per assessment year, and so that municipality-level `BSunits` (with forest area and NI region code `part`) are aligned with the thematic index structure used in Naturindeks.
 
-```{r reda-assemble}
+```{r deer-assemble}
 #| code-summary: "Assemble red deer NI object (thematic, predefined regions)"
-redaAssemble <- NIcalc::assembleNiObject(
-  inputData = redaImport,
+deerAssemble <- NIcalc::assembleNiObject(
+  inputData = deerImport,
   predefNIunits = c(allArea = T, parts = T, counties = F),
   indexType = "thematic"
 )
@@ -380,9 +381,9 @@ redaAssemble <- NIcalc::assembleNiObject(
 Before scaling, we need the county-specific optimum on the variable scale (red deer density, ind. km⁻² below the tree line).
 These are read from `referenceValues` in the RDS export (rows with `yearId == 0` or reference year name), one `x100` per IC unit (county).
 
-```{r reda-refs}
+```{r deer-refs}
 #| code-summary: "County reference optimum (X100) from downloaded Naturindeks data"
-x100 <- redaImport$referenceValues$referenceValues |>
+x100 <- deerImport$referenceValues$referenceValues |>
   dplyr::filter(.data$yearId == 0L | grepl("Referanse", .data$yearName, fixed = FALSE)) |>
   dplyr::distinct(ICunitId, ICunitName, x100 = expectedValue)
 x100 |>
@@ -396,34 +397,34 @@ We draw `nsim = 1000` random values per county with `NIcalc::sampleObsMat()`.
 Rows with a standard distribution family use observation type `tradObs`; rows with only a custom distribution use `customObs`.
 
 Assessment years are the following: 1990, 2000, 2010, 2014, 2019, 2024.
-The result `dat` is a long table of simulated variable values (`value`) by `ICunitId` and `year` (not yet on the 0–1 indicator scale).
+The result `county_draws` is a long table of simulated variable values (`value`) by `ICunitId` and `year` (not yet on the 0–1 indicator scale).
 
-```{r reda-vars}
+```{r deer-vars}
 #| code-summary: "Observation types for sampleObsMat"
 myYears <- as.character(c(1990, 2000, 2010, 2014, 2019, 2024))
 obstype <- vector("list", length(myYears))
 for (i in seq_along(myYears)) {
-  obs <- redaAssemble$indicatorValues[[i]]$distributionFamilyName
+  obs <- deerAssemble$indicatorValues[[i]]$distributionFamilyName
   obs[!is.na(obs)] <- "tradObs"
   obs[is.na(obs)] <- "customObs"
   obstype[[i]] <- obs
 }
 ```
 
-```{r reda-draw}
+```{r deer-draw}
 #| code-summary: "Resample county-scale variables (non-scaled)"
 #| warning: false
 #| message: false
-dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
+county_draws <- tibble(ICunitId = NULL, value = NULL, year = NULL)
 
 for (i in seq_along(myYears)) {
   myMat <- NIcalc::sampleObsMat(
-    ICunitId = redaAssemble$indicatorValues[[i]]$ICunitId,
-    value = redaAssemble$indicatorValues[[i]]$expectedValue,
-    distrib = redaAssemble$indicatorValues[[i]]$distributionFamilyName,
-    mu = redaAssemble$indicatorValues[[i]]$distParameter1,
-    sig = redaAssemble$indicatorValues[[i]]$distParameter2,
-    customDistribution = redaAssemble$indicatorValues[[i]]$customDistribution,
+    ICunitId = deerAssemble$indicatorValues[[i]]$ICunitId,
+    value = deerAssemble$indicatorValues[[i]]$expectedValue,
+    distrib = deerAssemble$indicatorValues[[i]]$distributionFamilyName,
+    mu = deerAssemble$indicatorValues[[i]]$distParameter1,
+    sig = deerAssemble$indicatorValues[[i]]$distParameter2,
+    customDistribution = deerAssemble$indicatorValues[[i]]$customDistribution,
     obsType = obstype[[i]],
     nsim = 1000
   )
@@ -439,10 +440,10 @@ for (i in seq_along(myYears)) {
     ) |>
     select(ICunitId, sim_id, value, year)
 
-  dat <- dat |>
+  county_draws <- county_draws |>
     bind_rows(myMat)
 }
-head(dat) |>
+head(county_draws) |>
   gt::gt()
 ```
 
@@ -452,209 +453,241 @@ Normalisation is done at county scale before any regional or national aggregatio
 Each draw is joined to its county `x100`, then mapped to `[0, 1]` with `ecTools::ec_normalise()` in two-sided unimodal mode: `x0 = 0` and `x100` = optimum from the download define the best condition; `x0h = 2 * x100` is a simple upper anchor for densities above the optimum.
 We use the default linear transformation (`fun = "linear"`), without an additional sigmoid step [@nater_naturindeks_2025].
 
-```{r reda-join-scale}
+```{r deer-join-scale}
 #| code-summary: "Join X100 and unimodal scaling to indicator scale"
-dat <- dat |>
+county_draws <- county_draws |>
   left_join(x100 |> mutate(ICunitId = as.character(ICunitId)), by = join_by(ICunitId))
 
 ind <- ec_normalise(
-  variable = dat$value,
+  variable = county_draws$value,
   x0 = 0,
-  x100 = dat$x100,
-  x0h = 2 * dat$x100,
-  fun = "linear"
+  x100 = county_draws$x100,
+  x0h = 2 * county_draws$x100,
+  fun = "sigmoid"
 )
 
-dat <- dat |> add_column(indicator = ind)
+county_draws <- county_draws |> add_column(indicator = ind)
 ```
 
-The scatter plot below (@fig-reda-norm) shows the mapping from variable to indicator for each county (one facet per `ICunitName`). The figure is saved when the document is rendered.
+The scatter plot below (@fig-deer-norm) shows the mapping from variable to indicator for each county (one facet per `ICunitName`). The figure is saved when the document is rendered.
 
-```{r reda-normplot}
+```{r deer-normplot}
 #| eval: true
 #| code-summary: "Save normalisation diagnostic figure (English)"
-red_deer_plot <- ec_norm_plot(dat$value, dat$indicator) +
-  facet_wrap(. ~ dat$ICunitName)
-ggsave(filename = here::here("img/reda_norm_plot_eng.png"), plot = red_deer_plot, scale = 1.5)
+red_deer_plot <- ec_norm_plot(county_draws$value, county_draws$indicator) +
+  facet_wrap(. ~ county_draws$ICunitName)
+ggsave(filename = here::here("img/deer_norm_plot_eng.png"), plot = red_deer_plot, scale = 1.5)
 ```
 
-```{r reda-fig-norm}
-#| label: fig-reda-norm
+```{r fig-deer-norm}
 #| fig-cap: "Unimodal normalisation of red deer density to indicator values (one panel per county)."
-knitr::include_graphics(here::here("img/reda_norm_plot_eng.png"))
+knitr::include_graphics(here::here("img/deer_norm_plot_eng.png"))
 ```
 
 ### Aggregation weights (forest area by county)
 
 Spatial aggregation uses area below the tree line recorded in Naturindeks (`Skog` on each municipality in `BSunits`).
 Municipalities are linked to counties via `ICunits`, then forest area is summed to county (`ICunitId`) and the NI region `part` (N, C, W, S, E) is kept for the next step.
-Each row in `dat` then carries `forest_area` and `part` for weighting.
+Each row in `county_draws` then carries `forest_area` and `part` for weighting.
 
-```{r reda-weights}
+```{r deer-weights}
 #| code-summary: "Forest area by county and NI region for aggregation weights"
-aux <- as_tibble(redaAssemble$BSunits) |>
+county_weights <- as_tibble(deerAssemble$BSunits) |>
   rename(BSunitId = id)
 
-IC_BC_link <- redaImport$ICunits |>
+IC_BC_link <- deerImport$ICunits |>
   select(ICunitId = id, BSunitId)
 
-aux <- aux |>
+county_weights <- county_weights |>
   left_join(IC_BC_link, by = join_by(BSunitId))
 
-aux <- aux |>
+county_weights <- county_weights |>
   group_by(ICunitId) |>
   summarise(forest_area = sum(Skog), part = unique(part)) |>
   mutate(ICunitId = as.character(ICunitId))
 
-dat <- dat |>
-  left_join(aux, by = join_by(ICunitId))
+county_draws <- county_draws |>
+  left_join(county_weights, by = join_by(ICunitId))
 ```
 
-### Aggregate to geographic regions (inferential uncertainty)
+### Spatial aggregation
 
-For each Monte Carlo replicate \(b = 1, \ldots, 1000\) and each region–year, we draw one posterior sample per county (from that county’s 1000 simulations in `dat`), then compute the forest-area-weighted mean across counties in the region.
-The resulting 1000 values describe uncertainty around the regional mean indicator.
+Aggregate from counties to geographic regions with `ecTools::ec_upscale()`, using Monte Carlo propagation of inferential uncertainty (one draw per county per replicate, forest-area-weighted mean).
 
-```{r reda-agg-regions}
-#| code-summary: "Bootstrap distribution of area-weighted regional means"
+```{r deer-aggregate1}
+#| code-summary: "County to region MC propagation (ec_upscale)"
+#| eval: false
 #| warning: false
 #| message: false
-regions <- c("N", "C", "W", "S", "E")
-B <- 1000L
-
-out <- tibble(id = seq_len(B))
-
-for (i in regions) {
-  for (n in myYears) {
-    d_yr <- dat |>
-      filter(.data$part == i, .data$year == n)
-
-    counties <- sort(unique(d_yr$ICunitId))
-    w <- aux |>
-      filter(.data$ICunitId %in% counties) |>
-      arrange(match(.data$ICunitId, counties))
-
-    by_county <- split(d_yr$indicator, d_yr$ICunitId)[counties]
-
-    col_vals <- vapply(
-      seq_len(B),
-      function(b) {
-        draws <- vapply(by_county, sample, numeric(1), size = 1L)
-        stats::weighted.mean(draws, w$forest_area)
-      },
-      numeric(1)
-    )
-
-    out <- out |>
-      add_column(!!paste(i, n, sep = "_") := col_vals)
-  }
-}
-head(out)
+mc_propagated <- ecTools::ec_upscale(
+  data = county_draws,
+  variable = indicator,
+  weight = forest_area,
+  start_units = ICunitId,
+  end_units = part,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated, here::here("data/deer_mc_propagated_regional.rds"))
 ```
 
-### Aggregate to national level (inferential uncertainty)
+```{r deer-load-mc-regional}
+#| include: false
+mc_propagated <- readRDS(here::here("data/deer_mc_propagated_regional.rds"))
+head(mc_propagated)
+```
 
-For each year and replicate \(b\), the national value is the forest-area-weighted mean of the five regional values from that same replicate (`aux2` gives total forest area per region).
-This propagates uncertainty to the national mean in the same way as at regional scale.
+For the national indicator, propagate again from regions to Norway.
+Summed forest area per geographic region is used as weight at this step.
 
-```{r reda-agg-national}
-#| code-summary: "Bootstrap distribution of area-weighted national means"
-#| warning: false
-#| message: false
-aux2 <- aux |>
+```{r deer-region-weights}
+#| code-summary: "Total forest area per NI region"
+region_weights <- county_weights |>
   group_by(part) |>
   summarise(forest_area = sum(.data$forest_area), .groups = "drop")
+region_weights
+```
 
-w_region <- aux2$forest_area[match(regions, aux2$part)]
+```{r deer-agg-national}
+#| code-summary: "Region to Norway MC propagation (ec_upscale)"
+#| eval: false
+#| warning: false
+#| message: false
+mc_propagated_for_national <- mc_propagated |>
+  left_join(region_weights, by = join_by(part)) |>
+  add_column(end_units = "Norway")
 
-out2 <- tibble(id = seq_len(B))
+mc_propagated_national <- ecTools::ec_upscale(
+  data = mc_propagated_for_national,
+  variable = sampled_mean,
+  weight = forest_area,
+  start_units = part,
+  end_units = end_units,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated_national, here::here("data/deer_mc_propagated_national.rds"))
+```
 
-for (n in myYears) {
-  nat_vals <- vapply(
-    seq_len(B),
-    function(b) {
-      reg_draws <- vapply(
-        regions,
-        function(r) out[[paste(r, n, sep = "_")]][b],
-        numeric(1)
-      )
-      stats::weighted.mean(reg_draws, w_region)
-    },
-    numeric(1)
-  )
+```{r deer-load-mc-national}
+#| include: false
+mc_propagated_national <- readRDS(here::here("data/deer_mc_propagated_national.rds"))
+head(mc_propagated_national)
+```
 
-  out2 <- out2 |>
-    add_column(!!paste("All", n, sep = "_") := nat_vals)
-}
+Regional and national MC draws are combined for summarisation.
 
-head(out2)
-
-out <- out |>
-  bind_cols(out2 |> select(-id))
+```{r deer-mc-combined}
+#| code-summary: "Bind regional and national MC outputs"
+mc_propagated_combined <- mc_propagated |>
+  select(year, part, sampled_mean) |>
+  bind_rows(mc_propagated_national)
 ```
 
 ## 10. Results
 
-From the 1000 bootstrap replicates per region and year in `out`, we report the median as the point estimate and use the 0.25% and 99.75% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive between-county spread).
-The table (@tbl-reda-results) and time series (@fig-reda-timeSeries) summarise regional and national (`All`) values.
+From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive between-county spread).
+The table (@tbl-deer-results) and time series (@fig-deer-timeSeries) summarise regional and national (`Norway`) values.
 
-```{r reda-summaryStats}
+```{r deer-part-labels}
+#| include: false
+deer_part_labels <- c(
+  N = "North",
+  C = "Central",
+  W = "West",
+  S = "South",
+  E = "East",
+  Norway = "Norway",
+  All = "Norway"
+)
+deer_region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+```
+
+```{r deer-summaryStats}
 #| warning: false
 #| message: false
+#| cache: false
 #| tbl-cap: "Red deer indicator summaries by region and year (inferential uncertainty for area-weighted means)."
-summary_out <- out |>
-  pivot_longer(cols = !any_of("id")) |>
-  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
+summary_out <- mc_propagated_combined |>
+  mutate(part = dplyr::recode(part, !!!deer_part_labels)) |>
   group_by(part, year) |>
   summarise(
-    median = round(median(value), 2),
-    p_025 = round(quantile(value, probs = 0.0025), 2),
-    p_25 = round(quantile(value, probs = 0.25), 2),
-    p_75 = round(quantile(value, probs = 0.75), 2),
-    p_975 = round(quantile(value, probs = 0.975), 2),
+    median = round(median(sampled_mean), 2),
+    p_025 = round(quantile(sampled_mean, probs = 0.025), 2),
+    p_25 = round(quantile(sampled_mean, probs = 0.25), 2),
+    p_75 = round(quantile(sampled_mean, probs = 0.75), 2),
+    p_975 = round(quantile(sampled_mean, probs = 0.975), 2),
+    .groups = "drop"
   ) |>
+  mutate(part = factor(part, levels = deer_region_levels)) |>
   add_column(
     ECT = "B3",
     Indicator = "Red deer abundance",
     Ecosystem = "Boreal/montane forests",
-    ID = "NO_REDA_001"
-  ) |>
-  mutate(
-    part = case_when(
-      part == "All" ~ "Norway",
-      part == "N" ~ "North",
-      part == "C" ~ "Central",
-      part == "W" ~ "West",
-      part == "S" ~ "South",
-      part == "E" ~ "East",
-      TRUE ~ part
-    )
+    ID = "NO_DEER_001"
   )
 ```
 
-```{r reda-fig-timeSeries}
-#| label: fig-reda-timeSeries
+```{r fig-deer-timeSeries}
+#| cache: false
 #| fig-cap: "Indicator values for red deer abundance by region and nationally, with uncertainty bands from the resampled distribution."
-summary_out |>
-  ggplot(aes(x = year, y = median, colour = part, group = part)) +
-  geom_pointrange(
-    aes(ymin = p_025, ymax = p_975),
-    size = 2,
-    position = position_dodge(width = 0.3)
+deer_plot_years <- as.character(c(1990, 2000, 2010, 2014, 2019, 2024))
+deer_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(deer_region_levels)),
+  deer_region_levels
+)
+
+plot_data <- summary_out |>
+  mutate(
+    year = factor(year, levels = deer_plot_years),
+    series_type = if_else(part == "Norway", "National", "Region")
+  )
+
+ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
+  geom_line(
+    aes(linewidth = series_type),
+    position = position_dodge(width = 0.18)
   ) +
-  geom_line(position = position_dodge(width = 0.3)) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8,
+    linewidth = 0.45,
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_colour_manual(values = deer_region_cols, name = NULL) +
+  scale_shape_manual(
+    values = c(National = 19, Region = 17),
+    name = NULL
+  ) +
+  scale_linewidth_manual(
+    values = c(National = 1, Region = 0.55),
+    guide = "none"
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
   theme_bw(base_size = 12) +
-  labs(y = "Indicator value", x = "Year") +
-  scale_colour_viridis_d(option = "turbo", name = "Region")
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  guides(
+    colour = guide_legend(nrow = 2, override.aes = list(size = 0.7, linewidth = 0.45)),
+    shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  labs(y = "Indicator value", x = "")
 ```
 
-```{r reda-tbl-results}
-#| label: tbl-reda-results
+```{r tbl-deer-results}
 #| warning: false
 #| message: false
+#| cache: false
 #| tbl-cap: "Indicator values and uncertainty estimates for red deer abundance."
 
 summary_out |>
+  arrange(part, year) |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
   unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
   select(
@@ -673,9 +706,16 @@ summary_out |>
 
 ## 11. Export file
 
+Regional Monte Carlo draws are exported.
+
 ```{r export}
-#| code-summary: "Export resampled indicator draws"
-write.csv(out, here::here("data/results_NO_REDA_001_v1.0.0.csv"), row.names = FALSE)
+#| eval: false
+#| code-summary: "Export regional MC-propagated indicator draws"
+write.csv(
+  mc_propagated,
+  here::here("data/results_NO_DEER_001_v1.0.0.csv"),
+  row.names = FALSE
+)
 ```
 
 
