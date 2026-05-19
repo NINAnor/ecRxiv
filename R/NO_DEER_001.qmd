@@ -383,6 +383,7 @@ These are read from `referenceValues` in the RDS export (rows with `yearId == 0`
 
 ```{r deer-refs}
 #| code-summary: "County reference optimum (X100) from downloaded Naturindeks data"
+#| tbl-cap: "County reference optimum (X100) by county (IC unit)."
 x100 <- deerImport$referenceValues$referenceValues |>
   dplyr::filter(.data$yearId == 0L | grepl("Referanse", .data$yearName, fixed = FALSE)) |>
   dplyr::distinct(ICunitId, ICunitName, x100 = expectedValue)
@@ -413,6 +414,7 @@ for (i in seq_along(myYears)) {
 
 ```{r deer-draw}
 #| code-summary: "Resample county-scale variables (non-scaled)"
+#| tbl-cap: "Preview of resampled county-scale variable values (first rows)."
 #| warning: false
 #| message: false
 county_draws <- tibble(ICunitId = NULL, value = NULL, year = NULL)
@@ -451,7 +453,7 @@ head(county_draws) |>
 
 Normalisation is done at county scale before any regional or national aggregation.
 Each draw is joined to its county `x100`, then mapped to `[0, 1]` with `ecTools::ec_normalise()` in two-sided unimodal mode: `x0 = 0` and `x100` = optimum from the download define the best condition; `x0h = 2 * x100` is a simple upper anchor for densities above the optimum.
-We use the default linear transformation (`fun = "linear"`), without an additional sigmoid step [@nater_naturindeks_2025].
+The `sigmoid` option applies a non-linear transform after the piecewise linear mapping.
 
 ```{r deer-join-scale}
 #| code-summary: "Join X100 and unimodal scaling to indicator scale"

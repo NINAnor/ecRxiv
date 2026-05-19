@@ -2687,7 +2687,7 @@ Assemble dataset ..... </code></pre>
 <section id="reference-levels-x100" class="level3">
 <h3 class="anchored" data-anchor-id="reference-levels-x100">Reference levels (X<sub>100</sub>)</h3>
 <p>Before scaling, we need the county-specific optimum on the variable scale (red deer density, ind. km⁻² below the tree line). These are read from <code>referenceValues</code> in the RDS export (rows with <code>yearId == 0</code> or reference year name), one <code>x100</code> per IC unit (county).</p>
-<div class="cell">
+<div class="cell" data-tbl-cap="County reference optimum (X100) by county (IC unit).">
 <details class="code-fold">
 <summary>County reference optimum (X100) from downloaded Naturindeks data</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>x100 <span class="ot">&lt;-</span> deerImport<span class="sc">$</span>referenceValues<span class="sc">$</span>referenceValues <span class="sc">|&gt;</span></span>
@@ -3095,6 +3095,7 @@ height: 0px !important;
 </style>
 
 <table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
+<caption>County reference optimum (X100) by county (IC unit).</caption>
 <thead>
 <tr class="gt_col_headings header">
 <th id="ICunitId" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">ICunitId</th>
@@ -3207,7 +3208,7 @@ height: 0px !important;
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div class="cell">
+<div class="cell" data-tbl-cap="Preview of resampled county-scale variable values (first rows).">
 <details class="code-fold">
 <summary>Resample county-scale variables (non-scaled)</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>county_draws <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">ICunitId =</span> <span class="cn">NULL</span>, <span class="at">value =</span> <span class="cn">NULL</span>, <span class="at">year =</span> <span class="cn">NULL</span>)</span>
@@ -3640,6 +3641,7 @@ height: 0px !important;
 </style>
 
 <table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
+<caption>Preview of resampled county-scale variable values (first rows).</caption>
 <thead>
 <tr class="gt_col_headings header">
 <th id="ICunitId" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">ICunitId</th>
@@ -3694,7 +3696,7 @@ height: 0px !important;
 </section>
 <section id="scaling-to-indicator-values-unimodal" class="level3">
 <h3 class="anchored" data-anchor-id="scaling-to-indicator-values-unimodal">Scaling to indicator values (unimodal)</h3>
-<p>Normalisation is done at county scale before any regional or national aggregation. Each draw is joined to its county <code>x100</code>, then mapped to <code>[0, 1]</code> with <code>ecTools::ec_normalise()</code> in two-sided unimodal mode: <code>x0 = 0</code> and <code>x100</code> = optimum from the download define the best condition; <code>x0h = 2 * x100</code> is a simple upper anchor for densities above the optimum. We use the default linear transformation (<code>fun = &quot;linear&quot;</code>), without an additional sigmoid step <span class="citation" data-cites="nater_naturindeks_2025">(<a href="#ref-nater_naturindeks_2025" role="doc-biblioref">Norwegian Institute for Nature Research and partners 2025</a>)</span>.</p>
+<p>Normalisation is done at county scale before any regional or national aggregation. Each draw is joined to its county <code>x100</code>, then mapped to <code>[0, 1]</code> with <code>ecTools::ec_normalise()</code> in two-sided unimodal mode: <code>x0 = 0</code> and <code>x100</code> = optimum from the download define the best condition; <code>x0h = 2 * x100</code> is a simple upper anchor for densities above the optimum. The <code>sigmoid</code> option applies a non-linear transform after the piecewise linear mapping.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Join X100 and unimodal scaling to indicator scale</summary>
