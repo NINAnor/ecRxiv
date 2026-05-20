@@ -1,14 +1,14 @@
 ---
 title: "Lynx abundance"
 subtitle: |
-  [NO_LYAB_001]
+  [NO_LYNX_001]
 indicatorID: 
-  - NO_LYAB_001
+  - NO_LYNX_001
 indicatorName: 
   - Lynx abundance [Gaupebestand]
 verbatimName: 
   - Gaupebestand
-folderName: NO_LYAB_001
+folderName: NO_LYNX_001
 country: Norway
 continent: Europe
 ECT: B3 Functional state characteristics
@@ -21,9 +21,9 @@ Ecosystem:
 yearAdded: 2026
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
-Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: First version on ecRxiv; indicator described in the Norwegian Nature Index
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_LYAB_001
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_LYNX_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Aggregate (national level)
 format: 
@@ -81,6 +81,7 @@ conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
 library(NIcalc)
 library(ecTools)
+library(MetBrewer)
 
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
@@ -230,7 +231,7 @@ Lynx population monitoring in Norway is described and reported by [Rovdata](http
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Indicator values are available for the assessment years in Naturindeksen: 1990, 2000, 2010, 2014, 2019, and 2024.
+Indicator values are available for the assessment years in Naturindeksen: 2000, 2010, 2014, 2019, and 2024.
 
 To produce indicator estimates for these years, input is combined over a short window (typically two to three years), as specified in the Naturindeks indicator protocol.
 
@@ -322,14 +323,11 @@ Monitoring design and sample effort differ between species and regions; uneven c
 
 ### 5.2 Reported uncertainties
 
-The intervals in @tbl-lyab-results and @fig-lyab-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.
+The intervals in @tbl-lynx-results, @fig-lynx-norm, and @fig-lynx-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.
 
 For each management region and assessment year, Naturindeks provides a predictive distribution for the population index (on the variable scale before scaling).
-We draw many random values from that distribution per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then build a large set of possible management-region indicators.
-To obtain uncertainty for a geographic region, we repeat the following 1000 times: draw one random management-region indicator per region in that NI area, take the terrestrial-area-weighted average across those regions, and record that geographic mean.
-The median of those geographic means is reported as the point estimate; the 2.5% and 97.5% quantiles form an approximate 95% interval, and the 25% and 75% quantiles form an approximate interquartile range.
-For Norway, the same idea is applied one level up: in each replicate we combine the five regional means from that same replicate using weights proportional to total terrestrial area in each region, then summarise the resulting national means in the same way.
-This approach reflects uncertainty in the management-region models and in the scaled values, while treating the regional or national figure as a single summary parameter rather than as a random draw from one management region.
+We draw `nsim = 1000` values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then aggregate with `ecTools::ec_upscale()`: first from management regions to each NI geographic region (`part`), then from regions to Norway, using summed terrestrial area as weights (same structure as forest-area weighting for the cervid indicators).
+The 1000 `sampled_mean` values per region and year describe inferential uncertainty for the area-weighted mean indicator; we summarise them with the median and 2.5% and 97.5% quantiles as an approximate 95% interval, and the 25% and 75% quantiles as an approximate interquartile range.
 
 
 ## 6. References
@@ -342,25 +340,25 @@ This approach reflects uncertainty in the management-region models and in the sc
 Run the download chunk once to refresh the local export. This project’s renv environment installs `NIcalc` from GitHub `ChloeRN/NIcalc`, branch `include_ReadOnly_access` (see `renv.lock` and `install_deps.R`); that build defaults to the Naturindeks read-only API user, so you do not need `username` / `password` arguments here. When [NINAnor/NIcalc PR #59](https://github.com/NINAnor/NIcalc/pull/59) is merged into `NINAnor/NIcalc`, you can switch the renv install back to the main repo and update the lockfile.
 We save the RDS export under `data/` so that we do not need to download the data every time we run the analysis.
 
-```{r lyab-import-api}
+```{r lynx-import-api}
 #| code-summary: "Download lynx data from Naturindeks API"
 #| eval: false
 
-lyabImport <- NIcalc::importDatasetApi(
+lynxImport <- NIcalc::importDatasetApi(
   eco = NULL,
   indic = c("Gaupe"),
-  year = c("1990", "2000", "2010", "2014", "2019", "2024")
+  year = c("2000", "2010", "2014", "2019", "2024")
 )
 
-saveRDS(lyabImport, here::here("data/lyabImport.rds"))
+saveRDS(lynxImport, here::here("data/lynxImport.rds"))
 ```
 
-```{r lyab-load-import}
+```{r lynx-load-import}
 #| include: false
 #| cache: false
 #| code-summary: "Load saved Naturindeks import"
 
-lyabImport <- readRDS(here::here("data/lyabImport.rds"))
+lynxImport <- readRDS(here::here("data/lynxImport.rds"))
 ```
 
 
@@ -372,7 +370,9 @@ Mainland Norway is the ecosystem accounting area.
 
 ## 9. Analyses
 
-This section takes variable values and reference levels from the Naturindeks import, normalises at management-region scale with linear scaling, then propagates uncertainty and aggregates spatially with terrestrial area weights. At geographic-region and national scale, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per management region (then per geographic region), not a random draw from a pooled mixture of regions.
+This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at large-carnivore management-region scale (IC unit) with linear scaling, then propagate uncertainty and aggregate spatially with terrestrial area weights using `ecTools::ec_upscale()`.
+At geographic (NI part) and national scale, uncertainties are inferential: each replicate is a terrestrial-area-weighted mean based on one draw per management region (then, for Norway, one draw per NI region).
+We use linear scaling and summed terrestrial area from the Naturindeks spatial framework as weights (analogous to forest area in the cervid indicators).
 
 Management-region population indices in the database are stored as predictive distributions, not only as point estimates.
 Reference levels per region (_X~0~_ = 0, _X~100~_ from the download) are applied before any geographic or national aggregation.
@@ -380,12 +380,12 @@ We ignore uncertainty in the reference levels themselves.
 
 ### Assemble import and indicator object
 
-`assembleNiObject()` reshapes `lyabImport` so that indicator observations are in one list element per assessment year, and so that underlying spatial units (`BSunits`) are aligned with the thematic index structure used in Naturindeks.
+`assembleNiObject()` reshapes `lynxImport` so that indicator observations are in one list element per assessment year, and so that underlying spatial units (`BSunits`) are aligned with the thematic index structure used in Naturindeks.
 
-```{r lyab-assemble}
+```{r lynx-assemble}
 #| code-summary: "Assemble lynx NI object (thematic, predefined regions)"
-lyabAssemble <- NIcalc::assembleNiObject(
-  inputData = lyabImport,
+lynxAssemble <- NIcalc::assembleNiObject(
+  inputData = lynxImport,
   predefNIunits = c(allArea = T, parts = T, counties = F),
   indexType = "thematic"
 )
@@ -396,9 +396,10 @@ lyabAssemble <- NIcalc::assembleNiObject(
 Before scaling, we read regional reference levels from `referenceValues` in the RDS export (rows with `yearId == 0` or reference year name).
 For this indicator, _X~0~_ is zero individuals in the unit and _X~100~_ is the expert reference population index per rovvilt region (`expectedValue` in the reference slice).
 
-```{r lyab-refs}
+```{r lynx-refs}
 #| code-summary: "Management-region reference levels from downloaded Naturindeks data"
-refs <- lyabImport$referenceValues$referenceValues |>
+#| tbl-cap: "Management-region reference levels (X0 = 0, X100) by rovvilt region (IC unit)."
+refs <- lynxImport$referenceValues$referenceValues |>
   dplyr::filter(.data$yearId == 0L | grepl("Referanse", .data$yearName, fixed = FALSE)) |>
   dplyr::distinct(ICunitId, ICunitName, x100 = expectedValue) |>
   dplyr::mutate(x0 = 0)
@@ -412,36 +413,36 @@ For each assessment year, Naturindeks stores one value per rovvilt region as a p
 We draw `nsim = 1000` random values per region with `NIcalc::sampleObsMat()`.
 Rows with a standard distribution family use observation type `tradObs`; rows with only a custom distribution use `customObs`.
 
-Assessment years are 1990, 2000, 2010, 2014, 2019, and 2024.
-In the Naturindeks download used here, all management-region observations for 1990 are missing; resampling therefore yields `NA` for that year until the database provides values.
-The result `dat` is a long table of simulated population indices (`value`) by `ICunitId` and `year`, not yet on the 0–1 indicator scale.
+Assessment years are 2000, 2010, 2014, 2019, and 2024.
+The result `mgmt_draws` is a long table of simulated population indices (`value`) by `ICunitId` and `year`, not yet on the 0–1 indicator scale.
 
-```{r lyab-vars}
+```{r lynx-vars}
 #| code-summary: "Observation types for sampleObsMat"
-myYears <- as.character(c(1990, 2000, 2010, 2014, 2019, 2024))
+myYears <- as.character(c(2000, 2010, 2014, 2019, 2024))
 obstype <- vector("list", length(myYears))
 for (i in seq_along(myYears)) {
-  obs <- lyabAssemble$indicatorValues[[i]]$distributionFamilyName
+  obs <- lynxAssemble$indicatorValues[[i]]$distributionFamilyName
   obs[!is.na(obs)] <- "tradObs"
   obs[is.na(obs)] <- "customObs"
   obstype[[i]] <- obs
 }
 ```
 
-```{r lyab-draw}
+```{r lynx-draw}
 #| code-summary: "Resample management-region variables (non-scaled)"
+#| tbl-cap: "Preview of resampled management-region variable values (first rows)."
 #| warning: false
 #| message: false
-dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
+mgmt_draws <- tibble(ICunitId = NULL, value = NULL, year = NULL)
 
 for (i in seq_along(myYears)) {
   myMat <- NIcalc::sampleObsMat(
-    ICunitId = lyabAssemble$indicatorValues[[i]]$ICunitId,
-    value = lyabAssemble$indicatorValues[[i]]$expectedValue,
-    distrib = lyabAssemble$indicatorValues[[i]]$distributionFamilyName,
-    mu = lyabAssemble$indicatorValues[[i]]$distParameter1,
-    sig = lyabAssemble$indicatorValues[[i]]$distParameter2,
-    customDistribution = lyabAssemble$indicatorValues[[i]]$customDistribution,
+    ICunitId = lynxAssemble$indicatorValues[[i]]$ICunitId,
+    value = lynxAssemble$indicatorValues[[i]]$expectedValue,
+    distrib = lynxAssemble$indicatorValues[[i]]$distributionFamilyName,
+    mu = lynxAssemble$indicatorValues[[i]]$distParameter1,
+    sig = lynxAssemble$indicatorValues[[i]]$distParameter2,
+    customDistribution = lynxAssemble$indicatorValues[[i]]$customDistribution,
     obsType = obstype[[i]],
     nsim = 1000
   )
@@ -457,10 +458,10 @@ for (i in seq_along(myYears)) {
     ) |>
     select(ICunitId, sim_id, value, year)
 
-  dat <- dat |>
+  mgmt_draws <- mgmt_draws |>
     bind_rows(myMat)
 }
-head(dat) |>
+head(mgmt_draws) |>
   gt::gt()
 ```
 
@@ -469,38 +470,37 @@ head(dat) |>
 Normalisation is done at management-region scale before any geographic or national aggregation.
 Each draw is joined to its regional `x0` and `x100`, then mapped to `[0, 1]` with `ecTools::ec_normalise()` using linear increasing scaling from _X~0~_ to _X~100~_ (no upper-tail unimodal anchor).
 
-```{r lyab-join-scale}
+```{r lynx-join-scale}
 #| code-summary: "Join reference levels and linear scaling to indicator scale"
-dat <- dat |>
+mgmt_draws <- mgmt_draws |>
   left_join(
     refs |> mutate(ICunitId = as.character(ICunitId)),
     by = join_by(ICunitId)
   )
 
 ind <- ec_normalise(
-  variable = dat$value,
-  x0 = dat$x0,
-  x100 = dat$x100,
+  variable = mgmt_draws$value,
+  x0 = mgmt_draws$x0,
+  x100 = mgmt_draws$x100,
   fun = "linear"
 )
 
-dat <- dat |> add_column(indicator = ind)
+mgmt_draws <- mgmt_draws |> add_column(indicator = ind)
 ```
 
-The scatter plot below (@fig-lyab-norm) shows the mapping from variable to indicator for each rovvilt region (one facet per `ICunitName`). The figure is saved when the document is rendered.
+The scatter plot below (@fig-lynx-norm) shows the mapping from variable to indicator for each rovvilt region (one facet per `ICunitName`). The figure is saved when the document is rendered.
 
-```{r lyab-normplot}
+```{r lynx-normplot}
 #| eval: true
 #| code-summary: "Save normalisation diagnostic figure (English)"
-lynx_plot <- ec_norm_plot(dat$value, dat$indicator) +
-  facet_wrap(. ~ dat$ICunitName)
-ggsave(filename = here::here("img/lyab_norm_plot_eng.png"), plot = lynx_plot, scale = 1.5)
+lynx_plot <- ec_norm_plot(mgmt_draws$value, mgmt_draws$indicator) +
+  facet_wrap(. ~ mgmt_draws$ICunitName)
+ggsave(filename = here::here("img/lynx_norm_plot_eng.png"), plot = lynx_plot, scale = 1.5)
 ```
 
-```{r lyab-fig-norm}
-#| label: fig-lyab-norm
+```{r fig-lynx-norm}
 #| fig-cap: "Linear normalisation of lynx population index to indicator values (one panel per management region)."
-knitr::include_graphics(here::here("img/lyab_norm_plot_eng.png"))
+knitr::include_graphics(here::here("img/lynx_norm_plot_eng.png"))
 ```
 
 ### Aggregation weights (terrestrial area by management region)
@@ -510,182 +510,227 @@ Municipalities are linked to rovvilt regions via `ICunits`, as for counties in t
 Each `BSunit` carries a Naturindeks geographic region code (`part`: E, S, W, C, N).
 We sum terrestrial area by management region and by `part`, assign each management region to the `part` with the largest area share, and use total terrestrial area per management region as the weight in geographic and national means.
 
-```{r lyab-weights}
+```{r lynx-weights}
 #| code-summary: "Terrestrial area and NI part from BSunits in the import"
-aux <- as_tibble(lyabAssemble$BSunits) |>
+mgmt_weights <- as_tibble(lynxAssemble$BSunits) |>
   rename(BSunitId = id)
 
-IC_BC_link <- lyabImport$ICunits |>
+IC_BC_link <- lynxImport$ICunits |>
   distinct(ICunitId = as.character(id), BSunitId)
 
-aux <- aux |>
+mgmt_weights <- mgmt_weights |>
   left_join(IC_BC_link, by = join_by(BSunitId))
 
-ic_names <- lyabAssemble$indicatorValues[[1]] |>
+ic_names <- lynxAssemble$indicatorValues[[1]] |>
   transmute(ICunitId = as.character(ICunitId), ICunitName)
 
-part_from_data <- aux |>
+part_from_data <- mgmt_weights |>
   group_by(ICunitId, part) |>
   summarise(area_in_part = sum(terrestrialArea), .groups = "drop") |>
   group_by(ICunitId) |>
   slice_max(area_in_part, n = 1, with_ties = FALSE) |>
   select(ICunitId, part)
 
-aux <- aux |>
+mgmt_weights <- mgmt_weights |>
   group_by(ICunitId) |>
-  summarise(area_weight = sum(terrestrialArea), .groups = "drop") |>
+  summarise(terrestrial_area = sum(terrestrialArea), .groups = "drop") |>
   left_join(part_from_data, by = join_by(ICunitId)) |>
   left_join(ic_names, by = join_by(ICunitId))
 
-dat <- dat |>
-  left_join(aux, by = join_by(ICunitId))
+mgmt_draws <- mgmt_draws |>
+  left_join(
+    mgmt_weights |> select(ICunitId, terrestrial_area, part),
+    by = join_by(ICunitId)
+  ) |>
+  mutate(ICunitId = as.character(ICunitId))
 ```
 
-### Aggregate to geographic regions (inferential uncertainty)
+### Spatial aggregation
 
-For each Monte Carlo replicate \(b = 1, \ldots, 1000\) and each geographic region–year, we draw one posterior sample per management region in that area (from that region’s 1000 simulations in `dat`), then compute the terrestrial-area-weighted mean across regions.
-The resulting 1000 values describe uncertainty around the geographic mean indicator.
+Aggregate from management regions to NI geographic regions with `ecTools::ec_upscale()`, using Monte Carlo propagation of inferential uncertainty (one draw per management region per replicate, terrestrial-area-weighted mean).
 
-```{r lyab-agg-regions}
-#| code-summary: "Bootstrap distribution of area-weighted geographic means"
+```{r lynx-aggregate1}
+#| code-summary: "Management region to NI part MC propagation (ec_upscale)"
+#| eval: false
 #| warning: false
 #| message: false
-regions <- c("N", "C", "W", "S", "E")
-B <- 1000L
-
-out <- tibble(id = seq_len(B))
-
-for (i in regions) {
-  for (n in myYears) {
-    d_yr <- dat |>
-      filter(.data$part == i, .data$year == n)
-
-    mgmt_regions <- sort(unique(d_yr$ICunitId))
-    w <- aux |>
-      filter(.data$ICunitId %in% mgmt_regions) |>
-      arrange(match(.data$ICunitId, mgmt_regions))
-
-    by_region <- split(d_yr$indicator, d_yr$ICunitId)[mgmt_regions]
-
-    col_vals <- vapply(
-      seq_len(B),
-      function(b) {
-        draws <- vapply(by_region, sample, numeric(1), size = 1L)
-        stats::weighted.mean(draws, w$area_weight, na.rm = TRUE)
-      },
-      numeric(1)
-    )
-
-    out <- out |>
-      add_column(!!paste(i, n, sep = "_") := col_vals)
-  }
-}
-head(out)
+mc_propagated <- ecTools::ec_upscale(
+  data = mgmt_draws,
+  variable = indicator,
+  weight = terrestrial_area,
+  start_units = ICunitId,
+  end_units = part,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated, here::here("data/lynx_mc_propagated_regional.rds"))
 ```
 
-### Aggregate to national level (inferential uncertainty)
+```{r lynx-load-mc-regional}
+#| include: false
+mc_propagated <- readRDS(here::here("data/lynx_mc_propagated_regional.rds"))
+head(mc_propagated)
+```
 
-For each year and replicate \(b\), the national value is the terrestrial-area-weighted mean of the five geographic regional values from that same replicate (`aux2` gives total area per geographic region).
-This propagates uncertainty to the national mean in the same way as at geographic scale.
+For the national indicator, propagate again from regions to Norway.
+Summed terrestrial area per geographic region is used as weight at this step.
 
-```{r lyab-agg-national}
-#| code-summary: "Bootstrap distribution of area-weighted national means"
-#| warning: false
-#| message: false
-aux2 <- aux |>
+```{r lynx-region-weights}
+#| code-summary: "Total terrestrial area per NI region"
+region_weights <- mgmt_weights |>
   group_by(part) |>
-  summarise(area_weight = sum(.data$area_weight), .groups = "drop")
+  summarise(terrestrial_area = sum(.data$terrestrial_area), .groups = "drop")
+region_weights
+```
 
-w_region <- aux2$area_weight[match(regions, aux2$part)]
+```{r lynx-agg-national}
+#| code-summary: "NI region to Norway MC propagation (ec_upscale)"
+#| eval: false
+#| warning: false
+#| message: false
+mc_propagated_for_national <- mc_propagated |>
+  left_join(region_weights, by = join_by(part)) |>
+  add_column(end_units = "Norway")
 
-out2 <- tibble(id = seq_len(B))
+mc_propagated_national <- ecTools::ec_upscale(
+  data = mc_propagated_for_national,
+  variable = sampled_mean,
+  weight = terrestrial_area,
+  start_units = part,
+  end_units = end_units,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated_national, here::here("data/lynx_mc_propagated_national.rds"))
+```
 
-for (n in myYears) {
-  nat_vals <- vapply(
-    seq_len(B),
-    function(b) {
-      reg_draws <- vapply(
-        regions,
-        function(r) out[[paste(r, n, sep = "_")]][b],
-        numeric(1)
-      )
-      stats::weighted.mean(reg_draws, w_region, na.rm = TRUE)
-    },
-    numeric(1)
-  )
+```{r lynx-load-mc-national}
+#| include: false
+mc_propagated_national <- readRDS(here::here("data/lynx_mc_propagated_national.rds"))
+head(mc_propagated_national)
+```
 
-  out2 <- out2 |>
-    add_column(!!paste("All", n, sep = "_") := nat_vals)
-}
+Regional and national MC draws are combined for summarisation and export.
 
-head(out2)
-
-out <- out |>
-  bind_cols(out2 |> select(-id))
+```{r lynx-mc-combined}
+#| code-summary: "Bind regional and national MC outputs"
+mc_propagated_combined <- mc_propagated |>
+  select(year, part, sampled_mean) |>
+  bind_rows(mc_propagated_national)
 ```
 
 ## 10. Results
 
-From the 1000 bootstrap replicates per region and year in `out`, we report the median as the point estimate and use the 0.25% and 99.75% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
-The table (@tbl-lyab-results) and time series (@fig-lyab-timeSeries) summarise geographic and national (`All`) values.
+From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the terrestrial-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
+The table (@tbl-lynx-results) and time series (@fig-lynx-timeSeries) summarise regional and national (`Norway`) values.
 
-```{r lyab-summaryStats}
+```{r lynx-part-labels}
+#| include: false
+lynx_part_labels <- c(
+  N = "North",
+  C = "Central",
+  W = "West",
+  S = "South",
+  E = "East",
+  Norway = "Norway",
+  All = "Norway"
+)
+lynx_region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+```
+
+```{r lynx-summaryStats}
 #| warning: false
 #| message: false
+#| cache: false
 #| tbl-cap: "Lynx indicator summaries by region and year (inferential uncertainty for area-weighted means)."
-summary_out <- out |>
-  pivot_longer(cols = !any_of("id")) |>
-  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
+summary_out <- mc_propagated_combined |>
+  mutate(part = dplyr::recode(part, !!!lynx_part_labels)) |>
   group_by(part, year) |>
   summarise(
-    median = round(median(value, na.rm = TRUE), 2),
-    p_025 = round(quantile(value, probs = 0.0025, na.rm = TRUE), 2),
-    p_25 = round(quantile(value, probs = 0.25, na.rm = TRUE), 2),
-    p_75 = round(quantile(value, probs = 0.75, na.rm = TRUE), 2),
-    p_975 = round(quantile(value, probs = 0.975, na.rm = TRUE), 2),
+    median = round(median(sampled_mean), 2),
+    p_025 = round(quantile(sampled_mean, probs = 0.025), 2),
+    p_25 = round(quantile(sampled_mean, probs = 0.25), 2),
+    p_75 = round(quantile(sampled_mean, probs = 0.75), 2),
+    p_975 = round(quantile(sampled_mean, probs = 0.975), 2),
+    .groups = "drop"
   ) |>
+  mutate(part = factor(part, levels = lynx_region_levels)) |>
   add_column(
     ECT = "B3",
     Indicator = "Lynx abundance",
     Ecosystem = "Boreal/montane forests",
-    ID = "NO_LYAB_001"
-  ) |>
-  mutate(
-    part = case_when(
-      part == "All" ~ "Norway",
-      part == "N" ~ "North",
-      part == "C" ~ "Central",
-      part == "W" ~ "West",
-      part == "S" ~ "South",
-      part == "E" ~ "East",
-      TRUE ~ part
-    )
+    ID = "NO_LYNX_001"
   )
 ```
 
-```{r lyab-fig-timeSeries}
-#| label: fig-lyab-timeSeries
-#| fig-cap: "Indicator values for lynx abundance by geographic region and nationally, with uncertainty bands from the resampled distribution."
-summary_out |>
-  ggplot(aes(x = year, y = median, colour = part, group = part)) +
-  geom_pointrange(
-    aes(ymin = p_025, ymax = p_975),
-    size = 2,
-    position = position_dodge(width = 0.3)
+```{r fig-lynx-timeSeries}
+#| cache: false
+#| fig-cap: "Indicator values for lynx abundance by region and nationally, with uncertainty bands from the resampled distribution."
+lynx_plot_years <- as.character(c(2000, 2010, 2014, 2019, 2024))
+lynx_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(lynx_region_levels)),
+  lynx_region_levels
+)
+
+plot_data <- summary_out |>
+  mutate(
+    year = factor(year, levels = lynx_plot_years),
+    series_type = if_else(part == "Norway", "National", "Region")
+  )
+
+y_hi <- max(plot_data$p_975, na.rm = TRUE)
+y_max <- min(1, max(0.08, y_hi * 1.12, na.rm = TRUE))
+y_breaks <- pretty(c(0, y_max), n = 6)
+
+ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
+  geom_line(
+    aes(linewidth = series_type),
+    position = position_dodge(width = 0.18)
   ) +
-  geom_line(position = position_dodge(width = 0.3)) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8,
+    linewidth = 0.45,
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_colour_manual(values = lynx_region_cols, name = NULL) +
+  scale_shape_manual(
+    values = c(National = 19, Region = 17),
+    name = NULL
+  ) +
+  scale_linewidth_manual(
+    values = c(National = 1, Region = 0.55),
+    guide = "none"
+  ) +
+  scale_y_continuous(
+    limits = c(0, y_max),
+    breaks = y_breaks,
+    expand = ggplot2::expansion(mult = c(0.02, 0.04))
+  ) +
   theme_bw(base_size = 12) +
-  labs(y = "Indicator value", x = "Year") +
-  scale_colour_viridis_d(option = "turbo", name = "Region")
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  guides(
+    colour = guide_legend(nrow = 2, override.aes = list(size = 0.7, linewidth = 0.45)),
+    shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  labs(y = "Indicator value", x = "")
 ```
 
-```{r lyab-tbl-results}
-#| label: tbl-lyab-results
+```{r tbl-lynx-results}
 #| warning: false
 #| message: false
+#| cache: false
 #| tbl-cap: "Indicator values and uncertainty estimates for lynx abundance."
 
 summary_out |>
+  arrange(part, year) |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
   unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
   select(
@@ -704,9 +749,16 @@ summary_out |>
 
 ## 11. Export file
 
-```{r export}
-#| code-summary: "Export resampled indicator draws"
-write.csv(out, here::here("data/results_NO_LYAB_001_v0.1.0.csv"), row.names = FALSE)
+Regional and national Monte Carlo draws are exported in one table (`mc_propagated_combined`: `year`, `part`, `sampled_mean`; `part` includes NI regions and `Norway`).
+
+```{r lynx-export}
+#| eval: false
+#| code-summary: "Export regional and national MC-propagated indicator draws"
+write.csv(
+  mc_propagated_combined,
+  here::here("data/results_NO_LYNX_001_v1.0.0.csv"),
+  row.names = FALSE
+)
 ```
 
 ## 12. Author contributions
