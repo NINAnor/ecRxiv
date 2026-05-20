@@ -568,58 +568,31 @@ dat_expand <- dat |>
     unmatched = "error",
     relationship = "many-to-many"
   )
-dat_expand
+head(dat_expand)
+# and we create a column for the regions
+dat_expand2 <- dat_expand |>
+  select(-wholeArea) |>
+  mutate(across(c(E, S, W, C, N), ~ na_if(., 0))) |>
+  pivot_longer(cols = c(E, S, W, C, N), values_drop_na = T, values_to = "count", names_to = "part") |>
+  select(-count)
+head(dat_expand2)
 ```
 
 
-```{r}
-```
-
-```{r getRegNames}
-# In this object we get the rows per municipality (BSunits), with mountain area ("Fjell") and geographic region ("part").  
-aux <- as_tibble(ptarAssemble$BSunits) |>
-  rename(BSunitId = id)
-head(aux)
-```
-
-The data is at the ICunit level (counties) so wee need to add the ICunitId into here.
-
-```{r}
-IC_BC_link <- ptarImport$ICunits |>
-  select(ICunitId = id, BSunitId)
-
-aux <- aux |>
-  left_join(IC_BC_link, by = join_by(BSunitId))
-```
-
-Then we can sum the mountain area, and move that value, and the geographic region, into the main dataset.
-We use the alpine area that is recorded in the Naturindeks database. 
-They should represenet the area above the empirical forest line.
-
-
-```{r}
-aux <- aux |>
-  group_by(ICunitId) |>
-  summarise(alpine_area = sum(Fjell), part = unique(part)) |>
-  mutate(ICunitId = as.character(ICunitId))
-
-dat <- dat |>
-  left_join(aux, by = join_by(ICunitId))
-```
 
 ### Spatial aggregation
 
-Then aggregate from counties to geographic regions using ecTools.
+Then we can aggregate from municipalities to geographic regions using ecTools.
 This uses a Monte Carlo propagation of the uncertainties. 
-
+This takes a while to run with n = 1000.
 
 ```{r aggregate1}
 #| eval: false
 mc_propagated <- ecTools::ec_upscale(
-  data = dat,
+  data = dat_expand2,
   variable = indicator,
-  weight = alpine_area,
-  start_units = ICunitId,
+  weight = Fjell,
+  start_units = BSunits,
   end_units = part,
   year = year,
   end_units_name = "part",
@@ -638,16 +611,18 @@ To get the national indicator estimate, we will do another MC propagation from g
 So we need the summed mountain area per geographic region.
 
 ```{r}
-aux2 <- aux |>
+aux <- dat_expand2 |>
+  select(-indicator) |>
+  distinct(BSunits, .keep_all = T) |>
   group_by(part) |>
-  summarise(alpine_area = sum(alpine_area)) 
-aux2
+  summarise(alpine_area = sum(Fjell)) 
+aux
 ```
 
 ```{r aggToNorway}
 #| eval: false
 mc_propagated <- mc_propagated |>
-  left_join(aux2, by = join_by(part)) |>
+  left_join(aux, by = join_by(part)) |>
   add_column(end_units = "Norway")
 
 mc_propagated2 <- ecTools::ec_upscale(
@@ -697,9 +672,9 @@ summary_out <- mc_propagated3 |>
   ) |>
   add_column(
     ECT = "B1",
-    Indicator = "Ptarmigan",
+    Indicator = "Wolverine",
     Ecosystem = "Mountains",
-    ID = "NO_PTAR_001"
+    ID = "NO_JERV_001"
   )
 ```
 
@@ -739,7 +714,7 @@ summary_out |>
     "95% CI" = CI_95,
     "50% CI" = IQR
   ) |>
-  kable()
+  knitr::kable()
 ```
 
 
@@ -750,7 +725,7 @@ The indicator values are exported and can be found under `data/results_NO_PTAR_0
 ```{r export}
 #| eval: false
 #| code-summary: 'Export data'
-write.csv(mc_propagated, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
+write.csv(mc_propagated3, here::here("data/results_NO_JERV_001_v1.0.0.csv"), row.names = F)
 ```
 
 ## 12. Author contributions
