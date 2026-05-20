@@ -2,8 +2,13 @@
 local({
 
   # the requested version of renv
+<<<<<<< HEAD
   version <- "1.1.6"
   attr(version, "md5") <- NULL
+=======
+  version <- "1.2.3"
+  attr(version, "md5") <- "1bd9f58e1cfe27ce035933937c6f03de"
+>>>>>>> 462018c2 (update renv lock file)
   attr(version, "sha") <- NULL
 
   # the project directory
