@@ -26,7 +26,7 @@ Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#version
 VersionComment: First version on ecRxiv, but this indicator is already published and described in the Norwegian Nature Index
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_JERV_001
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (population model, rovdyrregion) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (population model, rovdyrregion) - [Scale - Truncate] - Disaggregate (municipalities) - Aggregate (geographic region) - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -80,6 +80,7 @@ library(NIcalc)
 knitr::opts_chunk$set(echo = TRUE)
 #install.packages('logrittr', repos = 'https://guillaumepressiat.r-universe.dev')
 library(logrittr)
+library(gt)
 library(ecTools)
 # remotes::install_github("NINAnor/ecTools") #version 0.0.0.9002
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
@@ -188,13 +189,17 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 1. **Background and rationale**:
 <!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
 What are the main anthropogenic impact factors? -->
-
+Wolverine is a top predator in Norwegian mountains. It is mainly a scavenger, feeding on 
+carcasses ranging from small rodents to reindeer. 
+They require large territories in order to find enough food.
+Historic over hunting is one reason for the low abundance we see today, but current management through culling is also a major determinant.  
 
 2. **Methods**:
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
- [@nater_naturindeks_2025]. 
- 
- [Nature index web site](https://www.naturindeks.no/Indicators/fjellrype). 
+Wolverine numbers are reported each from *Statens Naturoppsyn* (SNO) for each of the eight carnivore management regions, and these estimates are associated with relativey small uncertainties. 
+We get the data from the Norwegian Nature Index database [@nater_naturindeks_2025] where also reference values are stored.
+These represent the hypothetical number of wolverine in Norwegian alpine ecosystems given minimal anthropogenic influence, and are based lagely on expert opinion. 
+
 
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
@@ -203,17 +208,24 @@ Values decreasing toward zero indicates that the average population size is decr
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-
+The indicator value for Norway as a whole in 2024 is 0.06 [95% CI = 0.06-0.07]. This is extremely low and reflects the both the historical overexploitation and current management. The indicator value is highest in eastern Norway, and lowest in the south and western Norway, where it is more or less abscent. Development needs include a revision of the X~100~ values based on updated knowledge, and a more structured approach to expert elicitation (or other methods).     
 
 ## 1.2 Native language summary - Norwegian
 
 1. **Bakgrunn og begrunnelse**: 
-2. **Metoder**: 
+Jerv er en topp-predator i norske fjellområder. Den er hovedsakelig åtseleter og lever av kadavre i størrelsen fra smågnagere til rein.
+Jerv trenger store leveområder for å finne nok mat.
+Historisk overbeskatning er en viktig årsak til den lave bestanden vi ser i dag, men dagens forvaltning gjennom lisensfelling er også en sentral faktor.
 
-3. **Tolkning**: En indikatorverdi på 1 betyr at jervebestanden er like stor eller større enn det vi forventer under referansetilstanden. Verdier som nærmer seg null indikerer at den gjennomsnittlige bestandsstørrelsen på rovviltregionsnivå er avtagende.
+2. **Metoder**: 
+Jervebestanden rapporteres hvert år av Statens naturoppsyn (SNO) for hver av de åtte rovviltregionene, og disse estimatene er knyttet til relativt små usikkerheter.
+Dataene som brukes i denne indikatoren hentes fra Naturindeks-databasen [@nater_naturindeks_2025], hvor også referanseverdiene er lagret.
+Referanseverdiene representerer det hypotetiske antallet jerv i norske alpine økosystemer under minimal menneskelig påvirkning, og er i stor grad basert på ekspertvurderinger.
+
+3. **Tolkning**: En indikatorverdi på 1 betyr at jervebestanden er like stor eller større enn det vi forventer under referansetilstanden. Verdier som nærmer seg null indikerer at den gjennomsnittlige bestandsstørrelsen på rovviltregionsnivå er avtagende og går mot null.
 
 4. **Resultater og utviklingsbehov**: 
-
+Indikatorverdien for Norge som helhet i 2024 er 0,06 [95 % KI = 0,06–0,07]. Dette er svært lavt og reflekterer både historisk jakt og dagens forvaltning. Indikatorverdien er høyest i Øst-Norge og lavest i Sør- og Vest-Norge, hvor jerv er mer eller mindre fraværende. Utviklingsbehov inkluderer en revisjon av X~100~-verdiene basert på oppdatert kunnskap, samt en mer strukturert tilnærming til ekspertvurderinger (eller andre metoder).
 
 ## 2. About the underlying data
 
@@ -286,7 +298,7 @@ None that are very strong.
 
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
 Wolvering still suffers from very strong hunting from year 1700 up until it was protected in 1973. 
-It's population is still heavily regulated by culling. 
+The population today is also heavily regulated by culling. 
 Wolverine is also affected by other human activities such as land use change or disturbance.
 
 
@@ -294,7 +306,7 @@ Wolverine is also affected by other human activities such as land use change or 
 
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
-A model is used to estimate an aggregated wolvering count at the scale of carnivore regions. Here the variable is normalised by scaling and truncating against X~100~ and X~0~. The indicator values are then propagated to five geographic regions, and then to Norway, with a sample weight proportional to the mountain area in each region or area. 
+A model is used to estimate an aggregated wolvering count at the scale of carnivore regions. Here the variable is normalised by scaling and truncating against X~100~ and X~0~. The indicator values downscaled to the level of municipalities before they are aggregated to the five geographic regions, and then to Norway, with a sample weight proportional to the mountain area in each municipality or region. 
 
 
 ## 4. Reference condition and levels
@@ -316,7 +328,7 @@ Why was the current option chosen and how were the reference levels quantified? 
 
  -->
 
-X~100~ is defined based on the predicted number of wolverinr individuals based on a statistical model [@bischof2019rovquant; @milleret2024estimates]. This value varies between carnivore regions.
+X~100~ is defined based on the predicted number of wolverine individuals based on a statistical model [@bischof2019rovquant; @milleret2024estimates]. This value varies between carnivore regions.
 
 X~0~ is defined as a complete absence of wolverine.
 
@@ -329,20 +341,20 @@ X~0~ is defined as a complete absence of wolverine.
 Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
 
  -->
- The reference values vary between the eight carnivore management regions, and normalisation of variable values is and should be done at this scale as well. 
+ The reference values vary between the eight carnivore management regions, and normalisation of variable values is therefore done at this scale as well. 
 
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
 <!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
-One main source of uncertainty is about how the X~100~ is set using expert opinin, based on assumptions about the amount of suitable habitat and the density of reproducible units(individuals).
+One main source of uncertainty is about how the X~100~ is set using expert opinion, based on assumptions about the amount of suitable habitat and the density of reproducible units(individuals).
 
 
 ### 5.2 Reported uncertainties
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
 However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
 
-The reported uncertainties reflect both the uncertainty in the reference levels (something which is accommodated in the naturindeks workflow), the uncertainty in the county estimates, and when spatially aggregating, also the spatial variation between counties.  
+The reported uncertainties reflect the uncertainties around the true parameter means, i.e. they are inferrential uncertainties for the true value of the indicator for the given area and time combination.  
 
 ## 6. References
 
@@ -360,7 +372,7 @@ The reported uncertainties reflect both the uncertainty in the reference levels 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
 
 We download the dataset from the Naturindeks database using the API. 
-The function giver read-only access without a username and password
+The function giver read-only access without requiring a username and password.
 ```{r}
 #| eval: false
 # I use a dev version of NIcalc where the username and passwork for the guest user is hrd coded into the function. This will probably be merged into the real NIcalc (from NINAnor/NIcalc) soon.
@@ -378,7 +390,6 @@ saveRDS(jervImport, here::here("data/jervImport.rds"))
 
 ```{r}
 #| include: false
-
 jervImport <- readRDS(here::here("data/jervImport.rds"))
 ```
 
@@ -424,7 +435,7 @@ I only have an X~100~ value. X~0~ is a natural zero.
 ```{r refs}
 x100 <- jervImport$referenceValues$referenceValues |>
   select(ICunitId, ICunitName, x100 = expectedValue)
-x100
+gt::gt(x100)
 ```
 
 
@@ -691,6 +702,64 @@ summary_out |>
   theme_bw(base_size = 16) +
   labs(y = "Indicator value", x = "Year") +
   scale_colour_viridis_d(option = "turbo", name = "Region") 
+
+
+part_labels <- c(
+  N = "North",
+  C = "Central",
+  W = "West",
+  S = "South",
+  E = "East",
+  Norway = "Norway",
+  All = "Norway"
+)
+
+region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+
+region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(region_levels)),
+  region_levels
+)
+
+plot_data <- summary_out |>
+  mutate(
+    year = factor(year, levels = myYears),
+    series_type = if_else(part == "Norway", "National", "Region")
+  )
+
+ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
+  geom_line(
+    aes(linewidth = series_type),
+    position = position_dodge(width = 0.18)
+  ) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8,
+    linewidth = 0.45,
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_colour_manual(values = region_cols, name = NULL) +
+  scale_shape_manual(
+    values = c(National = 19, Region = 17),
+    name = NULL
+  ) +
+  scale_linewidth_manual(
+    values = c(National = 1, Region = 0.55),
+    guide = "none"
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  guides(
+    colour = guide_legend(nrow = 2, override.aes = list(size = 0.7, linewidth = 0.45)),
+    shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  labs(y = "Indicator value", x = "")
 ```
 
 
