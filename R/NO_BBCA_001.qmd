@@ -89,11 +89,16 @@ library(janitor)
 library(stringi)
 library(DT)
 library(gt)
+library(ecTools)
+library(MetBrewer)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
+
+# This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
+# renv::restore()
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -213,16 +218,17 @@ Values decreasing toward zero reflect...
 
 ## 2. About the underlying data
 
-The bilberry cover by area is recorded for each NFI inventory plot. 
+This indicator uses data from the Norwegian National Forest Inventory (NFI, *landsskoginventaret*).
+The bilberry cover by area is recorded for each NFI inventory plot.
 There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
-The indicator value is an unbiased area-weighted estimate of the billberry cover for NFI plots in any selected region.
+The indicator value is an unbiased area-weighted estimate of the bilberry cover for NFI plots in any selected region.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
 For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
 The data are available upon request from NFI.
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Data are available from 2010, when the bilberry cover by area was first recorded based on current methods. Annual estimates are possible due to representative sampling every year. For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. The data are representative for all productiver forest land of Norway. Spatial resolution should be limited to the resolution applied to reference values, that is counties or part county for scaling and regions for aggregated reporting.
+Data are available from 2010, when the bilberry cover by area was first recorded based on current methods. Annual estimates are possible due to representative sampling every year. For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. The data are representative for all productiver forest land of Norway. Spatial resolution should be limited to the resolution applied to reference values, that is counties or sub-counties for scaling and regions for aggregated reporting.
 
 ### 2.2 Sampling design
 
@@ -277,11 +283,11 @@ For example, and indicator called 'Trenching in mires' could be made to represen
 The spatial aggregation pathway is Scale - Aggregate - Truncate.
 For each NFI plot we first convert bilberry cover from percent to proportion and create `indicator_continuous_weighted = indicator_cover * au_areal`.
 Non-scaled indicator values for each reporting period are calculated separately for each geographic unit as area-weighted arithmetic means of all NFI plots within that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
-This is done for counties or part county, regions, and at national level.
-Scaling is applied only after these non-scaled county or county-part aggregates have been calculated.
-Each county or part county is scaled against its own lower reference level X0 (0% cover) and upper reference level X100 using a linear scaling function; scaled values above 1 are truncated to 1.
+This is done for counties or sub-counties, regions, and at national level.
+Scaling is applied only after these non-scaled county or sub-county aggregates have been calculated.
+Each county or sub-county is scaled against its own lower reference level X0 (0% cover) and upper reference level X100 using a linear scaling function; scaled values above 1 are truncated to 1.
 Regional and national scaled point estimates are not obtained by scaling a single aggregated non-scaled value with one reference level.
-They are area-weighted means of the already scaled county or county-part values, using each county or county part's represented area as weight.
+They are area-weighted means of the already scaled county or sub-county values, using each county or sub-county's represented area as weight.
 Non-scaled regional and national point estimates are still calculated directly from all plots within each region or the whole country.
 
 ## 4. Reference condition and levels
@@ -292,19 +298,19 @@ Non-scaled regional and national point estimates are still calculated directly f
 
 ### 4.2 Reference levels
 
-The lower reference level X0 is set to 0% bilberry cover and the upper reference level X100 is set separately for each county or part county.
+The lower reference level X0 is set to 0% bilberry cover and the upper reference level X100 is set separately for each county or sub-county.
 X0 denotes the worst possible condition and X100 denotes the best possible condition on the original cover scale.
 Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
 Scaled values above 1 are truncated to 1 when bilberry cover exceeds the county-specific X100.
-The county and county-part X100 values used in the analyses are listed in @sec-bbca-reference-values.
+The county and sub-county X100 values used in the analyses are listed in @sec-bbca-reference-values.
 X0 is 0 for all units.
 
 #### 4.2.1 Spatial resolution and validity
 
-Reference levels are defined at county or county-part resolution, not as one national value.
-Scaling is therefore applied to area-weighted non-scaled indicator values that have first been aggregated to the matching county or county-part unit.
-Regional and national reporting uses area-weighted aggregation of these scaled county or county-part values rather than one common X100 for the aggregated non-scaled value.
-The indicator should not be interpreted at finer spatial resolution than the county or county-part reference levels allow.
+Reference levels are defined at county or sub-county resolution, not as one national value.
+Scaling is therefore applied to area-weighted non-scaled indicator values that have first been aggregated to the matching county or sub-county unit.
+Regional and national reporting uses area-weighted aggregation of these scaled county or sub-county values rather than one common X100 for the aggregated non-scaled value.
+The indicator should not be interpreted at finer spatial resolution than the county or sub-county reference levels allow.
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
@@ -314,10 +320,10 @@ The indicator should not be interpreted at finer spatial resolution than the cou
 
 The uncertainties reported in @sec-results are inferential and refer to uncertainty around the point estimates, not to the full spatial variation in bilberry cover among NFI plots.
 For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within the relevant geographic unit and recalculating the area-weighted mean.
-This is done separately for counties or part county, regions, and the national level.
-For scaled county or part county values, the bootstrap mean, median, standard error, confidence interval, and quartiles from the non-scaled bootstrap are transformed with the same county-specific linear scaling function used for the point estimate.
+This is done separately for counties or sub-counties, regions, and the national level.
+For scaled county or sub-county values, the bootstrap mean, median, standard error, confidence interval, and quartiles from the non-scaled bootstrap are transformed with the same county-specific linear scaling function used for the point estimate.
 This is an approximation when many bootstrap replicates exceed X100, because truncation is not applied inside each bootstrap replicate before summarising the scaled distribution.
-For scaled regional and national values, uncertainty is estimated by bootstrapping plots, calculating county or county-part non-scaled values in each replicate, scaling each county or county part with its own reference levels, and then taking the area-weighted mean of the scaled county or county-part values within each region or for the whole country.
+For scaled regional and national values, uncertainty is estimated by bootstrapping plots, calculating county or sub-county non-scaled values in each replicate, scaling each county or sub-county with its own reference levels, and then taking the area-weighted mean of the scaled county or sub-county values within each region or for the whole country.
 The resulting bootstrap distribution is summarised with mean, median, standard error, confidence interval, and quartiles.
 
 ## 6. References
@@ -328,24 +334,38 @@ The resulting bootstrap distribution is summarised with mean, median, standard e
 
 ## 7. Import and prepare datasets
 
-R package versions for this indicator are managed with `renv`.
-The project lockfile `renv.lock` records the package versions used to render the document.
-After cloning the repository, run `renv::restore()` in the project root before rendering.
+The bilberry cover by area is recorded for each NFI plot in the LSK export.
+For this indicator we use data from each full 5-year inventory cycle, starting in 2010.
+Aggregations to counties, regions, or the whole country use the NFI area weight `au_areal` in two steps. First each plot gets a weighted contribution `indicator_continuous_weighted = indicator_cover * au_areal` (section 9.1). Then the area-weighted mean for each geographic unit is the sum of `indicator_continuous_weighted` divided by sum of `au_areal` within that unit (section 9.2).
 
-The bilberry cover by area is quantified for each NFI plot.
-For this indicator data from each full 5-yr inventory cycle, starting in 2010, are used. Aggregated area-weighted data must be used for appropriate spatial units such as counties, regions or the whole country.
-As the NFI plots vary in density for forest below/above the coniferous forest line and in Finnmark, each type of plot represents a different part of all forest land.
-In addition, some NFI plots are divided in two parts in the data.
-These variations in plot representativity must be accounted for in aggregated estimates. 
-Normally, data from NFI will contain an area-weighting variable to be used in aggregating NFI data for spatial units larger than individual NFI plots. 
+The NFI sample uses denser plot spacing below the coniferous forest line and in Finnmark than elsewhere; `au_areal` reflects how much forest area each plot represents so that aggregated estimates aim to be representative of all productive forest land.
+Where a plot is surveyed in two parts, the export contains two rows (field `hel_delt_flate`); we retain both rows and include each in the area-weighted calculations with its own `au_areal`.
+
+Reference levels for scaling (section 4) are defined for counties or sub-counties.
 
 ```{r load-data}
 #| code-summary: "Load data"
 
 # Load main data file
-lsk_data_raw <- read_csv(here("data/LSK_data_naturregnskap.csv"), 
-                     show_col_types = FALSE,
-                     locale = locale(encoding = "UTF-8")) |>
+# This export wraps each physical line in an extra pair of double quotes, so a
+# single read_csv() sees one column spanning the whole file. Read once as one
+# character column per line (readr unwraps the outer quotes), then parse the
+# inner CSV text.
+lsk_inner_csv <- read_csv(
+  here("data/LSK_data_okologisk_tilstand_2026.csv"),
+  col_names = FALSE,
+  show_col_types = FALSE,
+  locale = locale(encoding = "UTF-8"),
+  col_types = cols(.default = col_character())
+) |>
+  pull(1) |>
+  paste(collapse = "\n")
+
+lsk_data_raw <- read_csv(
+  I(lsk_inner_csv),
+  show_col_types = FALSE,
+  locale = locale(encoding = "UTF-8")
+) |>
   clean_names()
 
 ```
@@ -438,14 +458,12 @@ lsk_data <- lsk_data |>
 
 ```
 
-The indicator is scaled against county-specific reference levels in section 9.4.
-
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
-For each reporting period, we calculate non-scaled indicator values separately for counties or county parts, regions, and the whole country.
+For each reporting period, we calculate non-scaled indicator values separately for counties or sub-counties, regions, and the whole country.
 Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
-County or county-part estimates use the plot-level `fylke_name` field; regional estimates use `region_code`; the national estimate uses all plots in the period.
+County or sub-county estimates use the plot-level `fylke_name` field; regional estimates use `region_code`; the national estimate uses all plots in the period.
 
 ```{r calculate-bbca-all-periods}
 #| code-summary: "Calculate non-scaled values"
@@ -462,123 +480,43 @@ County or county-part estimates use the plot-level `fylke_name` field; regional 
 
 ```
 
-### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
+### 9.3 Bootstrap draws per county
 
-Uncertainty in the non-scaled indicator estimates is quantified using bootstrapping.
-For each 5-year period and geographic unit, NFI plots in that unit are resampled with replacement and the area-weighted non-scaled indicator value is recalculated in each replicate.
-This is done separately for counties or part county, regions, and the national level.
-The resulting bootstrap distributions are summarised with mean, median, standard error, 95% confidence interval, and quartiles.
-These non-scaled uncertainty measures are used directly for reporting and, at county or county-part level, as input to the scaled uncertainty calculations in section 9.4.
+For each county and period, NFI plots are resampled with replacement 1000 times.
+Each replicate computes the area-weighted mean non-scaled indicator value, giving a distribution of 1000 draws per county.
+These raw draws will be scaled with `ec_normalise()` and then used to calculate county-level uncertainty and to propagate uncertainty through the spatial hierarchy.
 
-```{r bootstrap-bbca-all-periods}
-#| code-summary: "Bootstrap uncertainty"
+```{r county-draws-long}
+#| code-summary: "Bootstrap draws per county (1000 per county per period)"
+#| cache: true
 
-# Prepare bootstrap objects per reporting period
- bbca_bootstrap <- bbca_results |>
-   purrr::imap(
-     ~ list(
-       period = .y,
-       data = .x$data,
-       county = .x$county,
-       region = .x$region,
-       national = .x$national,
-      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 1000),
-       county_boot = purrr::map(
-         split(.x$data, .x$data$fylke_name),
-        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
-       ),
-       region_boot = purrr::map(
-         split(.x$data, .x$data$region_code),
-        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
-       )
-     )
-   )
+county_draws_long <- purrr::imap_dfr(bbca_results, function(period_result, period_name) {
+  county_meta <- period_result$county |>
+    dplyr::select(fylke_name, county_part, total_area, region_code)
 
-# County-level summaries with uncertainty
- bbca_results_county_non_scaled_uncertainty <- purrr::map_dfr(
-   bbca_bootstrap,
-   ~ {
-     county_summary <- purrr::imap_dfr(
-       .x$county_boot,
-       function(boot, county_name) {
-         dplyr::tibble(
-           fylke_name = county_name,
-          mean = boot$mean,
-           indicator_value = boot$median,
-           se = boot$se,
-           ci_lower = boot$ci_lower,
-           ci_upper = boot$ci_upper,
-           q1 = boot$q1,
-           median = boot$median,
-           q3 = boot$q3
-         )
-       }
-     )
-
-     .x$county |>
-       dplyr::select(fylke_name, county_part, period, total_area, n_plots) |>
-       dplyr::left_join(county_summary, by = "fylke_name")
-   }
- )
-
-# Region-level summaries with uncertainty
- bbca_results_region_non_scaled_uncertainty <- purrr::map_dfr(
-   bbca_bootstrap,
-   ~ {
-     region_summary <- purrr::imap_dfr(
-       .x$region_boot,
-       function(boot, region_code) {
-         dplyr::tibble(
-           region_code = region_code,
-          mean = boot$mean,
-           indicator_value = boot$median,
-           se = boot$se,
-           ci_lower = boot$ci_lower,
-           ci_upper = boot$ci_upper,
-           q1 = boot$q1,
-           median = boot$median,
-           q3 = boot$q3
-         )
-       }
-     )
-
-     .x$region |>
-       dplyr::select(region_code, period, total_area, n_plots) |>
-       dplyr::left_join(region_summary, by = "region_code")
-   }
- )
-
-# National-level summaries with uncertainty
- bbca_results_national_non_scaled_uncertainty <- purrr::map_dfr(
-   bbca_bootstrap,
-   ~ .x$national |>
-     dplyr::mutate(
-      mean = .x$national_boot$mean,
-       indicator_value = .x$national_boot$median,
-       se = .x$national_boot$se,
-       ci_lower = .x$national_boot$ci_lower,
-       ci_upper = .x$national_boot$ci_upper,
-       q1 = .x$national_boot$q1,
-       median = .x$national_boot$median,
-       q3 = .x$national_boot$q3
-     )
- )
+  purrr::imap_dfr(
+    split(period_result$data, period_result$data$fylke_name),
+    function(county_data, county_name) {
+      boot <- bootstrap_indicator(county_data, n_bootstrap = 1000)
+      dplyr::tibble(
+        period           = period_name,
+        fylke_name       = county_name,
+        sim_id           = seq_along(boot$draws),
+        non_scaled_value = boot$draws
+      )
+    }
+  ) |>
+    dplyr::left_join(county_meta, by = "fylke_name")
+})
 
 ```
 
-
 ### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-bbca-reference-values}
 
-County or part county reference levels are listed below.
-For each county or part county, the non-scaled point estimate is scaled with `scale_indicator()` using X0 = 0 and the matching X100.
-The function applies linear scaling between X0 and X100 and truncates values above 1 when bilberry cover exceeds X100.
-Regional and national scaled point estimates are area-weighted means of the scaled county or part county values, weighted by each unit's represented area.
-Non-scaled regional and national point estimates are also retained for reporting and truncation summaries.
-For scaled county or part county uncertainty, the non-scaled bootstrap summaries from section 9.3 are transformed with the same county-specific scaling function.
-For scaled regional and national uncertainty, each bootstrap replicate resamples plots, calculates county or part county non-scaled values, scales each county or part county with its own reference levels, and then aggregates the scaled county or part county values within each region or for the whole country before the bootstrap distribution is summarised.
+County or sub-county reference values are imported manually.
 
 ```{r bbca-reference-values}
-#| code-summary: "Reference values by county or county part"
+#| code-summary: "Reference values by county or sub-county"
 
 # X100 reference values (% bilberry cover by area)
 bbca_reference_values <- dplyr::tibble(
@@ -601,71 +539,193 @@ county_reference <- bbca_reference_values |>
 
 ```
 
-```{r scale-and-aggregate}
-#| code-summary: "Scale and aggregate"
+Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, county-specific X100).
+@fig-bbca-norm shows the mapping for each sub-county: the slope of each panel reflects its X100 — northern counties with low reference values (e.g. Finnmark, X100 = 2.5%) reach the maximum indicator value at much lower cover than eastern counties (e.g. Østfold, X100 = 12.5%).
 
-# Scale county values (point estimates) for all periods
+```{r county-draws-scaled}
+#| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
+
+county_draws_scaled <- county_draws_long |>
+  dplyr::left_join(county_reference, by = "county_part") |>
+  dplyr::filter(!is.na(x100)) |>  # drops Buskerud V until mapping is resolved - see TODO in functions.R
+  dplyr::mutate(
+    scaled_value = ec_normalise(
+      non_scaled_value, 
+      x0 = 0, 
+      x100 = x100, 
+      fun = "linear"),
+    nation = "National"
+  )
+
+# Summarise scaled draws per county → county-level results table (10.1)
+county_scaled_with_uncertainty <- county_draws_scaled |>
+  dplyr::group_by(period, fylke_name, county_part, total_area) |>
+  dplyr::summarise(
+    scaled_mean     = mean(scaled_value),
+    scaled_median   = median(scaled_value),
+    scaled_ci_lower = as.numeric(quantile(scaled_value, 0.025)),
+    scaled_ci_upper = as.numeric(quantile(scaled_value, 0.975)),
+    scaled_q1       = as.numeric(quantile(scaled_value, 0.25)),
+    scaled_q3       = as.numeric(quantile(scaled_value, 0.75)),
+    .groups = "drop"
+  ) |>
+  dplyr::left_join(
+    bbca_results_county_all_periods |> dplyr::select(period, fylke_name, n_plots),
+    by = c("period", "fylke_name")
+  )
+
+```
+
+```{r fig-bbca-norm}
+#| fig-cap: "Linear normalisation of bilberry cover proportion to indicator values (0–1), one panel per sub-county reference unit. Points are 100 sampled bootstrap draws per unit."
+#| code-summary: "Normalisation diagnostic figure"
+#| cache: false
+#| fig-height: 8
+#| fig-width: 8
+
+norm_plot_data <- county_draws_scaled |>
+  dplyr::group_by(county_part) |>
+  dplyr::slice_sample(n = 100) |>
+  dplyr::ungroup()
+
+bbca_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
+  ggplot2::facet_wrap(~ norm_plot_data$county_part, scales = "free_x") +
+  ggplot2::labs(
+    x = "Bilberry cover (proportion)",
+    y = "Scaled indicator value"
+  ) +
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
+bbca_norm_plot$layers[[1]]$aes_params$size <- 3
+
+ggsave(
+  filename = here::here("img/bbca_norm_plot.png"),
+  plot     = bbca_norm_plot,
+  scale    = 1.5
+)
+
+bbca_norm_plot
+```
+
+The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
+For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
+
+```{r bbca-ec-upscale-regional}
+#| code-summary: "ec_upscale: county to region"
+#| eval: false
+
+bbca_mc_regional <- ecTools::ec_upscale(
+  data        = county_draws_scaled,
+  variable    = scaled_value,
+  weight      = total_area,
+  start_units = fylke_name,
+  end_units   = region_code,
+  year        = period,
+  end_units_name = "region_code",
+  n = 1000
+)
+saveRDS(bbca_mc_regional, here::here("data/bbca_mc_regional.rds"))
+```
+
+```{r bbca-load-mc-regional}
+#| include: false
+bbca_mc_regional <- readRDS(here::here("data/bbca_mc_regional.rds"))
+```
+
+```{r bbca-ec-upscale-national}
+#| code-summary: "ec_upscale: region to national"
+#| eval: false
+
+# Region-level area weights (sum of county total_area within each region)
+region_area_weights <- county_draws_scaled |>
+  dplyr::distinct(period, fylke_name, total_area, region_code) |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(region_area = sum(total_area), .groups = "drop")
+
+bbca_mc_regional_for_national <- bbca_mc_regional |>
+  dplyr::left_join(region_area_weights, by = c("period", "region_code")) |>
+  dplyr::mutate(nation = "National")
+
+bbca_mc_national <- ecTools::ec_upscale(
+  data        = bbca_mc_regional_for_national,
+  variable    = sampled_mean,
+  weight      = region_area,
+  start_units = region_code,
+  end_units   = nation,
+  year        = period,
+  end_units_name = "nation",
+  n = 1000
+)
+saveRDS(bbca_mc_national, here::here("data/bbca_mc_national.rds"))
+```
+
+```{r bbca-load-mc-national}
+#| include: false
+bbca_mc_national <- readRDS(here::here("data/bbca_mc_national.rds"))
+```
+
+```{r bbca-mc-combined}
+#| code-summary: "Combine regional and national MC draws; build summary tables"
+
+bbca_mc_combined <- dplyr::bind_rows(
+  bbca_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
+  bbca_mc_national |> dplyr::select(period, region = nation,      sampled_mean)
+)
+
+# County point estimates (non-bootstrapped) scaled for the truncation check
 county_scaled_all_periods <- bbca_results_county_all_periods |>
   dplyr::left_join(county_reference, by = "county_part") |>
+  dplyr::filter(!is.na(x100)) |>
   dplyr::mutate(
-    scaled_value = scale_indicator(indicator_value, x0, x100)
+    scaled_value = ec_normalise(indicator_value, x0 = x0, x100 = x100, fun = "linear")
   )
 
-# Uncertainty for county scaled: apply linear scaling to non-scaled CIs and quartiles
-county_scaled_with_uncertainty <- bbca_results_county_non_scaled_uncertainty |>
-  dplyr::left_join(county_reference, by = "county_part") |>
-  dplyr::mutate(
-    scaled_mean = scale_indicator(mean, x0, x100),
-    scaled_median = scale_indicator(indicator_value, x0, x100),
-    scaled_ci_lower = scale_indicator(ci_lower, x0, x100),
-    scaled_ci_upper = scale_indicator(ci_upper, x0, x100),
-    scaled_q1 = scale_indicator(q1, x0, x100),
-    scaled_q3 = scale_indicator(q3, x0, x100)
-  )
-
-# Aggregate non-scaled values to regional level (point estimates) for all periods
-region_non_scaled_agg_all_periods <- bbca_results_region_all_periods |>
+# Point-estimate summaries (median of MC draws) used in the truncation check
+region_scaled_agg_all_periods <- bbca_mc_regional |>
   dplyr::group_by(period, region_code) |>
-  dplyr::summarise(
-    indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Aggregate scaled county values to regional level (point estimates) for all periods
-region_scaled_agg_all_periods <- county_scaled_all_periods |>
-  dplyr::group_by(period, region_code) |>
-  dplyr::summarise(
-    scaled_value = sum(scaled_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
   dplyr::mutate(region_name = assign_region_name(region_code))
 
-# Aggregate non-scaled values to national level (point estimates) for all periods
-national_non_scaled_agg_all_periods <- bbca_results_national_all_periods |>
+national_scaled_agg_all_periods <- bbca_mc_national |>
   dplyr::group_by(period) |>
-  dplyr::summarise(
-    indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Aggregate scaled county values to national level (point estimates) for all periods
-national_scaled_agg_all_periods <- county_scaled_all_periods |>
-  dplyr::group_by(period) |>
-  dplyr::summarise(
-    scaled_value = sum(scaled_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
   dplyr::mutate(region = "National")
 
-# Check for truncation: count county values exceeding their county-specific reference
+# Uncertainty summaries for the results tables (section 10)
+region_scaled_agg_with_uncertainty <- bbca_mc_regional |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(
+    scaled_mean   = mean(sampled_mean),
+    scaled_median = median(sampled_mean),
+    ci_lower      = as.numeric(quantile(sampled_mean, 0.025)),
+    ci_upper      = as.numeric(quantile(sampled_mean, 0.975)),
+    q1            = as.numeric(quantile(sampled_mean, 0.25)),
+    q3            = as.numeric(quantile(sampled_mean, 0.75)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+  dplyr::left_join(
+    bbca_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
+    by = c("period", "region_code")
+  )
+
+national_scaled_agg_with_uncertainty <- bbca_mc_national |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(
+    scaled_mean   = mean(sampled_mean),
+    scaled_median = median(sampled_mean),
+    ci_lower      = as.numeric(quantile(sampled_mean, 0.025)),
+    ci_upper      = as.numeric(quantile(sampled_mean, 0.975)),
+    q1            = as.numeric(quantile(sampled_mean, 0.25)),
+    q3            = as.numeric(quantile(sampled_mean, 0.75)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region = "National") |>
+  dplyr::left_join(
+    bbca_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
+    by = "period"
+  )
+
+# Truncation check across all spatial levels
 truncation_summary <- dplyr::bind_rows(
   county_scaled_all_periods |>
     dplyr::left_join(
@@ -679,20 +739,11 @@ truncation_summary <- dplyr::bind_rows(
       region_code = NA_character_,
       region_name = NA_character_
     ) |>
-    dplyr::select(
-      period,
-      level,
-      region_code,
-      region_name,
-      fylke_name,
-      reference_value_pct,
-      exceeds_threshold,
-      original_value_pct
-    ),
+    dplyr::select(period, level, region_code, region_name, fylke_name,
+                  reference_value_pct, exceeds_threshold, original_value_pct),
   region_scaled_agg_all_periods |>
     dplyr::left_join(
-      region_non_scaled_agg_all_periods |>
-        dplyr::select(period, region_code, indicator_value),
+      bbca_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
       by = c("period", "region_code")
     ) |>
     dplyr::mutate(
@@ -702,20 +753,11 @@ truncation_summary <- dplyr::bind_rows(
       reference_value_pct = NA_real_,
       fylke_name = NA_character_
     ) |>
-    dplyr::select(
-      period,
-      level,
-      region_code,
-      region_name,
-      fylke_name,
-      reference_value_pct,
-      exceeds_threshold,
-      original_value_pct
-    ),
+    dplyr::select(period, level, region_code, region_name, fylke_name,
+                  reference_value_pct, exceeds_threshold, original_value_pct),
   national_scaled_agg_all_periods |>
     dplyr::left_join(
-      national_non_scaled_agg_all_periods |>
-        dplyr::select(period, indicator_value),
+      bbca_results_national_all_periods |> dplyr::select(period, indicator_value),
       by = "period"
     ) |>
     dplyr::mutate(
@@ -727,19 +769,10 @@ truncation_summary <- dplyr::bind_rows(
       region_name = "National",
       fylke_name = NA_character_
     ) |>
-    dplyr::select(
-      period,
-      level,
-      region_code,
-      region_name,
-      fylke_name,
-      reference_value_pct,
-      exceeds_threshold,
-      original_value_pct
-    )
+    dplyr::select(period, level, region_code, region_name, fylke_name,
+                  reference_value_pct, exceeds_threshold, original_value_pct)
 )
 
-# Summary of truncation by period and level
 truncation_counts <- truncation_summary |>
   dplyr::group_by(period, level) |>
   dplyr::summarise(
@@ -749,15 +782,14 @@ truncation_counts <- truncation_summary |>
     .groups = "drop"
   )
 
-# Values that were truncated (for reporting)
 truncated_values <- truncation_summary |>
   dplyr::filter(exceeds_threshold) |>
   dplyr::arrange(period, level, dplyr::desc(original_value_pct))
 
 ```
 
-At county or part county level, truncation is evaluated by comparing the non-scaled point estimate to the matching X100.
-At regional and national level, the tables report cases where the scaled aggregate equals 1 after area-weighted aggregation of scaled county or part county values.
+At county or sub-county level, truncation is evaluated by comparing the non-scaled point estimate to the matching X100.
+At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
 The following tables summarise how often truncation occurred in each period and list the affected units.
 
 ```{r report-truncation}
@@ -820,92 +852,82 @@ if (nrow(truncated_values) > 0) {
 
 ```
 
-The bootstrap workflow above is used to estimate uncertainty for scaled regional and national values.
-County scaled uncertainty is obtained by applying the county-specific scaling function to the non-scaled bootstrap summaries from section 9.3.
-
-```{r bootstrap-scaled-uncertainty}
-#| code-summary: "Bootstrap uncertainty for scaled values"
-
-# Bootstrap uncertainty for scaled-then-aggregated regions per period
-region_scaled_uncertainty <- purrr::imap_dfr(
-  bbca_results,
-  function(period_result, period_name) {
-    period_data <- period_result$data
-    
-    if (nrow(period_data) == 0) return(NULL)
-    
-    bootstrap_region_scaled_agg(
-      period_data,
-      x0 = x0,
-      county_reference = county_reference,
-      n_bootstrap = 1000
-    ) |>
-      dplyr::rename(
-        boot_mean = mean,
-        boot_median = median
-      ) |>
-      dplyr::mutate(period = period_name)
-  }
-)
-
-# Bootstrap uncertainty for scaled-then-aggregated national per period
-national_scaled_uncertainty <- purrr::imap_dfr(
-  bbca_results,
-  function(period_result, period_name) {
-    period_data <- period_result$data
-    
-    if (nrow(period_data) == 0) return(NULL)
-    
-    boot_result <- bootstrap_national_scaled_agg(
-      period_data,
-      x0 = x0,
-      county_reference = county_reference,
-      n_bootstrap = 1000
-    )
-    
-    dplyr::tibble(
-      period = period_name,
-      region = "National",
-      boot_mean = boot_result$mean,
-      boot_median = boot_result$median,
-      se = boot_result$se,
-      ci_lower = boot_result$ci_lower,
-      ci_upper = boot_result$ci_upper,
-      q1 = boot_result$q1,
-      q3 = boot_result$q3
-    )
-  }
-)
-
-# Attach uncertainty to scaled aggregated values and retain both bootstrap mean and median
-region_scaled_agg_with_uncertainty <- region_scaled_agg_all_periods |>
-  dplyr::left_join(region_scaled_uncertainty, by = c("period", "region_code")) |>
-  dplyr::mutate(
-    scaled_mean = boot_mean,
-    scaled_median = boot_median
-  )
-
-national_scaled_agg_with_uncertainty <- national_scaled_agg_all_periods |>
-  dplyr::left_join(national_scaled_uncertainty, by = c("period", "region")) |>
-  dplyr::mutate(
-    scaled_mean = boot_mean,
-    scaled_median = boot_median
-  )
-
-```
-
 
 ## 10. Results {#sec-results}
 
-The following tables present scaled indicator results at county or part county, regional, and national scales for each reporting period.
-All scaled values are on a 0-1 scale, where 0 corresponds to X0 (0% bilberry cover) and 1 corresponds to the county-specific X100 for counties or part counties, or to an area-weighted aggregate of scaled county or part county values for regions and the whole country.
-County or part county tables report bootstrap means and medians, standard errors, confidence intervals, and quartiles derived from the non-scaled bootstrap and transformed with the partcounty-specific scaling function.
-Regional and national tables report bootstrap summaries obtained from the scale-then-aggregate bootstrap workflow in section 9.4.
+The following tables present scaled indicator results at county or sub-county, regional, and national scales for each reporting period.
+All scaled values are on a 0–1 scale, where 0 corresponds to X0 (0% bilberry cover) and 1 corresponds to the county-specific X100 for counties or sub-counties, or to an area-weighted aggregate of scaled county or sub-county values for regions and the whole country.
+All three spatial levels use the same underlying 1000 bootstrap draws per county per period (section 9.3), scaled with `ec_normalise()`.
+At county level the scaled draws are summarised directly (mean, median, 95% CI, IQR).
+At regional and national level, `ec_upscale()` propagates the scaled county draws through the area-weighted spatial hierarchy, also yielding a distribution of 1000 values per unit.
+
+The time series below (@fig-bbca-timeSeries) summarises regional and national values; the detailed tables follow.
+
+```{r fig-bbca-timeSeries}
+#| fig-cap: "Indicator values for bilberry cover by area by region and reporting period. Points show the MC median; error bars are 95% credible intervals from the Monte Carlo propagation. National values use filled circles and a thicker line."
+#| code-summary: "Time series of indicator values by region and period"
+#| cache: false
+#| warning: false
+#| message: false
+
+bbca_region_labels <- c(
+  "1" = "Øst", "2" = "Sør", "3" = "Vest",
+  "4" = "Midt", "5" = "Nord", "National" = "National"
+)
+bbca_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
+bbca_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(bbca_region_levels)),
+  bbca_region_levels
+)
+
+bbca_plot_data <- bbca_mc_combined |>
+  dplyr::mutate(
+    region_name = dplyr::recode(region, !!!bbca_region_labels),
+    series_type = dplyr::if_else(region == "National", "National", "Region")
+  ) |>
+  dplyr::group_by(period, region_name, series_type) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = factor(region_name, levels = bbca_region_levels))
+
+ggplot2::ggplot(bbca_plot_data,
+                ggplot2::aes(x = period, y = median, colour = region_name, group = region_name)) +
+  ggplot2::geom_line(
+    ggplot2::aes(linewidth = series_type),
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::geom_pointrange(
+    ggplot2::aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8, linewidth = 0.45,
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::scale_colour_manual(values = bbca_region_cols, name = NULL) +
+  ggplot2::scale_shape_manual(values = c(National = 19, Region = 17), name = NULL) +
+  ggplot2::scale_linewidth_manual(values = c(National = 1, Region = 0.55), guide = "none") +
+  ggplot2::scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme(
+    legend.position    = "bottom",
+    legend.box         = "horizontal",
+    panel.grid.minor   = ggplot2::element_blank(),
+    panel.grid.major.x = ggplot2::element_blank()
+  ) +
+  ggplot2::guides(
+    colour = ggplot2::guide_legend(nrow = 2,
+                                   override.aes = list(size = 0.7, linewidth = 0.45)),
+    shape  = ggplot2::guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  ggplot2::labs(y = "Indicator value", x = "")
+```
 
 ### 10.1 County-level results (scaled with uncertainty)
 
 ```{r tbl-county-results-table}
-#| tbl-cap: 'County or county-part indicator values for bilberry cover by area by reporting period. Values are scaled to 0-1 using county-specific X0 and X100. Uncertainty is obtained by applying the county-specific scaling function to the non-scaled bootstrap summaries from section 9.3. The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'County or sub-county indicator values for bilberry cover by area by reporting period. Values are scaled to 0–1 using county-specific X0 and X100 via ec_normalise(). Uncertainty is derived from 1000 bootstrap draws scaled with the same function (section 9.3–9.4). The table includes the mean (MC Mean) and median (MC Median) of the scaled draw distribution, 95% credible intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 county_scaled_with_uncertainty |>
@@ -919,29 +941,27 @@ county_scaled_with_uncertainty |>
     region_code = assign_region_code(fylke_name_clean),
     region_name = assign_region_name(region_code)
   ) |>
-  dplyr::select(period, fylke_name, region_name, scaled_mean, scaled_median, se, scaled_ci_lower, scaled_ci_upper, 
-         scaled_q1, scaled_q3, total_area, n_plots) |>
+  dplyr::select(period, fylke_name, region_name, scaled_mean, scaled_median,
+                scaled_ci_lower, scaled_ci_upper, scaled_q1, scaled_q3, total_area, n_plots) |>
   dplyr::mutate(
-    scaled_mean = round(scaled_mean, 3),
-    scaled_median = round(scaled_median, 3),
-    se = round(se, 3),
+    scaled_mean     = round(scaled_mean, 3),
+    scaled_median   = round(scaled_median, 3),
     scaled_ci_lower = round(scaled_ci_lower, 3),
     scaled_ci_upper = round(scaled_ci_upper, 3),
-    scaled_q1 = round(scaled_q1, 3),
-    scaled_q3 = round(scaled_q3, 3),
-    total_area = round(total_area, 0)
+    scaled_q1       = round(scaled_q1, 3),
+    scaled_q3       = round(scaled_q3, 3),
+    total_area      = round(total_area, 0)
   ) |>
   dplyr::rename(
-    Period = period,
-    County = fylke_name,
-    Region = region_name,
-    `Bootstrapped (mean)` = scaled_mean,
-    `Bootstrapped (median)` = scaled_median,
-    `Standard Error` = se,
-    `CI Lower` = scaled_ci_lower,
-    `CI Upper` = scaled_ci_upper,
-    `Q1` = scaled_q1,
-    `Q3` = scaled_q3,
+    Period            = period,
+    County            = fylke_name,
+    Region            = region_name,
+    `MC Mean`         = scaled_mean,
+    `MC Median`       = scaled_median,
+    `CI Lower`        = scaled_ci_lower,
+    `CI Upper`        = scaled_ci_upper,
+    `Q1`              = scaled_q1,
+    `Q3`              = scaled_q3,
     `Total Area (ha)` = total_area,
     `Number of Plots` = n_plots
   ) |>
@@ -954,15 +974,14 @@ county_scaled_with_uncertainty |>
 ### 10.2 Regional results (scaled with uncertainty)
 
 ```{r tbl-region-results-table}
-#| tbl-cap: 'Regional indicator values for bilberry cover by area by reporting period. Scaled point estimates are area-weighted means of scaled county or county-part values. Uncertainty is estimated by bootstrapping plots, scaling counties or county parts in each replicate, and aggregating the scaled values within each region. The table includes the bootstrap mean and median, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'Regional indicator values for bilberry cover by area by reporting period. Scaled values and uncertainty are derived from the ecTools::ec_upscale() Monte Carlo propagation (1000 draws per region per period). The table includes the mean (MC Mean) and median (MC Median) of the MC distribution, 95% credible intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 region_scaled_agg_with_uncertainty |>
-  dplyr::select(period, region_name, scaled_mean, scaled_median, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
+  dplyr::select(period, region_name, scaled_mean, scaled_median, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
   dplyr::mutate(
     scaled_mean = round(scaled_mean, 3),
     scaled_median = round(scaled_median, 3),
-    se = round(se, 3),
     ci_lower = round(ci_lower, 3),
     ci_upper = round(ci_upper, 3),
     q1 = round(q1, 3),
@@ -972,9 +991,8 @@ region_scaled_agg_with_uncertainty |>
   dplyr::rename(
     Period = period,
     Region = region_name,
-    `Bootstrapped (mean)` = scaled_mean,
-    `Bootstrapped (median)` = scaled_median,
-    `Standard Error` = se,
+    `MC Mean` = scaled_mean,
+    `MC Median` = scaled_median,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
@@ -989,15 +1007,14 @@ region_scaled_agg_with_uncertainty |>
 ### 10.3 National results (scaled with uncertainty)
 
 ```{r tbl-national-results-table}
-#| tbl-cap: 'National indicator values for bilberry cover by area by reporting period. Scaled point estimates are area-weighted means of scaled county or county-part values. Uncertainty is estimated by bootstrapping plots, scaling counties or county parts in each replicate, and aggregating the scaled values nationally. The table includes the bootstrap mean and median, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+#| tbl-cap: 'National indicator values for bilberry cover by area by reporting period. Scaled values and uncertainty are derived from the ecTools::ec_upscale() Monte Carlo propagation (1000 draws). The table includes the mean (MC Mean) and median (MC Median) of the MC distribution, 95% credible intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
 #| echo: false
 
 national_scaled_agg_with_uncertainty |>
-  dplyr::select(period, region, scaled_mean, scaled_median, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
+  dplyr::select(period, region, scaled_mean, scaled_median, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
   dplyr::mutate(
     scaled_mean = round(scaled_mean, 3),
     scaled_median = round(scaled_median, 3),
-    se = round(se, 3),
     ci_lower = round(ci_lower, 3),
     ci_upper = round(ci_upper, 3),
     q1 = round(q1, 3),
@@ -1007,9 +1024,8 @@ national_scaled_agg_with_uncertainty |>
   dplyr::rename(
     Period = period,
     `Spatial Level` = region,
-    `Bootstrapped (mean)` = scaled_mean,
-    `Bootstrapped (median)` = scaled_median,
-    `Standard Error` = se,
+    `MC Mean` = scaled_mean,
+    `MC Median` = scaled_median,
     `CI Lower` = ci_lower,
     `CI Upper` = ci_upper,
     `Q1` = q1,
@@ -1023,14 +1039,18 @@ national_scaled_agg_with_uncertainty |>
 
 ## 11. Export file
 
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
+Regional and national Monte Carlo draws are exported in one table (`bbca_mc_combined`: `year`, `region`, `sampled_mean`; `region` contains the five NI region codes and `"National"`).
+This mirrors the export format used in the MOOS indicator.
 
 ```{r export}
 #| eval: false
+#| code-summary: "Export regional and national MC-propagated indicator draws"
+
+write.csv(
+  bbca_mc_combined,
+  here::here("data/results_NO_BBCA_001.csv"),
+  row.names = FALSE
+)
 ```
 
 
