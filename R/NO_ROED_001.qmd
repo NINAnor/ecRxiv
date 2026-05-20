@@ -1,14 +1,14 @@
 ---
 title: "Roe deer abundance"
 subtitle: |
-  [NO_RODA_001]
+  [NO_ROED_001]
 indicatorID: 
-  - NO_RODA_001
+  - NO_ROED_001
 indicatorName: 
   - Roe deer abundance [Rådyrbestand]
 verbatimName: 
   - Rådyrbestand
-folderName: NO_RODA_001
+folderName: NO_ROED_001
 country: Norway
 continent: Europe
 ECT: B3 Functional state characteristics
@@ -23,9 +23,9 @@ yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: First version on ecRxiv; indicator described in the Norwegian Nature Index
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_RODA_001
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ROED_001
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (population model, county level) - [Scale - Truncate] - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (county level) - [Scale - Truncate] - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -81,6 +81,7 @@ conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
 library(NIcalc)
 library(ecTools)
+library(MetBrewer)
 
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
@@ -181,6 +182,10 @@ meta |>
 
 ## 1. Summary
 
+<!--# 
+With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. Follow the four numbers sub-headers below. under point 2, it is possible under  include a bullet point list of the specific steps in the workflow. 
+ -->
+
 1. **Background and rationale**:
 The roe deer (_Capreolus capreolus_) is a cervid associated with forest ecosystems in Norway.
 In the period with reasonably good overview of cervid densities in Norway (about the last 200 years), populations have been strongly influenced by human activity, and in several areas current roe deer densities are considered higher than the reference condition.
@@ -201,7 +206,6 @@ Values decreasing toward zero indicate that the population index is further belo
 
 
 
-
 ## 1.2 Native language summary - Norwegian
 
 1. **Bakgrunn og begrunnelse**: Rådyr (_Capreolus capreolus_) er et hjortedyr knyttet til skogøkosystemer i Norge. I perioden med rimelig oversikt over hjortevilttettheter i Norge (ca. 200 år) har bestandene vært sterkt påvirket av menneskelig aktivitet, og i flere områder vurderes dagens rådyrtettheter som høyere enn referansetilstanden. Data leveres på fylkesnivå.
@@ -211,8 +215,6 @@ Values decreasing toward zero indicate that the population index is further belo
 3. **Tolkning**: En indikatorverdi på 1 betyr at rådyrbestanden i rapporteringsenheten er minst like stor som forventet under referansetilstanden. Verdier mot null viser at bestandsindekset ligger lenger under referansen.
 
 4. **Resultater og utviklingsbehov**:
-
-
 
 
 ## 2. About the underlying data
@@ -251,6 +253,9 @@ Methodological documentation: [Naturindeksen – rådyr](https://naturindeks.no/
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
+<!--# Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
+This doesnt need to be very long. Maybe just a single sentence. -->
+
 B3 Functional state characteristics.
 
 <!-- 
@@ -271,7 +276,9 @@ For example, and indicator called 'Trenching in mires' could be made to represen
 
 ### 3.3 Collinearities with other indicators
 
-The indicator may covary with other cervid abundance indicators (moose, red deer) and with other species indicators that share similar habitats or data sources.
+<!--# Describe known collinearities with other metrics (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
+
+The indicator may covary with other cervid abundance indicators (red deer, roe deer) and with other species indicators that share similar habitats or data sources.
 
 ### 3.4 Impact factors
 
@@ -280,25 +287,22 @@ The indicator may covary with other cervid abundance indicators (moose, red deer
 
 ### 3.5 Spatial aggregation
 
-Following the metadata pathway Aggregate (population model, county level) – [Scale – Truncate] – Aggregate (national level): population estimates or indices are available per county (IC unit in Naturindeksen).
-Each county value is normalised with a unimodal scaling function (optimum at _X~100~_; lower and upper reference values at _X~0~_; see Section 4.2), not with simple linear scaling between a single minimum and maximum only.
+Following the metadata pathway Aggregate (county level) – [Scale – Truncate] – Aggregate (national level): population estimates or indices are available per county (IC unit in Naturindeksen).
+Each county value is normalised with a unimodal scaling function (optimum at _X~100~_; lower and upper reference values at _X~0~_; see Section 4.2).
 Regional (east, south, west, central, north) and national indicator values are then obtained as area-weighted combinations of the scaled county values.
 
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
 
-<!--# Define the reference condition (or refer to where it is defined). Note the distinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
-
 The reference condition for roe deer is...
 
 ### 4.2 Reference levels
 
-For this indicator, normalisation uses a unimodal scaling function rather than linear scaling.
+For this indicator, normalisation uses a unimodal scaling function.
 Optimum abundance corresponds to _X~100~_.
 The lower and upper reference values on the variable scale are both set at _X~0~_, so that densities both below and above the optimum are scaled towards worst condition.
-County-specific values for these reference levels are defined in Naturindeksen; see [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr) and the imported `referenceValues` object once data are available in Section 7.
-
+County-specific values for these reference levels are defined in Naturindeksen; see [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr) and the imported `referenceValues` object in Section 7.
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -314,13 +318,13 @@ Regional and national values are area-weighted summaries of counties, so they in
 
 ### 5.2 Reported uncertainties
 
-The intervals in @tbl-roda-results and @fig-roda-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for county-level abundance in Naturindeksen.
+The intervals in @tbl-roed-results and @fig-roed-timeSeries are **inferential**: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for county-level abundance in Naturindeksen.
 
 For each county and assessment year, Naturindeks provides a predictive distribution for abundance (expressed on the variable scale before scaling).
 We draw many random values from that distribution per county, scale each draw to the 0–1 indicator scale using the county reference optimum and unimodal scaling, then build a large set of possible county indicators.
 To obtain uncertainty for a region, we repeat the following 1000 times: draw one random county indicator per county in that region, take the forest-area-weighted average across those counties, and record that regional mean.
 The median of those regional means is reported as the point estimate; the 2.5% and 97.5% quantiles form an approximate 95% interval, and the 25% and 75% quantiles form an approximate interquartile range.
-For Norway, the same idea is applied one level up: in each replicate we combine the five regional means from that same replicate using weights proportional to total forest area in each region, then summarise the resulting national means in the same way.
+For Norway, we apply a second Monte Carlo step at regional scale: draw one value from each region’s uncertainty distribution, take the forest-area-weighted mean across the five regions, and repeat 1000 times to obtain a national distribution, then summarise in the same way.
 This approach reflects uncertainty in the county models and in the scaled values, while treating the regional or national figure as a single summary parameter rather than as a random draw from one county.
 
 
@@ -334,36 +338,37 @@ This approach reflects uncertainty in the county models and in the scaled values
 Run the download chunk once to refresh the local export. This project’s renv environment installs `NIcalc` from GitHub `ChloeRN/NIcalc`, branch `include_ReadOnly_access` (see `renv.lock` and `install_deps.R`); that build defaults to the Naturindeks read-only API user, so you do not need `username` / `password` arguments here. When [NINAnor/NIcalc PR #59](https://github.com/NINAnor/NIcalc/pull/59) is merged into `NINAnor/NIcalc`, you can switch the renv install back to the main repo and update the lockfile.
 We save the RDS export under `data/` so that we do not need to download the data every time we run the analysis.
 
-```{r roda-import-api}
+```{r roed-import-api}
 #| code-summary: "Download roe deer data from Naturindeks API"
 #| eval: false
 
-rodaImport <- NIcalc::importDatasetApi(
+roedImport <- NIcalc::importDatasetApi(
   eco = NULL,
   indic = c("Rådyr"),
   year = c("1990", "2000", "2010", "2014", "2019", "2024")
 )
 
-saveRDS(rodaImport, here::here("data/rodaImport.rds"))
+saveRDS(roedImport, here::here("data/roedImport.rds"))
 ```
 
-```{r roda-load-import}
+```{r roed-load-import}
 #| include: false
 #| cache: false
-#| code-summary: "Load saved Naturindeks import (enable when data/rodaImport.rds exists)"
+#| code-summary: "Load saved Naturindeks import (enable when data/roedImport.rds exists)"
 
-rodaImport <- readRDS(here::here("data/rodaImport.rds"))
+roedImport <- readRDS(here::here("data/roedImport.rds"))
 ```
 
 
 ## 8. Spatial units
 
-According to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units.
+Accoring to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units. 
 We can think of the counties as ecosystem assets, and mainland Norway as the Ecosystem accounting Area.
 
 ## 9. Analyses
 
-This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at county scale, then propagate uncertainty and aggregate spatially with area weights. At regional and national scale, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per county (then per region), not a random draw from a pooled mixture of counties.
+This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at county scale, then propagate uncertainty and aggregate spatially with area weights using `ecTools::ec_upscale()`.
+At regional and national scale, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per county (then, for Norway, one draw per region).
 We use unimodal scaling and forest area (`Skog`) as weights.
 
 County-level abundance in the database is stored as a predictive distribution (parameters or custom distributions), not only as a point estimate.
@@ -372,12 +377,12 @@ We ignore uncertainty in reference levels.
 
 ### Assemble import and indicator object
 
-`assembleNiObject()` reshapes `rodaImport` so that indicator observations are in one list element per assessment year, and so that municipality-level `BSunits` (with forest area and NI region code `part`) are aligned with the thematic index structure used in Naturindeks.
+`assembleNiObject()` reshapes `roedImport` so that indicator observations are in one list element per assessment year, and so that municipality-level `BSunits` (with forest area and NI region code `part`) are aligned with the thematic index structure used in Naturindeks.
 
-```{r roda-assemble}
+```{r roed-assemble}
 #| code-summary: "Assemble roe deer NI object (thematic, predefined regions)"
-rodaAssemble <- NIcalc::assembleNiObject(
-  inputData = rodaImport,
+roedAssemble <- NIcalc::assembleNiObject(
+  inputData = roedImport,
   predefNIunits = c(allArea = T, parts = T, counties = F),
   indexType = "thematic"
 )
@@ -388,9 +393,10 @@ rodaAssemble <- NIcalc::assembleNiObject(
 Before scaling, we need the county-specific optimum on the variable scale (roe deer density, ind. km⁻² below the tree line).
 These are read from `referenceValues` in the RDS export (rows with `yearId == 0` or reference year name), one `x100` per IC unit (county).
 
-```{r roda-refs}
+```{r roed-refs}
 #| code-summary: "County reference optimum (X100) from downloaded Naturindeks data"
-x100 <- rodaImport$referenceValues$referenceValues |>
+#| tbl-cap: "County reference optimum (X100) by county (IC unit)."
+x100 <- roedImport$referenceValues$referenceValues |>
   dplyr::filter(.data$yearId == 0L | grepl("Referanse", .data$yearName, fixed = FALSE)) |>
   dplyr::distinct(ICunitId, ICunitName, x100 = expectedValue)
 x100 |>
@@ -404,34 +410,35 @@ We draw `nsim = 1000` random values per county with `NIcalc::sampleObsMat()`.
 Rows with a standard distribution family use observation type `tradObs`; rows with only a custom distribution use `customObs`.
 
 Assessment years are the following: 1990, 2000, 2010, 2014, 2019, 2024.
-The result `dat` is a long table of simulated variable values (`value`) by `ICunitId` and `year` (not yet on the 0–1 indicator scale).
+The result `county_draws` is a long table of simulated variable values (`value`) by `ICunitId` and `year` (not yet on the 0–1 indicator scale).
 
-```{r roda-vars}
+```{r roed-vars}
 #| code-summary: "Observation types for sampleObsMat"
 myYears <- as.character(c(1990, 2000, 2010, 2014, 2019, 2024))
 obstype <- vector("list", length(myYears))
 for (i in seq_along(myYears)) {
-  obs <- rodaAssemble$indicatorValues[[i]]$distributionFamilyName
+  obs <- roedAssemble$indicatorValues[[i]]$distributionFamilyName
   obs[!is.na(obs)] <- "tradObs"
   obs[is.na(obs)] <- "customObs"
   obstype[[i]] <- obs
 }
 ```
 
-```{r roda-draw}
+```{r roed-draw}
 #| code-summary: "Resample county-scale variables (non-scaled)"
+#| tbl-cap: "Preview of resampled county-scale variable values (first rows)."
 #| warning: false
 #| message: false
-dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
+county_draws <- tibble(ICunitId = NULL, value = NULL, year = NULL)
 
 for (i in seq_along(myYears)) {
   myMat <- NIcalc::sampleObsMat(
-    ICunitId = rodaAssemble$indicatorValues[[i]]$ICunitId,
-    value = rodaAssemble$indicatorValues[[i]]$expectedValue,
-    distrib = rodaAssemble$indicatorValues[[i]]$distributionFamilyName,
-    mu = rodaAssemble$indicatorValues[[i]]$distParameter1,
-    sig = rodaAssemble$indicatorValues[[i]]$distParameter2,
-    customDistribution = rodaAssemble$indicatorValues[[i]]$customDistribution,
+    ICunitId = roedAssemble$indicatorValues[[i]]$ICunitId,
+    value = roedAssemble$indicatorValues[[i]]$expectedValue,
+    distrib = roedAssemble$indicatorValues[[i]]$distributionFamilyName,
+    mu = roedAssemble$indicatorValues[[i]]$distParameter1,
+    sig = roedAssemble$indicatorValues[[i]]$distParameter2,
+    customDistribution = roedAssemble$indicatorValues[[i]]$customDistribution,
     obsType = obstype[[i]],
     nsim = 1000
   )
@@ -447,222 +454,254 @@ for (i in seq_along(myYears)) {
     ) |>
     select(ICunitId, sim_id, value, year)
 
-  dat <- dat |>
+  county_draws <- county_draws |>
     bind_rows(myMat)
 }
-head(dat) |>
+head(county_draws) |>
   gt::gt()
 ```
 
 ### Scaling to indicator values (unimodal)
 
 Normalisation is done at county scale before any regional or national aggregation.
-Each draw is joined to its county `x100`, then mapped to `[0, 1]` with `ecTools::ec_normalise()` in two-sided unimodal mode: `x0 = 0` and `x100` = optimum from the download define the best condition; `x0h = 2 * x100` is a simple upper anchor for densities above the optimum.
-We use the default linear transformation (`fun = "linear"`), without an additional sigmoid step [@nater_naturindeks_2025].
+Each draw is joined to its county `x100`, then mapped to `[0, 1]` with `ecTools::ec_normalise()` in two-sided mode: `x0 = 0` and `x100` = optimum from the download define the best condition; `x0h = 2 * x100` is a simple upper anchor for “too high” density (adjust if you adopt explicit upper limits from NI documentation).
+The `sigmoid` option applies a non-linear transform after the piecewise linear mapping.
 
-```{r roda-join-scale}
+```{r roed-join-scale}
 #| code-summary: "Join X100 and unimodal scaling to indicator scale"
-dat <- dat |>
+county_draws <- county_draws |>
   left_join(x100 |> mutate(ICunitId = as.character(ICunitId)), by = join_by(ICunitId))
 
 ind <- ec_normalise(
-  variable = dat$value,
+  variable = county_draws$value,
   x0 = 0,
-  x100 = dat$x100,
-  x0h = 2 * dat$x100,
-  fun = "linear"
+  x100 = county_draws$x100,
+  x0h = 2 * county_draws$x100,
+  fun = "sigmoid"
 )
 
-dat <- dat |> add_column(indicator = ind)
+county_draws <- county_draws |> add_column(indicator = ind)
 ```
 
-The scatter plot below (@fig-roda-norm) shows the mapping from variable to indicator for each county (one facet per `ICunitName`). The figure is saved when the document is rendered.
+The scatter plot below (@fig-roed-norm) shows the mapping from variable to indicator for each county (one facet per `ICunitName`). The figure is saved when the document is rendered.
 
-```{r roda-normplot}
+```{r roed-normplot}
 #| eval: true
 #| code-summary: "Save normalisation diagnostic figure (English)"
-roe_deer_plot <- ec_norm_plot(dat$value, dat$indicator) +
-  facet_wrap(. ~ dat$ICunitName)
-ggsave(filename = here::here("img/roda_norm_plot_eng.png"), plot = roe_deer_plot, scale = 1.5)
+roe_deer_plot <- ec_norm_plot(county_draws$value, county_draws$indicator) +
+  facet_wrap(. ~ county_draws$ICunitName)
+ggsave(filename = here::here("img/roed_norm_plot_eng.png"), plot = roe_deer_plot, scale = 1.5)
 ```
 
-```{r roda-fig-norm}
-#| label: fig-roda-norm
+```{r fig-roed-norm}
 #| fig-cap: "Unimodal normalisation of roe deer density to indicator values (one panel per county)."
-knitr::include_graphics(here::here("img/roda_norm_plot_eng.png"))
+knitr::include_graphics(here::here("img/roed_norm_plot_eng.png"))
 ```
 
 ### Aggregation weights (forest area by county)
 
 Spatial aggregation uses area below the tree line recorded in Naturindeks (`Skog` on each municipality in `BSunits`).
 Municipalities are linked to counties via `ICunits`, then forest area is summed to county (`ICunitId`) and the NI region `part` (N, C, W, S, E) is kept for the next step.
-Each row in `dat` then carries `forest_area` and `part` for weighting.
+Each row in `county_draws` then carries `forest_area` and `part` for weighting.
 
-```{r roda-weights}
+```{r roed-weights}
 #| code-summary: "Forest area by county and NI region for aggregation weights"
-aux <- as_tibble(rodaAssemble$BSunits) |>
+county_weights <- as_tibble(roedAssemble$BSunits) |>
   rename(BSunitId = id)
 
-IC_BC_link <- rodaImport$ICunits |>
+IC_BC_link <- roedImport$ICunits |>
   select(ICunitId = id, BSunitId)
 
-aux <- aux |>
+county_weights <- county_weights |>
   left_join(IC_BC_link, by = join_by(BSunitId))
 
-aux <- aux |>
+county_weights <- county_weights |>
   group_by(ICunitId) |>
   summarise(forest_area = sum(Skog), part = unique(part)) |>
   mutate(ICunitId = as.character(ICunitId))
 
-dat <- dat |>
-  left_join(aux, by = join_by(ICunitId))
+county_draws <- county_draws |>
+  left_join(county_weights, by = join_by(ICunitId))
 ```
 
-### Aggregate to geographic regions (inferential uncertainty)
+### Spatial aggregation
 
-For each Monte Carlo replicate \(b = 1, \ldots, 1000\) and each region–year, we draw one posterior sample per county (from that county’s 1000 simulations in `dat`), then compute the forest-area-weighted mean across counties in the region.
-The resulting 1000 values describe uncertainty around the regional mean indicator.
+Aggregate from counties to geographic regions with `ecTools::ec_upscale()`, using Monte Carlo propagation of inferential uncertainty (one draw per county per replicate, forest-area-weighted mean).
 
-```{r roda-agg-regions}
-#| code-summary: "Bootstrap distribution of area-weighted regional means"
+```{r roed-aggregate1}
+#| code-summary: "County to region MC propagation (ec_upscale)"
+#| eval: false
 #| warning: false
 #| message: false
-regions <- c("N", "C", "W", "S", "E")
-B <- 1000L
-
-out <- tibble(id = seq_len(B))
-
-for (i in regions) {
-  for (n in myYears) {
-    d_yr <- dat |>
-      filter(.data$part == i, .data$year == n)
-
-    counties <- sort(unique(d_yr$ICunitId))
-    w <- aux |>
-      filter(.data$ICunitId %in% counties) |>
-      arrange(match(.data$ICunitId, counties))
-
-    by_county <- split(d_yr$indicator, d_yr$ICunitId)[counties]
-
-    col_vals <- vapply(
-      seq_len(B),
-      function(b) {
-        draws <- vapply(by_county, sample, numeric(1), size = 1L)
-        stats::weighted.mean(draws, w$forest_area)
-      },
-      numeric(1)
-    )
-
-    out <- out |>
-      add_column(!!paste(i, n, sep = "_") := col_vals)
-  }
-}
-head(out)
+mc_propagated <- ecTools::ec_upscale(
+  data = county_draws,
+  variable = indicator,
+  weight = forest_area,
+  start_units = ICunitId,
+  end_units = part,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated, here::here("data/roed_mc_propagated_regional.rds"))
 ```
 
-### Aggregate to national level (inferential uncertainty)
+```{r roed-load-mc-regional}
+#| include: false
+mc_propagated <- readRDS(here::here("data/roed_mc_propagated_regional.rds"))
+head(mc_propagated)
+```
 
-For each year and replicate \(b\), the national value is the forest-area-weighted mean of the five regional values from that same replicate (`aux2` gives total forest area per region).
-This propagates uncertainty to the national mean in the same way as at regional scale.
+For the national indicator, propagate again from regions to Norway.
+Summed forest area per geographic region is used as weight at this step.
 
-```{r roda-agg-national}
-#| code-summary: "Bootstrap distribution of area-weighted national means"
-#| warning: false
-#| message: false
-aux2 <- aux |>
+```{r roed-region-weights}
+#| code-summary: "Total forest area per NI region"
+region_weights <- county_weights |>
   group_by(part) |>
   summarise(forest_area = sum(.data$forest_area), .groups = "drop")
+region_weights
+```
 
-w_region <- aux2$forest_area[match(regions, aux2$part)]
+```{r roed-agg-national}
+#| code-summary: "Region to Norway MC propagation (ec_upscale)"
+#| eval: false
+#| warning: false
+#| message: false
+mc_propagated_for_national <- mc_propagated |>
+  left_join(region_weights, by = join_by(part)) |>
+  add_column(end_units = "Norway")
 
-out2 <- tibble(id = seq_len(B))
+mc_propagated_national <- ecTools::ec_upscale(
+  data = mc_propagated_for_national,
+  variable = sampled_mean,
+  weight = forest_area,
+  start_units = part,
+  end_units = end_units,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+saveRDS(mc_propagated_national, here::here("data/roed_mc_propagated_national.rds"))
+```
 
-for (n in myYears) {
-  nat_vals <- vapply(
-    seq_len(B),
-    function(b) {
-      reg_draws <- vapply(
-        regions,
-        function(r) out[[paste(r, n, sep = "_")]][b],
-        numeric(1)
-      )
-      stats::weighted.mean(reg_draws, w_region)
-    },
-    numeric(1)
-  )
+```{r roed-load-mc-national}
+#| include: false
+mc_propagated_national <- readRDS(here::here("data/roed_mc_propagated_national.rds"))
+head(mc_propagated_national)
+```
 
-  out2 <- out2 |>
-    add_column(!!paste("All", n, sep = "_") := nat_vals)
-}
+Regional and national MC draws are combined for summarisation and export.
 
-head(out2)
-
-out <- out |>
-  bind_cols(out2 |> select(-id))
+```{r roed-mc-combined}
+#| code-summary: "Bind regional and national MC outputs"
+mc_propagated_combined <- mc_propagated |>
+  select(year, part, sampled_mean) |>
+  bind_rows(mc_propagated_national)
 ```
 
 ## 10. Results
 
-From the 1000 bootstrap replicates per region and year in `out`, we report the median as the point estimate and use the 0.25% and 99.75% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive between-county spread).
-The table (@tbl-roda-results) and time series (@fig-roda-timeSeries) summarise regional and national (`All`) values.
+From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive between-county spread).
+The table (@tbl-roed-results) and time series (@fig-roed-timeSeries) summarise regional and national (`Norway`) values.
 
-```{r roda-summaryStats}
+```{r roed-part-labels}
+#| include: false
+roed_part_labels <- c(
+  N = "North",
+  C = "Central",
+  W = "West",
+  S = "South",
+  E = "East",
+  Norway = "Norway",
+  All = "Norway"
+)
+roed_region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+```
+
+```{r roed-summaryStats}
 #| warning: false
 #| message: false
+#| cache: false
 #| tbl-cap: "Roe deer indicator summaries by region and year (inferential uncertainty for area-weighted means)."
-summary_out <- out |>
-  pivot_longer(cols = !any_of("id")) |>
-  separate_wider_delim(cols = name, delim = "_", names = c("part", "year")) |>
+summary_out <- mc_propagated_combined |>
+  mutate(part = dplyr::recode(part, !!!roed_part_labels)) |>
   group_by(part, year) |>
   summarise(
-    median = round(median(value), 2),
-    p_025 = round(quantile(value, probs = 0.0025), 2),
-    p_25 = round(quantile(value, probs = 0.25), 2),
-    p_75 = round(quantile(value, probs = 0.75), 2),
-    p_975 = round(quantile(value, probs = 0.975), 2),
+    median = round(median(sampled_mean), 2),
+    p_025 = round(quantile(sampled_mean, probs = 0.025), 2),
+    p_25 = round(quantile(sampled_mean, probs = 0.25), 2),
+    p_75 = round(quantile(sampled_mean, probs = 0.75), 2),
+    p_975 = round(quantile(sampled_mean, probs = 0.975), 2),
+    .groups = "drop"
   ) |>
+  mutate(part = factor(part, levels = roed_region_levels)) |>
   add_column(
     ECT = "B3",
     Indicator = "Roe deer abundance",
     Ecosystem = "Boreal/montane forests",
-    ID = "NO_RODA_001"
-  ) |>
-  mutate(
-    part = case_when(
-      part == "All" ~ "Norway",
-      part == "N" ~ "North",
-      part == "C" ~ "Central",
-      part == "W" ~ "West",
-      part == "S" ~ "South",
-      part == "E" ~ "East",
-      TRUE ~ part
-    )
+    ID = "NO_ROED_001"
   )
 ```
 
-```{r roda-fig-timeSeries}
-#| label: fig-roda-timeSeries
+```{r fig-roed-timeSeries}
+#| cache: false
 #| fig-cap: "Indicator values for roe deer abundance by region and nationally, with uncertainty bands from the resampled distribution."
-summary_out |>
-  ggplot(aes(x = year, y = median, colour = part, group = part)) +
-  geom_pointrange(
-    aes(ymin = p_025, ymax = p_975),
-    size = 2,
-    position = position_dodge(width = 0.3)
+roed_plot_years <- as.character(c(1990, 2000, 2010, 2014, 2019, 2024))
+roed_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(roed_region_levels)),
+  roed_region_levels
+)
+
+plot_data <- summary_out |>
+  mutate(
+    year = factor(year, levels = roed_plot_years),
+    series_type = if_else(part == "Norway", "National", "Region")
+  )
+
+ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
+  geom_line(
+    aes(linewidth = series_type),
+    position = position_dodge(width = 0.18)
   ) +
-  geom_line(position = position_dodge(width = 0.3)) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8,
+    linewidth = 0.45,
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_colour_manual(values = roed_region_cols, name = NULL) +
+  scale_shape_manual(
+    values = c(National = 19, Region = 17),
+    name = NULL
+  ) +
+  scale_linewidth_manual(
+    values = c(National = 1, Region = 0.55),
+    guide = "none"
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
   theme_bw(base_size = 12) +
-  labs(y = "Indicator value", x = "Year") +
-  scale_colour_viridis_d(option = "turbo", name = "Region")
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  guides(
+    colour = guide_legend(nrow = 2, override.aes = list(size = 0.7, linewidth = 0.45)),
+    shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  labs(y = "Indicator value", x = "")
 ```
 
-```{r roda-tbl-results}
-#| label: tbl-roda-results
+```{r tbl-roed-results}
 #| warning: false
 #| message: false
+#| cache: false
 #| tbl-cap: "Indicator values and uncertainty estimates for roe deer abundance."
 
 summary_out |>
+  arrange(part, year) |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
   unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
   select(
@@ -681,13 +720,18 @@ summary_out |>
 
 ## 11. Export file
 
+Regional Monte Carlo draws are exported.
+
 ```{r export}
-#| code-summary: "Export resampled indicator draws"
-write.csv(out, here::here("data/results_NO_RODA_001_v1.0.0.csv"), row.names = FALSE)
+#| eval: false
+#| code-summary: "Export regional MC-propagated indicator draws"
+write.csv(
+  mc_propagated,
+  here::here("data/results_NO_ROED_001_v1.0.0.csv"),
+  row.names = FALSE
+)
 ```
 
-
-## 12. Author contributions
 
 <!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
 
