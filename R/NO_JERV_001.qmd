@@ -231,7 +231,7 @@ The indicator is calculated for eight carnivore regions in Norway. These may ove
 
 <!-- How was the data sampled? Describe potential sampling biases -->
 
-The data is collected by 'Statens Naturoppsyn' SNO by different means. including DNA sampling from feces, hair and urine. The sampling is not systematic, but more or less complete. 
+The data is collected by 'Statens Naturoppsyn' (SNO) by different means. including DNA sampling from feces, hair and urine. The sampling is not systematic, but more or less complete. 
 
 ### 2.3 Original units
 
@@ -241,9 +241,10 @@ The original units of the raw data is the number of individuals. The data are as
 ### 2.4 Instructions for citing, using and accessing data
 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
-The underlying data (hunting statistics) are available via SSB, but not in a prepared format (see [here](https://naturindeks.nina.no/docs/24dda0ba-5855-4131-9168-d874980ec6aa.pdf)).
+The underlying data are available via rovdata.no. Indicator values from the Norwegian Nature Index can be found in [@nater_ni2025_2025].
+Indicator values, variable values and reference values can be downloaded from the Nature Index database using the API, as I have done below.
+The data is licenced under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
-Indicator point estimates and quantiles, for different geographic units, are freely available [@nater_ni2025_2025].
 
 
 <!-- ### 2.5 Additional comments about the dataset -->
@@ -257,6 +258,7 @@ Indicator point estimates and quantiles, for different geographic units, are fre
 <!--# Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
 This doesnt need to be very long. Maybe just a single sentence. -->
 B1 - Compositional state characteristics
+
 <!-- 
 ### 3.1.1 Other condition typologies -->
 
@@ -278,18 +280,21 @@ The ecosystem characteristic represented in this indicator is an ecosystem where
 
 <!--# Describe known collinearities with other metrics (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
 
-The indicator might be correlated to other indicators, especially other indicators within ECT class B1, such as the species that prey on ptarmigan (arctic fox, golden eagle), or other species that have similar habitats or way of live (such as willow grouse).
+None that are very strong.
 
 ### 3.4 Impact factors
 
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
-Ptarmigan is sensitive to several antropogenic pressures, especially climate change and hunting, but also habitat destruction and disturbance by human activities. 
+Wolvering still suffers from very strong hunting from year 1700 up until it was protected in 1973. 
+It's population is still heavily regulated by culling. 
+Wolverine is also affected by other human activities such as land use change or disturbance.
+
 
 ### 3.5 Spatial aggregation
 
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
-The hunting statistics are aggregated to county level using a population model. There the variable value is normalised by scaling and truncating against X~100~ and X~0~. The indicator values are then resampled to five geographic regions, and then to Norway, with a sampling weight proportional to the mountain area in each region or area. 
+A model is used to estimate an aggregated wolvering count at the scale of carnivore regions. Here the variable is normalised by scaling and truncating against X~100~ and X~0~. The indicator values are then propagated to five geographic regions, and then to Norway, with a sample weight proportional to the mountain area in each region or area. 
 
 
 ## 4. Reference condition and levels
@@ -311,11 +316,11 @@ Why was the current option chosen and how were the reference levels quantified? 
 
  -->
 
-X~100~ is defined based on the predicted number of ptarmigan individuals based on a statistical model. This value varies between counties.
+X~100~ is defined based on the predicted number of wolverinr individuals based on a statistical model [@bischof2019rovquant; @milleret2024estimates]. This value varies between carnivore regions.
 
-X~0~ is defined as a complete absence of ptarmigan.
+X~0~ is defined as a complete absence of wolverine.
 
-X~60~ is not specified and defaults to 60% of the X~100~ value. 
+<!-- X~60~ is not specified and defaults to 60% of the X~100~ value.  -->
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -324,13 +329,14 @@ X~60~ is not specified and defaults to 60% of the X~100~ value.
 Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
 
  -->
- The reference values vary with counties, and normalisation of variable values should be done after aggregating those first to the same county scale. 
+ The reference values vary between the eight carnivore management regions, and normalisation of variable values is and should be done at this scale as well. 
 
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
 <!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
-There are obvious limitations to using harvest bag data, rather than more standardised monitoring data. This is elaborated in the [indicator documentation on Naturindeksen](https://naturindeks.nina.no/docs/24dda0ba-5855-4131-9168-d874980ec6aa.pdf). However, we feel the hunting data still has considerable value and that it is indeed suitable for this purpose of estimating population sizes. 
+One main source of uncertainty is about how the X~100~ is set using expert opinin, based on assumptions about the amount of suitable habitat and the density of reproducible units(individuals).
+
 
 ### 5.2 Reported uncertainties
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
@@ -354,35 +360,43 @@ The reported uncertainties reflect both the uncertainty in the reference levels 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
 
 We download the dataset from the Naturindeks database using the API. 
+The function giver read-only access without a username and password
 ```{r}
 #| eval: false
-# password is hidden for now, but the plan is to set up a read only guest access. Therefore I upload thh database export to github for now to ensure reproducibility.
-source(here::here("R", "_pw.R"))
+# I use a dev version of NIcalc where the username and passwork for the guest user is hrd coded into the function. This will probably be merged into the real NIcalc (from NINAnor/NIcalc) soon.
+# renv::install("ChloeRN/NIcalc@include_ReadOnly_access")
+# library(NIcalc)
 
 # Import data set
-ptarImport <- NIcalc::importDatasetApi(
-  username = myUser,
-  password = myPwd,
+jervImport <- NIcalc::importDatasetApi(
   eco = NULL,
-  indic = c("Fjellrype"),
+  indic = c("Jerv"),
   year = c("2010", "2014", "2019", "2024")
 )
-saveRDS(ptarImport, here::here("data/ptarImport.rds"))
+saveRDS(jervImport, here::here("data/jervImport.rds"))
 ```
 
 ```{r}
 #| include: false
 
-ptarImport <- readRDS(here::here("data/ptarImport.rds"))
+jervImport <- readRDS(here::here("data/jervImport.rds"))
 ```
+
 
 
 ## 8. Spatial units
 
 <!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
 
-According to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units. 
-We can think of the counties as ecosystem assets, and mainland Norway as the Ecosystem accounting Area.
+According to the Naturindeks terminology, the 430 municipalities are called `BSunits`. 
+The Carnivore regions (Rovviltregion) are subsamples of `BSunits`, and they are referred to as `ICunits`.
+The five geographic regions in Norway (east, south, west, central, north) are called `parts` and `NIunits`. 
+We can think of the carnivore regions as ecosystem assets, and mainland Norway as the Ecosystem accounting Area.
+
+```{r fig-carnivoreRegions}
+#| fig-cap: 'Map of the eight carnivore management regions in Norway.'
+knitr::include_graphics(here::here("img/rovviltregioner.png"))
+```
 
 ## 9. Analyses
 
@@ -395,8 +409,8 @@ The uncertainties are from a statistical model, and so we think of them as infer
 Here I use an NIcalc function to just prepare and structure the data a little differently.  
 ```{r assemble}
 # Assemble
-ptarAssemble <- NIcalc::assembleNiObject(
-  inputData = ptarImport,
+assemble <- NIcalc::assembleNiObject(
+  inputData = jervImport,
   predefNIunits = c(allArea = T, parts = T, counties = F),
   indexType = "thematic"
 )
@@ -404,11 +418,11 @@ ptarAssemble <- NIcalc::assembleNiObject(
 
 
 Then I get the reference values. 
-These are unique to each county (ICunit). 
+These are unique to each carnivore region. 
 I only have an X~100~ value. X~0~ is a natural zero.
 
 ```{r refs}
-x100 <- ptarImport$referenceValues$referenceValues |>
+x100 <- jervImport$referenceValues$referenceValues |>
   select(ICunitId, ICunitName, x100 = expectedValue)
 x100
 ```
@@ -425,7 +439,7 @@ myYears <- as.character(c(2010, 2014, 2019, 2024))
 obstype <- NULL
 
 for (i in 1:length(myYears)) {
-  obs <- ptarAssemble$indicatorValues[[i]]$distributionFamilyName
+  obs <- assemble$indicatorValues[[i]]$distributionFamilyName
 
   obs[!is.na(obs)] <- "tradObs"
   obs[is.na(obs)] <- "customObs"
@@ -444,12 +458,12 @@ dat <- tibble(ICunitId = NULL, value = NULL, year = NULL)
 for (i in 1:length(myYears)) {
   #print(i)
   myMat <- NIcalc::sampleObsMat(
-    ICunitId = ptarAssemble$indicatorValues[[i]]$ICunitId,
-    value = ptarAssemble$indicatorValues[[i]]$expectedValue,
-    distrib = ptarAssemble$indicatorValues[[i]]$distributionFamilyName,
-    mu = ptarAssemble$indicatorValues[[i]]$distParameter1,
-    sig = ptarAssemble$indicatorValues[[i]]$distParameter2,
-    customDistribution = ptarAssemble$indicatorValues[[i]]$customDistribution,
+    ICunitId = assemble$indicatorValues[[i]]$ICunitId,
+    value = assemble$indicatorValues[[i]]$expectedValue,
+    distrib = assemble$indicatorValues[[i]]$distributionFamilyName,
+    mu = assemble$indicatorValues[[i]]$distParameter1,
+    sig = assemble$indicatorValues[[i]]$distParameter2,
+    customDistribution = assemble$indicatorValues[[i]]$customDistribution,
     obsType = obstype[[i]],
     nsim = 1000
   )
@@ -469,7 +483,7 @@ head(dat)
 ```
 
 This is the point in the spatial aggregation where we should normalise against the reference values.
-So let's add inn the X100 values.
+So let's add inn the X~100~ values.
 
 ```{r}
 dat <- dat |>
@@ -481,7 +495,8 @@ Then we can normalise also the scatter plot with variables against indicator val
 ```{r}
 ind <- ec_normalise(
   variable = dat$value,
-  x100 = dat$x100
+  x100 = dat$x100,
+  fun = "sigmoid"
 )
 
 dat <- dat |> add_column(indicator = ind)
