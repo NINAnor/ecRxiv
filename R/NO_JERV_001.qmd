@@ -505,7 +505,8 @@ dat <- dat |> add_column(indicator = ind)
 ```{r normplot}
 #| eval: true
 temp <- ec_norm_plot(dat$value, dat$indicator) +
-  facet_wrap(.~dat$ICunitName) 
+  facet_wrap(.~dat$ICunitName) +
+  labs(x = "Variable values (number of individuals)")
 ggsave(here::here("img/norm_plot_eng.png"), scale =1.5, plot =temp)
 ```
 
@@ -523,12 +524,56 @@ temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
   facet_wrap(.~dat$ICunitName)
 ggsave(here::here("img/norm_plot_facet.png"), scale =1.5, plot =temp)
 
-temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk")
+temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
+  labs(x = "Antall individer", y = "Indikatorverdi")
 ggsave(here::here("img/norm_plot.png"), scale =1, plot =temp)
 ```
 
-Then we can aggregate by a weighted resampling from counties to geographic regions, and then to Norway.
-For this we need to know which geographic region (N, M, E, S, W) the ICunits belong to.
+Then we estimate values for each geographic region (N, M, E, S, W).
+In *Naturindeks* this is done behind the scenes, and I'm not sure how.
+I will downscale the indicator values from carnivore regions to BSunits, and then, based on the alpine area of each BSunit, I will upscale from BSunits to NIunits. 
+
+
+```{r}
+# The link between BSunits and NIunits can be found here:
+bs_ni <- as.data.frame(assemble$NIunits) |>
+  rownames_to_column(var = "BSunits")
+head(bs_ni)
+# And the link between BSunits and ICunits can be found here:
+bs_ic <- as.data.frame(assemble$ICunits) |>
+  rownames_to_column(var = "BSunits") |>
+  rename(ICunits = Jerv)
+head(bs_ic)
+# and then I combine them
+bs_ni_ic <- bs_ni |>
+  left_join(bs_ic, by = join_by(BSunits))
+head(bs_ni_ic)
+# and we also get the alpine area
+bs_fjell <- as.data.frame(assemble$BSunits) |>
+  select(BSunits = name, Fjell) |>
+  mutate(BSunits = as.character(BSunits))
+head(bs_fjell)
+# and add that as well
+bs_ni_ic2 <- bs_ni_ic |>
+  left_join(bs_fjell, by = join_by(BSunits)) |>
+  mutate(ICunitId = as.character(ICunits))
+head(bs_ni_ic2)
+tail(bs_ni_ic2)
+# and add the new columns to the main dataset
+head(dat)
+dat_expand <- dat |>
+  right_join(
+    bs_ni_ic2,
+    by = join_by(ICunitId),
+    unmatched = "error",
+    relationship = "many-to-many"
+  )
+dat_expand
+```
+
+
+```{r}
+```
 
 ```{r getRegNames}
 # In this object we get the rows per municipality (BSunits), with mountain area ("Fjell") and geographic region ("part").  
