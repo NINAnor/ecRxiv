@@ -50,7 +50,6 @@ code_reproducibility: gold
 open_science_badge: gold
 callout-icon: false
 lightbox: true
-css: ../../../style.css
 code-links:
       - text: Add a review
         icon: github
@@ -82,6 +81,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(logrittr)
 library(gt)
 library(ecTools)
+library(MetBrewer)
 # remotes::install_github("NINAnor/ecTools") #version 0.0.0.9002
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
@@ -196,8 +196,8 @@ Historic over hunting is one reason for the low abundance we see today, but curr
 
 2. **Methods**:
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
-Wolverine numbers are reported each from *Statens Naturoppsyn* (SNO) for each of the eight carnivore management regions, and these estimates are associated with relativey small uncertainties. 
-We get the data from the Norwegian Nature Index database [@nater_naturindeks_2025] where also reference values are stored.
+Wolverine numbers are reported each year by *Statens Naturoppsyn* (SNO) for each of the eight carnivore management regions in Norway. These estimates are associated with relativey small uncertainties. 
+We get the data from the Norwegian Nature Index database [@nater_naturindeks_2025] where also the X~100~ reference values are stored.
 These represent the hypothetical number of wolverine in Norwegian alpine ecosystems given minimal anthropogenic influence, and are based lagely on expert opinion. 
 
 
@@ -306,7 +306,7 @@ Wolverine is also affected by other human activities such as land use change or 
 
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
-A model is used to estimate an aggregated wolvering count at the scale of carnivore regions. Here the variable is normalised by scaling and truncating against X~100~ and X~0~. The indicator values downscaled to the level of municipalities before they are aggregated to the five geographic regions, and then to Norway, with a sample weight proportional to the mountain area in each municipality or region. 
+A model is used to estimate an aggregated wolvering count at the scale of carnivore regions. Here the variable is normalised by scaling and truncating against X~100~ and X~0~. The indicator values are downscaled to the level of municipalities before they are aggregated to the five geographic regions, and then to Norway, with a sample weight proportional to the mountain area in each municipality or region. 
 
 
 ## 4. Reference condition and levels
@@ -348,6 +348,7 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 ### 5.1 General uncertainties
 <!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
 One main source of uncertainty is about how the X~100~ is set using expert opinion, based on assumptions about the amount of suitable habitat and the density of reproducible units(individuals).
+There is also some uncertainty about the need to define an X~60~ value. This will, however, have little influence on the indicators values, since they are going to be much closer to the X~0~value in any case.
 
 
 ### 5.2 Reported uncertainties
@@ -419,6 +420,7 @@ The uncertainties are from a statistical model, and so we think of them as infer
 
 Here I use an NIcalc function to just prepare and structure the data a little differently.  
 ```{r assemble}
+#| message: false
 # Assemble
 assemble <- NIcalc::assembleNiObject(
   inputData = jervImport,
@@ -506,8 +508,7 @@ Then we can normalise also the scatter plot with variables against indicator val
 ```{r}
 ind <- ec_normalise(
   variable = dat$value,
-  x100 = dat$x100,
-  fun = "sigmoid"
+  x100 = dat$x100
 )
 
 dat <- dat |> add_column(indicator = ind)
@@ -532,11 +533,12 @@ I also export a figure for the Norwegian fact sheet:
 #| code-summary: 'Export normalisation function plots'
 #| eval: false
 temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
+  labs(x = "Antall jerv", y = "Idndikatorverdi") +
   facet_wrap(.~dat$ICunitName)
 ggsave(here::here("img/norm_plot_facet.png"), scale =1.5, plot =temp)
 
 temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
-  labs(x = "Antall individer", y = "Indikatorverdi")
+  labs(x = "Antall jerv", y = "Indikatorverdi")
 ggsave(here::here("img/norm_plot.png"), scale =1, plot =temp)
 ```
 
@@ -593,11 +595,13 @@ head(dat_expand2)
 
 ### Spatial aggregation
 
-Then we can aggregate from municipalities to geographic regions using ecTools.
+Then we can aggregate from municipalities to geographic regions using `ecTools`.
 This uses a Monte Carlo propagation of the uncertainties. 
+
 This takes a while to run with n = 1000.
 
 ```{r aggregate1}
+#| cache: true
 #| eval: false
 mc_propagated <- ecTools::ec_upscale(
   data = dat_expand2,
@@ -615,8 +619,8 @@ saveRDS(mc_propagated, here::here("data/mc_propagated.rds"))
 ```{r}
 #| include: false
 mc_propagated <- readRDS(here::here("data/mc_propagated.rds"))
-head(mc_propagated)
 ```
+
 
 To get the national indicator estimate, we will do another MC propagation from geographic regions to national scale. 
 So we need the summed mountain area per geographic region.
@@ -631,6 +635,7 @@ aux
 ```
 
 ```{r aggToNorway}
+#| cache: true
 #| eval: false
 mc_propagated <- mc_propagated |>
   left_join(aux, by = join_by(part)) |>
@@ -652,9 +657,7 @@ saveRDS(mc_propagated2, here::here("data/mc_propagated2.rds"))
 ```{r}
 #| include: false
 mc_propagated2 <- readRDS(here::here("data/mc_propagated2.rds"))
-head(mc_propagated2)
 ```
-
 
 Then we append this to the main dataset
 
@@ -689,21 +692,7 @@ summary_out <- mc_propagated3 |>
   )
 ```
 
-```{r fig-timeSeries}
-#| fig-cap: 'Indicator values for NO_PTAR_001 (ptarmigan) plotted over time and for five different regions, as well as the combined national estimated. The error bars are 95% confidence intervals.'
-summary_out |>
-  ggplot(aes(x = year, y = median, colour = part, group = part)) +
-  geom_pointrange(
-    aes(ymin = p_025, ymax = p_975),
-    size = 2,
-    position = position_dodge(width = 0.3)
-  ) +
-  geom_line(position = position_dodge(width = 0.3)) +
-  theme_bw(base_size = 16) +
-  labs(y = "Indicator value", x = "Year") +
-  scale_colour_viridis_d(option = "turbo", name = "Region") 
-
-
+```{r prepping}
 part_labels <- c(
   N = "North",
   C = "Central",
@@ -724,13 +713,20 @@ region_cols <- setNames(
 plot_data <- summary_out |>
   mutate(
     year = factor(year, levels = myYears),
-    series_type = if_else(part == "Norway", "National", "Region")
+    series_type = if_else(part == "Norway", "National", "Region"),
+    part2 = recode(part, !!!part_labels)
   )
-
-ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
+```
+```{r fig-timeSeries}
+#| fig-cap: 'Indicator values for NO_PTAR_001 (ptarmigan) plotted over time and for five different regions, as well as the combined national estimated. The error bars are 95% confidence intervals.'
+ggplot(plot_data, aes(x = year, y = median, colour = part2, group = part2)) +
   geom_line(
     aes(linewidth = series_type),
     position = position_dodge(width = 0.18)
+  ) +
+  scale_linewidth_manual(
+    values = c(National = 2, Region = 0.55),
+    guide = "none"
   ) +
   geom_pointrange(
     aes(ymin = p_025, ymax = p_975, shape = series_type),
@@ -743,10 +739,6 @@ ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
     values = c(National = 19, Region = 17),
     name = NULL
   ) +
-  scale_linewidth_manual(
-    values = c(National = 1, Region = 0.55),
-    guide = "none"
-  ) +
   scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
   theme_bw(base_size = 12) +
   theme(
@@ -756,7 +748,10 @@ ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
     panel.grid.major.x = element_blank()
   ) +
   guides(
-    colour = guide_legend(nrow = 2, override.aes = list(size = 0.7, linewidth = 0.45)),
+    colour = guide_legend(
+      nrow = 2,
+      override.aes = list(size = 0.7, linewidth = 0.45)
+    ),
     shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
   ) +
   labs(y = "Indicator value", x = "")
