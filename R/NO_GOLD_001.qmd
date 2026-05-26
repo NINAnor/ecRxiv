@@ -517,7 +517,6 @@ dat <- dat |> add_column(indicator = ind)
 ```{r normplot}
 #| eval: true
 temp <- ec_norm_plot(dat$value, dat$indicator) +
-  facet_wrap(.~dat$ICunitName) +
   labs(x = "Variable values (number of individuals)")
 ggsave(here::here("img/norm_plot_eng.png"), scale =1.5, plot =temp)
 ```
@@ -533,138 +532,123 @@ I also export a figure for the Norwegian fact sheet:
 #| code-summary: 'Export normalisation function plots'
 #| eval: false
 temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
-  labs(x = "Antall jerv", y = "Idndikatorverdi") +
-  facet_wrap(.~dat$ICunitName)
-ggsave(here::here("img/norm_plot_facet.png"), scale =1.5, plot =temp)
-
-temp <- ec_norm_plot(dat$value, dat$indicator, lan = "norsk") +
-  labs(x = "Antall jerv", y = "Indikatorverdi")
+  labs(x = "% av opprinnelig bestandsstørrelse", y = "Indikatorverdi", y = "Indikatorverdi")
 ggsave(here::here("img/norm_plot.png"), scale =1, plot =temp)
 ```
 
-Then we estimate values for each geographic region (N, M, E, S, W).
+Then we estimate values for each geographic region (NIunits; N, M, E, S, W).
 In *Naturindeks* this is done behind the scenes, and I'm not sure how.
-I will downscale the indicator values from carnivore regions to BSunits, and then, based on the alpine area of each BSunit, I will upscale from BSunits to NIunits. 
+The data for region N is the same as ICunit 'Nord-Norge'.
+All the other regions are combined into 'Sør_Norge'.
+I will duplicate the data for these four regions, just so that the output format is consistent with other Norwegian indicators, 
 
+Then I will get the alpine area for each ICunit and aggregate the indicator values to a get national estimate.
+
+
+```{r prepNIunit-level}
+out <- dat %>=%
+  select(year, ICunitName, indicator) %>=%
+  mutate(part = case_when(
+    ICunitName == "Sør-Norge" ~ "S",
+    ICunitName == "Nord-Norge" ~"N",
+    .unmatched = "error"
+  ))
+
+new_rows <- out |>
+  filter(part == "S") |>
+  mutate(temp = part) |>
+  select(-part) |>
+  tidyr::expand_grid(part = c("C", "E", "W")) |>
+  select(-temp)
+
+out <- out |>
+  bind_rows(new_rows)
+
+out |> count(part)
+```
+
+
+
+
+### Spatial aggregation
+
+Then we can aggregate from regions (NIunits) to all of Norway `ecTools`.
+This uses a Monte Carlo propagation of the uncertainties. 
+For this we need the summed mountain area per geographic region.
 
 ```{r}
 # The link between BSunits and NIunits can be found here:
 bs_ni <- as.data.frame(assemble$NIunits) |>
   rownames_to_column(var = "BSunits")
 head(bs_ni)
-# And the link between BSunits and ICunits can be found here:
-bs_ic <- as.data.frame(assemble$ICunits) |>
-  rownames_to_column(var = "BSunits") |>
-  rename(ICunits = Jerv)
-head(bs_ic)
-# and then I combine them
-bs_ni_ic <- bs_ni |>
-  left_join(bs_ic, by = join_by(BSunits))
-head(bs_ni_ic)
+
 # and we also get the alpine area
 bs_fjell <- as.data.frame(assemble$BSunits) |>
   select(BSunits = name, Fjell) |>
   mutate(BSunits = as.character(BSunits))
 head(bs_fjell)
 # and add that as well
-bs_ni_ic2 <- bs_ni_ic |>
-  left_join(bs_fjell, by = join_by(BSunits)) |>
-  mutate(ICunitId = as.character(ICunits))
-head(bs_ni_ic2)
-tail(bs_ni_ic2)
-# and add the new columns to the main dataset
-head(dat)
-dat_expand <- dat |>
-  right_join(
-    bs_ni_ic2,
-    by = join_by(ICunitId),
-    unmatched = "error",
-    relationship = "many-to-many"
-  )
-head(dat_expand)
-# and we create a column for the regions
-dat_expand2 <- dat_expand |>
+bs_ni_fjell <- bs_ni |>
+  left_join(bs_fjell, by = join_by(BSunits)) 
+head(bs_ni_fjell)
+
+# and we create a column for the regions, and sum up
+bs_ni_fjell2 <- bs_ni_fjell |>
   select(-wholeArea) |>
   mutate(across(c(E, S, W, C, N), ~ na_if(., 0))) |>
   pivot_longer(cols = c(E, S, W, C, N), values_drop_na = T, values_to = "count", names_to = "part") |>
-  select(-count)
-head(dat_expand2)
-```
-
-
-
-### Spatial aggregation
-
-Then we can aggregate from municipalities to geographic regions using `ecTools`.
-This uses a Monte Carlo propagation of the uncertainties. 
-
-This takes a while to run with n = 1000.
-
-```{r aggregate1}
-#| cache: true
-#| eval: false
-mc_propagated <- ecTools::ec_upscale(
-  data = dat_expand2,
-  variable = indicator,
-  weight = Fjell,
-  start_units = BSunits,
-  end_units = part,
-  year = year,
-  end_units_name = "part",
-  n = 1000
-)
-saveRDS(mc_propagated, here::here("data/mc_propagated.rds"))
-```
-
-```{r}
-#| include: false
-mc_propagated <- readRDS(here::here("data/mc_propagated.rds"))
-```
-
-
-To get the national indicator estimate, we will do another MC propagation from geographic regions to national scale. 
-So we need the summed mountain area per geographic region.
-
-```{r}
-aux <- dat_expand2 |>
-  select(-indicator) |>
-  distinct(BSunits, .keep_all = T) |>
+  select(-count) |>
   group_by(part) |>
-  summarise(alpine_area = sum(Fjell)) 
-aux
+  summarise(Fjell = sum(Fjell))
+
+
+# and add the new columns to the main dataset
+head(out)
+
+out2 <- out |>
+  left_join(
+    bs_ni_fjell2,
+    by = join_by(part),
+    unmatched = "error",
+    relationship = "many-to-one"
+  ) |>
+  add_column(end_units = "Norway")
+
+head(out2)
+
 ```
 
 ```{r aggToNorway}
 #| cache: true
 #| eval: false
-mc_propagated <- mc_propagated |>
-  left_join(aux, by = join_by(part)) |>
-  add_column(end_units = "Norway")
 
-mc_propagated2 <- ecTools::ec_upscale(
-  data = mc_propagated,
-  variable = sampled_mean,
-  weight = alpine_area,
+mc_propagated_gold <- ecTools::ec_upscale(
+  data = out2,
+  variable = indicator,
+  weight = Fjell,
   start_units = part,
   end_units = end_units,
   year = year,
   end_units_name = "part",
   n = 1000
 )
-saveRDS(mc_propagated2, here::here("data/mc_propagated2.rds"))
+
+saveRDS(mc_propagated_gold, here::here("data/mc_propagated_gold.rds"))
 ```
 
 ```{r}
 #| include: false
-mc_propagated2 <- readRDS(here::here("data/mc_propagated2.rds"))
+mc_propagated_gold <- readRDS(here::here("data/mc_propagated_gold.rds"))
 ```
 
 Then we append this to the main dataset
 
 ```{r}
-mc_propagated3 <- mc_propagated |>
-  select(year, part, sampled_mean) |>
-  bind_rows(mc_propagated2)
+mc_propagated_gold_2 <- out2 |>
+  select(year, part, sampled_mean = indicator) |>
+  bind_rows(mc_propagated_gold)
+
+mc_propagated_gold_2 |> count(year, part)
 ```
 
 ## 10. Results
