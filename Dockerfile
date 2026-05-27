@@ -42,6 +42,9 @@ RUN install2.r --error --skipinstalled -r $CRAN_REPO \
     janitor \
     yaml
 
+# Install shiny-server config with sanitize_errors off
+COPY shiny-server.conf /etc/shiny-server/shiny-server.conf
+
 # Set working directory
 WORKDIR /srv/shiny-server
 
@@ -57,8 +60,9 @@ COPY --chown=shiny:shiny app/ indicators/ style.css ./
 USER shiny
 
 # Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:3838 || exit 1
+RUN echo "ok" > /srv/shiny-server/healthz.html
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
+    CMD curl -fsS http://localhost:3838/healthz.html > /dev/null || exit 1
 
 EXPOSE 3838
 
