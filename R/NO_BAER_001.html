@@ -2292,7 +2292,7 @@ font-family: inherit;
   <li><a href="#reference-levels-x0-and-x100" id="toc-reference-levels-x0-and-x100" class="nav-link" data-scroll-target="#reference-levels-x0-and-x100">Reference levels (X<sub>0</sub> and X<sub>100</sub>)</a></li>
   <li><a href="#resample-non-scaled-management-region-variables" id="toc-resample-non-scaled-management-region-variables" class="nav-link" data-scroll-target="#resample-non-scaled-management-region-variables">Resample non-scaled management-region variables</a></li>
   <li><a href="#scaling-to-indicator-values-linear" id="toc-scaling-to-indicator-values-linear" class="nav-link" data-scroll-target="#scaling-to-indicator-values-linear">Scaling to indicator values (linear)</a></li>
-  <li><a href="#aggregation-weights-terrestrial-area-by-management-region" id="toc-aggregation-weights-terrestrial-area-by-management-region" class="nav-link" data-scroll-target="#aggregation-weights-terrestrial-area-by-management-region">Aggregation weights (terrestrial area by management region)</a></li>
+  <li><a href="#aggregation-weights-forest-area-by-municipality" id="toc-aggregation-weights-forest-area-by-municipality" class="nav-link" data-scroll-target="#aggregation-weights-forest-area-by-municipality">Aggregation weights (forest area by municipality)</a></li>
   <li><a href="#spatial-aggregation-1" id="toc-spatial-aggregation-1" class="nav-link" data-scroll-target="#spatial-aggregation-1">Spatial aggregation</a></li>
   </ul></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">10. Results</a></li>
@@ -2589,8 +2589,8 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 </section>
 <section id="spatial-aggregation" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-aggregation">3.5 Spatial aggregation</h3>
-<p>Following the metadata pathway Aggregate (population model, large-carnivore management region) – [Scale – Truncate] – Aggregate (national level): population estimates or indices from the monitoring/model workflow are available per forvaltningsregion for rovvilt (IC unit in Naturindeksen). Each unit is normalised against <em>X<sub>0</sub></em> and <em>X<sub>100</sub></em> for that region (linear scaling with truncation to [0, 1]).</p>
-<p>Regional (east, south, west, central, north) and national indicator values are then obtained as area-weighted combinations of the scaled management-region values, using weights from the Naturindeks spatial framework.</p>
+<p>Following the metadata pathway Aggregate (population model, large-carnivore management region) – [Scale – Truncate] – Downscale (municipalities) – Aggregate (geographic region) – Aggregate (national level): population estimates or indices are available per forvaltningsregion for rovvilt (IC unit in Naturindeksen). Each unit is normalised against <em>X<sub>0</sub></em> and <em>X<sub>100</sub></em> for that region (linear scaling with truncation to [0, 1]).</p>
+<p>Because rovvilt regions and the five Naturindeks geographic regions are two non-aligned partitions of Norway, we use municipalities (<code>BSunits</code>) as a common basic spatial unit. We assign the (scaled) rovvilt-region value to each municipality belonging to that region (uniform-value assumption), hereafter referred to as downscaling. Forest area (<code>Skog</code>) is used as the aggregation weight because brown bear is a forest-associated species.</p>
 </section>
 </section>
 <section id="reference-condition-and-levels" class="level2">
@@ -2618,7 +2618,7 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 <section id="reported-uncertainties" class="level3">
 <h3 class="anchored" data-anchor-id="reported-uncertainties">5.2 Reported uncertainties</h3>
 <p>The intervals in <a href="#tbl-baer-results" class="quarto-xref">Table 2</a>, <a href="#fig-baer-norm" class="quarto-xref">Figure 1</a>, and <a href="#fig-baer-timeSeries" class="quarto-xref">Figure 2</a> are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.</p>
-<p>For each management region and assessment year, Naturindeks provides a predictive distribution for the population index (on the variable scale before scaling). We draw <code>nsim = 1000</code> values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then aggregate with <code>ecTools::ec_upscale()</code>: first from management regions to each NI geographic region (<code>part</code>), then from regions to Norway, using summed terrestrial area as weights (same structure as forest-area weighting for the cervid indicators). The 1000 <code>sampled_mean</code> values per region and year describe inferential uncertainty for the area-weighted mean indicator; we summarise them with the median and 2.5% and 97.5% quantiles as an approximate 95% interval, and the 25% and 75% quantiles as an approximate interquartile range.</p>
+<p>For each management region and assessment year, Naturindeks provides a predictive distribution for the population index (on the variable scale before scaling). We draw <code>nsim = 1000</code> values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then downscale by assigning each scaled draw to every municipality in that region and aggregate with <code>ecTools::ec_upscale()</code>: first from municipalities (<code>BSunits</code>) to each NI geographic region (<code>part</code>), then from regions to Norway, using forest area (<code>Skog</code>) as the weight. The 1000 <code>sampled_mean</code> values per region and year describe inferential uncertainty for the forest-area-weighted mean indicator; we summarise them with the median and 2.5% and 97.5% quantiles as an approximate 95% interval, and the 25% and 75% quantiles as an approximate interquartile range.</p>
 </section>
 </section>
 <section id="references" class="level2">
@@ -2657,8 +2657,8 @@ Nybø, Signe et al. 2017. <span>“Fagsystem for Naturindeks: Referansetilstand 
 </section>
 <section id="analyses" class="level2">
 <h2 class="anchored" data-anchor-id="analyses">9. Analyses</h2>
-<p>This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at large-carnivore management-region scale (IC unit) with linear scaling, then propagate uncertainty and aggregate spatially with terrestrial area weights using <code>ecTools::ec_upscale()</code>. At geographic (NI part) and national scale, uncertainties are inferential: each replicate is a terrestrial-area-weighted mean based on one draw per management region (then, for Norway, one draw per NI region). We use linear scaling and summed terrestrial area from the Naturindeks spatial framework as weights (analogous to forest area in the cervid indicators).</p>
-<p>Management-region population indices in the database are stored as predictive distributions, not only as point estimates. Reference levels per region (<em>X<sub>0</sub></em> = 0, <em>X<sub>100</sub></em> from the download) are applied before any geographic or national aggregation. We ignore uncertainty in the reference levels themselves.</p>
+<p>This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at large-carnivore management-region scale (IC unit) with linear scaling, then downscale by assigning the scaled values to the municipalities in each region and propagate uncertainty and aggregate spatially with forest-area weights using <code>ecTools::ec_upscale()</code>. At geographic (NI part) and national scale, uncertainties are inferential: each replicate is a forest-area-weighted mean across municipalities (then, for Norway, one draw per NI region). We use linear scaling and forest area (<code>Skog</code>) from the Naturindeks spatial framework as the weight.</p>
+<p>Management-region population indices in the database are stored as predictive distributions. Reference levels per region (<em>X<sub>0</sub></em> = 0, <em>X<sub>100</sub></em> from the download) are applied before any geographic or national aggregation. We ignore uncertainty in the reference levels themselves.</p>
 <section id="assemble-import-and-indicator-object" class="level3">
 <h3 class="anchored" data-anchor-id="assemble-import-and-indicator-object">Assemble import and indicator object</h3>
 <p><code>assembleNiObject()</code> reshapes <code>baerImport</code> so that indicator observations are in one list element per assessment year, and so that underlying spatial units (<code>BSunits</code>) are aligned with the thematic index structure used in Naturindeks.</p>
@@ -3718,12 +3718,12 @@ Figure 1: Linear normalisation of brown bear population index to indicator valu
 </div>
 </div>
 </section>
-<section id="aggregation-weights-terrestrial-area-by-management-region" class="level3">
-<h3 class="anchored" data-anchor-id="aggregation-weights-terrestrial-area-by-management-region">Aggregation weights (terrestrial area by management region)</h3>
-<p>Spatial aggregation uses terrestrial area on each underlying spatial unit in <code>BSunits</code>, summed to management region (<code>ICunitId</code>). Municipalities are linked to rovvilt regions via <code>ICunits</code>, as for counties in the cervid indicators. Each <code>BSunit</code> carries a Naturindeks geographic region code (<code>part</code>: E, S, W, C, N). We sum terrestrial area by management region and by <code>part</code>, assign each management region to the <code>part</code> with the largest area share, and use total terrestrial area per management region as the weight in geographic and national means.</p>
+<section id="aggregation-weights-forest-area-by-municipality" class="level3">
+<h3 class="anchored" data-anchor-id="aggregation-weights-forest-area-by-municipality">Aggregation weights (forest area by municipality)</h3>
+<p>Spatial aggregation uses forest area (<code>Skog</code>) on each underlying municipality in <code>BSunits</code>. Municipalities are linked to rovvilt regions via <code>ICunits</code>, and each <code>BSunit</code> carries a Naturindeks geographic region code (<code>part</code>: E, S, W, C, N). Rovvilt regions and NI parts are two non-aligned partitions of Norway, so we keep the data at municipality level once it is scaled: each municipality inherits the scaled indicator value of its rovvilt region (uniform-value assumption), and is then aggregated upward with its own forest area.</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Terrestrial area and NI part from BSunits in the import</summary>
+<summary>Forest area, NI part, and IC link per municipality</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>mgmt_weights <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(baerAssemble<span class="sc">$</span>BSunits) <span class="sc">|&gt;</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">BSunitId =</span> id)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -3731,185 +3731,179 @@ Figure 1: Linear normalisation of brown bear population index to indicator valu
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(<span class="at">ICunitId =</span> <span class="fu">as.character</span>(id), BSunitId)</span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>mgmt_weights <span class="ot">&lt;-</span> mgmt_weights <span class="sc">|&gt;</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(IC_BC_link, <span class="at">by =</span> <span class="fu">join_by</span>(BSunitId))</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>ic_names <span class="ot">&lt;-</span> baerAssemble<span class="sc">$</span>indicatorValues[[<span class="dv">1</span>]] <span class="sc">|&gt;</span></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(<span class="at">ICunitId =</span> <span class="fu">as.character</span>(ICunitId), ICunitName)</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>part_from_data <span class="ot">&lt;-</span> mgmt_weights <span class="sc">|&gt;</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ICunitId, part) <span class="sc">|&gt;</span></span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">area_in_part =</span> <span class="fu">sum</span>(terrestrialArea), <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ICunitId) <span class="sc">|&gt;</span></span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(area_in_part, <span class="at">n =</span> <span class="dv">1</span>, <span class="at">with_ties =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(ICunitId, part)</span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>mgmt_weights <span class="ot">&lt;-</span> mgmt_weights <span class="sc">|&gt;</span></span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ICunitId) <span class="sc">|&gt;</span></span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">terrestrial_area =</span> <span class="fu">sum</span>(terrestrialArea), <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(part_from_data, <span class="at">by =</span> <span class="fu">join_by</span>(ICunitId)) <span class="sc">|&gt;</span></span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(ic_names, <span class="at">by =</span> <span class="fu">join_by</span>(ICunitId))</span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>mgmt_draws <span class="ot">&lt;-</span> mgmt_draws <span class="sc">|&gt;</span></span>
-<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
-<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>    mgmt_weights <span class="sc">|&gt;</span> <span class="fu">select</span>(ICunitId, terrestrial_area, part),</span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">join_by</span>(ICunitId)</span>
-<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ICunitId =</span> <span class="fu">as.character</span>(ICunitId))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(IC_BC_link, <span class="at">by =</span> <span class="fu">join_by</span>(BSunitId)) <span class="sc">|&gt;</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ICunitId =</span> <span class="fu">as.character</span>(ICunitId))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Downscale the scaled indicator values from each rovvilt region by assigning them to every municipality in that region. The result is a long table with one row per (<code>year</code>, <code>sim_id</code>, <code>BSunitId</code>) carrying its rovvilt region’s indicator draw, its <code>part</code>, and the municipality’s <code>Skog</code>.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Downscale rovvilt-region draws to municipalities</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>mgmt_draws <span class="ot">&lt;-</span> mgmt_draws <span class="sc">|&gt;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">ICunitId =</span> <span class="fu">as.character</span>(ICunitId))</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>bsunit_draws <span class="ot">&lt;-</span> mgmt_draws <span class="sc">|&gt;</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">right_join</span>(</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    mgmt_weights <span class="sc">|&gt;</span> <span class="fu">select</span>(BSunitId, ICunitId, part, Skog),</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">join_by</span>(ICunitId),</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">unmatched =</span> <span class="st">&quot;error&quot;</span>,</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">relationship =</span> <span class="st">&quot;many-to-many&quot;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
 <section id="spatial-aggregation-1" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-aggregation-1">Spatial aggregation</h3>
-<p>Aggregate from management regions to NI geographic regions with <code>ecTools::ec_upscale()</code>, using Monte Carlo propagation of inferential uncertainty (one draw per management region per replicate, terrestrial-area-weighted mean).</p>
+<p>Aggregate from municipalities to NI geographic regions with <code>ecTools::ec_upscale()</code>, using Monte Carlo propagation of inferential uncertainty (one draw per municipality per replicate, forest-area-weighted mean).</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Management region to NI part MC propagation (ec_upscale)</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>mc_propagated <span class="ot">&lt;-</span> ecTools<span class="sc">::</span><span class="fu">ec_upscale</span>(</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> mgmt_draws,</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">variable =</span> indicator,</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">weight =</span> terrestrial_area,</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">start_units =</span> ICunitId,</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units =</span> part,</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> year,</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units_name =</span> <span class="st">&quot;part&quot;</span>,</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">1000</span></span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(mc_propagated, here<span class="sc">::</span><span class="fu">here</span>(<span class="st">&quot;data/baer_mc_propagated_regional.rds&quot;</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<summary>Municipality to NI part MC propagation (ec_upscale)</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>mc_propagated <span class="ot">&lt;-</span> ecTools<span class="sc">::</span><span class="fu">ec_upscale</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> bsunit_draws,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">variable =</span> indicator,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">weight =</span> Skog,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">start_units =</span> BSunitId,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units =</span> part,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> year,</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units_name =</span> <span class="st">&quot;part&quot;</span>,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">1000</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(mc_propagated, here<span class="sc">::</span><span class="fu">here</span>(<span class="st">&quot;data/baer_mc_propagated_regional.rds&quot;</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>For the national indicator, propagate again from regions to Norway. Summed terrestrial area per geographic region is used as weight at this step.</p>
+<p>For the national indicator, propagate again from regions to Norway. Summed forest area per geographic region is used as the weight at this step.</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Total terrestrial area per NI region</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>region_weights <span class="ot">&lt;-</span> mgmt_weights <span class="sc">|&gt;</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(part) <span class="sc">|&gt;</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">terrestrial_area =</span> <span class="fu">sum</span>(.data<span class="sc">$</span>terrestrial_area), <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span>)</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>region_weights</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<summary>Total forest area per NI region</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>region_weights <span class="ot">&lt;-</span> mgmt_weights <span class="sc">|&gt;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(part) <span class="sc">|&gt;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">forest_area =</span> <span class="fu">sum</span>(.data<span class="sc">$</span>Skog, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>region_weights</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 5 × 2
-  part  terrestrial_area
-  &lt;chr&gt;            &lt;dbl&gt;
-1 C               56434.
-2 E               62229.
-3 N              113109.
-4 S               41688.
-5 W               50867.</code></pre>
+  part  forest_area
+  &lt;chr&gt;       &lt;dbl&gt;
+1 C          20568.
+2 E          39436.
+3 N          30469.
+4 S          18229.
+5 W          11479.</code></pre>
 </div>
 </div>
 <div class="cell">
 <details class="code-fold">
 <summary>NI region to Norway MC propagation (ec_upscale)</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>mc_propagated_for_national <span class="ot">&lt;-</span> mc_propagated <span class="sc">|&gt;</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(region_weights, <span class="at">by =</span> <span class="fu">join_by</span>(part)) <span class="sc">|&gt;</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_column</span>(<span class="at">end_units =</span> <span class="st">&quot;Norway&quot;</span>)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>mc_propagated_national <span class="ot">&lt;-</span> ecTools<span class="sc">::</span><span class="fu">ec_upscale</span>(</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> mc_propagated_for_national,</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">variable =</span> sampled_mean,</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">weight =</span> terrestrial_area,</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">start_units =</span> part,</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units =</span> end_units,</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> year,</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units_name =</span> <span class="st">&quot;part&quot;</span>,</span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">1000</span></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(mc_propagated_national, here<span class="sc">::</span><span class="fu">here</span>(<span class="st">&quot;data/baer_mc_propagated_national.rds&quot;</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>mc_propagated_for_national <span class="ot">&lt;-</span> mc_propagated <span class="sc">|&gt;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(region_weights, <span class="at">by =</span> <span class="fu">join_by</span>(part)) <span class="sc">|&gt;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_column</span>(<span class="at">end_units =</span> <span class="st">&quot;Norway&quot;</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>mc_propagated_national <span class="ot">&lt;-</span> ecTools<span class="sc">::</span><span class="fu">ec_upscale</span>(</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> mc_propagated_for_national,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">variable =</span> sampled_mean,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">weight =</span> forest_area,</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">start_units =</span> part,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units =</span> end_units,</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> year,</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">end_units_name =</span> <span class="st">&quot;part&quot;</span>,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">1000</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(mc_propagated_national, here<span class="sc">::</span><span class="fu">here</span>(<span class="st">&quot;data/baer_mc_propagated_national.rds&quot;</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Regional and national MC draws are combined for summarisation and export.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Bind regional and national MC outputs</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>mc_propagated_combined <span class="ot">&lt;-</span> mc_propagated <span class="sc">|&gt;</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, part, sampled_mean) <span class="sc">|&gt;</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(mc_propagated_national)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>mc_propagated_combined <span class="ot">&lt;-</span> mc_propagated <span class="sc">|&gt;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, part, sampled_mean) <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(mc_propagated_national)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">10. Results</h2>
-<p>From the 1000 Monte Carlo replicates per region and year in <code>mc_propagated_combined</code>, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the terrestrial-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions). The table (<a href="#tbl-baer-results" class="quarto-xref">Table 2</a>) and time series (<a href="#fig-baer-timeSeries" class="quarto-xref">Figure 2</a>) summarise regional and national (<code>Norway</code>) values.</p>
+<p>From the 1000 Monte Carlo replicates per region and year in <code>mc_propagated_combined</code>, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the forest-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions). The table (<a href="#tbl-baer-results" class="quarto-xref">Table 2</a>) and time series (<a href="#fig-baer-timeSeries" class="quarto-xref">Figure 2</a>) summarise regional and national (<code>Norway</code>) values.</p>
 <div class="cell" data-tbl-cap="Brown bear indicator summaries by region and year (inferential uncertainty for area-weighted means).">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>summary_out <span class="ot">&lt;-</span> mc_propagated_combined <span class="sc">|&gt;</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">part =</span> dplyr<span class="sc">::</span><span class="fu">recode</span>(part, <span class="sc">!!!</span>baer_part_labels)) <span class="sc">|&gt;</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(part, year) <span class="sc">|&gt;</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">median =</span> <span class="fu">round</span>(<span class="fu">median</span>(sampled_mean, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_025 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.025</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_25 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.25</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_75 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.75</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_975 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.975</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">part =</span> <span class="fu">factor</span>(part, <span class="at">levels =</span> baer_region_levels)) <span class="sc">|&gt;</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_column</span>(</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">ECT =</span> <span class="st">&quot;B3&quot;</span>,</span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Indicator =</span> <span class="st">&quot;Brown bear abundance&quot;</span>,</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ecosystem =</span> <span class="st">&quot;Boreal/montane forests&quot;</span>,</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">ID =</span> <span class="st">&quot;NO_BAER_001&quot;</span></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>summary_out <span class="ot">&lt;-</span> mc_propagated_combined <span class="sc">|&gt;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">part =</span> dplyr<span class="sc">::</span><span class="fu">recode</span>(part, <span class="sc">!!!</span>baer_part_labels)) <span class="sc">|&gt;</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(part, year) <span class="sc">|&gt;</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">median =</span> <span class="fu">round</span>(<span class="fu">median</span>(sampled_mean, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_025 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.025</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_25 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.25</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_75 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.75</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_975 =</span> <span class="fu">round</span>(<span class="fu">quantile</span>(sampled_mean, <span class="at">probs =</span> <span class="fl">0.975</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">2</span>),</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">part =</span> <span class="fu">factor</span>(part, <span class="at">levels =</span> baer_region_levels)) <span class="sc">|&gt;</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_column</span>(</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">ECT =</span> <span class="st">&quot;B3&quot;</span>,</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Indicator =</span> <span class="st">&quot;Brown bear abundance&quot;</span>,</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Ecosystem =</span> <span class="st">&quot;Boreal/montane forests&quot;</span>,</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">ID =</span> <span class="st">&quot;NO_BAER_001&quot;</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>baer_plot_years <span class="ot">&lt;-</span> <span class="fu">as.character</span>(<span class="fu">c</span>(<span class="dv">1990</span>, <span class="dv">2000</span>, <span class="dv">2010</span>, <span class="dv">2014</span>, <span class="dv">2019</span>, <span class="dv">2024</span>))</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>baer_region_cols <span class="ot">&lt;-</span> <span class="fu">setNames</span>(</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  MetBrewer<span class="sc">::</span><span class="fu">met.brewer</span>(<span class="st">&quot;Archambault&quot;</span>, <span class="at">n =</span> <span class="fu">length</span>(baer_region_levels)),</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  baer_region_levels</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> summary_out <span class="sc">|&gt;</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="fu">factor</span>(year, <span class="at">levels =</span> baer_plot_years),</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="fu">if_else</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>, <span class="st">&quot;National&quot;</span>, <span class="st">&quot;Region&quot;</span>)</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>y_hi <span class="ot">&lt;-</span> <span class="fu">max</span>(plot_data<span class="sc">$</span>p_975, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>y_max <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="dv">1</span>, <span class="fu">max</span>(<span class="fl">0.08</span>, y_hi <span class="sc">*</span> <span class="fl">1.12</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>y_breaks <span class="ot">&lt;-</span> <span class="fu">pretty</span>(<span class="fu">c</span>(<span class="dv">0</span>, y_max), <span class="at">n =</span> <span class="dv">6</span>)</span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> year, <span class="at">y =</span> median, <span class="at">colour =</span> part, <span class="at">group =</span> part)) <span class="sc">+</span></span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
-<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">linewidth =</span> series_type),</span>
-<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.18</span>)</span>
-<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(</span>
-<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">ymin =</span> p_025, <span class="at">ymax =</span> p_975, <span class="at">shape =</span> series_type),</span>
-<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">0.8</span>,</span>
-<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="fl">0.45</span>,</span>
-<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.18</span>)</span>
-<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> baer_region_cols, <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
-<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_shape_manual</span>(</span>
-<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="at">National =</span> <span class="dv">19</span>, <span class="at">Region =</span> <span class="dv">17</span>),</span>
-<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="cn">NULL</span></span>
-<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_linewidth_manual</span>(</span>
-<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="at">National =</span> <span class="dv">1</span>, <span class="at">Region =</span> <span class="fl">0.55</span>),</span>
-<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">guide =</span> <span class="st">&quot;none&quot;</span></span>
-<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(</span>
-<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, y_max),</span>
-<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> y_breaks,</span>
-<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> ggplot2<span class="sc">::</span><span class="fu">expansion</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="fl">0.02</span>, <span class="fl">0.04</span>))</span>
-<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
-<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>,</span>
-<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.box =</span> <span class="st">&quot;vertical&quot;</span>,</span>
-<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.major.x =</span> <span class="fu">element_blank</span>()</span>
-<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(</span>
-<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">colour =</span> <span class="fu">guide_legend</span>(<span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="fl">0.7</span>, <span class="at">linewidth =</span> <span class="fl">0.45</span>)),</span>
-<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">shape =</span> <span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="fl">0.8</span>, <span class="at">linewidth =</span> <span class="fl">0.45</span>))</span>
-<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb21-53"><a href="#cb21-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">&quot;Indicator value&quot;</span>, <span class="at">x =</span> <span class="st">&quot;&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>baer_plot_years <span class="ot">&lt;-</span> <span class="fu">as.character</span>(<span class="fu">c</span>(<span class="dv">1990</span>, <span class="dv">2000</span>, <span class="dv">2010</span>, <span class="dv">2014</span>, <span class="dv">2019</span>, <span class="dv">2024</span>))</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>baer_region_cols <span class="ot">&lt;-</span> <span class="fu">setNames</span>(</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  MetBrewer<span class="sc">::</span><span class="fu">met.brewer</span>(<span class="st">&quot;Archambault&quot;</span>, <span class="at">n =</span> <span class="fu">length</span>(baer_region_levels)),</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  baer_region_levels</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> summary_out <span class="sc">|&gt;</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="fu">factor</span>(year, <span class="at">levels =</span> baer_plot_years),</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="fu">if_else</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>, <span class="st">&quot;National&quot;</span>, <span class="st">&quot;Region&quot;</span>)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>y_hi <span class="ot">&lt;-</span> <span class="fu">max</span>(plot_data<span class="sc">$</span>p_975, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>y_max <span class="ot">&lt;-</span> <span class="fu">min</span>(<span class="dv">1</span>, <span class="fu">max</span>(<span class="fl">0.08</span>, y_hi <span class="sc">*</span> <span class="fl">1.12</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>y_breaks <span class="ot">&lt;-</span> <span class="fu">pretty</span>(<span class="fu">c</span>(<span class="dv">0</span>, y_max), <span class="at">n =</span> <span class="dv">6</span>)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> year, <span class="at">y =</span> median, <span class="at">colour =</span> part, <span class="at">group =</span> part)) <span class="sc">+</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">linewidth =</span> series_type),</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.18</span>)</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">ymin =</span> p_025, <span class="at">ymax =</span> p_975, <span class="at">shape =</span> series_type),</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">0.8</span>,</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="fl">0.45</span>,</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.18</span>)</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> baer_region_cols, <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_shape_manual</span>(</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="at">National =</span> <span class="dv">19</span>, <span class="at">Region =</span> <span class="dv">17</span>),</span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="cn">NULL</span></span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_linewidth_manual</span>(</span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="at">National =</span> <span class="dv">1</span>, <span class="at">Region =</span> <span class="fl">0.55</span>),</span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">guide =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(</span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, y_max),</span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> y_breaks,</span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> ggplot2<span class="sc">::</span><span class="fu">expansion</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="fl">0.02</span>, <span class="fl">0.04</span>))</span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">&quot;bottom&quot;</span>,</span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.box =</span> <span class="st">&quot;vertical&quot;</span>,</span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.major.x =</span> <span class="fu">element_blank</span>()</span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(</span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">colour =</span> <span class="fu">guide_legend</span>(<span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="fl">0.7</span>, <span class="at">linewidth =</span> <span class="fl">0.45</span>)),</span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">shape =</span> <span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="fl">0.8</span>, <span class="at">linewidth =</span> <span class="fl">0.45</span>))</span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">&quot;Indicator value&quot;</span>, <span class="at">x =</span> <span class="st">&quot;&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-baer-timeSeries" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -3927,22 +3921,22 @@ Figure 2: Indicator values for brown bear abundance by region and nationally, w
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>summary_out <span class="sc">|&gt;</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(part, year) <span class="sc">|&gt;</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unite</span>(<span class="at">col =</span> <span class="st">&quot;CI_95&quot;</span>, <span class="fu">c</span>(p_025, p_975), <span class="at">sep =</span> <span class="st">&quot; - &quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unite</span>(<span class="at">col =</span> <span class="st">&quot;IQR&quot;</span>, <span class="fu">c</span>(p_25, p_75), <span class="at">sep =</span> <span class="st">&quot; - &quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    ECT,</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    Indicator,</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    ID,</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Accounting area&quot;</span> <span class="ot">=</span> part,</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    Ecosystem,</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Closing year&quot;</span> <span class="ot">=</span> year,</span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Indicator value&quot;</span> <span class="ot">=</span> median,</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;95% CI&quot;</span> <span class="ot">=</span> CI_95,</span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;50% CI&quot;</span> <span class="ot">=</span> IQR</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>summary_out <span class="sc">|&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(part, year) <span class="sc">|&gt;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unite</span>(<span class="at">col =</span> <span class="st">&quot;CI_95&quot;</span>, <span class="fu">c</span>(p_025, p_975), <span class="at">sep =</span> <span class="st">&quot; - &quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unite</span>(<span class="at">col =</span> <span class="st">&quot;IQR&quot;</span>, <span class="fu">c</span>(p_25, p_75), <span class="at">sep =</span> <span class="st">&quot; - &quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    ECT,</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    Indicator,</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    ID,</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Accounting area&quot;</span> <span class="ot">=</span> part,</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    Ecosystem,</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Closing year&quot;</span> <span class="ot">=</span> year,</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Indicator value&quot;</span> <span class="ot">=</span> median,</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;95% CI&quot;</span> <span class="ot">=</span> CI_95,</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;50% CI&quot;</span> <span class="ot">=</span> IQR</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div id="tbl-baer-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -4387,11 +4381,11 @@ Table 2: Indicator values and uncertainty estimates for brown bear abundance.
 <div class="cell">
 <details class="code-fold">
 <summary>Export regional and national MC-propagated indicator draws</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  mc_propagated_combined,</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  here<span class="sc">::</span><span class="fu">here</span>(<span class="st">&quot;data/results_NO_BAER_001_v1.0.0.csv&quot;</span>),</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  mc_propagated_combined,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  here<span class="sc">::</span><span class="fu">here</span>(<span class="st">&quot;data/results_NO_BAER_001_v1.0.0.csv&quot;</span>),</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="cn">FALSE</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
