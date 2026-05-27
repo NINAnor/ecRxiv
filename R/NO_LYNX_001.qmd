@@ -25,7 +25,7 @@ Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#version
 VersionComment: First version on ecRxiv; indicator described in the Norwegian Nature Index
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_LYNX_001
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Downscale (municipalities) - Aggregate (geographic region) - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -293,8 +293,9 @@ The indicator may covary with other large-carnivore indicators that use the same
 
 ### 3.5 Spatial aggregation
 
-Following the metadata pathway Aggregate (population model, large-carnivore management region) – [Scale – Truncate] – Aggregate (national level): values are handled per forvaltningsregion for rovvilt in Naturindeksen, then aggregated to five geographic regions and national level with area weights (see Section 8).
-Each unit is normalised against _X~0~_ and _X~100~_ for that region (linear scaling with truncation to [0, 1]).
+Following the metadata pathway Aggregate (population model, large-carnivore management region) – [Scale – Truncate] – Downscale (municipalities) – Aggregate (geographic region) – Aggregate (national level): population estimates or indices are available per forvaltningsregion for rovvilt (IC unit in Naturindeksen). Each unit is normalised against _X~0~_ and _X~100~_ for that region (linear scaling with truncation to [0, 1]).
+
+Because rovvilt regions and the five Naturindeks geographic regions are two non-aligned partitions of Norway, we use municipalities (`BSunits`) as a common basic spatial unit. We assign the (scaled) rovvilt-region value to each municipality belonging to that region (uniform-value assumption), hereafter referred to as downscaling. Forest area (`Skog`) is used as the aggregation weight because lynx is a forest-associated species.
 
 ## 4. Reference condition and levels
 
@@ -326,8 +327,8 @@ Monitoring design and sample effort differ between species and regions; uneven c
 The intervals in @tbl-lynx-results, @fig-lynx-norm, and @fig-lynx-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.
 
 For each management region and assessment year, Naturindeks provides a predictive distribution for the population index (on the variable scale before scaling).
-We draw `nsim = 1000` values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then aggregate with `ecTools::ec_upscale()`: first from management regions to each NI geographic region (`part`), then from regions to Norway, using summed terrestrial area as weights (same structure as forest-area weighting for the cervid indicators).
-The 1000 `sampled_mean` values per region and year describe inferential uncertainty for the area-weighted mean indicator; we summarise them with the median and 2.5% and 97.5% quantiles as an approximate 95% interval, and the 25% and 75% quantiles as an approximate interquartile range.
+We draw `nsim = 1000` values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then downscale by assigning each scaled draw to every municipality in that region and aggregate with `ecTools::ec_upscale()`: first from municipalities (`BSunits`) to each NI geographic region (`part`), then from regions to Norway, using forest area (`Skog`) as the weight.
+The 1000 `sampled_mean` values per region and year describe inferential uncertainty for the forest-area-weighted mean indicator; we summarise them with the median and 2.5% and 97.5% quantiles as an approximate 95% interval, and the 25% and 75% quantiles as an approximate interquartile range.
 
 
 ## 6. References
@@ -364,15 +365,21 @@ lynxImport <- readRDS(here::here("data/lynxImport.rds"))
 
 ## 8. Spatial units
 
-The eight forvaltningsregioner for rovvilt (rovvilt regions 1–8) are the IC units in Naturindeks for this indicator.
-The five Naturindeks geographic regions (east, south, west, central, north; codes E, S, W, C, N) are taken from the `part` field on municipality-level `BSunits` in the same import, aggregated up to each management region (see Section 9).
+According to Naturindeks terminology, municipalities are `BSunits`.
+The eight forvaltningsregioner for rovvilt (rovvilt regions 1–8) are subsamples of `BSunits` and are referred to as `ICunits` in the import; they are the IC units for this indicator.
+The five Naturindeks geographic regions (east, south, west, central, north; codes E, S, W, C, N) are `parts` and `NIunits`, taken from the `part` field on municipality-level `BSunits` in the same import (see Section 9 for downscaling and aggregation).
 Mainland Norway is the ecosystem accounting area.
+
+```{r fig-lynx-carnivoreRegions}
+#| fig-cap: "Map of the eight carnivore management regions (rovvilt regions) in Norway."
+knitr::include_graphics(here::here("img/rovviltregioner.png"))
+```
 
 ## 9. Analyses
 
-This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at large-carnivore management-region scale (IC unit) with linear scaling, then propagate uncertainty and aggregate spatially with terrestrial area weights using `ecTools::ec_upscale()`.
-At geographic (NI part) and national scale, uncertainties are inferential: each replicate is a terrestrial-area-weighted mean based on one draw per management region (then, for Norway, one draw per NI region).
-We use linear scaling and summed terrestrial area from the Naturindeks spatial framework as weights (analogous to forest area in the cervid indicators).
+This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at large-carnivore management-region scale (IC unit) with linear scaling, then downscale by assigning the scaled values to the municipalities in each region and propagate uncertainty and aggregate spatially with forest-area weights using `ecTools::ec_upscale()`.
+At geographic (NI part) and national scale, uncertainties are inferential: each replicate is a forest-area-weighted mean across municipalities (then, for Norway, one draw per NI region).
+We use linear scaling and forest area (`Skog`) from the Naturindeks spatial framework as the weight.
 
 Management-region population indices in the database are stored as predictive distributions, not only as point estimates.
 Reference levels per region (_X~0~_ = 0, _X~100~_ from the download) are applied before any geographic or national aggregation.
@@ -503,15 +510,14 @@ ggsave(filename = here::here("img/lynx_norm_plot_eng.png"), plot = lynx_plot, sc
 knitr::include_graphics(here::here("img/lynx_norm_plot_eng.png"))
 ```
 
-### Aggregation weights (terrestrial area by management region)
+### Aggregation weights (forest area by municipality)
 
-Spatial aggregation uses terrestrial area on each underlying spatial unit in `BSunits`, summed to management region (`ICunitId`).
-Municipalities are linked to rovvilt regions via `ICunits`, as for counties in the cervid indicators.
-Each `BSunit` carries a Naturindeks geographic region code (`part`: E, S, W, C, N).
-We sum terrestrial area by management region and by `part`, assign each management region to the `part` with the largest area share, and use total terrestrial area per management region as the weight in geographic and national means.
+Spatial aggregation uses forest area (`Skog`) on each underlying municipality in `BSunits`.
+Municipalities are linked to rovvilt regions via `ICunits`, and each `BSunit` carries a Naturindeks geographic region code (`part`: E, S, W, C, N).
+Rovvilt regions and NI parts are two non-aligned partitions of Norway, so we keep the data at municipality level once it is scaled: each municipality inherits the scaled indicator value of its rovvilt region (uniform-value assumption), and is then aggregated upward with its own forest area.
 
 ```{r lynx-weights}
-#| code-summary: "Terrestrial area and NI part from BSunits in the import"
+#| code-summary: "Forest area, NI part, and IC link per municipality"
 mgmt_weights <- as_tibble(lynxAssemble$BSunits) |>
   rename(BSunitId = id)
 
@@ -519,46 +525,41 @@ IC_BC_link <- lynxImport$ICunits |>
   distinct(ICunitId = as.character(id), BSunitId)
 
 mgmt_weights <- mgmt_weights |>
-  left_join(IC_BC_link, by = join_by(BSunitId))
-
-ic_names <- lynxAssemble$indicatorValues[[1]] |>
-  transmute(ICunitId = as.character(ICunitId), ICunitName)
-
-part_from_data <- mgmt_weights |>
-  group_by(ICunitId, part) |>
-  summarise(area_in_part = sum(terrestrialArea), .groups = "drop") |>
-  group_by(ICunitId) |>
-  slice_max(area_in_part, n = 1, with_ties = FALSE) |>
-  select(ICunitId, part)
-
-mgmt_weights <- mgmt_weights |>
-  group_by(ICunitId) |>
-  summarise(terrestrial_area = sum(terrestrialArea), .groups = "drop") |>
-  left_join(part_from_data, by = join_by(ICunitId)) |>
-  left_join(ic_names, by = join_by(ICunitId))
-
-mgmt_draws <- mgmt_draws |>
-  left_join(
-    mgmt_weights |> select(ICunitId, terrestrial_area, part),
-    by = join_by(ICunitId)
-  ) |>
+  left_join(IC_BC_link, by = join_by(BSunitId)) |>
   mutate(ICunitId = as.character(ICunitId))
+```
+
+Downscale the scaled indicator values from each rovvilt region by assigning them to every municipality in that region.
+The result is a long table with one row per (`year`, `sim_id`, `BSunitId`) carrying its rovvilt region's indicator draw, its `part`, and the municipality's `Skog`.
+
+```{r lynx-downscale}
+#| code-summary: "Downscale rovvilt-region draws to municipalities"
+mgmt_draws <- mgmt_draws |>
+  mutate(ICunitId = as.character(ICunitId))
+
+bsunit_draws <- mgmt_draws |>
+  right_join(
+    mgmt_weights |> select(BSunitId, ICunitId, part, Skog),
+    by = join_by(ICunitId),
+    unmatched = "error",
+    relationship = "many-to-many"
+  )
 ```
 
 ### Spatial aggregation
 
-Aggregate from management regions to NI geographic regions with `ecTools::ec_upscale()`, using Monte Carlo propagation of inferential uncertainty (one draw per management region per replicate, terrestrial-area-weighted mean).
+Aggregate from municipalities to NI geographic regions with `ecTools::ec_upscale()`, using Monte Carlo propagation of inferential uncertainty (one draw per municipality per replicate, forest-area-weighted mean).
 
 ```{r lynx-aggregate1}
-#| code-summary: "Management region to NI part MC propagation (ec_upscale)"
+#| code-summary: "Municipality to NI part MC propagation (ec_upscale)"
 #| eval: false
 #| warning: false
 #| message: false
 mc_propagated <- ecTools::ec_upscale(
-  data = mgmt_draws,
+  data = bsunit_draws,
   variable = indicator,
-  weight = terrestrial_area,
-  start_units = ICunitId,
+  weight = Skog,
+  start_units = BSunitId,
   end_units = part,
   year = year,
   end_units_name = "part",
@@ -574,13 +575,13 @@ head(mc_propagated)
 ```
 
 For the national indicator, propagate again from regions to Norway.
-Summed terrestrial area per geographic region is used as weight at this step.
+Summed forest area per geographic region is used as the weight at this step.
 
 ```{r lynx-region-weights}
-#| code-summary: "Total terrestrial area per NI region"
+#| code-summary: "Total forest area per NI region"
 region_weights <- mgmt_weights |>
   group_by(part) |>
-  summarise(terrestrial_area = sum(.data$terrestrial_area), .groups = "drop")
+  summarise(forest_area = sum(.data$Skog, na.rm = TRUE), .groups = "drop")
 region_weights
 ```
 
@@ -596,7 +597,7 @@ mc_propagated_for_national <- mc_propagated |>
 mc_propagated_national <- ecTools::ec_upscale(
   data = mc_propagated_for_national,
   variable = sampled_mean,
-  weight = terrestrial_area,
+  weight = forest_area,
   start_units = part,
   end_units = end_units,
   year = year,
@@ -623,7 +624,7 @@ mc_propagated_combined <- mc_propagated |>
 
 ## 10. Results
 
-From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the terrestrial-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
+From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the forest-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
 The table (@tbl-lynx-results) and time series (@fig-lynx-timeSeries) summarise regional and national (`Norway`) values.
 
 ```{r lynx-part-labels}
