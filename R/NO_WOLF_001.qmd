@@ -38,16 +38,19 @@ VersionComment: First version on ecRxiv; indicator described in the Norwegian Na
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WOLF_001
 Normalised: Yes
 <<<<<<< HEAD
+<<<<<<< HEAD
 SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Downscale (municipalities) - Aggregate (geographic region) - Aggregate (national level)
 Precision: Approximate 95% Monte Carlo interval (2.5th–97.5th percentile of 1000 resampled area-weighted means) as inferential uncertainty around the point estimate (median).
 =======
 SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Aggregate (national level)
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Downscale (municipalities) - Aggregate (geographic region) - Aggregate (national level)
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 format: 
   html:
     embed-resources: true
     code-fold: true
-    toc: true
     toc-title: Contents
     toc-depth: 3
     smooth-scroll: true
@@ -406,9 +409,15 @@ Because rovvilt regions and the five Naturindeks geographic regions are two non-
 =======
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
+<<<<<<< HEAD
 Following the metadata pathway Aggregate (population model, large-carnivore management region) – [Scale – Truncate] – Aggregate (national level): values are handled per forvaltningsregion for rovvilt in Naturindeksen, then aggregated to five geographic regions and national level with area weights (see Section 8).
 Each unit is normalised against _X~0~_ and _X~100~_ for that region (linear scaling with truncation to [0, 1]).
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+Following the metadata pathway Aggregate (population model, large-carnivore management region) – [Scale – Truncate] – Downscale (municipalities) – Aggregate (geographic region) – Aggregate (national level): population estimates or indices are available per forvaltningsregion for rovvilt (IC unit in Naturindeksen). Each unit is normalised against _X~0~_ and _X~100~_ for that region (linear scaling with truncation to [0, 1]).
+
+Because rovvilt regions and the five Naturindeks geographic regions are two non-aligned partitions of Norway, we use municipalities (`BSunits`) as a common basic spatial unit. We assign the (scaled) rovvilt-region value to each municipality belonging to that region (uniform-value assumption), hereafter referred to as downscaling. Forest area (`Skog`) is used as the aggregation weight because wolf is a forest-associated species.
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 
 ## 4. Reference condition and levels
 
@@ -464,9 +473,14 @@ The 1000 `sampled_mean` values per region and year describe inferential uncertai
 The intervals in @tbl-wolf-results, @fig-wolf-norm, and @fig-wolf-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.
 
 For each management region and assessment year, Naturindeks provides a predictive distribution for the population index (on the variable scale before scaling).
+<<<<<<< HEAD
 We draw `nsim = 1000` values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then aggregate with `ecTools::ec_upscale()`: first from management regions to each NI geographic region (`part`), then from regions to Norway, using summed terrestrial area as weights (same structure as forest-area weighting for the cervid indicators).
 The 1000 `sampled_mean` values per region and year describe inferential uncertainty for the area-weighted mean indicator; we summarise them with the median and 2.5% and 97.5% quantiles as an approximate 95% interval, and the 25% and 75% quantiles as an approximate interquartile range.
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+We draw `nsim = 1000` values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then downscale by assigning each scaled draw to every municipality in that region and aggregate with `ecTools::ec_upscale()`: first from municipalities (`BSunits`) to each NI geographic region (`part`), then from regions to Norway, using forest area (`Skog`) as the weight.
+The 1000 `sampled_mean` values per region and year describe inferential uncertainty for the forest-area-weighted mean indicator; we summarise them with the median and 2.5% and 97.5% quantiles as an approximate 95% interval, and the 25% and 75% quantiles as an approximate interquartile range.
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 
 
 ## 6. References
@@ -504,6 +518,7 @@ wolfImport <- readRDS(here::here("data/wolfImport.rds"))
 ## 8. Spatial units
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 According to Naturindeks terminology, municipalities are `BSunits`.
 The eight forvaltningsregioner for rovvilt (rovvilt regions 1–8) are subsamples of `BSunits` and are referred to as `ICunits` in the import; they are the IC units for this indicator.
 The five Naturindeks geographic regions (east, south, west, central, north; codes E, S, W, C, N) are `parts` and `NIunits`, taken from the `part` field on municipality-level `BSunits` in the same import (see Section 9 for downscaling and aggregation).
@@ -522,14 +537,30 @@ We use linear scaling and forest area (`Skog`) from the Naturindeks spatial fram
 =======
 The eight forvaltningsregioner for rovvilt (rovvilt regions 1–8) are the IC units in Naturindeks for this indicator.
 The five Naturindeks geographic regions (east, south, west, central, north; codes E, S, W, C, N) are taken from the `part` field on municipality-level `BSunits` in the same import, aggregated up to each management region (see Section 9).
+=======
+According to Naturindeks terminology, municipalities are `BSunits`.
+The eight forvaltningsregioner for rovvilt (rovvilt regions 1–8) are subsamples of `BSunits` and are referred to as `ICunits` in the import; they are the IC units for this indicator.
+The five Naturindeks geographic regions (east, south, west, central, north; codes E, S, W, C, N) are `parts` and `NIunits`, taken from the `part` field on municipality-level `BSunits` in the same import (see Section 9 for downscaling and aggregation).
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 Mainland Norway is the ecosystem accounting area.
+
+```{r fig-wolf-carnivoreRegions}
+#| fig-cap: "Map of the eight carnivore management regions (rovvilt regions) in Norway."
+knitr::include_graphics(here::here("img/rovviltregioner.png"))
+```
 
 ## 9. Analyses
 
+<<<<<<< HEAD
 This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at large-carnivore management-region scale (IC unit) with linear scaling, then propagate uncertainty and aggregate spatially with terrestrial area weights using `ecTools::ec_upscale()`.
 At geographic (NI part) and national scale, uncertainties are inferential: each replicate is a terrestrial-area-weighted mean based on one draw per management region (then, for Norway, one draw per NI region).
 We use linear scaling and summed terrestrial area from the Naturindeks spatial framework as weights (analogous to forest area in the cervid indicators).
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at large-carnivore management-region scale (IC unit) with linear scaling, then downscale by assigning the scaled values to the municipalities in each region and propagate uncertainty and aggregate spatially with forest-area weights using `ecTools::ec_upscale()`.
+At geographic (NI part) and national scale, uncertainties are inferential: each replicate is a forest-area-weighted mean across municipalities (then, for Norway, one draw per NI region).
+We use linear scaling and forest area (`Skog`) from the Naturindeks spatial framework as the weight.
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 
 Management-region population indices in the database are stored as predictive distributions, not only as point estimates.
 Reference levels per region (_X~0~_ = 0, _X~100~_ from the download) are applied before any geographic or national aggregation.
@@ -557,10 +588,14 @@ For this indicator, _X~0~_ is zero individuals in the unit and _X~100~_ is the e
 #| code-summary: "Management-region reference levels from downloaded Naturindeks data"
 #| tbl-cap: "Management-region reference levels (X0 = 0, X100) by rovvilt region (IC unit)."
 <<<<<<< HEAD
+<<<<<<< HEAD
 refs <- wolfImport$referenceValues$referenceValues |> 
 =======
 refs <- wolfImport$referenceValues$referenceValues |>
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+refs <- wolfImport$referenceValues$referenceValues |> 
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
   dplyr::filter(.data$yearId == 0L | grepl("Referanse", .data$yearName, fixed = FALSE)) |>
   dplyr::distinct(ICunitId, ICunitName, x100 = expectedValue) |>
   dplyr::mutate(x0 = 0)
@@ -694,16 +729,19 @@ Rovvilt regions and NI parts are two non-aligned partitions of Norway, so we kee
 knitr::include_graphics(here::here("img/wolf_norm_plot_eng.png"))
 ```
 
-### Aggregation weights (terrestrial area by management region)
+### Aggregation weights (forest area by municipality)
 
-Spatial aggregation uses terrestrial area on each underlying spatial unit in `BSunits`, summed to management region (`ICunitId`).
-Municipalities are linked to rovvilt regions via `ICunits`, as for counties in the cervid indicators.
-Each `BSunit` carries a Naturindeks geographic region code (`part`: E, S, W, C, N).
-We sum terrestrial area by management region and by `part`, assign each management region to the `part` with the largest area share, and use total terrestrial area per management region as the weight in geographic and national means.
+Spatial aggregation uses forest area (`Skog`) on each underlying municipality in `BSunits`.
+Municipalities are linked to rovvilt regions via `ICunits`, and each `BSunit` carries a Naturindeks geographic region code (`part`: E, S, W, C, N).
+Rovvilt regions and NI parts are two non-aligned partitions of Norway, so we keep the data at municipality level once it is scaled: each municipality inherits the scaled indicator value of its rovvilt region (uniform-value assumption), and is then aggregated upward with its own forest area.
 
 ```{r wolf-weights}
+<<<<<<< HEAD
 #| code-summary: "Terrestrial area and NI part from BSunits in the import"
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+#| code-summary: "Forest area, NI part, and IC link per municipality"
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 mgmt_weights <- as_tibble(wolfAssemble$BSunits) |>
   rename(BSunitId = id)
 
@@ -711,6 +749,7 @@ IC_BC_link <- wolfImport$ICunits |>
   distinct(ICunitId = as.character(id), BSunitId)
 
 mgmt_weights <- mgmt_weights |>
+<<<<<<< HEAD
 <<<<<<< HEAD
   left_join(IC_BC_link, by = join_by(BSunitId)) |>
   mutate(ICunitId = as.character(ICunitId))
@@ -755,12 +794,33 @@ mgmt_draws <- mgmt_draws |>
     mgmt_weights |> select(ICunitId, terrestrial_area, part),
     by = join_by(ICunitId)
   ) |>
+=======
+  left_join(IC_BC_link, by = join_by(BSunitId)) |>
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
   mutate(ICunitId = as.character(ICunitId))
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
 ```
 
+Downscale the scaled indicator values from each rovvilt region by assigning them to every municipality in that region.
+The result is a long table with one row per (`year`, `sim_id`, `BSunitId`) carrying its rovvilt region's indicator draw, its `part`, and the municipality's `Skog`.
+
+```{r wolf-downscale}
+#| code-summary: "Downscale rovvilt-region draws to municipalities"
+mgmt_draws <- mgmt_draws |>
+  mutate(ICunitId = as.character(ICunitId))
+
+bsunit_draws <- mgmt_draws |>
+  right_join(
+    mgmt_weights |> select(BSunitId, ICunitId, part, Skog),
+    by = join_by(ICunitId),
+    unmatched = "error",
+    relationship = "many-to-many"
+  )
+```
+
 ### Spatial aggregation
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 Aggregate from municipalities to NI geographic regions with `ecTools::ec_upscale()`, using Monte Carlo propagation of inferential uncertainty (one draw per municipality per replicate, forest-area-weighted mean).
 
@@ -772,10 +832,17 @@ Aggregate from management regions to NI geographic regions with `ecTools::ec_ups
 ```{r wolf-aggregate1}
 #| code-summary: "Management region to NI part MC propagation (ec_upscale)"
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+Aggregate from municipalities to NI geographic regions with `ecTools::ec_upscale()`, using Monte Carlo propagation of inferential uncertainty (one draw per municipality per replicate, forest-area-weighted mean).
+
+```{r wolf-aggregate1}
+#| code-summary: "Municipality to NI part MC propagation (ec_upscale)"
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 #| eval: false
 #| warning: false
 #| message: false
 mc_propagated <- ecTools::ec_upscale(
+<<<<<<< HEAD
 <<<<<<< HEAD
   data = bsunit_draws,
   variable = indicator,
@@ -787,6 +854,12 @@ mc_propagated <- ecTools::ec_upscale(
   weight = terrestrial_area,
   start_units = ICunitId,
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+  data = bsunit_draws,
+  variable = indicator,
+  weight = Skog,
+  start_units = BSunitId,
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
   end_units = part,
   year = year,
   end_units_name = "part",
@@ -803,6 +876,7 @@ head(mc_propagated)
 
 For the national indicator, propagate again from regions to Norway.
 <<<<<<< HEAD
+<<<<<<< HEAD
 Summed forest area per geographic region is used as the weight at this step.
 
 ```{r wolf-region-weights}
@@ -812,13 +886,20 @@ region_weights <- mgmt_weights |>
   summarise(forest_area = sum(.data$Skog, na.rm = TRUE), .groups = "drop")
 =======
 Summed terrestrial area per geographic region is used as weight at this step.
+=======
+Summed forest area per geographic region is used as the weight at this step.
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 
 ```{r wolf-region-weights}
-#| code-summary: "Total terrestrial area per NI region"
+#| code-summary: "Total forest area per NI region"
 region_weights <- mgmt_weights |>
   group_by(part) |>
+<<<<<<< HEAD
   summarise(terrestrial_area = sum(.data$terrestrial_area), .groups = "drop")
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+  summarise(forest_area = sum(.data$Skog, na.rm = TRUE), .groups = "drop")
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 region_weights
 ```
 
@@ -835,10 +916,14 @@ mc_propagated_national <- ecTools::ec_upscale(
   data = mc_propagated_for_national,
   variable = sampled_mean,
 <<<<<<< HEAD
+<<<<<<< HEAD
   weight = forest_area,
 =======
   weight = terrestrial_area,
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
+=======
+  weight = forest_area,
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
   start_units = part,
   end_units = end_units,
   year = year,
@@ -866,10 +951,14 @@ mc_propagated_combined <- mc_propagated |>
 ## 10. Results
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the forest-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
 The tables (@tbl-wolf-results-regional, @tbl-wolf-results-national) and time series (@fig-wolf-timeSeries) summarise regional and national (`Norway`) values separately.
 =======
 From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the terrestrial-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
+=======
+From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the forest-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
+>>>>>>> cd5025d2 (Update code for lynx and wolf)
 The table (@tbl-wolf-results) and time series (@fig-wolf-timeSeries) summarise regional and national (`Norway`) values.
 >>>>>>> 696d3711 (update wolf: new ID name, upscaling method and figure)
 
