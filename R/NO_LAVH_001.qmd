@@ -192,23 +192,24 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 1. **Background and rationale**:
 <!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
 What are the main anthropogenic impact factors? -->
-Small rodents, like lemming and mice, are keystone species in aline ecosystems. They function as a trophic link between the primary producers and top predators. When population are high, they impose a large disturbance on the vegetation, but at the same time they fuel the higher troficl levels and ensure survival and breeding success for species like raptors and foxes. Rodent cycles have a frequency of about 3-4 years, and it is the amplitude (size or height) of these peaks that make up this indicator. Rodent cycles, both their regularity and their amplidude, are negatively affected by many known and unknown drivers. The most important antropogenic driver is climate change, with warmer and wetter winters causing rodent declines due to the effect that this has on the snow cover.  
+Lichens, and lichen heaths, are common and important features of alpine ecosystems. They are important food sources for reindeer, hence the common Norwegian term 'reindeer lichens'. This group of lichens are characteristically white in colour. This makes them important in climate forcing by increasing the surface albedo. It also makes them easily recognisaible via remote sensing. 
+ The cover and biomass of lichen is affected by several anthopogenic drivers, including climate change and land use change. Climate warming and reduced livestock grazing causes shubbification and forest advance, whereas lichen cover can also become reduced because of reindeer overgrazing.   
 
 2. **Methods**:
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
-Rodent numbers have been monitored from 1990 to 2020 using traps. A new national monitoring program was initiated in 2020 based on camera traps, but these data are not yet integrated with the existing time series, so the 2024 estimate is based on expert opinion, informed by various data sources.  
+Lichen biomass is estimated by using a machine learning model on landsat satellite imagery, every year from 19884 to 2024, for wild reindeer areas. Areas dominated by semi-domesticated raindeer er not included. The variable is defined as the proportion of area with lichen heath in good condition, following the 'Kvalitetsnorm for villrein'.  
 We get the data from the Norwegian Nature Index database [@nater_naturindeks_2025] where also the X~100~ reference values are stored.
-These represent the predicted  mean number of rodents in peaks year over a 10 year period, given minimal anthropogenic influence. The reference values are also based on expert opinion, but informed by extensive empirical data. 
 
 
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
-An indicator value of 1 means that rodent numbers in peak years are as numerous, or more, than what we expect under the reference condition.
-Values decreasing toward zero indicates that the average rodent peaks are diminishing.
+An indicator value of 1 means that the are area with lichen heath in good condition (i.e. with sufficient lichen biomass) is equal to or greater than that estimated under the reference condition. And indicator value decreasing towards zero indicates a reduction in the ratio, intil with an indicator value of zeroe, where all area are in poor condition. 
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-The indicator value for Norway as a whole in 2024 is 0.28 [95% CI = 0.26-0.30]. This is extremely low and reflects the deminisjong effect of rodent cycles on Norwegian alpine ecosystems. Development needs include an integration of the current monitoring time series, with the old time series based on trap monitoring.     
+
+
+<!-- The indicator value for Norway as a whole in 2024 is 0.28 [95% CI = 0.26-0.30]. This is extremely low and reflects the deminisjong effect of rodent cycles on Norwegian alpine ecosystems. Development needs include an integration of the current monitoring time series, with the old time series based on trap monitoring.      -->
 
 ## 1.2 Native language summary - Norwegian
 
@@ -230,14 +231,13 @@ Indikatorverdien for hele Norge i 2024 er 0,28 [95 % KI = 0,26–0,30]. Dette er
 ## 2. About the underlying data
 
 <!--# Give a general introduction the datasets you have used, and provide more specific details in the sub-chapters.  -->
-The data comes from various trap minitoring time series, especially TOV [@Framstad2017] and selected time series from [@ehrich2020documenting]. The 2024 estimate is based on expert opinion [@nater_naturindeks_2025] . See further documentation on the [Norwegian Nature Index web site for this indicator](https://www.naturindeks.no/Indicators/smaagnagere_fjellbestander). 
+The data comes from an analyses of landsat imagery, which has been analysed using artificial intelligence (AI) as explained in [@Erlandsson2024]. I will extract variable values and reference values from the Norwegian Nature Index [@nater_naturindeks_2025] database.
 
 ### 2.1 Spatial and temporal resolution and extent
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
-Indicator values are available for the different assessment years in  _Naturindeksen_: 1950 (expert opinion-based estimate), 1990, 2000, 2010, 2014, 2019 and 2024 (also expert opinion-based). 
+Indicator values are available for each year from 1884 to 2024. I will limit the import of data to 2010, 2014, 2019 and 2024, to be consisetnt with other indicators used for the 2024 assessment of alpine ecosystem condition in Norway.
 
-<!-- The indicator is calculated for eight carnivore regions in Norway. These may overlap with one or more of the geographic regions that we use here. Here we report the values for five geographic regions, and for Norway as a whole.  -->
 
 ### 2.2 Sampling design
 
@@ -379,9 +379,9 @@ The function giver read-only access without requiring a username and password.
 #myYears <- as.character(c(1990, 2020, 2010, 2014, 2019, 2024))
 
 # Import data set
-roedImport <- NIcalc::importDatasetApi(
+lavhImport <- NIcalc::importDatasetApi(
   eco = NULL,
-  indic = c("Smågnagere - fjellbestander"),
+  indic = c("Lavhei i villreinkommuner"),
   year = c("2010", "2014", "2019", "2024")
 )
 saveRDS(roedImport, here::here("data/roedImport.rds"))
@@ -433,7 +433,7 @@ These are unique to each ´ICunit`.
 I only have an X~100~ value. X~0~ is a natural zero.
 
 ```{r refs}
-x100 <- roedImport$referenceValues$referenceValues |>
+x100 <- lavhImport$referenceValues$referenceValues |>
   select(ICunitId, ICunitName, x100 = expectedValue)
 gt::gt(x100)
 ```
