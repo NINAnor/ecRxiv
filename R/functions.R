@@ -76,8 +76,8 @@ assign_region_name <- function(region_code) {
   )
 }
 
-# Map NFI county names to BBCA sub-county reference codes
-assign_bbca_county_part <- function(fylke_name) {
+# Map NFI county names to BLAA sub-county reference codes
+assign_blaa_county_part <- function(fylke_name) {
   name <- stringi::stri_trans_general(
     stringr::str_squish(tolower(fylke_name)),
     "Latin-ASCII"

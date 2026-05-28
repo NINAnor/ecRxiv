@@ -1,12 +1,12 @@
 ---
 title: "Bilberry cover by area"
 subtitle: |
-  NO_BBCA_001  
+  NO_BLAA_001  
 indicatorID: 
-  - NO_BBCA_001
+  - NO_BLAA_001
 indicatorName: 
-  - NO_BBCA
-folderName: NO_BBCA
+  - NO_BLAA
+folderName: NO_BLAA
 country: Norway
 continent: Europe
 ECT: B1 Biotic compositional characteristic
@@ -21,7 +21,7 @@ yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BBCA_001
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BLAA_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (NFI plots to county/sub-county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
 format: 
@@ -308,7 +308,7 @@ The lower reference level X0 is set to 0% bilberry cover and the upper reference
 X0 denotes the worst possible condition and X100 denotes the best possible condition on the original cover scale.
 Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
 Scaled values above 1 are truncated to 1 when bilberry cover exceeds the county-specific X100.
-The county and sub-county X100 values used in the analyses are listed in @sec-bbca-reference-values.
+The county and sub-county X100 values used in the analyses are listed in @sec-blaa-reference-values.
 X0 is 0 for all units.
 
 #### 4.2.1 Spatial resolution and validity
@@ -414,7 +414,7 @@ lsk_data <- lsk_data_raw |>
       stringr::str_remove("^\\d+-\\d+\\s+") |>
       stringr::str_remove("^\\d+\\s*") |>
       stringr::str_squish(),
-    county_part = assign_bbca_county_part(fylke_name),
+    county_part = assign_blaa_county_part(fylke_name),
     fylke_name_clean = stringi::stri_trans_general(
       stringr::str_squish(
         tolower(
@@ -464,18 +464,18 @@ For each reporting period, we calculate non-scaled indicator values separately f
 Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 County or sub-county estimates use the plot-level `fylke_name` field; regional estimates use `region_code`; the national estimate uses all plots in the period.
 
-```{r calculate-bbca-all-periods}
+```{r calculate-blaa-all-periods}
 #| code-summary: "Calculate non-scaled values"
 
- bbca_results <- purrr::imap(
+ blaa_results <- purrr::imap(
    reporting_periods,
    ~ calculate_period_indicators(lsk_data, .y, .x)
  ) |>
    purrr::compact()
  
- bbca_results_county_all_periods   <- purrr::map_dfr(bbca_results, "county")
- bbca_results_region_all_periods   <- purrr::map_dfr(bbca_results, "region")
- bbca_results_national_all_periods <- purrr::map_dfr(bbca_results, "national")
+ blaa_results_county_all_periods   <- purrr::map_dfr(blaa_results, "county")
+ blaa_results_region_all_periods   <- purrr::map_dfr(blaa_results, "region")
+ blaa_results_national_all_periods <- purrr::map_dfr(blaa_results, "national")
 
 ```
 
@@ -489,7 +489,7 @@ Each replicate computes the area-weighted mean non-scaled indicator value, givin
 #| cache: true
 #| cache.extra: !expr file.mtime(here::here("R/functions.R"))
 
-county_draws_long <- purrr::imap_dfr(bbca_results, function(period_result, period_name) {
+county_draws_long <- purrr::imap_dfr(blaa_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
     dplyr::select(fylke_name, county_part, total_area, region_code)
 
@@ -510,24 +510,24 @@ county_draws_long <- purrr::imap_dfr(bbca_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-bbca-county-nonscaled-latest) summarises the non-scaled bootstrap draws for the latest reporting period (`2020-2024`): the median area-weighted bilberry cover per county or sub-county.
+The table below (@tbl-blaa-county-nonscaled-latest) summarises the non-scaled bootstrap draws for the latest reporting period (`2020-2024`): the median area-weighted bilberry cover per county or sub-county.
 
-```{r tbl-bbca-county-nonscaled-latest}
+```{r tbl-blaa-county-nonscaled-latest}
 #| tbl-cap: "Non-scaled, area-weighted bilberry cover by county or sub-county for reporting period 2020–2024 (median of 1000 bootstrap draws)."
 #| echo: false
 
-bbca_latest_period <- tail(names(reporting_periods), 1)
+blaa_latest_period <- tail(names(reporting_periods), 1)
 
 county_draws_long |>
-  dplyr::filter(period == bbca_latest_period) |>
+  dplyr::filter(period == blaa_latest_period) |>
   dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
   dplyr::summarise(
     non_scaled_median = median(non_scaled_value),
     .groups = "drop"
   ) |>
   dplyr::left_join(
-    bbca_results_county_all_periods |>
-      dplyr::filter(period == bbca_latest_period) |>
+    blaa_results_county_all_periods |>
+      dplyr::filter(period == blaa_latest_period) |>
       dplyr::select(period, fylke_name, n_plots),
     by = c("period", "fylke_name")
   ) |>
@@ -554,15 +554,15 @@ county_draws_long |>
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
 
-### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-bbca-reference-values}
+### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-blaa-reference-values}
 
 County or sub-county reference values are imported manually.
 
-```{r bbca-reference-values}
+```{r blaa-reference-values}
 #| code-summary: "Reference values by county or sub-county"
 
 # X100 reference values (% bilberry cover by area)
-bbca_reference_values <- dplyr::tibble(
+blaa_reference_values <- dplyr::tibble(
   county_part = c(
     "Øs", "OA", "HeS", "HeN", "OpS", "OpN", "BuS", "BuV", "Ve",
     "TeS", "TeN", "AA", "VA", "Ro", "Ho", "SF", "MR", "ST", "NT",
@@ -577,13 +577,13 @@ bbca_reference_values <- dplyr::tibble(
   dplyr::mutate(x100 = x100_pct / 100)
 
 x0 <- 0
-county_reference <- bbca_reference_values |>
+county_reference <- blaa_reference_values |>
   dplyr::select(county_part, x100)
 
 ```
 
 Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, county-specific X100).
-@fig-bbca-norm shows the mapping for each sub-county.
+@fig-blaa-norm shows the mapping for each sub-county.
 
 ```{r county-draws-scaled}
 #| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
@@ -612,13 +612,13 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
     .groups = "drop"
   ) |>
   dplyr::left_join(
-    bbca_results_county_all_periods |> dplyr::select(period, fylke_name, n_plots),
+    blaa_results_county_all_periods |> dplyr::select(period, fylke_name, n_plots),
     by = c("period", "fylke_name")
   )
 
 ```
 
-```{r fig-bbca-norm}
+```{r fig-blaa-norm}
 #| fig-cap: "Linear normalisation of bilberry cover proportion to indicator values (0–1), one panel per sub-county reference unit. Points are 100 sampled bootstrap draws per unit."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
@@ -630,32 +630,32 @@ norm_plot_data <- county_draws_scaled |>
   dplyr::slice_sample(n = 100) |>
   dplyr::ungroup()
 
-bbca_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
+blaa_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
   ggplot2::facet_wrap(~ norm_plot_data$county_part, scales = "free_x") +
   ggplot2::labs(
     x = "Bilberry cover (proportion)",
     y = "Scaled indicator value"
   ) +
   ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
-bbca_norm_plot$layers[[1]]$aes_params$size <- 3
+blaa_norm_plot$layers[[1]]$aes_params$size <- 3
 
 ggsave(
-  filename = here::here("img/bbca_norm_plot.png"),
-  plot     = bbca_norm_plot,
+  filename = here::here("img/blaa_norm_plot.png"),
+  plot     = blaa_norm_plot,
   scale    = 1.5
 )
 
-bbca_norm_plot
+blaa_norm_plot
 ```
 
 The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
 For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
 
-```{r bbca-ec-upscale-regional}
+```{r blaa-ec-upscale-regional}
 #| code-summary: "ec_upscale: county to region"
 #| eval: false
 
-bbca_mc_regional <- ecTools::ec_upscale(
+blaa_mc_regional <- ecTools::ec_upscale(
   data        = county_draws_scaled,
   variable    = scaled_value,
   weight      = total_area,
@@ -665,15 +665,15 @@ bbca_mc_regional <- ecTools::ec_upscale(
   end_units_name = "region_code",
   n = 1000
 )
-saveRDS(bbca_mc_regional, here::here("data/bbca_mc_regional.rds"))
+saveRDS(blaa_mc_regional, here::here("data/blaa_mc_regional.rds"))
 ```
 
-```{r bbca-load-mc-regional}
+```{r blaa-load-mc-regional}
 #| include: false
-bbca_mc_regional <- readRDS(here::here("data/bbca_mc_regional.rds"))
+blaa_mc_regional <- readRDS(here::here("data/blaa_mc_regional.rds"))
 ```
 
-```{r bbca-ec-upscale-national}
+```{r blaa-ec-upscale-national}
 #| code-summary: "ec_upscale: region to national"
 #| eval: false
 
@@ -683,12 +683,12 @@ region_area_weights <- county_draws_scaled |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(region_area = sum(total_area), .groups = "drop")
 
-bbca_mc_regional_for_national <- bbca_mc_regional |>
+blaa_mc_regional_for_national <- blaa_mc_regional |>
   dplyr::left_join(region_area_weights, by = c("period", "region_code")) |>
   dplyr::mutate(nation = "National")
 
-bbca_mc_national <- ecTools::ec_upscale(
-  data        = bbca_mc_regional_for_national,
+blaa_mc_national <- ecTools::ec_upscale(
+  data        = blaa_mc_regional_for_national,
   variable    = sampled_mean,
   weight      = region_area,
   start_units = region_code,
@@ -697,24 +697,24 @@ bbca_mc_national <- ecTools::ec_upscale(
   end_units_name = "nation",
   n = 1000
 )
-saveRDS(bbca_mc_national, here::here("data/bbca_mc_national.rds"))
+saveRDS(blaa_mc_national, here::here("data/blaa_mc_national.rds"))
 ```
 
-```{r bbca-load-mc-national}
+```{r blaa-load-mc-national}
 #| include: false
-bbca_mc_national <- readRDS(here::here("data/bbca_mc_national.rds"))
+blaa_mc_national <- readRDS(here::here("data/blaa_mc_national.rds"))
 ```
 
-```{r bbca-mc-combined}
+```{r blaa-mc-combined}
 #| code-summary: "Combine regional and national MC draws; build summary tables"
 
-bbca_mc_combined <- dplyr::bind_rows(
-  bbca_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
-  bbca_mc_national |> dplyr::select(period, region = nation,      sampled_mean)
+blaa_mc_combined <- dplyr::bind_rows(
+  blaa_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
+  blaa_mc_national |> dplyr::select(period, region = nation,      sampled_mean)
 )
 
 # County point estimates (non-bootstrapped) scaled for the truncation check
-county_scaled_all_periods <- bbca_results_county_all_periods |>
+county_scaled_all_periods <- blaa_results_county_all_periods |>
   dplyr::left_join(county_reference, by = "county_part") |>
   dplyr::filter(!is.na(x100)) |>
   dplyr::mutate(
@@ -722,18 +722,18 @@ county_scaled_all_periods <- bbca_results_county_all_periods |>
   )
 
 # Point-estimate summaries (median of MC draws) used in the truncation check
-region_scaled_agg_all_periods <- bbca_mc_regional |>
+region_scaled_agg_all_periods <- blaa_mc_regional |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
   dplyr::mutate(region_name = assign_region_name(region_code))
 
-national_scaled_agg_all_periods <- bbca_mc_national |>
+national_scaled_agg_all_periods <- blaa_mc_national |>
   dplyr::group_by(period) |>
   dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
   dplyr::mutate(region = "National")
 
 # Uncertainty summaries for the results tables (section 10)
-region_scaled_agg_with_uncertainty <- bbca_mc_regional |>
+region_scaled_agg_with_uncertainty <- blaa_mc_regional |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(
     median = median(sampled_mean),
@@ -745,11 +745,11 @@ region_scaled_agg_with_uncertainty <- bbca_mc_regional |>
   ) |>
   dplyr::mutate(region_name = assign_region_name(region_code)) |>
   dplyr::left_join(
-    bbca_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
+    blaa_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
     by = c("period", "region_code")
   )
 
-national_scaled_agg_with_uncertainty <- bbca_mc_national |>
+national_scaled_agg_with_uncertainty <- blaa_mc_national |>
   dplyr::group_by(period) |>
   dplyr::summarise(
     median = median(sampled_mean),
@@ -761,7 +761,7 @@ national_scaled_agg_with_uncertainty <- bbca_mc_national |>
   ) |>
   dplyr::mutate(region = "National") |>
   dplyr::left_join(
-    bbca_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
+    blaa_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
     by = "period"
   )
 
@@ -769,7 +769,7 @@ national_scaled_agg_with_uncertainty <- bbca_mc_national |>
 truncation_summary <- dplyr::bind_rows(
   county_scaled_all_periods |>
     dplyr::left_join(
-      bbca_reference_values |> dplyr::select(county_part, reference_value_pct = x100_pct),
+      blaa_reference_values |> dplyr::select(county_part, reference_value_pct = x100_pct),
       by = "county_part"
     ) |>
     dplyr::mutate(
@@ -783,7 +783,7 @@ truncation_summary <- dplyr::bind_rows(
                   reference_value_pct, exceeds_threshold, original_value_pct),
   region_scaled_agg_all_periods |>
     dplyr::left_join(
-      bbca_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
+      blaa_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
       by = c("period", "region_code")
     ) |>
     dplyr::mutate(
@@ -797,7 +797,7 @@ truncation_summary <- dplyr::bind_rows(
                   reference_value_pct, exceeds_threshold, original_value_pct),
   national_scaled_agg_all_periods |>
     dplyr::left_join(
-      bbca_results_national_all_periods |> dplyr::select(period, indicator_value),
+      blaa_results_national_all_periods |> dplyr::select(period, indicator_value),
       by = "period"
     ) |>
     dplyr::mutate(
@@ -898,28 +898,28 @@ if (nrow(truncated_values) > 0) {
 The following tables present scaled indicator results at county or sub-county, regional, and national scales for each reporting period.
 Tables report the median as the indicator value, with an approximate 95% interval (2.5% and 97.5% quantiles) and an approximate interquartile range (25% and 75% quantiles).
 
-The time series below (@fig-bbca-timeSeries) summarises regional and national values.
+The time series below (@fig-blaa-timeSeries) summarises regional and national values.
 
-```{r fig-bbca-timeSeries}
+```{r fig-blaa-timeSeries}
 #| fig-cap: "Indicator values for bilberry cover by area by region and reporting period. Points show the MC median; error bars are 95% credible intervals from the Monte Carlo propagation. National values use filled circles and a thicker line."
 #| code-summary: "Time series of indicator values by region and period"
 #| cache: false
 #| warning: false
 #| message: false
 
-bbca_region_labels <- c(
+blaa_region_labels <- c(
   "1" = "Øst", "2" = "Sør", "3" = "Vest",
   "4" = "Midt", "5" = "Nord", "National" = "National"
 )
-bbca_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
-bbca_region_cols <- setNames(
-  MetBrewer::met.brewer("Archambault", n = length(bbca_region_levels)),
-  bbca_region_levels
+blaa_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
+blaa_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(blaa_region_levels)),
+  blaa_region_levels
 )
 
-bbca_plot_data <- bbca_mc_combined |>
+blaa_plot_data <- blaa_mc_combined |>
   dplyr::mutate(
-    region_name = dplyr::recode(region, !!!bbca_region_labels),
+    region_name = dplyr::recode(region, !!!blaa_region_labels),
     series_type = dplyr::if_else(region == "National", "National", "Region")
   ) |>
   dplyr::group_by(period, region_name, series_type) |>
@@ -929,9 +929,9 @@ bbca_plot_data <- bbca_mc_combined |>
     p_975  = as.numeric(quantile(sampled_mean, 0.975)),
     .groups = "drop"
   ) |>
-  dplyr::mutate(region_name = factor(region_name, levels = bbca_region_levels))
+  dplyr::mutate(region_name = factor(region_name, levels = blaa_region_levels))
 
-ggplot2::ggplot(bbca_plot_data,
+ggplot2::ggplot(blaa_plot_data,
                 ggplot2::aes(x = period, y = median, colour = region_name, group = region_name)) +
   ggplot2::geom_line(
     ggplot2::aes(linewidth = series_type),
@@ -942,7 +942,7 @@ ggplot2::ggplot(bbca_plot_data,
     size = 0.8, linewidth = 0.45,
     position = ggplot2::position_dodge(width = 0.18)
   ) +
-  ggplot2::scale_colour_manual(values = bbca_region_cols, name = NULL) +
+  ggplot2::scale_colour_manual(values = blaa_region_cols, name = NULL) +
   ggplot2::scale_shape_manual(values = c(National = 19, Region = 17), name = NULL) +
   ggplot2::scale_linewidth_manual(values = c(National = 1, Region = 0.55), guide = "none") +
   ggplot2::scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
@@ -989,7 +989,7 @@ county_scaled_with_uncertainty |>
   dplyr::transmute(
     ECT = "B1",
     Indicator = "Bilberry cover by area",
-    ID = "NO_BBCA_001",
+    ID = "NO_BLAA_001",
     `Accounting area` = .data$fylke_name,
     Region = .data$region_name,
     `Sub-county` = .data$county_part,
@@ -1024,7 +1024,7 @@ region_scaled_agg_with_uncertainty |>
   dplyr::transmute(
     ECT = "B1",
     Indicator = "Bilberry cover by area",
-    ID = "NO_BBCA_001",
+    ID = "NO_BLAA_001",
     `Accounting area` = .data$region_name,
     Ecosystem = "Boreal/montane forests",
     `Reporting period` = .data$period,
@@ -1057,7 +1057,7 @@ national_scaled_agg_with_uncertainty |>
   dplyr::transmute(
     ECT = "B1",
     Indicator = "Bilberry cover by area",
-    ID = "NO_BBCA_001",
+    ID = "NO_BLAA_001",
     `Accounting area` = .data$region,
     Ecosystem = "Boreal/montane forests",
     `Reporting period` = .data$period,
@@ -1072,7 +1072,7 @@ national_scaled_agg_with_uncertainty |>
 
 ## 11. Export file
 
-Regional and national Monte Carlo draws are exported in one table (`bbca_mc_combined`: `year`, `region`, `sampled_mean`; `region` contains the five NI region codes and `"National"`).
+Regional and national Monte Carlo draws are exported in one table (`blaa_mc_combined`: `year`, `region`, `sampled_mean`; `region` contains the five NI region codes and `"National"`).
 This mirrors the export format used in the MOOS indicator.
 
 ```{r export}
@@ -1080,8 +1080,8 @@ This mirrors the export format used in the MOOS indicator.
 #| code-summary: "Export regional and national MC-propagated indicator draws"
 
 write.csv(
-  bbca_mc_combined,
-  here::here("data/results_NO_BBCA_001.csv"),
+  blaa_mc_combined,
+  here::here("data/results_NO_BLAA_001.csv"),
   row.names = FALSE
 )
 ```
