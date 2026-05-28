@@ -92,21 +92,18 @@ assign_bbca_county_part <- function(fylke_name) {
     "[ -](nv|no|nord|north)(?![a-z])|[ -]n$"
   )
 
+  west <- stringr::str_detect(name, "[ -](v|vest|west)(?![a-z])|[ -]v$")
+
   base <- dplyr::if_else(
-    south | north,
+    south | north | west,
     stringr::str_replace(
       name,
-      "(?i)[ -](so|sor|sud|south|s|nv|no|nord|north|n)$",
+      "(?i)[ -](so|sor|sud|south|s|nv|no|nord|north|n|v|vest|west)$",
       ""
     ) |>
       stringr::str_squish(),
     name
   )
-
-  # TODO: "Buskerud V" (Vest) appears in the NFI data but the reference table only
-  # has BuS (Sør) and BuN (Nord). Verify whether "V" maps to BuS or BuN and add
-  # the mapping below. Until resolved it returns NA and is dropped from scaling.
-  west <- stringr::str_detect(name, "[ -](v|vest|west)(?![a-z])|[ -]v$")
 
   dplyr::case_when(
     base == "ostfold" ~ "Øs",
@@ -116,8 +113,7 @@ assign_bbca_county_part <- function(fylke_name) {
     base == "oppland" & south ~ "OpS",
     base == "oppland" & north ~ "OpN",
     base == "buskerud" & south ~ "BuS",
-    base == "buskerud" & north ~ "BuN",
-    base == "buskerud v" ~ NA_character_,  # TODO: map to BuS or BuN once verified
+    base == "buskerud" & west ~ "BuV",
     base == "vestfold" ~ "Ve",
     base == "telemark" & south ~ "TeS",
     base == "telemark" & north ~ "TeN",
