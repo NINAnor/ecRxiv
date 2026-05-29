@@ -1,12 +1,12 @@
 ---
 title: "Rowan, aspen, goat willow volume per hectare"
 subtitle: |
-  NO_ROSV_001  
+  NO_ROSE_001  
 indicatorID: 
-  - NO_ROSV_001
+  - NO_ROSE_001
 indicatorName: 
   - Rowan-aspen-goat willow volume
-folderName: NO_ROSV_001
+folderName: NO_ROSE_001
 country: Norway
 continent: Europe
 ECT: B1 Biotic compositional characteristic
@@ -21,7 +21,7 @@ yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ROSV_001
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ROSE_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate - Scale - Aggregate (area-weighted arithmetic mean) - Truncate
 format: 
@@ -308,7 +308,7 @@ X0 is 0 for all units.
 X0 denotes the worst possible condition and X100 denotes the best possible condition on the original volume scale.
 Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
 Scaled values above 1 are truncated to 1 when volume exceeds the county-specific X100.
-The county and sub-county X100 values used in the analyses are listed in @sec-rosv-reference-values.
+The county and sub-county X100 values used in the analyses are listed in @sec-rose-reference-values.
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -459,18 +459,18 @@ For each reporting period, we calculate non-scaled indicator values separately f
 Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 County or sub-county estimates use the plot-level `fylke_name` field; regional estimates use `region_code`; the national estimate uses all plots in the period.
 
-```{r calculate-rosv-all-periods}
+```{r calculate-rose-all-periods}
 #| code-summary: "Calculate non-scaled values"
 
- rosv_results <- purrr::imap(
+ rose_results <- purrr::imap(
    reporting_periods,
    ~ calculate_period_indicators(lsk_data, .y, .x)
  ) |>
    purrr::compact()
  
- rosv_results_county_all_periods   <- purrr::map_dfr(rosv_results, "county")
- rosv_results_region_all_periods   <- purrr::map_dfr(rosv_results, "region")
- rosv_results_national_all_periods <- purrr::map_dfr(rosv_results, "national")
+ rose_results_county_all_periods   <- purrr::map_dfr(rose_results, "county")
+ rose_results_region_all_periods   <- purrr::map_dfr(rose_results, "region")
+ rose_results_national_all_periods <- purrr::map_dfr(rose_results, "national")
 
 ```
 
@@ -482,11 +482,11 @@ This is done separately for counties or sub-county units, regions, and the natio
 The resulting bootstrap distributions are summarised with mean, median, standard error, 95% confidence interval, and quartiles.
 These non-scaled uncertainty measures are used directly for reporting and, at county or sub-county level, as input to the scaled uncertainty calculations in section 9.4.
 
-```{r bootstrap-rosv-all-periods}
+```{r bootstrap-rose-all-periods}
 #| code-summary: "Bootstrap uncertainty"
 
 # Prepare bootstrap objects per reporting period
- rosv_bootstrap <- rosv_results |>
+ rose_bootstrap <- rose_results |>
    purrr::imap(
      ~ list(
        period = .y,
@@ -507,8 +507,8 @@ These non-scaled uncertainty measures are used directly for reporting and, at co
    )
 
 # County-level summaries with uncertainty
- rosv_results_county_non_scaled_uncertainty <- purrr::map_dfr(
-   rosv_bootstrap,
+ rose_results_county_non_scaled_uncertainty <- purrr::map_dfr(
+   rose_bootstrap,
    ~ {
      county_summary <- purrr::imap_dfr(
        .x$county_boot,
@@ -534,8 +534,8 @@ These non-scaled uncertainty measures are used directly for reporting and, at co
  )
 
 # Region-level summaries with uncertainty
- rosv_results_region_non_scaled_uncertainty <- purrr::map_dfr(
-   rosv_bootstrap,
+ rose_results_region_non_scaled_uncertainty <- purrr::map_dfr(
+   rose_bootstrap,
    ~ {
      region_summary <- purrr::imap_dfr(
        .x$region_boot,
@@ -561,8 +561,8 @@ These non-scaled uncertainty measures are used directly for reporting and, at co
  )
 
 # National-level summaries with uncertainty
- rosv_results_national_non_scaled_uncertainty <- purrr::map_dfr(
-   rosv_bootstrap,
+ rose_results_national_non_scaled_uncertainty <- purrr::map_dfr(
+   rose_bootstrap,
    ~ .x$national |>
      dplyr::mutate(
       mean = .x$national_boot$mean,
@@ -579,7 +579,7 @@ These non-scaled uncertainty measures are used directly for reporting and, at co
 ```
 
 
-### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-rosv-reference-values}
+### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-rose-reference-values}
 
 County or sub-county reference levels are listed below.
 For each county or sub-county, the non-scaled point estimate is scaled with `scale_indicator()` using X0 = 0 and the matching X100.
@@ -589,11 +589,11 @@ Non-scaled regional and national point estimates are also retained for reporting
 For scaled county or sub-county uncertainty, the non-scaled bootstrap summaries from section 9.3 are transformed with the same county-specific scaling function.
 For scaled regional and national uncertainty, each bootstrap replicate resamples plots, calculates county or sub-county non-scaled values, scales each county or sub-county with its own reference levels, and then aggregates the scaled county or sub-county values within each region or for the whole country before the bootstrap distribution is summarised.
 
-```{r rosv-reference-values}
+```{r rose-reference-values}
 #| code-summary: "Reference values by county or sub-county"
 
 # X100 reference values (m3/ha)
-rosv_reference_values <- dplyr::tibble(
+rose_reference_values <- dplyr::tibble(
   county_part = c(
     "Øs", "OA", "HeS", "HeN", "OpS", "OpN", "BuS", "BuN", "Ve",
     "TeS", "TeN", "AA", "VA", "Ro", "Ho", "SF", "MR", "ST", "NT",
@@ -608,7 +608,7 @@ rosv_reference_values <- dplyr::tibble(
   dplyr::mutate(x100 = x100_m3_ha)
 
 x0 <- 0
-county_reference <- rosv_reference_values |>
+county_reference <- rose_reference_values |>
   dplyr::select(county_part, x100)
 
 ```
@@ -617,14 +617,14 @@ county_reference <- rosv_reference_values |>
 #| code-summary: "Scale and aggregate"
 
 # Scale county values (point estimates) for all periods
-county_scaled_all_periods <- rosv_results_county_all_periods |>
+county_scaled_all_periods <- rose_results_county_all_periods |>
   dplyr::left_join(county_reference, by = "county_part") |>
   dplyr::mutate(
     scaled_value = scale_indicator(indicator_value, x0, x100)
   )
 
 # Uncertainty for county scaled: apply linear scaling to non-scaled CIs and quartiles
-county_scaled_with_uncertainty <- rosv_results_county_non_scaled_uncertainty |>
+county_scaled_with_uncertainty <- rose_results_county_non_scaled_uncertainty |>
   dplyr::left_join(county_reference, by = "county_part") |>
   dplyr::mutate(
     scaled_mean = scale_indicator(mean, x0, x100),
@@ -636,7 +636,7 @@ county_scaled_with_uncertainty <- rosv_results_county_non_scaled_uncertainty |>
   )
 
 # Aggregate non-scaled values to regional level (point estimates) for all periods
-region_non_scaled_agg_all_periods <- rosv_results_region_all_periods |>
+region_non_scaled_agg_all_periods <- rose_results_region_all_periods |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(
     indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
@@ -657,7 +657,7 @@ region_scaled_agg_all_periods <- county_scaled_all_periods |>
   dplyr::mutate(region_name = assign_region_name(region_code))
 
 # Aggregate non-scaled values to national level (point estimates) for all periods
-national_non_scaled_agg_all_periods <- rosv_results_national_all_periods |>
+national_non_scaled_agg_all_periods <- rose_results_national_all_periods |>
   dplyr::group_by(period) |>
   dplyr::summarise(
     indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
@@ -681,7 +681,7 @@ national_scaled_agg_all_periods <- county_scaled_all_periods |>
 truncation_summary <- dplyr::bind_rows(
   county_scaled_all_periods |>
     dplyr::left_join(
-      rosv_reference_values |> dplyr::select(county_part, reference_value_m3_ha = x100_m3_ha),
+      rose_reference_values |> dplyr::select(county_part, reference_value_m3_ha = x100_m3_ha),
       by = "county_part"
     ) |>
     dplyr::mutate(
@@ -840,7 +840,7 @@ County scaled uncertainty is obtained by applying the county-specific scaling fu
 
 # Bootstrap uncertainty for scaled-then-aggregated regions per period
 region_scaled_uncertainty <- purrr::imap_dfr(
-  rosv_results,
+  rose_results,
   function(period_result, period_name) {
     period_data <- period_result$data
     
@@ -862,7 +862,7 @@ region_scaled_uncertainty <- purrr::imap_dfr(
 
 # Bootstrap uncertainty for scaled-then-aggregated national per period
 national_scaled_uncertainty <- purrr::imap_dfr(
-  rosv_results,
+  rose_results,
   function(period_result, period_name) {
     period_data <- period_result$data
     
