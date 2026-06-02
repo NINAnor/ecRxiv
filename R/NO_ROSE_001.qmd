@@ -223,8 +223,7 @@ Values decreasing toward zero reflect lower combined volume of rowan, aspen and 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
-The workflow is implemented for reporting by county or sub-county, region and nationally for 2010-2014, 2015-2019 and 2020-2024.
-The indicator should not be interpreted at finer resolution than the county or sub-county reference units.
+
 
 ## 1.2 Native language summary - Norwegian
 
@@ -240,7 +239,7 @@ The indicator should not be interpreted at finer resolution than the county or s
 
 ## 2. About the underlying data
 
-The combined volume of rowan, aspen and goat willow is recorded for each NFI inventory plot.
+The combined volume of rowan, aspen and goat willow is recorded for each Norwegian National Forest Inventory (NFI) plot.
 There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
 The indicator value is an unbiased area-weighted estimate of combined rowan-aspen-goat willow volume (m³ ha⁻¹) for NFI plots in any selected region.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
@@ -249,7 +248,7 @@ The data are available upon request from NFI.
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Data are available from 2010, when the rowan-aspen-goat willow cover by area was first recorded based on current methods. Annual estimates are possible due to representative sampling every year. For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. The data are representative for all productiver forest land of Norway. Spatial resolution should be limited to the resolution applied to reference values, that is counties or sub-county units for scaling and regions for aggregated reporting.
+Data are available from 2010, when the rowan-aspen-goat willow cover by area was first recorded based on current methods. Annual estimates are possible due to representative sampling every year. For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. Spatial resolution should be limited to the resolution applied to reference values, that is counties or sub-county units for scaling and regions for aggregated reporting.
 
 ### 2.2 Sampling design
 
@@ -258,12 +257,10 @@ Data are available from 2010, when the rowan-aspen-goat willow cover by area was
 ### 2.3 Original units
 
 The indicator is specified as combined standing volume per hectare (m³ ha⁻¹) for rowan, aspen and goat willow on the NFI plot (`ROS_10_PRHA`).
-Aggregation uses this volume on the original m³ ha⁻¹ scale.
 
 ### 2.4 Instructions for citing, using and accessing data
 
-The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2025-10-20, between NIBIO and the specified users.
-Further use of these data requires a separate data user agreement with NIBIO.
+The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement.
 
 ### 2.5 Additional comments about the dataset
 
@@ -275,6 +272,8 @@ Further use of these data requires a separate data user agreement with NIBIO.
 
 <!--# Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
 This doesnt need to be very long. Maybe just a single sentence. -->
+
+B2 Structural state characteristics
 
 ### 3.1.1 Other condition typologies
 
@@ -305,7 +304,7 @@ The spatial aggregation pathway is Aggregate (NFI plots to county/sub-county) �
 For each NFI plot we create `indicator_continuous_weighted = ros_10_prha * au_areal`.
 Non-scaled indicator values for each reporting period are calculated separately for each geographic unit as area-weighted arithmetic means of all NFI plots within that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 This is done for counties or sub-counties, regions, and at national level.
-Scaling and truncation are applied only after these non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level X0 (0 m³ ha⁻¹) and upper reference level X100 using a linear scaling function, and values above 1 are truncated to 1 at that step (not after regional or national aggregation).
+Scaling and truncation are applied only after these non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level X0 (0 m³ ha⁻¹) and upper reference level X100 using a linear scaling function, and values above 1 are truncated to 1 at that step.
 Regional and national scaled point estimates are area-weighted means of the already scaled county or sub-county values, using each county or sub-county's represented area as weight.
 Non-scaled regional and national point estimates are still calculated directly from all plots within each region or the whole country.
 
@@ -318,7 +317,6 @@ Non-scaled regional and national point estimates are still calculated directly f
 ### 4.2 Reference levels
 
 The lower reference level X0 is set to 0 m³ ha⁻¹ and the upper reference level X100 is set separately for each county or sub-county.
-X0 is 0 for all units.
 X0 denotes the worst possible condition and X100 denotes the best possible condition on the original volume scale.
 Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
 Scaled values above 1 are truncated to 1 when volume exceeds the county-specific X100.
@@ -326,9 +324,9 @@ The county and sub-county X100 values used in the analyses are listed in @sec-ro
 
 #### 4.2.1 Spatial resolution and validity
 
-Reference levels are defined at county or sub-county resolution, not as one national value.
+Reference levels are defined at county or sub-county resolution.
 Scaling is therefore applied to area-weighted non-scaled indicator values that have first been aggregated to the matching county or sub-county unit.
-Regional and national reporting uses area-weighted aggregation of these scaled county or sub-county values rather than one common X100 for the aggregated non-scaled value.
+Regional and national reporting uses area-weighted aggregation of these scaled county or sub-county values.
 The indicator should not be interpreted at finer spatial resolution than the county or sub-county reference levels allow.
 
 ## 5. Uncertainties
@@ -341,7 +339,6 @@ The uncertainties reported in @sec-results are inferential and refer to uncertai
 For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within the relevant geographic unit and recalculating the area-weighted mean.
 This is done separately for counties or sub-county units, regions, and the national level.
 For scaled county or sub-county values, the bootstrap mean, median, standard error, confidence interval, and quartiles from the non-scaled bootstrap are transformed with the same sub-county-specific linear scaling function used for the point estimate.
-This is an approximation when many bootstrap replicates exceed X100, because truncation is not applied inside each bootstrap replicate before summarising the scaled distribution.
 For scaled regional and national values, uncertainty is propagated with `ecTools::ec_upscale()` from the scaled county or sub-county bootstrap draws (section 9.4).
 The resulting Monte Carlo distributions are summarised with median and quantiles for the results tables in section 10.
 
@@ -450,7 +447,7 @@ lsk_data <- lsk_data_raw |>
 Finally, we retain only the columns required for subsequent aggregation and reporting.
 
 ```{r select-downstream-fields}
-#| code-summary: "Select downstream fields"
+#| code-summary: "Select downstream columns"
 
 lsk_data <- lsk_data |>
   dplyr::select(
@@ -471,7 +468,7 @@ lsk_data <- lsk_data |>
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
-For each reporting period, we calculate non-scaled indicator values separately for counties or county parts, regions, and the whole country.
+For each reporting period, we calculate non-scaled indicator values separately for counties or sub-counties, regions, and the whole country.
 Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 County or sub-county estimates use the plot-level `fylke_name` field; regional estimates use `region_code`; the national estimate uses all plots in the period.
 
@@ -645,10 +642,13 @@ rose_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$s
   ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
 rose_norm_plot$layers[[1]]$aes_params$size <- 3
 
-ggsave(
-  filename = here::here("img/rose_norm_plot.png"),
-  plot     = rose_norm_plot,
-  scale    = 1.5
+# save plot for later, and supress message
+suppressMessages(
+  ggsave(
+    filename = here::here("img/rose_norm_plot.png"),
+    plot = rose_norm_plot,
+    scale = 1.5
+  )
 )
 
 rose_norm_plot
@@ -1079,7 +1079,6 @@ national_scaled_agg_with_uncertainty |>
 ## 11. Export file
 
 Regional and national Monte Carlo draws are exported in one table (`rose_mc_combined`: `year`, `region`, `sampled_mean`; `region` contains the five NI region codes and `"National"`).
-This mirrors the export format used in the MOOS indicator.
 
 ```{r export}
 #| eval: false
