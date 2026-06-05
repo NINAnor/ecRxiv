@@ -39,13 +39,13 @@ verbatimEcosystem:
 yearAdded: 2025
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
-Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+Version: "2.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: separate code for mountain ecosystem. Revised reference values.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
 # To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
-Normalised: # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Describe the aggregation using the standrdaise terminology # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
-Uncertainties: # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
+Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Uncertainties: 95% confidence intervals for the indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
 format: 
   html:
     embed-resources: true
@@ -57,19 +57,16 @@ format:
 execute: 
   cache: true
 author:
-  - name: John Doe              # Enter name
-    email: john.doe@example.no  # Enter email
-    affiliations:
+  - name: Joachim Töpper              # Enter name
+    email: joachim.topper@nina.no  # Enter email
+    affiliations: NINA
       - id: myID
-        name: A Fictive Institute for Nature Research # Enter affiliations
-  - name: First Last              #  Enter subsequent authors like this, or remove if not relevant
-    affiliations:
-      - ref: myID               # To reuse affiliations reference the id like this
-AuthorList: Doe, J. and Last, F.  
-date: January 1, 1901 # Enter date
-data_availability: none
-code_reproducibility: none
-open_science_badge: none
+        name: Norwegian institute for nature research # Enter affiliations
+AuthorList: Töpper, J.  
+date: June 6, 2026
+data_availability: Openly available and accessible at Miljøidirektoratets kartkatalog
+code_reproducibility: Fully documented on github and executable in R
+open_science_badge: Data Integrated, Documented and executable
 callout-icon: false
 lightbox: true
 css: ../../../style.css
@@ -97,6 +94,8 @@ library(yaml)
 library(tibble)
 library(conflicted)
 library(sf)
+library(ecTools)
+library(glmmTMB)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -199,7 +198,7 @@ meta |>
 
 ## 1. Summary
 
-1. **Background and rationale**: The 'Alien plant species' indicator describes how abundant alien plant species are in an ecosystem on a scale from 0-100% cover. Alien plant species have a profound impact on native species and ecosystem dynamics and thus affect ecosystem condition significantly. The main anthropogenic factors behind increasing alien plant species abundance are i) introduction of alien plant species, and ii) climate change. See Framstad et al. (2022) for previous implmentations of this indicator.
+1. **Background and rationale**: The 'Alien plant species' indicator describes how abundant alien plant species are in an ecosystem on a scale from 0-100% cover. Alien plant species have a profound impact on native species and ecosystem dynamics and thus affect ecosystem condition significantly. The main anthropogenic factors behind increasing alien plant species abundance are i) introduction of alien plant species, and ii) climate change. See Framstad et al. (2022) for previous implementations of this indicator.
 2. **Methods**: The indicator uses ANO monitoring data on alien plant species cover. The reference values for scaling the original cover values to a condition index are as follows:
 - x100 (best possible condition) is set to 0% alien plant species cover and scales to an indicator value of 1
 - x60 (limit for good ecological condition) is set to 5% alien plant species cover and scales to an indicator value of 0.6
@@ -243,7 +242,7 @@ None.
 The main impact factor for this indicator is the introduction of alien species. In addition, the spreading of introduced alien species can be enforced by climate change if it relaxes climatic limitation on them.
 
 ### 3.5 Spatial aggregation
-The variable is scaled at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".
+The variable is scaled at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1.
 
 ## 4. Reference condition and levels
 
@@ -267,7 +266,7 @@ Uncertainties relate partly to sampling and observer variability (and possible o
 Spatial variability as a source of descriptive uncertainty can be quantified.
 
 ### 5.2 Reported uncertainties
-For this indicator, we report 95% confidence intervals as inferential uncertainty based on bootstrapping.
+For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
 
 ## 6. References
 Artsdatabanken (2023, 11. august). Fremmede arter i Norge - med økologisk risiko 2023. http://www.artsdatabanken.no/lister/fremmedartslista/2023.
@@ -310,15 +309,14 @@ The spatial units for the 'Alien plant species' indicator are governed by the AN
 ## 9. Analyses
 
 #### Data handling
-First we need to do some data handling. Most importantly we need to group NiN main types (e.g. T4, T30 etc.) into main ecosystem types (i.e. forest, mountain, wetland, semi-natural or naturally open). 
+First we need to do some data handling. The data for this evaluation need to represent mountain ecosystems and the years 2020-2024. 
 
 ```{r, include = T, results='hide', warning=F, message=F}
 
-#### ANO monitoring data
-
-## filter out all that is not 'Mountain'.
+## choose mountain ecosystems and years 2020-2024.
 ANO.mount <- ANO.geo %>%
-  filter(hovedoekosystem_250m2 == 'fjell')
+  filter(hovedoekosystem_250m2 == 'fjell') %>%
+  filter(aar %in% 2020:2024)
 
 #head(ANO.mount)
 
@@ -328,176 +326,7 @@ ANO.mount <- ANO.geo %>%
 #summary(as.factor(ANO.mount$ano_punkt_id))
 # there's many double presences, probably some wrong registrations of point numbers,
 
-
-```
-
-Next we create a normalisation function for mapping the abundance values to indicator values.
-```{r}
-
-#### scaled values ####
-r.s <- 1    # reference value
-l.s <- 0.6  # limit value
-a.s <- 0    # abscence of indicator, or indicator at maximum
-
-#### function for calculating scaled values for measured value ####
-
-## scaling function including truncation
-scal <- function() {
-  # place to hold the result
-   x <- numeric()
-  if (maxmin < ref) {
-    # values >= the reference value equal 1
-    if (val >= ref) {x <- 1}
-    # values < the reference value and >= the limit value can be deducted from the linear relationship between these two
-    if (val < ref & val >= lim) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
-    # values < the limit value and > maxmin can be deducted from the linear relationship between these two
-    if (val < lim & val > maxmin) {x <- (a.s + (val-maxmin) * ( (l.s-a.s) / (lim-maxmin) ) )}
-    # value equals or lower than maxmin
-    if (val <= maxmin) {x <-0}
-  } else {
-    # values <= the reference value equal 1
-    if (val <= ref) {x <- 1}
-    # values > the reference value and <= the limit value can be deducted from the linear relationship between these two
-    if (val > ref & val <= lim) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
-    # values > the limit value and < maxmin can be deducted from the linear relationship between these two
-    if (val > lim) {x <- ( l.s - (l.s * (val - lim) / (maxmin - lim) ) )}
-    # value equals or larger than maxmin
-    if (val >= maxmin) {x <-0}
-  }
-  return(x)
-  
-}
-
-## function for calculating scaled values for measured value, without truncation
-scal.2 <- function() {
-  # place to hold the result
-  x <- numeric()
-  if (maxmin < ref) {
-    # values >= the reference value estimated from the linear relationship for lim < x < ref (line below)
-    if (val >= ref) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
-    # values < the reference value and >= the limit value can be deducted from the linear relationship between these two
-    if (val < ref & val >= lim) {x <- (l.s + (val-lim) * ( (r.s-l.s) / (ref-lim) ) )}
-    # values < the limit value and > maxmin can be deducted from the linear relationship between these two
-    if (val < lim & val > maxmin) {x <- (a.s + (val-maxmin) * ( (l.s-a.s) / (lim-maxmin) ) )}
-    # value equal or lower than maxmin
-    if (val <= maxmin) {x <-0}
-  } else {
-    # values <= the reference value estimated from the linear relationship for lim < x < ref (line below)
-    if (val <= ref) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
-    # values > the reference value and <= the limit value can be deducted from the linear relationship between these two
-    if (val > ref & val <= lim) {x <- ( r.s - ( (r.s - l.s) * (val - ref) / (lim - ref) ) )}
-    # values > the limit value and < maxmin can be deducted from the linear relationship between these two
-    if (val > lim & val < maxmin) {x <- ( l.s - (l.s * (val - lim) / (maxmin - lim) ) )}
-    # value equal og larger than maxmin
-    if (val >= maxmin) {x <-0}
-  }
-  return(x)
-  
-}
-
-
-```
-
-The normalisation function is demonstrated in the code below, and in @fig-demo.
-
-```{r fig-demo}
-#| fig-cap: 'Normalisation function (piecewise linear)'
-
-temp <- tibble(
-  variable = as.numeric(),
-  indicator = as.numeric()
-)
-ref <- 0
-lim <- 5
-maxmin <- 50
-
-
-for(i in 0:100) {
-  val <- i
-  temp[i+1, "indicator"] <- scal()
-  temp[i+1, "variable"] <- val
-}
-
-temp |>
-  ggplot() +
-  geom_line(aes(x = variable,
-                 y = indicator))
-```
-
-We then can prepare a list of data frames to hold the results and perform the scaling according to the principles described in NINA report 1967 (Töpper and Jakobsson 2021).
-```{r, results='hide'}
-
-unique(ANO.mount$hovedoekosystem_250m2) # major ecosystem types in circle data
-#### creating dataframe to hold the results for wetlands ####
-results.ANO.alien <- list()
-results.ANO.alien[['original']] <- ANO.mount
-# drop geometry
-st_geometry(results.ANO.alien[['original']]) <- NULL
-results.ANO.alien[['original']]
-# add column for the indicator
-results.ANO.alien[['original']][,'alien'] <- NA
-results.ANO.alien[['original']][,'alien'] <- as.numeric(results.ANO.alien[['original']][,'alien'])
-summary(results.ANO.alien[['original']])
-results.ANO.alien[['original']]$globalid <- as.factor(results.ANO.alien[['original']]$globalid)
-results.ANO.alien[['original']]$ano_flate_id <- as.factor(results.ANO.alien[['original']]$ano_flate_id)
-results.ANO.alien[['original']]$ano_punkt_id <- as.factor(results.ANO.alien[['original']]$ano_punkt_id)
-results.ANO.alien[['original']]$hovedoekosystem_250m2 <- as.factor(results.ANO.alien[['original']]$hovedoekosystem_250m2)
-
-# roll out
-results.ANO.alien[['scaled']] <- results.ANO.alien[['original']]
-
-```
-
-```{r, eval = F, echo = T, warning = F}
-
-#### calculating scaled and non-truncated values for the indicators based on the dataset ####
-for (i in 1:nrow(ANO.mount) ) {  #
-  tryCatch({
-    print(i)
-    print(paste(ANO.mount$ano_flate_id[i]))
-    print(paste(ANO.mount$ano_punkt_id[i]))
-
-        # Alien species evaluation
-        val <- ANO.mount$fremmedarter_total_dekning[i]
-
-        if ( !is.na(val) ) {
-          
-          # scaling thresholds
-          ref <- 0
-          lim <- 5
-          maxmin <- 50
-          
-          # coercing x into results.ANO dataframe
-          results.ANO.alien[['scaled']][i,'alien'] <- scal() 
-          results.ANO.alien[['original']][i,'alien'] <- val 
-          
-        }
-        
-
-  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
-}
-
-
-#saveRDS(results.ANO.alien, paste0(here::here(),"/data/cache/results.ANO.alien.RDS"))
-
-```
-
-```{r, include = F}
-# Use cache data
-results.ANO.alien<-readRDS(paste0(here::here(),"/data/cache/results.ANO.alien.RDS"))
-```
-
-#### Scaled value analyses
-
-In order to calculate regional indices for the indicator(s) in addition to national ones we need to add information on region to the results-object.
-```{r, message = F, echo = T, warning = F}
-#### preparing results data for calculating of indices ####
-## continuing with 2-sided
-res.ANO.alien <- results.ANO.alien[['scaled']]
-
-# add geometry again
-st_geometry(res.ANO.alien) <- st_geometry(ANO.mount)
-
+## add region information
 nor <- st_read(here::here("data/outlineOfNorway_EPSG25833.shp"),
                quiet = T)%>%
   st_as_sf() %>%
@@ -514,334 +343,98 @@ reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Nor
 
 regnor <- st_intersection(reg,nor)
 
-res.ANO.alien = st_join(res.ANO.alien, regnor, left = TRUE, join = st_nearest_feature)
+ANO.mount = st_join(ANO.mount, regnor, left = TRUE, join = st_nearest_feature)
 
 ```
 
-### Calculating national and regional indices
+We can illustrate the cover of alien plant species in ANO points in Norway's five regions in a figure
+```{r, warning=F}
+ggplot(ANO.mount, aes(x = region, y = fremmedarter_total_dekning)) +
+  geom_boxplot() +
+  labs(
+    x = "Region",
+    y = "Alien plant species cover (%)"
+    )
+```
+
+#### Normalisation
+We use a normalisation function scaling linearly between the reference values. The function is demonstrated in the code below, and in @fig-demo.
+
+```{r fig-demo}
+#| fig-cap: 'Normalisation function (piecewise linear)'
+
+temp <- tibble(
+  variable = 0:100
+)
+
+temp <- temp %>% mutate(indicator = ec_normalise(variable = variable,
+                          x0 = 50,
+                          x60 = 5,
+                          x100 = 0,
+                          fun = "linear")
+)
+
+temp |>
+  ggplot() +
+  geom_line(aes(x = variable,
+                 y = indicator))
+```
+
+
+We scale the variable values to indicator values using ec_normalise() from ecTools.
+```{r, results='hide'}
+ANO.mount <- ANO.mount %>% mutate(alien_res = ec_normalise(variable = fremmedarter_total_dekning,
+                          x0 = 50,
+                          x60 = 5,
+                          x100 = 0,
+                          fun = "linear")
+)
+
+summary(ANO.mount$alien_res)
+```
+
+#### Calculating national and regional indices
 
 <<<<<<< HEAD
 We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
-The uncertainty around the national and region indicator values is derived form the same statistical model.
+The uncertainty around the national and region indicator values is derived from the same statistical model.
 The national and regional estimates are computed separately.
 
+```{r, warning=F}
+## Fit ordered beta regression null-model with a random effect
+# Norway
+alien.no <- glmmTMB(
+  alien_res ~ 1 + (1|ano_flate_id),
+  data = ANO.mount,
+  family = ordbeta
+)
 
+summary(alien.no)
 
-```{r}
-# define quantiles
-res.quant <- c(.25,.5,.75)
+# regions
+alien.re <- glmmTMB(
+  alien_res ~ 0 + region + (1|ano_flate_id),
+  data = ANO.mount,
+  family = ordbeta
+)
 
-## forest ecosystems
-# list to hold the results
-NO_ALIE_004_2022to2024 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)
-NO_ALIE_004_2019to2021 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)  
-  
-# calculation of the median and quantiles
-# Norway 2022-2024
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_004_2022to2024$low[1] <- res[1]
-NO_ALIE_004_2022to2024$median[1] <- res[2]
-NO_ALIE_004_2022to2024$high[1] <- res[3]
-NO_ALIE_004_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2022-2024
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_004_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_004_2022to2024$low[i] <- res[1]
-NO_ALIE_004_2022to2024$median[i] <- res[2]
-NO_ALIE_004_2022to2024$high[i] <- res[3]
-NO_ALIE_004_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
-}
-# Norway 2019-2021
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_004_2019to2021$low[1] <- res[1]
-NO_ALIE_004_2019to2021$median[1] <- res[2]
-NO_ALIE_004_2019to2021$high[1] <- res[3]
-NO_ALIE_004_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2019-2021
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='skog' | res.ANO.alien$hovedoekosystem_rute=='Forest') & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_004_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_004_2019to2021$low[i] <- res[1]
-NO_ALIE_004_2019to2021$median[i] <- res[2]
-NO_ALIE_004_2019to2021$high[i] <- res[3]
-NO_ALIE_004_2019to2021$n[i] <- nrow(df[!is.na(df$alien),])
-}
-
-
-## mountain ecosystems
-# list to hold the results
-NO_ALIE_002_2022to2024 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)
-NO_ALIE_002_2019to2021 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)  
-  
-# calculation of the median and quantiles
-# Norway 2022-2024
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_002_2022to2024$low[1] <- res[1]
-NO_ALIE_002_2022to2024$median[1] <- res[2]
-NO_ALIE_002_2022to2024$high[1] <- res[3]
-NO_ALIE_002_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2022-2024
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_002_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_002_2022to2024$low[i] <- res[1]
-NO_ALIE_002_2022to2024$median[i] <- res[2]
-NO_ALIE_002_2022to2024$high[i] <- res[3]
-NO_ALIE_002_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
-}
-# Norway 2019-2021
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_002_2019to2021$low[1] <- res[1]
-NO_ALIE_002_2019to2021$median[1] <- res[2]
-NO_ALIE_002_2019to2021$high[1] <- res[3]
-NO_ALIE_002_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2019-2021
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='fjell' | res.ANO.alien$hovedoekosystem_rute=='Mountain') & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_002_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_002_2019to2021$low[i] <- res[1]
-NO_ALIE_002_2019to2021$median[i] <- res[2]
-NO_ALIE_002_2019to2021$high[i] <- res[3]
-NO_ALIE_002_2019to2021$n[i] <- nrow(df[!is.na(df$alien),])
-}
-
-## wetland ecosystems
-# list to hold the results
-NO_ALIE_003_2022to2024 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)
-NO_ALIE_003_2019to2021 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)  
-  
-# calculation of the median and quantiles
-# Norway 2022-2024
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_003_2022to2024$low[1] <- res[1]
-NO_ALIE_003_2022to2024$median[1] <- res[2]
-NO_ALIE_003_2022to2024$high[1] <- res[3]
-NO_ALIE_003_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2022-2024
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_003_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_003_2022to2024$low[i] <- res[1]
-NO_ALIE_003_2022to2024$median[i] <- res[2]
-NO_ALIE_003_2022to2024$high[i] <- res[3]
-NO_ALIE_003_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
-}
-# Norway 2019-2021
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_003_2019to2021$low[1] <- res[1]
-NO_ALIE_003_2019to2021$median[1] <- res[2]
-NO_ALIE_003_2019to2021$high[1] <- res[3]
-NO_ALIE_003_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2019-2021
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2=='vaatmark' | res.ANO.alien$hovedoekosystem_rute=='Wetland') & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_003_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_003_2019to2021$low[i] <- res[1]
-NO_ALIE_003_2019to2021$median[i] <- res[2]
-NO_ALIE_003_2019to2021$high[i] <- res[3]
-NO_ALIE_003_2019to2021$n[i] <- nrow(df[!is.na(df$alien),])
-}
-
-
-## open lowland ecosystems
-# list to hold the results
-NO_ALIE_005_2022to2024 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)
-NO_ALIE_005_2019to2021 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)  
-  
-# calculation of the median and quantiles
-# Norway 2022-2024
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005_2022to2024$low[1] <- res[1]
-NO_ALIE_005_2022to2024$median[1] <- res[2]
-NO_ALIE_005_2022to2024$high[1] <- res[3]
-NO_ALIE_005_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2022-2024
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_005_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005_2022to2024$low[i] <- res[1]
-NO_ALIE_005_2022to2024$median[i] <- res[2]
-NO_ALIE_005_2022to2024$high[i] <- res[3]
-NO_ALIE_005_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
-}
-# Norway 2019-2021
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005_2019to2021$low[1] <- res[1]
-NO_ALIE_005_2019to2021$median[1] <- res[2]
-NO_ALIE_005_2019to2021$high[1] <- res[3]
-NO_ALIE_005_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2019-2021
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_005_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005_2019to2021$low[i] <- res[1]
-NO_ALIE_005_2019to2021$median[i] <- res[2]
-NO_ALIE_005_2019to2021$high[i] <- res[3]
-NO_ALIE_005_2019to2021$n[i] <- nrow(df[!is.na(df$alien),])
-}
-
-
-## naturally open lowland ecosystems
-# list to hold the results
-NO_ALIE_005a_2022to2024 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)
-NO_ALIE_005a_2019to2021 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)  
-  
-# calculation of the median and quantiles
-# Norway 2022-2024
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005a_2022to2024$low[1] <- res[1]
-NO_ALIE_005a_2022to2024$median[1] <- res[2]
-NO_ALIE_005a_2022to2024$high[1] <- res[3]
-NO_ALIE_005a_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2022-2024
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_005a_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005a_2022to2024$low[i] <- res[1]
-NO_ALIE_005a_2022to2024$median[i] <- res[2]
-NO_ALIE_005a_2022to2024$high[i] <- res[3]
-NO_ALIE_005a_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
-}
-# Norway 2019-2021
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005a_2019to2021$low[1] <- res[1]
-NO_ALIE_005a_2019to2021$median[1] <- res[2]
-NO_ALIE_005a_2019to2021$high[1] <- res[3]
-NO_ALIE_005a_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2019-2021
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne") | res.ANO.alien$hovedoekosystem_rute %in% c("Natopen")) & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_005a_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005a_2019to2021$low[i] <- res[1]
-NO_ALIE_005a_2019to2021$median[i] <- res[2]
-NO_ALIE_005a_2019to2021$high[i] <- res[3]
-NO_ALIE_005a_2019to2021$n[i] <- nrow(df[!is.na(df$alien),])
-}
-
-
-## semi-natural ecosystems
-# list to hold the results
-NO_ALIE_005b_2022to2024 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)
-NO_ALIE_005b_2019to2021 <- data.frame(Indicator="alien",
-                                     region=c("Norway", "Northern.Norway", "Central.Norway", "Western.Norway", "Eastern.Norway", "Southern.Norway"),
-                                     median=NA,
-                                     low=NA,
-                                     high=NA,
-                                     n=NA)  
-  
-# calculation of the median and quantiles
-# Norway 2022-2024
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005b_2022to2024$low[1] <- res[1]
-NO_ALIE_005b_2022to2024$median[1] <- res[2]
-NO_ALIE_005b_2022to2024$high[1] <- res[3]
-NO_ALIE_005b_2022to2024$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2022-2024
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2022, 2023, 2024) & res.ANO.alien$region==NO_ALIE_005b_2022to2024$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005b_2022to2024$low[i] <- res[1]
-NO_ALIE_005b_2022to2024$median[i] <- res[2]
-NO_ALIE_005b_2022to2024$high[i] <- res[3]
-NO_ALIE_005b_2022to2024$n[i] <- nrow(df[!is.na(df$alien),])
-}
-# Norway 2019-2021
-df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) ,c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005b_2019to2021$low[1] <- res[1]
-NO_ALIE_005b_2019to2021$median[1] <- res[2]
-NO_ALIE_005b_2019to2021$high[1] <- res[3]
-NO_ALIE_005b_2019to2021$n[1] <- nrow(df[!is.na(df$alien),])
-# regions 2019-2021
-for (i in 2:6) {
-  df <- res.ANO.alien[(res.ANO.alien$hovedoekosystem_250m2  %in% c("naturlig_apne","semi_naturlig_mark") | res.ANO.alien$hovedoekosystem_rute %in% c("Seminat","Natopen") | res.ANO.alien$hovedtype_rute %in% c('T40','T41')) & res.ANO.alien$aar %in% c(2019, 2020, 2021) & res.ANO.alien$region==NO_ALIE_005b_2019to2021$region[i], c('ano_flate_id','region','hovedoekosystem_250m2','hovedoekosystem_rute','alien')]
-res <-  quantile(df$alien,res.quant, na.rm=T)
-NO_ALIE_005b_2019to2021$low[i] <- res[1]
-NO_ALIE_005b_2019to2021$median[i] <- res[2]
-NO_ALIE_005b_2019to2021$high[i] <- res[3]
-NO_ALIE_005b_2019to2021$n[i] <- nrow(df[!is.na(df$alien),])
-}
-
-
+summary(alien.re)
 ```
-
 
 ## 10. Results
 
-<!--# 
+The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
+```{r}
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+NO_ALIE_002 <- tibble(
+  Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
+  indicator_value = c(plogis(summary(alien.no)$coef$cond[,1]), plogis(summary(alien.re)$coef$cond[,1])),
+  CI_upper = c(plogis(summary(alien.no)$coef$cond[,1]+1.96*summary(alien.no)$coef$cond[,2]), plogis(summary(alien.re)$coef$cond[,1]+1.96*summary(alien.re)$coef$cond[,2])),
+  CI_lower = as.numeric(plogis(summary(alien.no)$coef$cond[,1]-1.96*summary(alien.no)$coef$cond[,2]), plogis(summary(alien.re)$coef$cond[,1]-1.96*summary(alien.re)$coef$cond[,2]))
+)
+NO_ALIE_002
+```
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
-
--->
 
 ## 11. Export file
 
@@ -862,46 +455,12 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 
 **CRediT statement**
 
-* Conceptualization: [Initials]
-* Methodology: [Initials]
-* Data curation: [Initials]
-* Formal analysis: [Initials]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [Initials]
-* Visualization: [Initials]
-* Resources: [Initials]
-* Writing – original draft: [Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
-
-
-**MeRIT attribution**
-
-This part supplements the CRediT statement with more granularity for method section.
-
-**Study design**
-The study was designed by [AB, CD].
-
-**Data collection / fieldwork**
-Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
-
-**Laboratory procedures**
-DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
-
-**Data processing**
-Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
-
-**Statistical analysis**
-All analyses were conducted by [CD] using [software], with verification by [AB].
-
-**Visualization**
-Figures were produced by [KL], with input from [CD].
-
-**Reproducibility**
-All code was reviewed and validated by [AB, CD].
+* Conceptualization: [JT, AK, EF, UJ]
+* Methodology: [JT]
+* Data curation: [JT]
+* Formal analysis: [JT]
+* Visualization: [JT]
+* Reproducibility: [AH]
 
 
 
