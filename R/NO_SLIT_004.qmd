@@ -1,0 +1,540 @@
+---
+title: "Erosive disturbance"
+subtitle: |
+  [NO_SLIT_004] (forests)
+# delete the line with the second indicatorID (line 5) 
+# if it's not relevant for you.
+# In the parentheses you can add a word to distinguish multiple indicators 
+# from each other, for example the ecosystem type that they cover
+indicatorID: 
+  - [NO_SLIT_004]
+# If you are presenting multiple indicators, and have multiple 
+# indicator IDs, then add them as a list here, and make sure you add
+# the same number of list entries, 
+# and in the same order that corresponds to the indicator IDs,  
+# to the meta data fields where the indicators differ. 
+# For example, if the indicators cover different ecosystem types, 
+# add the ecosystems as a list under 'Ecosystems', but if they are in the
+# same realm, same country etc., then you only need to write the realm and
+# country once. 
+indicatorName: 
+  - Erosive disturbance
+verbatimName: 
+  - Slitasje # the indicator name that us used in the native language
+folderName: XXX_YYY_ZZZ # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
+# If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
+# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
+country: Norway
+continent: Europe
+ECT: A1 - Physical characteristics
+Realm: # Please copy and paste Realms, Biomes and Ecostsem names from here: https://github.com/NINAnor/ecRxiv/wiki#ecosystem-typology 
+  - Terrestrial (T)
+Biome: 
+  - T2 Temperate-boreal forests and woodlands biome
+Ecosystem: 
+  - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests
+  - T2.3 Oceanic temp rainforests
+verbatimEcosystem:
+  - Skog
+yearAdded: 2025
+yearLastUpdate: 2026
+status: incomplete # options are complete, incomplete, or deprecated
+Version: "2.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+VersionComment: separate code for forest ecosystem. Updated variable combination matrix.
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
+# To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Uncertainties: 95% confidence intervals for the indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
+author:
+  - name: Joachim Töpper              # Enter name
+    email: joachim.topper@nina.no  # Enter email
+    affiliations: NINA
+      - id: myID
+        name: Norwegian institute for nature research # Enter affiliations
+AuthorList: Töpper, J.  
+date: June 6, 2026
+data_availability: Openly available and accessible at Miljøidirektoratets kartkatalog
+code_reproducibility: Fully documented on github and executable in R
+open_science_badge: Data Integrated, Documented and executable
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+hide: TRUE # Change to FALSE
+bibliography: references.bib
+---
+
+<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
+
+<!--# Load all you dependencies here -->
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+library(sf)
+library(ecTools)
+library(glmmTMB)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+source(here::here("_common.R"))
+```
+
+
+
+<!--# The following parts are autogenerated. Do not edit. -->
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+# The following inserts a badge specifying the GPL GNU version 3 license. ecRxiv recommends using this license, but you can decide to use another. Contact ecRxiv for help in insert a badge for a different license
+license_badge()
+```
+
+
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
+
+```
+:::
+
+::: {.callout-tip collapse="true"}
+
+## Log
+
+<!--# Update this logg with short messages for each update -->
+- 21 May 2026 - original start-up of the 2026 erosion species indicator for forests
+:::
+
+
+<hr />
+
+<!--# Document you work below.  -->
+
+## 1. Summary
+
+1. **Background and rationale**: The 'Erosive disturbance' indicator describes to what degree an ecosystem is affected by human-caused disturbances, mainly linked to erosion from heavy vehicles or damage from intensive human use, based on the 'tungekjoretoy' and 'slitasje' variables registered in ANO monitoring sites.
+2. **Methods**: The indicator uses data from the Norwegian ANO nature monitoring program. 
+The indicator is one-sided as a lack of this kind of erosive disturbance obviously is not a problem. The reference condition is defined as an ecosystem without any erosive disturbance (applies to all types of ecosystems and all regions), and thus the reference threshold for scaling is set to 0 disturbance at a site. The reference level X~60~, i.e. the threshold between good and reduced ecological condition, as well as X~0~, are set on an expert-judgement basis: less than 1/16th of the area affected by both heavy vehicles and overuse represents good condition, and more than 1/2 of the area for one of heavy vehicles or overuse plus up to 1/2 of the area for the other represents X~0~ where the ecosystem for sure has transformed into something else (see also Nybø et al. 2023 for an implementation of this indicator for Norwegian wetland and open lowland ecosystems).
+3. **Interpretation**: An indicator value of 1 signifies that the median aforest of erosive disturbance across ANO localities for that ecosystem, is zero.
+Values decreasing toward zero means more of the ANO localities have physical signs of erosive disturbance.
+4. **Results and development needs**: The indicator is well developed and argued, and is thus operational. The indicator values are consistently close to 1 for all regions. One way to improve this indicator is to increase the resolution that the variable is recorded at in the field. Today the variable is recorded on a very coarse four-step scale which hides a lot of information.
+
+## 2. About the underlying data
+Here, we evaluate the 'Erosive disturbance' indicator based on field sampled data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019). In ANO, two relevant variables are registered for this indicator, '7_TK' (erosion from heavy vehicles) and '7_SE' (erosion from overuse).
+
+### 2.1 Spatial and temporal resolution and extent
+The ANO monitoring data available now represent one cycle of sampling from 2019-2024 comprising ca. 1000 sites across Norway.
+ANO has no defined end date. 2025 is the first year of repeated sampling for about 20% of the approximately 1000 ANO sites for all of mainland Norway (i.e. the Ecosystem Accounting Area). Annual sampling is spatially representative, in principle allowing to compute area-representative estimates for single years but also multiple-yr-reporting periods. The indicator at hand is calculated based on the ANO data from 2020-2024.
+
+### 2.2 Sampling design
+At every ANO site, the indicator variable is registered at up to 18 monitoring points, dependent on the ecosystem designation.
+
+### 2.3 Original units
+Data on erosive disturbance in both 7_TK and 7_SE in ANO are given on a coarse 4 step scale within a 250 m^2^ sample circle, indicating how much area is affected by either heavy vehicle or overuse erosion, where 0 = 0 cover, 1 = 0-1/16 cover, 2 = 1/16-1/2 cover, and 3 = 1/2-1 cover.
+
+
+### 2.4 Instructions for citing, using and accessing data
+The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054
+
+### 2.5 Additional comments about the dataset
+The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+The 'Erosive disturbance' indicator reflects the physical environment and thus represents ECT class 'A1 Physical characteristics'.
+
+### 3.2 Ecosystem condition characteristic
+The 'Erosive disturbance' indicator addresses both the ecosystem characteristics 'primary productivity' and 'abiotic conditions', in the Norwegian standard on ecological condition (Nybø and Evju, 2017).
+
+### 3.3 Collinearities with other indicators
+None.
+
+### 3.4 Impact factors
+The main impact factor for this indicator is human overuse of an area.
+
+### 3.5 Spatial aggregation
+The variable is scaled at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1.
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. Thus, in terms of erosion species, the reference condition is defined as an ecosystem without any erosion plant species.
+
+### 4.2 Reference levels
+
+X~100~: 0 share of the monitoring site area with erosive disturbance. 
+
+X~60~: less than 1/16th of the area in both the heavy vehicle (7_tk) and the overuse (7_se) variables.
+
+X~0~: more than 1/2 of the area in either the heavy vehicle (7_tk) or the overuse (7_se) variables.
+
+#### 4.2.1 Spatial resolution and validity
+The same reference levels apply to all types of ecosystems and all regions.
+
+## 5. Uncertainties
+### 5.1 General uncertainties
+A significant aforest of uncertainty stems From the coarse 4-level scale on which the data underlying this indicator are collected, where each category (other than 0) spans a differently large range of abundance.
+Uncertainties relate partly to sampling and observer variability (and possible observer bias) in the recording of the plant cover data. 
+Spatial variability as a source of descriptive uncertainty can be quantified.
+
+### 5.2 Reported uncertainties
+For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
+
+## 6. References
+Nybø, S. & Evju, M. (red.) 2017. Fagsystem for fastsetting av god økologisk tilstand. Forslag fra et ekspertråd, https://regjeringen.no/no/dokument/rapportar-og-planar/id438817/.
+
+Tingstad, L., Evju, M., Sickel, H., & Töpper, J. 2019. Utvikling av nasjonal arealrepresentativ naturovervåking (ANO). Forslag til gjennomføring, protokoller og kostnadsvurderinger med utgangspunkt i erfaringer fra uttesting i Trøndelag. NINA Rapport 1642.
+
+## 7. Import and prepare datasets
+
+<!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
+
+### 7.1 ANO point data
+
+Import ANO testing data:
+First, download from  Miljødirektoratet...
+```{r, eval = F, echo = F}
+# download 
+url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
+download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
+unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
+```
+
+...then upload from local storage
+The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and point data including erosion plant species cover.
+```{r}
+#Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
+ANO.geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb",
+                   layer="ANO_SurveyPoint", quiet = T)
+#head(ANO.geo)
+
+```
+
+## 8. Spatial units
+
+The spatial units for the 'Erosive disturbance' indicator are governed by the ANO data, which consist of 1000 randomly chosen sites in Norway. Each site is a 500 x 500 m grid cell with 18 monitoring circles of 250sqm and a central 1 x 1 m vegetation plot. The basic unit for which observational data on erosive disturbance from heavy vehicles and overuse exist, and for which every the 'Erosive disturbance' indicator is computed, is the 250sqm circle. Aggregation of these basic spatial units to higher ones - like sites, municipalities, counties, regions, or the national level - should be done with appropriate consideration of the spatial structure of the data, i.e. imbalances and clustering (highly unequal number of points of an ecosystem type between sites).
+
+## 9. Analyses
+
+#### Data handling
+First we need to do some data handling. The data for this evaluation need to represent forest ecosystems and the years 2020-2024. 
+
+```{r, include = T, results='hide', warning=F, message=F}
+
+## fix NiN-variables
+colnames(ANO.geo)
+ANO.geo <- ANO.geo %>% 
+           rename("tungekjoretoy" = "bv_7tk",
+           "slitasje" = "bv_7se")
+colnames(ANO.geo)
+
+# remove variable code in the data
+ANO.geo$tungekjoretoy <- gsub("7TK_", "", ANO.geo$tungekjoretoy) 
+unique(ANO.geo$tungekjoretoy)
+ANO.geo$tungekjoretoy <- gsub("X", "NA", ANO.geo$tungekjoretoy)
+unique(ANO.geo$tungekjoretoy)
+ANO.geo$tungekjoretoy <- as.numeric(ANO.geo$tungekjoretoy)
+unique(ANO.geo$tungekjoretoy)
+
+ANO.geo$slitasje <- gsub("7SE_", "", ANO.geo$slitasje) 
+unique(ANO.geo$slitasje)
+ANO.geo$slitasje <- gsub("X", "NA", ANO.geo$slitasje)
+unique(ANO.geo$slitasje)
+ANO.geo$slitasje <- as.numeric(ANO.geo$slitasje)
+unique(ANO.geo$slitasje)
+
+## we create a new erosion-variable for the indicator based on both the tungekjoretoy- and slitasje-variables
+# Thus, we combine two variables with scales 0-3. To be able to represent combined impact from both variables the new erosion variable will have a range of 0-4.
+# First, we illustrate the two variables and the new levels representing the combination of the two variables in a matrix
+matrix(
+  data=c(0,1,2,3,1,1.5,2.75,3.5,2,2.75,3,3.75,3,3.5,3.75,4),
+  nrow=4,ncol=4,
+  dimnames = list(c("se_0","se_1","se_2","se_3"),c("tk_0","tk_1","tk_2","tk_3"))
+  )
+# we can see that this results in values on a scale from 0-4 representing all combinations of the heavy vehicles and overuse variables
+
+# next we introduce the erosion variable to the dataframe
+ANO.geo <- ANO.geo %>% 
+  mutate(erosion=case_when( (is.na(tungekjoretoy)|tungekjoretoy==0) & !is.na(slitasje) ~ slitasje,
+                             (is.na(slitasje)|slitasje==0) & !is.na(tungekjoretoy) ~ tungekjoretoy,
+                             tungekjoretoy==1 & slitasje==1 ~ 1.5,
+                             tungekjoretoy==2 & slitasje==2 ~ 3,
+                             tungekjoretoy==3 & slitasje==3 ~ 4,
+                             tungekjoretoy==2 & slitasje==1 ~ 2.75,
+                             tungekjoretoy==1 & slitasje==2 ~ 2.75,
+                             tungekjoretoy==3 & slitasje==1 ~ 3.5,
+                             tungekjoretoy==1 & slitasje==3 ~ 3.5,
+                             tungekjoretoy==3 & slitasje==2 ~ 3.75,
+                             tungekjoretoy==2 & slitasje==3 ~ 3.75
+                             )
+  )
+
+## choose forest ecosystems and years 2020-2024.
+ANO.forest <- ANO.geo %>%
+  filter(hovedoekosystem_250m2 == 'skog') %>%
+  filter(aar %in% 2020:2024)
+
+#head(ANO.forest)
+
+
+
+## check that every point is present only once
+#length(levels(as.factor(ANO.forest$ano_flate_id)))
+#length(levels(as.factor(ANO.forest$ano_punkt_id)))
+#summary(as.factor(ANO.forest$ano_punkt_id))
+# there's many double presences, probably some wrong registrations of point numbers,
+
+
+## add region information
+nor <- st_read(here::here("data/outlineOfNorway_EPSG25833.shp"),
+               quiet = T)%>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.forest))
+
+reg <- st_read(here::here("data/regions.shp"),
+               quiet = T) %>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.forest))
+
+# change region names to something R-friendly
+# reg$region
+reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
+
+regnor <- st_intersection(reg,nor)
+
+ANO.forest = st_join(ANO.forest, regnor, left = TRUE, join = st_nearest_feature)
+
+```
+
+We can illustrate the erosion in ANO points in Norway's five regions in three figures.
+```{r, warning=F}
+ggplot(ANO.forest, aes(x = region, y = tungekjoretoy)) +
+  geom_boxplot() +
+  labs(
+    x = "Region",
+    y = "Erosion from heavy vehicles"
+    )
+
+ggplot(ANO.forest, aes(x = region, y = slitasje)) +
+  geom_boxplot() +
+  labs(
+    x = "Region",
+    y = "Erosion from uveruse"
+    )
+
+ggplot(ANO.forest, aes(x = region, y = erosion)) +
+  geom_boxplot() +
+  labs(
+    x = "Region",
+    y = "Erosion combined"
+    )
+```
+
+#### Normalisation
+We use a normalisation function scaling linearly between the reference values. The function is demonstrated in the code below, and in @fig-demo.
+
+```{r fig-demo}
+#| fig-cap: 'Normalisation function (piecewise linear)'
+
+temp <- tibble(
+  variable = seq(0,4,0.1)
+)
+
+temp <- temp %>% mutate(indicator = ec_normalise(variable = variable,
+                          x0 = 3,
+                          x60 = 1,
+                          x100 = 0,
+                          fun = "linear")
+)
+
+temp |>
+  ggplot() +
+  geom_line(aes(x = variable,
+                 y = indicator))
+```
+
+
+We scale the variable values to indicator values using ec_normalise() from ecTools.
+```{r, results='hide'}
+ANO.forest <- ANO.forest %>% mutate(erosion_res = ec_normalise(variable = erosion,
+                          x0 = 3,
+                          x60 = 1,
+                          x100 = 0,
+                          fun = "linear")
+)
+
+summary(ANO.forest$erosion_res)
+```
+
+#### Calculating national and regional indices
+
+<<<<<<< HEAD
+We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
+The uncertainty around the national and region indicator values is derived from the same statistical model.
+The national and regional estimates are computed separately.
+
+```{r, warning=F}
+## Fit ordered beta regression null-model with a random effect
+# Norway
+erosion.no <- glmmTMB(
+  erosion_res ~ 1 + (1|ano_flate_id),
+  data = ANO.forest,
+  family = ordbeta
+)
+
+summary(erosion.no)
+
+# regions
+erosion.re <- glmmTMB(
+  erosion_res ~ 0 + region + (1|ano_flate_id),
+  data = ANO.forest,
+  family = ordbeta
+)
+
+summary(erosion.re)
+```
+
+## 10. Results
+
+The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
+```{r}
+
+NO_SLIT_004 <- tibble(
+  Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
+  indicator_value = c(plogis(summary(erosion.no)$coef$cond[,1]), plogis(summary(erosion.re)$coef$cond[,1])),
+  CI_upper = c(plogis(summary(erosion.no)$coef$cond[,1]+1.96*summary(erosion.no)$coef$cond[,2]), plogis(summary(erosion.re)$coef$cond[,1]+1.96*summary(erosion.re)$coef$cond[,2])),
+  CI_lower = as.numeric(plogis(summary(erosion.no)$coef$cond[,1]-1.96*summary(erosion.no)$coef$cond[,2]), plogis(summary(erosion.re)$coef$cond[,1]-1.96*summary(erosion.re)$coef$cond[,2]))
+)
+NO_SLIT_004
+```
+
+
+## 11. Export file
+
+<!--# 
+
+Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+
+-->
+
+```{r export}
+#| eval: false
+```
+
+
+## 12. Author contributions
+
+<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+
+**CRediT statement**
+
+* Conceptualization: [JT, AK, EF]
+* Methodology: [JT]
+* Data curation: [JT]
+* Formal analysis: [JT]
+* Visualization: [JT]
+* Reproducibility: [AH]
+
+
+
+::: {.callout-tip collapse="true"}
+## Session Info
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
