@@ -24,7 +24,7 @@ Version: "1.0.0." # Beta-versions are numbers incrementally with values below 0.
 VersionComment: Last version was 000.003. This update has removed redundtant sensitivity analyses and simplified the workflow.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001
 Normalised: Yes
-SpatialAggregationPathway: 'Aggregate (sum; bioclimatic region) - [Scale - Transform - Truncate] - Aggregate (weighted resampling) - Aggregate (weighted resampling)'
+SpatialAggregationPathway: '...'
 Uncertainties: Inferrential
 AuthorList: Kolstad, A.
 data_availability: silver
@@ -184,8 +184,7 @@ precise map of the glacier cover or extent from the period 1947-1985. Here I use
 this data as a representation of the climatic reference condition (pre
 climate warming), and compare this with an updated glacier cover map
 from 2018-2019 to create a normalised ecosystem condition indicator. 
-Glacier area and glacier area change is calculated for each unique combination of 
-bioclimatic and geographical regions (referred to as _strata_). 
+Glacier area and glacier area change is calculated for each of the five geographical regions in Norway, and for Norway as a whole. The aggregation from the regional to the national estimate is based on a weighted average using the initial glacier area as weights. 
 Indicator uncertainty originates from two sources: a 3% measurement error, 
 based on the reported uncertainties
 in the mapping method, and the spatial variation across strata.
@@ -341,14 +340,14 @@ The X~60~value therefore ensures that the indicator puts more weight on the ecol
 
 
 ```{r X60}
-scalar <- 0.3
+scalar <- 0.7
 ```
 
 
 
 #### 4.2.1 Spatial resolution and validity
 
-The reference levels are defined for each strata, and can therefore only be
+The reference levels are defined for each region, and can therefore only be
 used to normalise variables at that scale. However, reference levels can
 easily be recalculated for any spatial scale.
 
@@ -416,597 +415,88 @@ greg <- readRDS(here::here("data/regions.rds")) |>
 
 ```
 
-### 7.4 Dataset D - Bioclimatic regions
-
-Here I import a map dataset of bioclimatic zones and sections for Norway
-[@bakkestuen2008]. The data licence is unknown, but we have the authors
-permission to use the data (Bakkestuen, *pers. com.*). There is,
-however, a [public WMS
-service](https://kartkatalog.geonorge.no/metadata/66f09e22-23a4-43c6-a0df-426d2b317890),
-but I don't known if the data is downloadable anywhere.
-
-I combine the zones (related to heat sums and the north-south gradient)
-and sections (related to oceanity and the west-east gradient) into
-regions. There are 24 regions, but I will combine some zones and
-sections to reduce this amount. Since there are few glaciers in
-continental areas I will combine sections 4 and 5, since we don't need
-that high resolution in the strata here. Similarly, I will combine the
-warmer zones 1 and 2. The total and relative area of each bioclimatic region is shown
-in @fig-sonerOgSeksjoner and @fig-sonerOgSeksjonerPie, respectively.
-
-```{r makeReg}
-#| eval: false
-#| code-summary: 'Create bioclimatic regions map'
-
-# file path to locally stored data
-pathD <- "R:/GeoSpatialData/BiogeographicalRegions/Norway_PCA_klima/Original/20170614_Bioklima/20170614_Bioklima.gdb"
-
-# read in the data and convert to tibbles for easy joins
-soner <- sf::read_sf(pathD, layer = "Soner2017") |> 
-  as_tibble() |>
-  mutate(Sone = case_when(
-    Sone_kode %in% c("6SO-1", "6SO-2") ~ "6SO-1-2",
-    .default = Sone_kode
-  ))
-
-# unique(soner$Sone) # where is the middle and high alpine sone?
-# I checked the WMS data and there the alpine sones are all combined
-# I check the extents against the geographical region map to ensure no big data holes
-# and it looks ok. 
-
-#soner |>
-#  mutate(area = st_area(Shape)) |>
-#  summarise(area = sum(area)/10^6) # 351 402 [km^2]
-#
-#greg |>
-#  mutate(area = st_area(geometry)) |>
-#  summarise(area = sum(area)/10^6) # 325 462.2 [km^2]
-
-seksjoner <- sf::read_sf(pathD, layer = "Seksjoner2017") |> 
-  as_tibble() |>
-  mutate(Seksjon = case_when(
-    Seksjon_ko %in% c("6SE-4", "6SE-5") ~ "6SE-4-5",
-    .default = Seksjon_ko
-  ))
-
-# unique(seksjoner$Seksjon)
-
-# join based on SSB IDs and convert to sf object again
-BCreg <- dplyr::left_join(soner , seksjoner |> select(-Shape), by = join_by(SSBID)) |>
-  mutate(BCregion = paste(Seksjon, Sone)) |>
-  sf::st_as_sf() |>
-  select(SSBID,
-  Sone,
-  Seksjon,
-  BCregion) |>
-  st_transform(st_crs(greg))
-
-```
-
-```{r makeFig}
-#| eval: false
-#| code-summary: 'Make figure'
-BCreg |>
-  ggplot(aes(x = Sone, fill = BCregion)) +
-  geom_bar() +
-  facet_grid(Seksjon ~ Sone, scales = "free") +
-  guides(fill = "none") +
-  theme(axis.text.x = element_blank(),
-    axis.title.x.bottom = element_blank()) +
-  labs(y = "km-2")
-ggsave("../img/bcreg.png")
-
-# make pie chart
-png("../img/bcregPie.png", width = 1480, height = 1480)
-BCreg |>
-  as_tibble() |>
-  webr::PieDonut(aes(Sone, Seksjon),
-                 ratioByGroup=FALSE,
-                 labelposition=1,
-                 r0=0,
-                 r1 = 0.8,
-                 r2 = 1.2,
-                 showPieName = F,
-                 pieLabelSize = 10,
-                 donutLabelSize = 8)
-dev.off()
-```
-
-```{r fig-sonerOgSeksjoner}
-#| fig-cap: "Distribution of area within each combination of bioclimatic zone and section (i.e. each bioclimatic region). Zones (SE, rows) range from 1 (boreonemoral) to 5 (alpine), and sections (SO, columns) range from 1 (strongly oceanic) to 5 (contintal)."
-
-knitr::include_graphics("../img/bcreg.png")
-```
-
-
-```{r fig-sonerOgSeksjonerPie}
-#| fig-cap: "Relative distribution of area within each combination of bioclimatic zone and section (i.e. each bioclimatic region). Zones (SE) range from 1 (boreonemoral) to 5 (alpine), and sections (SO) range from 1 (strongly oceanic) to 5 (contintal)."
-#| fig-width: 12
-
-knitr::include_graphics("../img/bcregPie.png")
-```
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "Union and cache bioclimatic region data"
-
-BCreg <- BCreg |>
-  group_by(BCregion) |>
-  summarize(Shape = st_union(Shape))
-saveRDS(BCreg, paste0(path, "/data/bioclimatic_regions.rds"))
-```
-
-```{r}
-#| include: false
-# read cache
-BCreg <- readRDS(paste0(path, "/data/bioclimatic_regions.rds"))
-```
-
-
-
-### 7.5 Dataset E - Alpine ecosystem extent
-
-I use a map of alpine extent that was also used by @framstad2021. It is
-based on certain open, terrestrial land cover types above the current
-/realised forest line. There is ongoing work to replace the ecosystem
-mask for the alpine main ecosystem. When such a map is ready, the
-workflow here can easily be updated.
-
-```{r}
-#| eval: false
-#| code-fold: true
-#| code-summary: "Prepare and cache alpine extent map"
-
-pathE <- paste0(path, "/data/temp/alpine_extent.tif")
-
-alpine <- stars::read_stars(pathE) |>
-  st_as_sf(merge = T)
-
-# intersections are much quicker on multipolygons, so I will union the geometries. 
-alpine <- st_union(alpine)
-
-saveRDS(alpine, paste0(path, "/data/alpine_extent.rds"))
-```
-
-```{r}
-#| include: false
-alpine <- readRDS(paste0(path, "/data/alpine_extent.rds"))
-```
 
 ## 8. Spatial units
 
+The five geographic regions in Norway are defined as ecosystem assets.
+Mainland Norway is the ecosystem accounting area.
 
-I use basically three spatial units: Strata (level 1; 70 units),
-geographical region (level 2, 5 units), and the EAA.
-
-Ecosystem assetsa re not defined. Although we have an ecosystem map and could
-potentially assogn indicator values to individual polygons of alpine ecosystems,
-this would require a lot of computing power and no real added benefit.
-
-### 8.1 Strata
-
-Here I create a dataset for the strata. The strat will be defined as the
-intersection between bioclimatic regions and geographical regions. Then
-I add total mountain area and glacier area as variables to this dataset.
-
-Note that the strata are not contiguous (and therefore can not be classes as EAs).
-Therefore metric values should not be presented at the strata level as maps 
-since within each strata, 
-data is aggregated (summed) across rather large geographical areas.
-
-```{r}
-#| eval: false
-#| code-summary: 'Create strata dataset'
-# As a legacy, the strata dataset is called EA, but I changed this in the text since they do not conform to the SEEA EA definition of EAs.
-EA <- BCreg |>
-  sf::st_intersection(greg)
-
-# create new variable for the unique EA IDs
-EA <- EA |>
-  mutate(EA_ID = row_number())
-
-saveRDS(EA, paste0(path, "/data/EAs.rds"))
-```
-
-```{r}
-#| include: false
-EA <- readRDS(paste0(path, "/data/EAs.rds"))
-```
-
-```{r mountainArea}
-#| warning: false
-#| code-summary: 'Intersect EAs and alpine extent map'
-
-# get mountain area for each strata (called EA below) 
-temp_alpine <- EA |>
-  st_intersection(alpine) |>
-  mutate(mountainArea = units::drop_units(st_area(Shape))) |>
-  as_tibble()
-
-# Plot to show amount of maountain area per strata
-#temp_alpine |>
-#  group_by(BCregion) |>
-#  summarise(area = sum(mountainArea)) |>
-#  ggplot(aes(x = fct_reorder(BCregion, area), y = area)) +
-#  geom_col() +
-#  labs(x = "Bioclimatic region",
-#       y = "Total mountain area (m2)") +
-#  coord_flip()+
-#  theme_bw()
-
-```
-
-```{r calcCurrent}
-#| eval: true
-#| code-summary: 'Intersect EAs and glacier maps'
-
-# Runs only if the files are not cached, in which case they are simply read back.
-
-if(!file.exists(paste0(path, "/data/dat_new_union.rds"))) {
-  dat_new_union <- st_union(dat_new)
-  temp_new <- EA |>
-    st_intersection(dat_new_union) |>
-    mutate(glacierAreaCurrent = units::drop_units(st_area(Shape))) |>
-    as_tibble()
-  saveRDS(temp_new, paste0(path, "/data/temp_new.rds"))
-  saveRDS(dat_new_union, paste0(path, "/data/dat_new_union.rds"))
-} else {
-  dat_new_union <- readRDS(paste0(path, "/data/dat_new_union.rds"))
-  temp_new <- readRDS(paste0(path, "/data/temp_new.rds"))
-  }
-
-if(!file.exists(paste0(path, "/data/dat_old_union.rds"))){
-  dat_old_union <- st_union(dat_old)
-  temp_old <- EA |>
-    st_intersection(dat_old_union) |>
-    mutate(glacierAreaOld = units::drop_units(st_area(Shape))) |>
-    as_tibble()
-  saveRDS(dat_old_union, paste0(path, "/data/dat_old_union.rds"))
-  saveRDS(temp_old, paste0(path, "/data/temp_old.rds"))
-} else {
-    dat_old_union <- readRDS(paste0(path, "/data/dat_old_union.rds"))
-    temp_old <- readRDS(paste0(path, "/data/temp_old.rds"))
-  }
-
-```
-
-
-```{r join}
-#| code-summary: 'Add glacier and mountain extent to EA dataset' 
-EA <- EA |>
-  as_tibble() |>
-  left_join(
-    temp_new |> select(
-      glacierAreaCurrent,
-      EA_ID
-    ),
-    by = join_by(EA_ID)
-  ) |>
-  left_join(
-    temp_old |> select(
-      glacierAreaOld,
-      EA_ID
-    ),
-    by = join_by(EA_ID)
-  ) |>
-  left_join(
-    temp_alpine |> select(
-      mountainArea,
-      EA_ID
-    ),
-    by = join_by(EA_ID)
-  ) |>
-  st_as_sf()
-
-```
-
-We see from @fig-area that glaciers are rare in sections 4 and 5 (good
-reason for combining them), and zones 1-3. We could perhaps have
-combined zone 3 along with zones 1 and 2, but it makes little
-difference. @fig-arealUnits show the summed glacier area for different
-spatial units.
-
-```{r fig-area}
-#| fig-cap: 'The extent of glacier and total mountain area for each geographical region (top), bioclimatic section (middle) and sone (bottom). The area for mountains is divided by 100 to get it on the same scale as glacier area for comparisons across regions.'
-#| code-summary: 'Make figure'
-myVars <- c("Current",
-            "Historic",
-            "Mountains"
-            )
-
-one <- EA |>
-  as_tibble() |>
-  group_by(region) |>
-  summarise(Current = sum(glacierAreaCurrent, na.rm = T),
-            Historic = sum(glacierAreaOld, na.rm = T),
-            Mountains = sum(mountainArea, na.rm = T)/100) |>
-  pivot_longer(cols = all_of(myVars),
-               names_to = "Variable",
-               values_to = "Area") |>
-  ggplot(aes(fill = Variable, 
-             y = Area,
-             x = region)) +
-  geom_col(position = "dodge") +
-  labs(x = "Geographical region",
-       y = "Areal extent (m2) (divided by 100 in the case of mountain area)") +
-  coord_flip()+
-  theme_bw()
-
-two <- EA |>
-  as_tibble() |>
-  mutate(seksjon = str_split_i(BCregion, " ", 1),
-         sone = str_split_i(BCregion, " ", 2)) |>
-  group_by(seksjon) |>
-  summarise(Current = sum(glacierAreaCurrent, na.rm = T),
-            Historic = sum(glacierAreaOld, na.rm = T),
-            Mountains = sum(mountainArea, na.rm = T)/100) |>
-  pivot_longer(cols = all_of(myVars),
-               names_to = "Variable",
-               values_to = "Area") |>
-  ggplot(aes(fill = Variable, 
-             y = Area,
-             x = seksjon)) +
-  geom_col(position = "dodge") +
-  labs(x = "Section",
-       y = "Areal extent (m2) (divided by 100 in the case of mountain area)") +
-  coord_flip()+
-  theme_bw()
-
-
-three <- EA |>
-  as_tibble() |>
-  mutate(seksjon = str_split_i(BCregion, " ", 1),
-         sone = str_split_i(BCregion, " ", 2)) |>
-  group_by(sone) |>
-  summarise(Current = sum(glacierAreaCurrent, na.rm = T),
-            Historic = sum(glacierAreaOld, na.rm = T),
-            Mountains = sum(mountainArea, na.rm = T)/100) |>
-  pivot_longer(cols = all_of(myVars),
-               names_to = "Variable",
-               values_to = "Area") |>
-  ggplot(aes(fill = Variable, 
-             y = Area,
-             x = sone)) +
-  geom_col(position = "dodge") +
-  labs(x = "zones",
-       y = "Areal extent (m2) (divided by 100 in the case of mountain area)") +
-  coord_flip()+
-  theme_bw()
-
-
-ggpubr::ggarrange(one, two, three, ncol= 1)
-
-```
-
-```{r figCurrent}
-#| code-summary: 'Make maps A and B'
-
-map1 <- EA |>
-  mutate(glacierAreaCurrent = replace_na(glacierAreaCurrent, 0)) |>
-  ggplot() +
-  geom_sf(aes(fill = glacierAreaCurrent),
-    colour = NA,
-    show.legend = F
-  ) +
-  scale_fill_gradient(low = "skyblue", high = "dodgerblue4")  
-
-map2 <- ggplot()+
-  geom_sf(data = greg,
-    fill = "skyblue",
-    colour = NA) +
-  geom_sf(data = dat_new,
-    fill = "dodgerblue4",
-    colour = NA)
-
-# ggpubr::ggarrange(map1, map2, labels="AUTO")
-
-```
-
-### 8.2 Alternative strata
-
-In order to test the influence of the modifiable area unit problem
-(MAUP; @openshaw1984), I will define two alternative strata sets, meaning two
-alternative minimum mapping units: geographical region (`greg`), and
-country (`EAA`).
-
-We also use the `greg` dataset as intermediate data when we aggregate
-from strata to EAA.
-
-#### 8.2.1 greg and EEA
-
-```{r greg}
-#| code-fold: true
-#| code-summary: "Create greg dataset"
-#| warning: false
-
-# add id column
-greg <- greg |>
-  mutate(greg_ID = row_number())
-
-# intersect with maps to get extents per geographic region
-temp_alpine_2 <- greg |>
-  st_intersection(alpine) |>
-  mutate(mountainArea = units::drop_units(st_area(geometry))) |>
-  as_tibble()
-temp_new_2 <- greg |>
-  st_intersection(dat_new_union) |>
-  mutate(glacierAreaCurrent = units::drop_units(st_area(geometry))) |>
-  as_tibble()
-temp_old_2 <- greg |>
-  st_intersection(dat_old_union) |>
-  mutate(glacierAreaOld = units::drop_units(st_area(geometry))) |>
-  as_tibble()
-
-# Add data into greg dataset
-greg <- greg |>
-  as_tibble() |>
-  left_join(
-    temp_new_2 |> select(
-      glacierAreaCurrent,
-      greg_ID
-    ),
-    by = join_by(greg_ID)
-  ) |>
-  left_join(
-    temp_old_2 |> select(
-      glacierAreaOld,
-      greg_ID
-    ),
-    by = join_by(greg_ID)
-  ) |>
-  left_join(
-    temp_alpine_2 |> select(
-      mountainArea,
-      greg_ID
-    ),
-    by = join_by(greg_ID)
-  ) |>
-  st_as_sf()
-
-```
-
-```{r EAAcreate}
-#| code-fold: true
-#| code-summary: "Create EEA dataset"
-#| warning: false
-
-# and the same for EAA
-EAA <- readRDS(paste0(path, "/data/norway.rds")) |>
-  add_column(EAA_ID = "1")
-
-
-# I could get these area sums easier, but here I just copy over the method from above
-temp_alpine_3 <- EAA |>
-  st_intersection(alpine) |>
-  mutate(mountainArea = units::drop_units(st_area(geometry))) |>
-  as_tibble()
-temp_new_3 <- EAA |>
-  st_intersection(dat_new_union) |>
-  mutate(glacierAreaCurrent = units::drop_units(st_area(geometry))) |>
-  as_tibble()
-temp_old_3 <- EAA |>
-  st_intersection(dat_old_union) |>
-  mutate(glacierAreaOld = units::drop_units(st_area(geometry))) |>
-  as_tibble()
-
-# Add data into EA_v3 dataset
-EAA <- EAA |>
-  as_tibble() |>
-  left_join(
-    temp_new_3 |> select(
-      glacierAreaCurrent,
-      EAA_ID
-    ),
-    by = join_by(EAA_ID)
-  ) |>
-  left_join(
-    temp_old_3 |> select(
-      glacierAreaOld,
-      EAA_ID
-    ),
-    by = join_by(EAA_ID)
-  ) |>
-  left_join(
-    temp_alpine_3 |> select(
-      mountainArea,
-      EAA_ID
-    ),
-    by = join_by(EAA_ID)
-  ) |>
-  st_as_sf()
-
-```
-
-```{r fig-arealUnits}
-#| fig-cap: 'Current glacier extent, either as the actual occurrences (A); the the summed area per strata (B); the summed area per gegrapical region (C); or across the entire country (D). The legend is omitted for simplicity. The point here is simply to illustrate the sizes of the different spatial units, and how the minimum mapping unit affects the information in the maps.'
-#| warning: false
-#| fig-height: 10
-#| fig-width: 8
-#| code-summary: 'Make maps C and D and plot'
-
-map3 <- greg |>
-  mutate(glacierAreaCurrent = replace_na(glacierAreaCurrent, 0)) |>
-  ggplot() +
-  geom_sf(aes(fill = glacierAreaCurrent),
-    colour = NA,
-    show.legend = F
-  ) +
-  scale_fill_gradient(low = "skyblue", high = "dodgerblue4")
-
-map4 <- EAA |>
-  #mutate(glacierAreaCurrent = replace_na(glacierAreaCurrent, 0)) |>
-  ggplot() +
-  geom_sf(aes(fill = glacierAreaCurrent),
-    colour = NA,
-    show.legend = F
-  ) +
-  scale_fill_gradient(low = "skyblue", high = "dodgerblue4")
-
-
-ggpubr::ggarrange(
-  map2, map1,  
-  map3, map4, 
-  labels="AUTO")
-
-# ggsave("../img/spUnits.png", bg = "white")
-```
 
 ## 9. Analyses
 
-I now go on to calculate indicator values for the different strata, and then
-spatially aggregating them.
+We need the initial and current glacier area per region.
 
-### 9.1 Calculating indicator values (distributions) for the strata
+```{r tbl-areas}
+#| tbl-cap: 'Initial (1947-1985) and current (2018-2019) glacer area for fiver geographic regions in Norway.'
+
+dat_old2 <-  dat_old |>
+  st_union()|>
+  st_sf(geometry = _) |>  
+  st_intersection(greg) |>
+  mutate(Initial_area_km2 = units::drop_units(st_area(geometry)*10^-6))
+
+dat_new2 <-  dat_new |>
+  st_union()|>
+  st_sf(geometry = _) |>  
+  st_intersection(greg) |>
+  mutate(Current_area_km2 = units::drop_units(st_area(geometry)*10^-6))
+
+dat_comb <- dat_old2 |>
+  st_drop_geometry() |>
+  left_join(dat_new2 |> st_drop_geometry()) |>
+  select(region, Initial_area_km2, Current_area_km2)
+
+dat_comb |>
+  mutate(Initial_area_km2 = round(Initial_area_km2),
+         Current_area_km2 = round(Current_area_km2) ) |>
+  gt::gt()
+
+
+```
+
+
+### 9.1 Calculating indicator values (distributions) for the regions
 
 The next steps are a follows:
 
-1.  Add 3% methodological uncertainty to the data at the strata level by
+1.  Add 3% methodological uncertainty to the data at the regional level by
     sampling *n* numbers from a normal distribution with sd =
     mean × 0.03.
 2.  Normalise the variable (now a prob. dist.) at the strata level using a
     piecewise linear transformation.
-3.  Aggregate to next spatial level by sampling each probability
-    distribution with *n* scaled to the area weights, thus creatuing a jiont sampling distribution. Try different area
-    weightings, both by total mountain area and initial glacier area.
-4.  Aggregate one more time to national level.
-5.  Repeat for two alternative *entry points*, using either geographical
-    region or the EEA as alternative EAs.
+3.  Aggregate to a national estimate using monte carolo propagation.
+
 
 The papers describing the glacier extent data report an estimated 3%
 uncertainty with their method [@andreassen2022]. I assume this to mean
 the standard deviation is 3% of the mean. I start by replacing the point
-estimates in each strata (and alternative strata definitions) with a probability
+estimates in each region with a probability
 distribution centered on the point estimate, and with sd = mean × 0.03.
 In ecosystem accounting it is not common to allow uncertainty in the
 reference levels, but here it is quite easy to implement, and I
 therefore see no reason not to.
+
 
 ```{r}
 #| warning: false
 #| code-fold: true
 #| code-summary: "Replace estimates with prob. distributions"
 
-EA <- EA |>
+dat_comb2 <- dat_comb |>
   # adding 3% uncertainty
   rowwise() |>
   mutate(
-    glacierAreaCurrent_dist = 
-      if_else(!is.na(glacierAreaCurrent),
-              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.03)),
-              NA), 
-    glacierAreaOld_dist = 
-      if_else(!is.na(glacierAreaOld),
-              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.03)),
-              NA))
+    init = list(rnorm(1000, Initial_area_km2, Initial_area_km2*0.03)), 
+    curr = list(rnorm(1000, Current_area_km2, Current_area_km2*0.03))
+    )
 
 ```
 
 Then I normalise, using a piecewise linear transformation, and get
 similar probability distribution for indicator values. @tbl-normalise
 shows the dataset with indicator values (just the median value) at the
-strata level. Also in that dataset are the actual indicator probability
-distributions, which can be sampled.
+reginal level. 
+The normalisation uses a piecewise linear transformation, with truncation (@fig-normplot).
 
 ```{r tbl-normalise}
 #| tbl-cap: 'Table of ecosystem assets, with variable values, X100 values (glacier area 1947-1985), indicator values and quartiles.'
@@ -1015,33 +505,47 @@ distributions, which can be sampled.
 
 
 # create a temporary dataframe
-EAtemp <- EA |>
-  as_tibble() |>
+dat_comb3 <- dat_comb2 |>
   # unlist and create new rows for each random pair of current and old glacier area estimate
   unnest_longer(c(
-    glacierAreaCurrent_dist,
-    glacierAreaOld_dist), 
+    curr,
+    init), 
     keep_empty = T) |>
-  rename(variable = glacierAreaCurrent_dist, 
-         x100 = glacierAreaOld_dist) |>
+  rename(variable = curr, 
+         x100 = init) |>
   mutate(
-    # replace NA with zero if EA had glaciers, but lost them
-    variable = case_when(
-      is.na(variable) & x100 > 0 ~ 0,
-      .default = variable),
-    # define x60 value as 60% glacier loss (40% of X100)
+    # define x60 value as 30% glacier loss (70% of X100)
     x60 = x100*scalar,
     # normalise using piecewise linear transformation
-    indicator =  ifelse(
-      variable < x60, 
-        ((variable - 0)/(x60 - 0)) * 0.6, 
-        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
-    # truncate
-    indicator = case_when(
-      indicator > 1 ~ 1,
-      indicator < 0 ~ 0,
-      .default = indicator
-    )) |>
+    indicator =  ecTools::ec_normalise(
+      variable = variable,
+      x100 = x100,
+      x60 = x60 
+    ))
+```
+
+```{r fig-normplot}
+#| fig-cap: 'Figure showing the general scaling function used for this indicator.'
+
+var <- seq(0,100,.2)
+ind <- ecTools::ec_normalise(var, x100=100, x60=70)
+ec_norm_plot(var, ind)
+```
+
+```{r export}
+#| include: false
+#| eval: false
+ec_norm_plot(var, ind, lan = "norsk") +
+  labs(x="Breareal som % av opprinnelig breareal", y = "Indikatorverdi")
+ggsave(here::here("img/skaleringsfunksjone.png"))
+```
+
+
+
+```{r}
+#ecTools::ec_norm_plot(dat_comb3$variable, dat_comb3$indicator) +
+#  facet_wrap(.~dat_comb3$region, scales = "free")
+
   # recast into list column
   drop_na(indicator) |>
   group_by(EA_ID) |>
