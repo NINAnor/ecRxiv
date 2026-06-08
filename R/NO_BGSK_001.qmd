@@ -1,12 +1,12 @@
 ---
 title: "Biologically old forest as share of forest area"
 subtitle: |
-  [NO_BOFA_001]
+  NO_BGSK_001
 indicatorID: 
-  - NO_BOFA_001
+  - NO_BGSK_001
 indicatorName: 
-  - Biologically old forest (NI, 0/1)
-folderName: NO_BOFA_001
+  - NO_BGSK
+folderName: NO_BGSK_001
 country: Norway
 continent: Europe
 ECT: C1 - Landscape and Seascape Characteristics
@@ -21,7 +21,7 @@ yearLastUpdate: 2026
 status: incomplete
 Version: "000.001"
 VersionComment: Initial version
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BOFA_001
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BGSK_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
 format: 
@@ -300,7 +300,7 @@ The lower reference level X0 is set to 0% old forest share of area and the upper
 X0 denotes the worst possible condition and X100 denotes the best possible condition on the original share of area scale.
 Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
 Scaled values above 1 are truncated to 1 when old forest share of area exceeds the county-specific X100.
-The county and sub-county X100 values used in the analyses are listed in @sec-bofa-reference-values.
+The county and sub-county X100 values used in the analyses are listed in @sec-bgsk-reference-values.
 X0 is 0 for all units.
 
 #### 4.2.1 Spatial resolution and validity
@@ -369,7 +369,7 @@ Aggregated indicator values should not be applied for spatial units finer than t
 
 ## 9. Analyses
 
-### 9.1 Prepare data and create derived variables {#sec-bofa-derived-vars}
+### 9.1 Prepare data and create derived variables {#sec-bgsk-derived-vars}
 
 This section prepares the NFI plot data for calculating the indicator.
 
@@ -390,9 +390,9 @@ reporting_periods <- list(
 The analysis includes both productive and unproductive forest plots (`arealtype` 1 and 12).
 The LSK export contains the binary variable `bgs` (0/1) for biologically old forest on each forest plot.
 `bgs` is the plot-level indicator on forest area (`au_areal`, ha): 1 = old forest present on the plot, 0 = not.
-We store the per-plot numerator as `indicator_continuous_weighted = bgs * au_areal`; area-weighted aggregation to fylke, region, and national units is in @sec-bofa-non-scaled.
+We store the per-plot numerator as `indicator_continuous_weighted = bgs * au_areal`; area-weighted aggregation to fylke, region, and national units is in @sec-bgsk-non-scaled.
 
-```{r bofa-create-derived-variables}
+```{r bgsk-create-derived-variables}
 #| cache: false
 #| code-summary: "Create derived variables"
 
@@ -426,7 +426,7 @@ lsk_data <- lsk_data_raw |>
 
 Finally, we retain only the columns required for subsequent aggregation and reporting.
 
-```{r bofa-select-downstream-fields}
+```{r bgsk-select-downstream-fields}
 #| code-summary: "Select downstream fields"
 
 lsk_data <- lsk_data |>
@@ -446,7 +446,7 @@ lsk_data <- lsk_data |>
 ```
 
 
-### 9.2 Calculate non-scaled area-weighted indicator values {#sec-bofa-non-scaled}
+### 9.2 Calculate non-scaled area-weighted indicator values {#sec-bgsk-non-scaled}
 
 For each reporting period, we calculate non-scaled indicator values separately for counties or sub-counties, regions, and the whole country.
 Within each geographic unit, the share of inventoried forest area on plots with old forest present is
@@ -456,18 +456,18 @@ $$\frac{\sum_i (\mathrm{bgs}_i \cdot a_i)}{\sum_i a_i}$$
 where $a_i$ is plot forest area (`au_areal`, ha).
 
 
-```{r bofa-calculate-all-periods}
+```{r bgsk-calculate-all-periods}
 #| code-summary: "Calculate non-scaled values"
 
-bofa_results <- purrr::imap(
+bgsk_results <- purrr::imap(
   reporting_periods,
   ~ calculate_period_indicators(lsk_data, .y, .x)
 ) |>
   purrr::compact()
 
-bofa_results_county_all_periods   <- purrr::map_dfr(bofa_results, "county")
-bofa_results_region_all_periods   <- purrr::map_dfr(bofa_results, "region")
-bofa_results_national_all_periods <- purrr::map_dfr(bofa_results, "national")
+bgsk_results_county_all_periods   <- purrr::map_dfr(bgsk_results, "county")
+bgsk_results_region_all_periods   <- purrr::map_dfr(bgsk_results, "region")
+bgsk_results_national_all_periods <- purrr::map_dfr(bgsk_results, "national")
 
 ```
 
@@ -476,12 +476,12 @@ bofa_results_national_all_periods <- purrr::map_dfr(bofa_results, "national")
 For each county and period, NFI plots are resampled with replacement 1000 times.
 Each replicate computes the area-weighted non-scaled share of old forest, giving a distribution of 1000 draws per county.
 
-```{r county-draws-long}
+```{r bgsk-county-draws-long}
 #| code-summary: "Bootstrap draws per county (1000 per county per period)"
 #| cache: true
-#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026.csv")), file.mtime(here::here("R/NO_BOFA_001.qmd")))
+#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026.csv")), file.mtime(here::here("R/NO_BGSK_001.qmd")))
 
-county_draws_long <- purrr::imap_dfr(bofa_results, function(period_result, period_name) {
+county_draws_long <- purrr::imap_dfr(bgsk_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
     dplyr::select(fylke_name, county_part, total_area, region_code)
 
@@ -502,9 +502,9 @@ county_draws_long <- purrr::imap_dfr(bofa_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-bofa-county-nonscaled) summarises non-scaled bootstrap draws for all reporting periods: the median area-weighted old forest share per county or sub-county. Use the search box and page controls to browse rows.
+The table below (@tbl-bgsk-county-nonscaled) summarises non-scaled bootstrap draws for all reporting periods: the median area-weighted old forest share per county or sub-county. Use the search box and page controls to browse rows.
 
-```{r tbl-bofa-county-nonscaled}
+```{r tbl-bgsk-county-nonscaled}
 #| tbl-cap: "Non-scaled old forest share of forest area by county or sub-county for all reporting periods (median of 1000 bootstrap draws)."
 #| echo: false
 
@@ -515,7 +515,7 @@ county_draws_long |>
     .groups = "drop"
   ) |>
   dplyr::left_join(
-    bofa_results_county_all_periods |>
+    bgsk_results_county_all_periods |>
       dplyr::select(period, fylke_name, n_plots),
     by = c("period", "fylke_name")
   ) |>
@@ -561,14 +561,14 @@ county_draws_long |>
   )
 ```
 
-### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-bofa-reference-values}
+### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-bgsk-reference-values}
 
 County or sub-county reference levels are listed below.
 
-```{r bofa-reference-values}
+```{r bgsk-reference-values}
 #| code-summary: "Reference values by county or sub-county"
 
-bofa_reference_values <- dplyr::tibble(
+bgsk_reference_values <- dplyr::tibble(
   county_part = c(
     "Øs", "OA", "HeS", "HeN", "OpS", "OpN", "BuS", "BuV", "Ve",
     "TeS", "TeN", "AA", "VA", "Ro", "Ho", "SF", "MR", "ST", "NT",
@@ -582,17 +582,17 @@ bofa_reference_values <- dplyr::tibble(
   dplyr::mutate(x100 = x100_pct / 100)
 
 x0 <- 0
-county_reference <- bofa_reference_values |>
+county_reference <- bgsk_reference_values |>
   dplyr::select(county_part, x100)
 
-knitr::kable(bofa_reference_values |> dplyr::select(county_part, `X100 (%)` = x100_pct))
+knitr::kable(bgsk_reference_values |> dplyr::select(county_part, `X100 (%)` = x100_pct))
 
 ```
 
 Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, county-specific X100; truncation at scaling).
-@fig-bofa-norm shows the mapping for each sub-county.
+@fig-bgsk-norm shows the mapping for each sub-county.
 
-```{r county-draws-scaled}
+```{r bgsk-county-draws-scaled}
 #| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
 
 county_draws_scaled <- county_draws_long |>
@@ -618,13 +618,13 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
     .groups = "drop"
   ) |>
   dplyr::left_join(
-    bofa_results_county_all_periods |> dplyr::select(period, fylke_name, n_plots),
+    bgsk_results_county_all_periods |> dplyr::select(period, fylke_name, n_plots),
     by = c("period", "fylke_name")
   )
 
 ```
 
-```{r fig-bofa-norm}
+```{r fig-bgsk-norm}
 #| fig-cap: "Linear normalisation of old forest share (proportion of forest area) to indicator values (0–1), one panel per sub-county reference unit. Points are 100 sampled bootstrap draws per unit, pooled across all reporting periods."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
@@ -636,46 +636,46 @@ norm_plot_data <- county_draws_scaled |>
   dplyr::slice_sample(n = 100) |>
   dplyr::ungroup()
 
-bofa_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
+bgsk_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
   ggplot2::facet_wrap(~ norm_plot_data$county_part, scales = "free_x") +
   ggplot2::labs(
     x = "Old forest share (proportion of forest area)",
     y = "Scaled indicator value"
   ) +
   ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
-bofa_norm_plot$layers[[1]]$aes_params$size <- 3
+bgsk_norm_plot$layers[[1]]$aes_params$size <- 3
 
 suppressMessages(
   ggsave(
-    filename = here::here("img/bofa_norm_plot.png"),
-    plot = bofa_norm_plot,
+    filename = here::here("img/bgsk_norm_plot.png"),
+    plot = bgsk_norm_plot,
     scale = 1.5
   )
 )
 
-bofa_norm_plot
+bgsk_norm_plot
 ```
 
 The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
 For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
 
-```{r bofa-ec-upscale-regional}
+```{r bgsk-ec-upscale-regional}
 #| code-summary: "ec_upscale: county to region (compute once, save RDS)"
 
-bofa_mc_cache_deps <- c(
+bgsk_mc_cache_deps <- c(
   here::here("data/LSK_data_okologisk_tilstand_2026.csv"),
   here::here("R/functions.R"),
-  here::here("R/NO_BOFA_001.qmd")
+  here::here("R/NO_BGSK_001.qmd")
 )
-bofa_mc_rds_regional <- here::here("data/bofa_mc_regional.rds")
+bgsk_mc_rds_regional <- here::here("data/bgsk_mc_regional.rds")
 
 if (
-  file.exists(bofa_mc_rds_regional) &&
-  file.mtime(bofa_mc_rds_regional) >= max(file.mtime(bofa_mc_cache_deps), na.rm = TRUE)
+  file.exists(bgsk_mc_rds_regional) &&
+  file.mtime(bgsk_mc_rds_regional) >= max(file.mtime(bgsk_mc_cache_deps), na.rm = TRUE)
 ) {
-  bofa_mc_regional <- readRDS(bofa_mc_rds_regional)
+  bgsk_mc_regional <- readRDS(bgsk_mc_rds_regional)
 } else {
-  bofa_mc_regional <- ecTools::ec_upscale(
+  bgsk_mc_regional <- ecTools::ec_upscale(
     data        = county_draws_scaled,
     variable    = scaled_value,
     weight      = total_area,
@@ -685,11 +685,11 @@ if (
     end_units_name = "region_code",
     n = 1000
   )
-  saveRDS(bofa_mc_regional, bofa_mc_rds_regional)
+  saveRDS(bgsk_mc_regional, bgsk_mc_rds_regional)
 }
 ```
 
-```{r bofa-ec-upscale-national}
+```{r bgsk-ec-upscale-national}
 #| code-summary: "ec_upscale: region to national (compute once, save RDS)"
 
 region_area_weights <- county_draws_scaled |>
@@ -697,23 +697,23 @@ region_area_weights <- county_draws_scaled |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(region_area = sum(total_area), .groups = "drop")
 
-bofa_mc_regional_for_national <- bofa_mc_regional |>
+bgsk_mc_regional_for_national <- bgsk_mc_regional |>
   dplyr::left_join(region_area_weights, by = c("period", "region_code")) |>
   dplyr::mutate(nation = "National")
 
-bofa_mc_rds_national <- here::here("data/bofa_mc_national.rds")
+bgsk_mc_rds_national <- here::here("data/bgsk_mc_national.rds")
 
 if (
-  file.exists(bofa_mc_rds_national) &&
-  file.mtime(bofa_mc_rds_national) >= max(
-    c(file.mtime(bofa_mc_cache_deps), file.mtime(bofa_mc_rds_regional)),
+  file.exists(bgsk_mc_rds_national) &&
+  file.mtime(bgsk_mc_rds_national) >= max(
+    c(file.mtime(bgsk_mc_cache_deps), file.mtime(bgsk_mc_rds_regional)),
     na.rm = TRUE
   )
 ) {
-  bofa_mc_national <- readRDS(bofa_mc_rds_national)
+  bgsk_mc_national <- readRDS(bgsk_mc_rds_national)
 } else {
-  bofa_mc_national <- ecTools::ec_upscale(
-    data        = bofa_mc_regional_for_national,
+  bgsk_mc_national <- ecTools::ec_upscale(
+    data        = bgsk_mc_regional_for_national,
     variable    = sampled_mean,
     weight      = region_area,
     start_units = region_code,
@@ -722,36 +722,36 @@ if (
     end_units_name = "nation",
     n = 1000
   )
-  saveRDS(bofa_mc_national, bofa_mc_rds_national)
+  saveRDS(bgsk_mc_national, bgsk_mc_rds_national)
 }
 ```
 
-```{r bofa-mc-combined}
+```{r bgsk-mc-combined}
 #| code-summary: "Combine regional and national MC draws; build summary tables"
 
-bofa_mc_combined <- dplyr::bind_rows(
-  bofa_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
-  bofa_mc_national |> dplyr::select(period, region = nation, sampled_mean)
+bgsk_mc_combined <- dplyr::bind_rows(
+  bgsk_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
+  bgsk_mc_national |> dplyr::select(period, region = nation, sampled_mean)
 )
 
-county_scaled_all_periods <- bofa_results_county_all_periods |>
+county_scaled_all_periods <- bgsk_results_county_all_periods |>
   dplyr::left_join(county_reference, by = "county_part") |>
   dplyr::filter(!is.na(x100)) |>
   dplyr::mutate(
     scaled_value = ec_normalise(indicator_value, x0 = x0, x100 = x100, fun = "linear")
   )
 
-region_scaled_agg_all_periods <- bofa_mc_regional |>
+region_scaled_agg_all_periods <- bgsk_mc_regional |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
   dplyr::mutate(region_name = assign_region_name(region_code))
 
-national_scaled_agg_all_periods <- bofa_mc_national |>
+national_scaled_agg_all_periods <- bgsk_mc_national |>
   dplyr::group_by(period) |>
   dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
   dplyr::mutate(region = "National")
 
-region_scaled_agg_with_uncertainty <- bofa_mc_regional |>
+region_scaled_agg_with_uncertainty <- bgsk_mc_regional |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(
     median = median(sampled_mean),
@@ -763,11 +763,11 @@ region_scaled_agg_with_uncertainty <- bofa_mc_regional |>
   ) |>
   dplyr::mutate(region_name = assign_region_name(region_code)) |>
   dplyr::left_join(
-    bofa_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
+    bgsk_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
     by = c("period", "region_code")
   )
 
-national_scaled_agg_with_uncertainty <- bofa_mc_national |>
+national_scaled_agg_with_uncertainty <- bgsk_mc_national |>
   dplyr::group_by(period) |>
   dplyr::summarise(
     median = median(sampled_mean),
@@ -779,14 +779,14 @@ national_scaled_agg_with_uncertainty <- bofa_mc_national |>
   ) |>
   dplyr::mutate(region = "National") |>
   dplyr::left_join(
-    bofa_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
+    bgsk_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
     by = "period"
   )
 
 truncation_summary <- dplyr::bind_rows(
   county_scaled_all_periods |>
     dplyr::left_join(
-      bofa_reference_values |> dplyr::select(county_part, reference_value_pct = x100_pct),
+      bgsk_reference_values |> dplyr::select(county_part, reference_value_pct = x100_pct),
       by = "county_part"
     ) |>
     dplyr::mutate(
@@ -802,7 +802,7 @@ truncation_summary <- dplyr::bind_rows(
     ),
   region_scaled_agg_all_periods |>
     dplyr::left_join(
-      bofa_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
+      bgsk_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
       by = c("period", "region_code")
     ) |>
     dplyr::mutate(
@@ -818,7 +818,7 @@ truncation_summary <- dplyr::bind_rows(
     ),
   national_scaled_agg_all_periods |>
     dplyr::left_join(
-      bofa_results_national_all_periods |> dplyr::select(period, indicator_value),
+      bgsk_results_national_all_periods |> dplyr::select(period, indicator_value),
       by = "period"
     ) |>
     dplyr::mutate(
@@ -855,7 +855,7 @@ At county or sub-county level, truncation is evaluated by comparing the non-scal
 At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
 The following tables summarise how often truncation occurred in each period and list the affected units.
 
-```{r bofa-report-truncation}
+```{r bgsk-report-truncation}
 #| code-summary: "Report truncation"
 #| echo: false
 
@@ -910,28 +910,28 @@ if (nrow(truncated_values) > 0) {
 
 ```
 
-The time series below (@fig-bofa-timeSeries) summarises regional and national values.
+The time series below (@fig-bgsk-timeSeries) summarises regional and national values.
 
-```{r fig-bofa-timeSeries}
+```{r fig-bgsk-timeSeries}
 #| fig-cap: "Indicator values for biologically old forest share by region and reporting period. Points show the MC median; error bars are 95% credible intervals from the Monte Carlo propagation. National values use filled circles and a thicker line."
 #| code-summary: "Time series of indicator values by region and period"
 #| cache: false
 #| warning: false
 #| message: false
 
-bofa_region_labels <- c(
+bgsk_region_labels <- c(
   "1" = "Øst", "2" = "Sør", "3" = "Vest",
   "4" = "Midt", "5" = "Nord", "National" = "National"
 )
-bofa_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
-bofa_region_cols <- setNames(
-  MetBrewer::met.brewer("Archambault", n = length(bofa_region_levels)),
-  bofa_region_levels
+bgsk_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
+bgsk_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(bgsk_region_levels)),
+  bgsk_region_levels
 )
 
-bofa_plot_data <- bofa_mc_combined |>
+bgsk_plot_data <- bgsk_mc_combined |>
   dplyr::mutate(
-    region_name = dplyr::recode(region, !!!bofa_region_labels),
+    region_name = dplyr::recode(region, !!!bgsk_region_labels),
     series_type = dplyr::if_else(region == "National", "National", "Region")
   ) |>
   dplyr::group_by(period, region_name, series_type) |>
@@ -941,10 +941,10 @@ bofa_plot_data <- bofa_mc_combined |>
     p_975  = as.numeric(quantile(sampled_mean, 0.975)),
     .groups = "drop"
   ) |>
-  dplyr::mutate(region_name = factor(region_name, levels = bofa_region_levels))
+  dplyr::mutate(region_name = factor(region_name, levels = bgsk_region_levels))
 
 ggplot2::ggplot(
-  bofa_plot_data,
+  bgsk_plot_data,
   ggplot2::aes(x = period, y = median, colour = region_name, group = region_name)
 ) +
   ggplot2::geom_line(
@@ -956,7 +956,7 @@ ggplot2::ggplot(
     size = 0.8, linewidth = 0.45,
     position = ggplot2::position_dodge(width = 0.18)
   ) +
-  ggplot2::scale_colour_manual(values = bofa_region_cols, name = NULL) +
+  ggplot2::scale_colour_manual(values = bgsk_region_cols, name = NULL) +
   ggplot2::scale_shape_manual(values = c(National = 19, Region = 17), name = NULL) +
   ggplot2::scale_linewidth_manual(values = c(National = 1, Region = 0.55), guide = "none") +
   ggplot2::scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
@@ -984,9 +984,9 @@ Tables report the median as the indicator value, with an approximate 95% interva
 
 ### 10.1 County-level results (scaled with uncertainty)
 
-Use the search box and page controls in @tbl-bofa-county-results to browse county rows across all reporting periods.
+Use the search box and page controls in @tbl-bgsk-county-results to browse county rows across all reporting periods.
 
-```{r tbl-bofa-county-results}
+```{r tbl-bgsk-county-results}
 #| tbl-cap: 'County or sub-county indicator values for biologically old forest share by reporting period. Values are scaled to 0–1 using county-specific X0 and X100 via ec_normalise(). Uncertainty is derived from 1000 bootstrap draws scaled with the same function (section 9.3–9.4). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
 #| echo: false
 
@@ -1012,7 +1012,7 @@ county_scaled_with_uncertainty |>
   dplyr::transmute(
     ECT = "C1",
     Indicator = "Biologically old forest share",
-    ID = "NO_BOFA_001",
+    ID = "NO_BGSK_001",
     `Accounting area` = .data$fylke_name,
     Region = .data$region_name,
     `Sub-county` = .data$county_part,
@@ -1044,7 +1044,7 @@ county_scaled_with_uncertainty |>
 
 ### 10.2 Regional results (scaled with uncertainty)
 
-```{r tbl-bofa-region-results}
+```{r tbl-bgsk-region-results}
 #| tbl-cap: 'Regional indicator values for biologically old forest share by reporting period. Scaled values and uncertainty are derived from ecTools::ec_upscale() Monte Carlo propagation (1000 draws per region per period). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
 #| echo: false
 
@@ -1062,7 +1062,7 @@ region_scaled_agg_with_uncertainty |>
   dplyr::transmute(
     ECT = "C1",
     Indicator = "Biologically old forest share",
-    ID = "NO_BOFA_001",
+    ID = "NO_BGSK_001",
     `Accounting area` = .data$region_name,
     Ecosystem = "Boreal/montane forests",
     `Reporting period` = .data$period,
@@ -1085,7 +1085,7 @@ region_scaled_agg_with_uncertainty |>
 
 ### 10.3 National results (scaled with uncertainty)
 
-```{r tbl-bofa-national-results}
+```{r tbl-bgsk-national-results}
 #| tbl-cap: 'National indicator values for biologically old forest share by reporting period. Scaled values and uncertainty are derived from ecTools::ec_upscale() Monte Carlo propagation (1000 draws). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
 #| echo: false
 
@@ -1103,7 +1103,7 @@ national_scaled_agg_with_uncertainty |>
   dplyr::transmute(
     ECT = "C1",
     Indicator = "Biologically old forest share",
-    ID = "NO_BOFA_001",
+    ID = "NO_BGSK_001",
     `Accounting area` = .data$region,
     Ecosystem = "Boreal/montane forests",
     `Reporting period` = .data$period,
@@ -1127,15 +1127,15 @@ national_scaled_agg_with_uncertainty |>
 
 ## 11. Export file
 
-Regional and national Monte Carlo draws are exported in one table (`bofa_mc_combined`: `period`, `region`, `sampled_mean`).
+Regional and national Monte Carlo draws are exported in one table (`bgsk_mc_combined`: `period`, `region`, `sampled_mean`).
 
 ```{r export}
 #| eval: false
 #| code-summary: "Export regional and national MC-propagated indicator draws"
 
 write.csv(
-  bofa_mc_combined,
-  here::here("data/results_NO_BOFA_001.csv"),
+  bgsk_mc_combined,
+  here::here("data/results_NO_BGSK_001.csv"),
   row.names = FALSE
 )
 ```
