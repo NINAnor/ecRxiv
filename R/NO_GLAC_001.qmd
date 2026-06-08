@@ -24,7 +24,7 @@ Version: "1.0.0." # Beta-versions are numbers incrementally with values below 0.
 VersionComment: Last version was 000.003. This update has removed redundtant sensitivity analyses and simplified the workflow.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001
 Normalised: Yes
-SpatialAggregationPathway: '...'
+SpatialAggregationPathway: 'sp. agg (geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway, weighted by initial glacier area)'
 Uncertainties: Inferrential
 AuthorList: Kolstad, A.
 data_availability: silver
@@ -67,9 +67,6 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 library(sf)
-library(ggridges)
-library(ggpubr)
-library(webr)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -192,45 +189,37 @@ in the mapping method, and the spatial variation across strata.
 
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
-The indicator value represents the negative
-ecological effect of melting glacier ice, as a mean across the strata. 
-It does NOT directly represent the area of remaining glacier ice.
+The indicator value represents the negative ecological effect of melting glacier ice. 
+Most glaciers are found in western and northern Norway, and due to the way the regions are weighted by their initial glacer extent, the national estimate is determined mainly by the changes in glacer area in these regions. 
+The indicator does NOT directly represent the area of remaining glacier ice.
 An indicator value of 1 signifies that the glacier extent is equal to, or greater then it was in the reference condition, defined by the climatic period between 1947 and 1985. 
-Values decreasing toward zero reflect a reduction an the mean glacier area across.
+Values decreasing toward zero reflect a reduction an the positive impacts of glacier and melt water, driven by the reduction in glacer area and volume.
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-The indicator value for Norway as a whole in 2024 (using data from 2018-2019) is...
-
+The indicator value for Norway as a whole in 2024 (using data from 2018-2019) is 0.62 [95% CI = 0.58-0.66], which indicates that glacier area and volume have been reduced considerably, to the point where this change starts to negtatively effects the integrity of mountain ecosystems. 
 Future updates will require new maps of glacier cover in Norway, which is highly possible to produce from satellite imagery.
 
-<!-- 
-**Simplified workflow**
+## 1.2 Native language summary - Norwegian
 
-1.  Import glacier cover maps from two time periods
+1. **Bakgrunn og begrunnelse**: 
+Isbreer utgjør viktige strukturelle elementer i alpine økosystemer ved å tilføre smeltevann og bidra til lokal klimaregulering. De representerer også en unik naturtype og et eget habitat, med få, men høyt spesialiserte arter som lever på eller i tilknytning til isen. Isbreer er permanent isdekte områder og er svært følsomme for klimaendringer, særlig klimaoppvarming, som fører til smelting av isen.
 
-2.  Import delineations for bioclimatic regions and geographical regions
-    and intersect to create strata
 
-3.  Import alpine ecosystem mask
+2. **Metoder**: 
+I Norge har vi relativt detaljerte og presise kart over bredekning fra perioden 1947–1985. Disse dataene brukes her som en representasjon av den klimatiske referansetilstanden (før den markerte klimaoppvarmingen), og sammenlignes med oppdaterte kart over bredekning fra 2018–2019 for å beregne en normalisert indikator for økosystemtilstand.
+Breal og endringer i breareal beregnes for hver av de fem geografiske regionene i Norge, samt for landet som helhet. Aggregeringen fra regionale til nasjonale estimater er basert på et vektet gjennomsnitt, der det opprinnelige brearealet brukes som vekter.
+Usikkerheten i indikatoren har to hovedkilder: en målefeil på 3 %, basert på rapporterte usikkerheter i kartleggingsmetodene, og den romlige variasjonen mellom regionene.
 
-4.  Compile spatial dataset where each strata has data on strata category,
-    glacier area at two time points and total mountain area.
+3. **Tolkning**: 
+Indikatorverdien representerer de negative økologiske effektene av smeltende breis. De fleste isbreene finnes i Vest-Norge og Nord-Norge, og fordi regionene vektes etter sitt opprinnelige breareal, er det de observerte endringene i disse regionene som i størst grad bestemmer den nasjonale indikatorverdien.
+En indikatorverdi på 1 betyr at breutbredelsen er lik eller større enn den var under referansetilstanden, definert som den klimatiske perioden mellom 1947 og 1985. Verdier som nærmer seg null reflekterer en reduksjon i de positive økologiske effektene av breer og smeltevann, drevet av nedgang i breareal og brevolum.
+Indikatoren representerer ikke direkte hvor stort areal som fortsatt er dekket av breis.
 
-5.  Add 3% uncertainty to glacier cover estimates by replacing point
-    estimate with a probability sample (n = 1000)
+4. **Resultater og utviklingsbehov**: 
+Indikatorverdien for hele Norge i 2024 (basert på data fra 2018–2019) er 0,62 [95 % KI = 0,58–0,66]. Dette indikerer at breareal og brevolum er betydelig redusert, til et nivå der endringene begynner å påvirke integriteten til fjelløkosystemene negativt.
+Fremtidige oppdateringer av indikatoren vil kreve nye kart over bredekningen i Norge. Slike kart kan med trolig produseres ved hjelp av satellittdata.
 
-6.  Normalise variable at strata level by scaling, transforming and
-    truncating.
-
-7.  Make a weighted sample within strata and create a new, joint sampling
-    distribution for a spatially aggregate indicator value for
-    geographical regions.
-
-8.  Similarly, aggregate spatially from geographical region to national
-    level.
-
-9.  Summarise national estimate and 50%CI in a table -->
 
 ## 2. About the underlying data
 
@@ -300,7 +289,10 @@ Glaciers are mainly affected by climate change, especially climate
 warming [@zemp2025].
 
 ### 3.5 Spatial aggregation
-_Coming soon_
+The map data is prepared (clipped) to the spatial scale of five geographic regions in Norway. Then the variable is normalised before being aggregated to a national estimate.
+$$
+sp. agg (geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway)
+$$
 
 ## 4. Reference condition and levels
 
@@ -480,7 +472,7 @@ therefore see no reason not to.
 ```{r}
 #| warning: false
 #| code-fold: true
-#| code-summary: "Replace estimates with prob. distributions"
+#| code-summary: "Add measurement error"
 
 dat_comb2 <- dat_comb |>
   # adding 3% uncertainty
@@ -503,8 +495,6 @@ The normalisation uses a piecewise linear transformation, with truncation (@fig-
 #| code-fold: true
 #| code-summary: "Normalise variable"
 
-
-# create a temporary dataframe
 dat_comb3 <- dat_comb2 |>
   # unlist and create new rows for each random pair of current and old glacier area estimate
   unnest_longer(c(
@@ -541,789 +531,113 @@ ggsave(here::here("img/skaleringsfunksjone.png"))
 ```
 
 
+### Aggregate
+Then I propagate the uncertainties and a get an estimate for Norway as a whole.
 
 ```{r}
-#ecTools::ec_norm_plot(dat_comb3$variable, dat_comb3$indicator) +
-#  facet_wrap(.~dat_comb3$region, scales = "free")
-
-  # recast into list column
-  drop_na(indicator) |>
-  group_by(EA_ID) |>
-  summarise(indicator_dist = list(indicator), .groups = "drop")
-
-# we then paste these distributions back into the EA object
-
-EA <- EA |>
-  as_tibble() |>
-  # simplify datafra by removing some columns...
-  select(-glacierAreaCurrent_dist,
-         -glacierAreaOld_dist,
-         -GID_0,
-         -NAME_0) |>
-  # add the probability distribution of indicator values
-  left_join(
-    EAtemp,
-    by = join_by(EA_ID)
-  ) |>  
-  # summarise the distribution
-  rowwise() |>
-  mutate(
-    indicator = ifelse(
-      !is.null(indicator_dist),
-      median(unlist(indicator_dist)),
-      NA),
-  # add first and third quartile
-    indicator_Q1 = ifelse(
-      !is.null(indicator_dist),
-      quantile(unlist(indicator_dist), probs = 0.25),
-      NA), 
-    indicator_Q3 = ifelse(
-      !is.null(indicator_dist),
-      quantile(unlist(indicator_dist), probs = 0.75),
-      NA), 
-  ) |>
-  st_as_sf()
-
-DT::datatable(EA |>
-  as_tibble() |>
-  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
-  select(
-    EA_ID,
-    glacierAreaCurrent,
-    X100 = glacierAreaOld,
-    mountainArea,
-    indicator,
-    indicator_Q1,
-    indicator_Q3
-  ))
+dat_comb4 <- dat_comb3 |>
+  add_column(part = "Norway") |>
+  add_column(year = 2024)
 ```
-
-@fig-EAglacArea show the current (2018-2019) glacier extent per strata,
-stratified by bioclimatic zone and region. Clearly most glaciers are in section 2, 
-which is the _clearly oceanic section_. 
-High percipitation is a prerequitese for glaciers. 
-Section 1 has even more precipitation, but is also warmer and has less total extent (@fig-sonerOgSeksjoner).
-
-Of the zones, its mainly in the alpine zones (zone 5) where we find glaciers. 
-@fig-gradientIndicator show how the warmer sones also have a little lower indicator values,
-as expected.
-
-```{r fig-EAglacArea}
-#| fig-cap: 'Current glacier extent (2018-2019) for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend). Note the logarithmic axis.'
-
-EA |>
-  ungroup() |>
-  separate(BCregion,
-    into = c("section", "sone"),
-    sep = " ",
-    extra = "merge",
-    remove = F) |>
-  drop_na(glacierAreaCurrent) |>
-  ggplot() +
-  geom_col(aes(
-    x = fct_reorder(factor(EA_ID), glacierAreaCurrent), 
-    y = glacierAreaCurrent,
-    fill = sone),
-    ) +
-  coord_flip(clip = "off") +
-  theme_bw() +
-  labs(y = "Glacier extent (m2)") +
-  facet_wrap(.~section,
-             scales = "free_y") +
-  theme(
-    axis.text.y = element_blank(),
-    axis.title.y = element_blank(),
-    axis.ticks.y = element_blank()
-  )+
-  scale_y_log10(guide = "axis_logticks",
-                minor_breaks = seq(0, 10^9, 10^6)
-    #breaks = scales::trans_breaks("log10", function(x) 10^x),
-    #labels = scales::trans_format("log10", scales::math_format(10^.x))
-    )
-
-```
-
-```{r fig-gradientIndicator}
-#| fig-cap: 'Indicator values for individual strata (bars). Facets are bioclimatic sections and coulrs refer to bioclimatic zones (legend). The missing strata in the bottom right pane represents a case when a strata had no glaciers before, but some glaciers where mapped in the last survey (possibly due to mapping inconsistencies). The missing strata in the top right pane is a case of a strata having an indicator value of zero (some glaciers found in the first survey but none in the second)'
-
-EA |>
-  ungroup() |>
-  separate(BCregion,
-    into = c("section", "sone"),
-    sep = " ",
-    extra = "merge",
-    remove = F) |>
-  drop_na(indicator) |>
-  ggplot() +
-  geom_col(aes(
-    x = fct_reorder(factor(EA_ID), indicator), 
-    y = indicator,
-    fill = sone),
-    ) +
-  coord_flip() +
-  theme_bw() +
-  labs(y = "Indicator value") +
-  facet_wrap(.~section,
-             scales = "free_y") +
-  theme(
-    axis.text.y = element_blank(),
-    axis.title.y = element_blank(),
-    axis.ticks.y = element_blank()
-  )
-```
-
-
-
-### 9.2 Aggregating to geographical regions
-
-Now I spatially aggregate the indicator values to the level of
-geographic region by sampling the probability distributions of each stratum
-proportional to the weight. As the weight, we we use the X~100~ value,
-i.e. the initial glacier area. Stratum with no glaciers in them get NA, and
-are not included in the aggregated value.
-
-For comparison, we also calculate the aggregated values using mountain
-area (`mtArea`) as alternative weights, and we refer to these indicator
-values with a *mtArea* suffix. We also try an approach where we
-calculate indicator values for geographical regions or EAA level
-directly, that is to say, without using the original strata at all. These
-indicator values get a *level2* or *level3* suffix, respectively.
-
-@tbl-gregAgg shows is the indicator values for the geographical regions.
-The estimates differ quite a lot depending onthe weights used, which we
-also see in @fig-ridgde1.
-
-```{r gregAggx}
-#| code-fold: true
-#| code-summary: "Aggregate from strata to geographical region"
-
-# In order to control the n for how many samples we draw,
-# we first calculate the summed area of glaciers and mountains
-
-#EA |>
-#  as_tibble() |>
-#  summarise(total_m2 = sum(glacierAreaOld, na.rm=T)) |> 
-#  pull(total_m2)
-## Result: 3 327 251 347. We can divide this by 10^4
-
-#EA |>
-#  as_tibble() |>
-#  #ungroup() |>
-#  summarise(total_m2 = sum(mountainArea, na.rm=T)) |> 
-#  pull(total_m2)
-## Result: 323 871 072 604. We can divide this by 10^6
-
-
-## 
-EA_to_greg <- ungroup(EA) |>
-  drop_na(indicator) |>
-  group_by(EA_ID, region) |>
-  # sample with weights
-  reframe(
-    indicator = 
-      list(
-        sample(
-          unlist(indicator_dist),
-          size = glacierAreaOld*10^-4,
-          replace = T)),
-    indicator_mtArea = 
-      list(
-        sample(
-          unlist(indicator_dist),
-          size = mountainArea*10^-6,
-          replace = T))
-  ) |>
-  # concactenate the weighted samples
-  group_by(region) |>
-  summarise(indicator_dist = list(unlist(indicator)),
-            indicator_mtArea_dist = list(unlist(indicator_mtArea))) |>
-  # get summary values
-  ungroup() |>
-  rowwise() |>
-  mutate(
-    indicator = ifelse(
-      !is.null(indicator_dist),
-      median(unlist(indicator_dist)),
-      NA),
-  # add first and third quartile
-    indicator_Q1 = ifelse(
-      !is.null(indicator_dist),
-      quantile(unlist(indicator_dist), probs = 0.25),
-      NA), 
-    indicator_Q3 = ifelse(
-      !is.null(indicator_dist),
-      quantile(unlist(indicator_dist), probs = 0.75),
-      NA),
-  # add the same for indicator_mtArea
-    indicator_mtArea = ifelse(
-      !is.null(indicator_mtArea_dist),
-      median(unlist(indicator_mtArea_dist)),
-      NA),
-  # add first and third quartile
-    indicator_mtArea_Q1 = ifelse(
-      !is.null(indicator_mtArea_dist),
-      quantile(unlist(indicator_mtArea_dist), probs = 0.25),
-      NA), 
-    indicator_mtArea_Q3 = ifelse(
-      !is.null(indicator_mtArea_dist),
-      quantile(unlist(indicator_mtArea_dist), probs = 0.75),
-      NA)
-  )
-
-
-```
-
-```{r createRidgePlot}
-#| eval: true
-#| code-fold: true
-#| code-summary: "Create ridge plot"
-
-# set bandwidth
-bw <- 0.015
-
-
-# the ridge plots are huge files and stop the rendering of the html.
-# thats why I sample 300 values, enough to get a smooth curve, and
-# run the code only on first execution.
-
-if(!file.exists(paste0(path, "/data/temp_oneRidge.rds"))){
-  oneRidge <- ungroup(EA_to_greg) |>
-    unnest_longer(indicator_dist) |>
-    slice_sample(n = 300,
-                 by = region) |>
-    ggplot(aes(x = indicator_dist,
-               y = region)) +
-    geom_density_ridges(
-           fill = "skyblue",
-           bandwidth = bw) +
-    labs(y = "",
-         x = "Indicator values")+
-    xlim(0, 1)
-  saveRDS(oneRidge, paste0(path, "/data/temp_oneRidge.rds"))
-} else {
-    oneRidge <- readRDS(paste0(path, "/data/temp_oneRidge.rds"))
-  }
-
-if(!file.exists(paste0(path, "/data/temp_twoRidge.rds"))){
-  twoRidge <- ungroup(EA_to_greg) |>
-    unnest_longer(indicator_mtArea_dist) |>
-    slice_sample(n = 300,
-                 by = region) |>
-    ggplot(aes(x = indicator_mtArea_dist,
-               y = region)) +
-    geom_density_ridges(
-           fill = "lightgreen",
-           bandwidth = bw) +
-    labs(y = "",
-         x = "Indicator values (alternative weights)")+
-    xlim(0, 1)
-  saveRDS(twoRidge, paste0(path, "/data/temp_twoRidge.rds"))
-} else {
-    twoRidge <- readRDS(paste0(path, "/data/temp_twoRidge.rds"))
-  }
-
-
-
-# ggpubr::ggarrange(oneRidge, twoRidge, ncol=1, labels = "auto")  
-
-```
-
-Now I add the spatially aggregated indicator values to the sf object
-with the geographical regions so that we can make a map.
-
-```{r}
-#| code-fold: true
-#| code-summary: "Add indicators to greg dataset with the regional delineations"
-
-greg <- greg |>
-  as_tibble() |>
-  left_join(EA_to_greg, by = join_by(region)) |>
-  st_as_sf()
-```
-
-### 9.3. Alternative strata/MMUs {#sec-ea2}
-
-What if we used different minimal mapping units MMUs, or strata?
-
-Now I calculate the indicator value directly to the geographical
-regions. This indicator will be named `indicator_level2` in the code and
-the figures. As we see from @fig-ridgde1 this creates smoother density
-plots. In fact they are practically perfect gaussian distributions,
-since the 3% error was added to the summed glacier area for the regions,
-and not on the initial glacier polygons (which would also be a valid
-approach, but it would require a lot more memory). We also see that the
-distributions generally match up well with pane a and the original
-weighting scheme. But @tbl-gregAgg show us that the point estimates are
-not identical, meaning that the two approaches are not perfectly
-commutative, and that some other dataset could give bigger (or smaller)
-differences between the two approaches than what we see here.
-
-```{r}
-#| code-fold: true
-#| code-summary: "Replace glacier estimates with probability distributions"
-
-greg <- greg |>
-# adding 3% uncertainty
-  rowwise() |>
-  mutate(
-    glacierAreaCurrent_dist = 
-      if_else(!is.na(glacierAreaCurrent),
-              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.03)),
-              NA), 
-    glacierAreaOld_dist = 
-      if_else(!is.na(glacierAreaOld),
-              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.03)),
-              NA))
-```
-
-```{r}
-#| code-fold: true
-#| code-summary: "Estimate indicator_level2"
-
-# create a temporary dataframe
-greg_temp <- greg |>
-  as_tibble() |>
-  # unlist and create new rows for each random pair of current and old glacier area estimate
-  unnest_longer(c(
-    glacierAreaCurrent_dist,
-    glacierAreaOld_dist), 
-    keep_empty = T) |>
-  rename(variable = glacierAreaCurrent_dist, 
-         x100 = glacierAreaOld_dist) |>
-  mutate(
-    # define x60 value
-    x60 = x100*scalar,
-    # normalise using piecewise linear transformation
-    indicator_level2 =  ifelse(
-      variable < x60, 
-        ((variable - 0)/(x60 - 0)) * 0.6, 
-        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
-    # truncate
-    indicator_level2 = case_when(
-      indicator_level2 > 1 ~ 1,
-      indicator_level2 < 0 ~ 0,
-      .default = indicator_level2
-    )) |>
-  # recast into list column
-  drop_na(indicator_level2) |>
-  group_by(greg_ID, region) |>
-  summarise(indicator_dist_level2 = list(indicator_level2), .groups = "drop")
-
-# we then paste these distributions back into the greg object
-
-greg <- greg |>
-  as_tibble() |>
-  # simplify datafra by removing some columns...
-  select(-glacierAreaCurrent_dist,
-         -glacierAreaOld_dist,
-         -GID_0,
-         -NAME_0) |>
-  # add the probability distribution of indicator values
-  left_join(
-    greg_temp |> select(-region),
-    by = join_by(greg_ID)
-  ) |>  
-  # summarise the distribution
-  rowwise() |>
-  mutate(
-    indicator_level2 = ifelse(
-      !is.null(indicator_dist_level2),
-      median(unlist(indicator_dist_level2)),
-      NA),
-  # add first and third quartile
-    indicator_Q1_level2 = ifelse(
-      !is.null(indicator_dist_level2),
-      quantile(unlist(indicator_dist_level2), probs = 0.25),
-      NA), 
-    indicator_Q3_level2 = ifelse(
-      !is.null(indicator_dist_level2),
-      quantile(unlist(indicator_dist_level2), probs = 0.75),
-      NA), 
-  ) |>
-  st_as_sf()
-
-```
-
-```{r tbl-gregAgg}
-#| tbl-cap: 'Table with indicator values and quartiles for geographical regions.'
-#| code-fold: true
-#| code-summary: "Make table"
-
-
-DT::datatable(greg |>
-  as_tibble() |>
-  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
-  select(
-    greg_ID,
-    region,
-    #glacierAreaCurrent,
-    #X100 = glacierAreaOld,
-    #mountainArea,
-    indicator,
-    indicator_mtArea,
-    indicator_level2
-  ))
-```
-
-```{r ridge3}
-#| eval: true
-#| code-fold: true
-#| code-summary: "Make third ridge plot"
-#| warning: false
-
-bw <- 0.015
-
-
-if(!file.exists(paste0(path, "/data/temp_threeRidge.rds"))){
-  threeRidge <- greg_temp |>
-    unnest_longer(indicator_dist_level2) |>
-    ggplot(aes(x = indicator_dist_level2,
-               y = region)) +
-    geom_density_ridges(
-           fill = "orchid1",
-           bandwidth = bw) +
-    labs(y = "",
-         x = "Indicator values (alternative strata approach)") +
-    xlim(0, 1)
-  saveRDS(threeRidge, paste0(path, "/data/temp_threeRidge.rds"))
-} else {
-    threeRidge <- readRDS(paste0(path, "/data/temp_threeRidge.rds"))
-  }
-
-
-```
-
-@fig-ridgde1 and @tbl-gregAgg show how the weighting by the mountain
-area of each EA generally reduces the indicator value. See for example Norther Norway (Nord-Norge)
-where where one strata has an indicator value of 0. This strata had very little
-glaciers to begin with, and in the øastest survey i had none lesft. 
-The alpine area of that strata, however, is quite large. Therefore, thata strata 
-is give en weight in the spatial aggregation only when the weights are determined by the alpine extent. 
-We also see how *preaggregating* to geographical regions creates more unimodal
-sample distributions (pane C).
-
-```{r fig-ridgde1}
-#| echo: false
-#| fig-cap: 'Sample distributions for indicator values aggregated to the scale of geographical regions. a) is aggregated from the original strata using a weighting based on the initial glacier area. b) uses a weighting based on total mountain area in each strata. c) uses geographical regions as alternative strata.'
-#| warning: false
-ggpubr::ggarrange(oneRidge, twoRidge, threeRidge, 
-                  ncol=1, labels = "auto") 
-
-#ggsave(paste0(path, "/img/ridge.png"))
-#knitr::include_graphics(paste0(path, "/img/ridge.png"))
-```
-
-### 9.4 Aggregating to EAA
-
-Then I aggregate the regional sample distributions to the entire
-ecosystem accounting area (EAA), which is mainland Norway.
-
-```{r tblEAAAgg}
-#| code-fold: true
-#| code-summary: "Aggregate indicator values from regions to EAA"
-
-# In order to control the n for how many samples we draw,
-# we first calculate the summed area of glaciers
-
-#greg |>
-#  as_tibble() |>
-#  summarise(total_m2 = sum(glacierAreaOld, na.rm=T)) |> 
-#  pull(total_m2)
-## Result: 33 327 254 334. We can divide this by 10^5
-
-
-greg_to_EAA <- ungroup(greg) |>
-  group_by(greg_ID, region) |>
-  # sample with weights
-  reframe(
-    indicator = 
-      list(
-        sample(
-          unlist(indicator_dist),
-          size = glacierAreaOld*10^-5,
-          replace = T)),
-    indicator_mtArea = 
-      list(
-        sample(
-          unlist(indicator_mtArea_dist),
-          size = glacierAreaOld*10^-5,
-          replace = T)),
-    indicator_level2 = 
-      list(
-        sample(
-          unlist(indicator_dist_level2),
-          size = glacierAreaOld*10^-5,
-          replace = T))
-  ) |>
-  # concactenate the weighted samples
-  ungroup() |>
-  summarise(indicator = list(unlist(indicator)),
-            indicator_mtArea = list(unlist(indicator_mtArea)),
-            indicator_level2 = list(unlist(indicator_level2))) |>
-  pivot_longer(everything(),
-               names_to = "Indicator_variant",
-               values_to = "prob_dist") |>
-  # get summary values
-  rowwise() |>
-  mutate(
-    indicator_value = median(unlist(prob_dist)),
-  # add first and third quartile
-    indicator_Q1 = quantile(unlist(prob_dist), probs = 0.25), 
-    indicator_Q3 = quantile(unlist(prob_dist), probs = 0.75))
-  
-
-
-```
-
-### 9.5 Alternative MMU (EAA)
-
-Similar to in @sec-ea2 I will see what happens if I estimate the
-indicator value directly at the EAA level.
-
-```{r}
-#| code-fold: true
-#| code-summary: "Replace glacier estimates with probability distributions"
-
-EAA <- EAA |>
-# adding 3% uncertainty
-  rowwise() |>
-  mutate(
-    glacierAreaCurrent_dist = 
-      if_else(!is.na(glacierAreaCurrent),
-              list(rnorm(1000, glacierAreaCurrent, glacierAreaCurrent*0.03)),
-              NA), 
-    glacierAreaOld_dist = 
-      if_else(!is.na(glacierAreaOld),
-              list(rnorm(1000, glacierAreaOld, glacierAreaOld*0.03)),
-              NA))
-```
-
-```{r tbl-NormaliseEAA}
-#| tbl-cap: 'Indicator values (four approaches) aggregated to the EAA level.'
-#| code-fold: true
-#| code-summary: "Estimate indicator directly at EAA level"
-
-# create a temporary dataframe
-EAA_temp <- EAA |>
-  as_tibble() |>
-  # unlist and create new rows for each random pair of current and old glacier area estimate
-  unnest_longer(c(
-    glacierAreaCurrent_dist,
-    glacierAreaOld_dist), 
-    keep_empty = T) |>
-  rename(variable = glacierAreaCurrent_dist, 
-         x100 = glacierAreaOld_dist) |>
-  mutate(
-    # define x60 value
-    x60 = x100*scalar,
-    # normalise using piecewise linear transformation
-    indicator_level3 =  ifelse(
-      variable < x60, 
-        ((variable - 0)/(x60 - 0)) * 0.6, 
-        ((variable - x60)/(x100 - x60)) * (1 - 0.6) + 0.6),
-    # truncate
-    indicator_level3 = case_when(
-      indicator_level3 > 1 ~ 1,
-      indicator_level3 < 0 ~ 0,
-      .default = indicator_level3
-    )) |>
-  # recast into list column
-  group_by(EAA_ID) |>
-  summarise(prob_dist = list(indicator_level3), .groups = "drop") |>
-  add_column(Indicator_variant = "indicator_level3") |>
-  # get summary values
-  rowwise() |>
-  mutate(
-    indicator_value = median(unlist(prob_dist)),
-  # add first and third quartile
-    indicator_Q1 = quantile(unlist(prob_dist), probs = 0.25), 
-    indicator_Q3 = quantile(unlist(prob_dist), probs = 0.75))
-
-# combine with the earlier dataset
-greg_to_EAA <- greg_to_EAA |>
-  bind_rows(EAA_temp)
-
-DT::datatable(greg_to_EAA |>
-  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
-  select(
-    -prob_dist,
-    -EAA_ID
-  ))
-
-```
-
-```{r fig-eaaRidge}
-#| fig.cap: 'Distribution of indicator values for the EAA level using four alternative aggregation pathways. Vertical lines are quartiles.'
-#| warning: false
-#| code-fold: true
-#| code-summary: "Make ridge plot"
-
-bw <- 0.015
-
-
-greg_to_EAA |>
-  unnest_longer(prob_dist) |>
-  ggplot(aes(x = prob_dist,
-             y = Indicator_variant,
-             fill = Indicator_variant)) +
-  geom_density_ridges(
-         bandwidth = bw,
-         alpha = .6,
-         quantile_lines = T,
-         show.legend = F) +
-  labs(y = "",
-       x = "Indicator values") +
-  xlim(.45, 1)
-
-```
-
-
-## 10. Results
-
-@tbl-NormaliseEAA and @fig-eaaRidge show the indicator estaimates and
-distributions for the EAA level. I recommend using the *indicator*, i.e.
-the indicator version using the aggregation pathway
-
-$$
-sp.agg^1 - [scale - transform - truncate] - sp.agg^2 - sp.agg^3
-$$
-
-where ^1^ refers to the summation of glacier area inside each EA
-(*pre-aggregation*); ^2^ refers to aggregation to geographical region
-using weighted sampling and taking the median from the resulting
-distribution; and ^3^ refers to further aggregation to the EAA, also
-using weighted sampling from the sample distribution of indicator
-values for the geographical region level.
-
-@fig-maps show that at least three of the aggregation schemes are
-qualitatively similar, but not identical.
-
-```{r}
-#| message: false
+```{r agg}
 #| eval: false
-#| code-fold: true
-#| code-summary: "Make maps"
-
-
-
-# add indicator data to EAA 
-EAA <- EAA |>
-  ungroup() |>
-  as_tibble() |>
-  left_join(greg_to_EAA |>
-              mutate(EAA_ID = "1"),
-            by = join_by(EAA_ID)) |>
-  st_as_sf()
-
-# prepare the greg data a little to be able to row bind with the others
-temp <- greg |>
-  pivot_longer(cols = c(
-    indicator,
-    indicator_level2,
-    indicator_mtArea
-  ),
-  names_to = "Indicator_variant",
-  values_to = "indicator_value") |>
-  select(
-    region,
-    Indicator_variant,
-    indicator_value
-  )
-
-# function for renaming geomatry column in sf
-rename_geometry <- function(g, name){
-    current = attr(g, "sf_column")
-    names(g)[names(g)==current] = name
-    st_geometry(g)=name
-    g
-}
-
-one <- EA |>
-  rename(indicator_value = indicator) |>
-  add_column(level = 1,
-             Indicator_variant = "indicator") |>
-  select(indicator_value,
-         level,
-         Indicator_variant)
-one <- rename_geometry(one, "geometry")
-
-two <-  EAA |> 
-    add_column(level = 3) |>
-    select(indicator_value,
-         level,
-         Indicator_variant)
-
-three <- temp |> 
-    add_column(level = 2) |>
-    select(indicator_value,
-         level,
-         Indicator_variant)
-
-plotdat <- rbind(
-  one, two, three
+mc_propagated <-  ecTools::ec_upscale(
+  data = dat_comb4,
+  variable = indicator,
+  year = year,
+  weight = Initial_area_km2,
+  start_units = region,
+  end_units = part,
+  end_units_name = "part",
+  n = 1000
 )
 
+out <- dat_comb4 |>
+  select(part = region, year, sampled_mean = indicator) |>
+  bind_rows(mc_propagated) |>
+  mutate(part = case_when(
+    part == "Midt-Norge" ~ "C",
+    part == "Nord-Norge" ~ "N",
+    part == "Oestlandet" ~ "E",
+    part == "Sørlandet" ~ "S",
+    part == "Vestlandet" ~ "W",
+    part == "Norway" ~ "Norway",
+    .unmatched = "error"
+  ))
 
-plotdat |>
-  ggplot() +
-  geom_sf(aes(fill = indicator_value),
-          colour = NA) +
-  facet_grid(rows = vars(level),
-             cols = vars(Indicator_variant),
-             drop = T) +
-  scale_fill_gradient(na.value = "grey80") +
-  #geom_sf(data = EAA, fill = NA) +
-  theme_bw()
-
-ggsave(paste0(path, "/img/allmaps.png"))
+saveRDS(out, here::here("data/out.rds"))
 ```
 
-```{r fig-maps}
-#| fig-cap: 'Indicator estimates (median of sample distributions) at three spatial levels: Strata level (top row, level 1); geographical region (second row, level 2); ecosystem accounting area (bottom row, level 3). The two latter aggregation levels are represented with several approaches. _Indicator_ and _indicator_mtArea_ relies on data aggregated through the strata level, but _indicator_mtArea_ uses total mountain area, rather than initial glacier area, as the area weight during the aggregation. _Indicator level2_ refers to the approach where indicator values were estimated directly at the level of geographical regions, and _indicator_level3_ was estimated directly at the EAA level.'
-#| echo: false
-knitr::include_graphics(paste0(path, "/img/allmaps.png"))
+```{r}
+#| include: false
+out <- readRDS(here::here("data/out.rds"))
 ```
 
-The final output is then the indicator estimate for the EAA level
-(@tbl-finalTable).
-
-```{r tbl-finalTable}
-#| tbl-cap: 'Indicator values and the first and third quartile for NO_GLA_001 aggregated to EAA level'
-#| code-fold: true
-#| code-summary: "Make table"
-
-
-
-greg_to_EAA |>
-  filter(Indicator_variant == "indicator") |>
-  mutate(across(where(is.numeric), ~ round(.x, digits = 2))) |>
-  select(
-    -prob_dist,
-    -EAA_ID,
-    -Indicator_variant
+## Results
+```{r summaryStats}
+#| warning: false
+#| message: false
+summary_out <- out |>
+  group_by(part, year) |>
+  summarise(
+    median = round(median(sampled_mean), 2),
+    p_025 = round(quantile(sampled_mean, probs = 0.025), 2),
+    p_25 = round(quantile(sampled_mean, probs = 0.25), 2),
+    p_75 = round(quantile(sampled_mean, probs = 0.75), 2),
+    p_975 = round(quantile(sampled_mean, probs = 0.975), 2),
   ) |>
   add_column(
+    ECT = "A1",
     Indicator = "Glacier area",
-    Indicator_ID = "NO_GLAC_001",
-    Ecosystem = "Alpine",
-    Area = "Mainland Norway",
-    .before = "indicator_value"
-  ) |>
-  rename(Q1 = indicator_Q1,
-         Q3 = indicator_Q3) |>
-  DT::datatable()
+    Ecosystem = "Mountains",
+    ID = "NO_GLAC_001"
+  )
 ```
+
+
+
+```{r tbl-results}
+#| warning: false
+#| message: false
+#| tbl-cap: 'Indicator values and uncertainty estimates for NO_GLAC_001.'
+
+summary_out |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = part,
+    Ecosystem,
+    "Closing year" = year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  knitr::kable()
+```
+
+
+## 11. Export file
+
+The indicator values are exported and can be found under `data/results_NO_GLAC_001_v1.0.0.csv`.
+
+```{r export}
+#| eval: false
+#| code-summary: 'Export data'
+write.csv(out, here::here("data/results_NO_GLAC_001_v1.0.0.csv"), row.names = F)
+```
+
+## 12. Author contributions
+
+This is the work of a single author, although I would like to acknowledge interllectual contributions from the ecosystem group that was part of the assessment of the Norwegian mountain ecosystems for 2024.
+
 
 
 ::: {.callout-tip collapse="true"}
 ## Session Info
 
-This information is mainly aimed at developers that need to recreate the R environment that produced the html.
-Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
-
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
-```
-
+This workflow uses `renv`. Run `renv::restore()` to recreate the working environment. 
+ 
 :::
