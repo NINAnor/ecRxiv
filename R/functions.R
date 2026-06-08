@@ -1,5 +1,4 @@
-# Functions for NO_AATS_001 indicator calculation
-# Absence of alien coniferous tree species
+# Functions for indicator calculation
 
 # Helper to merge split county names (e.g., Telemark SØ/NV -> Telemark)
 # Uses hard-coded mappings for reliability
@@ -98,30 +97,50 @@ calculate_indicator <- function(data, group_var) {
   return(result)
 }
 
-# Function to calculate bootstrap uncertainty
+# Bootstrap uncertainty; `draws` is used by ecTools::ec_upscale() workflows.
 bootstrap_indicator <- function(data, n_bootstrap = 1000) {
-  
-  bootstrap_results <- numeric(n_bootstrap)
-  
-  for (i in 1:n_bootstrap) {
-    # Resample with replacement
-    boot_sample <- data %>%
-      slice_sample(n = nrow(data), replace = TRUE)
-    
-    # Calculate indicator
-    bootstrap_results[i] <- sum(boot_sample$indicator_continuous_weighted, na.rm = TRUE) / 
-                            sum(boot_sample$au_areal, na.rm = TRUE)
+  na_summary <- list(
+    draws = numeric(0),
+    mean = NA_real_,
+    se = NA_real_,
+    ci_lower = NA_real_,
+    ci_upper = NA_real_,
+    q1 = NA_real_,
+    median = NA_real_,
+    q3 = NA_real_
+  )
+
+  n <- nrow(data)
+  if (n == 0L) {
+    return(na_summary)
   }
-  
-  return(list(
+
+  bootstrap_results <- numeric(n_bootstrap)
+
+  for (i in seq_len(n_bootstrap)) {
+    boot_sample <- data %>%
+      dplyr::slice_sample(n = n, replace = TRUE)
+
+    bootstrap_results[i] <- sum(boot_sample$indicator_continuous_weighted, na.rm = TRUE) /
+      sum(boot_sample$au_areal, na.rm = TRUE)
+  }
+
+  bootstrap_results <- bootstrap_results[is.finite(bootstrap_results)]
+
+  if (length(bootstrap_results) < 1L) {
+    return(na_summary)
+  }
+
+  list(
+    draws = bootstrap_results,
     mean = mean(bootstrap_results),
-    se = sd(bootstrap_results),
-    ci_lower = as.numeric(quantile(bootstrap_results, 0.025)),
-    ci_upper = as.numeric(quantile(bootstrap_results, 0.975)),
-    q1 = as.numeric(quantile(bootstrap_results, 0.25)),      # First quartile (25th percentile)
-    median = as.numeric(quantile(bootstrap_results, 0.50)),  # Median (50th percentile)
-    q3 = as.numeric(quantile(bootstrap_results, 0.75))       # Third quartile (75th percentile)
-  ))
+    se = stats::sd(bootstrap_results),
+    ci_lower = as.numeric(stats::quantile(bootstrap_results, 0.025)),
+    ci_upper = as.numeric(stats::quantile(bootstrap_results, 0.975)),
+    q1 = as.numeric(stats::quantile(bootstrap_results, 0.25)),
+    median = as.numeric(stats::quantile(bootstrap_results, 0.50)),
+    q3 = as.numeric(stats::quantile(bootstrap_results, 0.75))
+  )
 }
 
 # Function to scale indicator values
