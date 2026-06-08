@@ -5,11 +5,11 @@ subtitle: |
 indicatorID: 
   - NO_DTVS_001
 indicatorName: 
-  - NO_DTV # add more by adding another line starting '-'
+  - NO_DTVS # add more by adding another line starting '-'
 folderName: NO_DTVS_001
 country: Norway
 continent: Europe
-ECT: B2 Biotic structural characteristic
+ECT: B2 Structural state characteristics
 Realm: 
   - Terrestrial (T)
 Biome: 
@@ -17,14 +17,14 @@ Biome:
 Ecosystem: 
   - T2.1 Boreal/montane forests
 yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
-yearLastUpdate: 2025
+yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
 VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DTVS_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes
-SpatialAggregationPathway: Scale - Aggregate - Truncate
+SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -90,11 +90,16 @@ library(janitor)
 library(stringi)
 library(DT)
 library(gt)
+library(ecTools)
+library(MetBrewer)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
+
+# This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
+# renv::restore()
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -214,6 +219,26 @@ The lower reference level X0 is 0% and the upper reference level X100 is 33% for
 The indicator is ready for use.
 The indicator should not be used at finer spatial resolution than applied to the reference values.
 
+### 1.2 Native language summary - Norwegian
+
+**Bakgrunn og begrunnelse**:
+Volumet av død ved som andel av volumet av alt levende, dødt og hogstved er et robust mål på naturnærhet i skog.
+Død ved er en nøkkelressurs som substrat eller næring for et bredt spekter av skogorganismer, særlig sopp og virvelløse dyr.
+Ved å sammenligne volumet av død ved med volumet av alt ved for samme geografiske område, kan virkningen av produktivitet, treslag og klima delvis utjevnes.
+
+**Metoder**:
+Data for indikatoren kommer fra Landsskogtakseringen (NFI), der volum av levende og stående døde trær samt kumulativt hogstved er registrert for hver takstflate siden midten av 1990-tallet, og liggende død ved siden 2010 (etter gjeldende metode).
+Indikatoren er andelen død vedvolum av alt levende, hogst- og død vedvolum på hver flate.
+For hver rapporteringsperiode beregnes arealvektede gjennomsnitt for fylker, regioner og nasjonalt nivå med `au_areal`.
+Hogstved dekker ikke trær hogst før 1986, så indikatorverdien kan være noe for høy.
+
+**Tolkning**:
+Registrert død vedvolum som andel av alt vedvolum sammenlignes med nasjonale referansenivåer for produktiv skog: nedre referansenivå X0 er 0 % og øvre referansenivå X100 er 33 % (referanse for uproduktiv skog er ikke satt).
+
+**Resultater og utviklingsbehov**:
+Indikatoren er klar til bruk.
+Den bør ikke brukes på finere geografisk oppløsning enn referansenivåene er definert for.
+
 ## 2. About the underlying data
 
 The volume of living trees and standing and lying dead wood > 10 cm in diameter is recorded for each NFI inventory plot [@viken2021-feltinstruks]. 
@@ -240,7 +265,7 @@ At plot level this is a proportion; aggregated values are area-weighted means of
 
 ### 2.4 Instructions for citing, using and accessing data
 
-The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2025-10-20, between NIBIO and the specified users.
+The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2026-05-29, between NIBIO and the specified users.
 Further use of these data requires a separate data user agreement with NIBIO.
 
 ### 2.5 Additional comments about the dataset
@@ -275,12 +300,13 @@ Human climate change may increase the decomposition rate of dead wood, whereas i
 
 ### 3.5 Spatial aggregation
 
-For each reporting period, the plot-level share of dead wood volume to all living, harvested and dead wood is aggregated with area weights to county, regional and national units.
-Where NFI county labels are split into parts, those labels are merged to a single county name before any further calculations.
-Only plots with complete dead wood, living wood and harvested wood volume enter the aggregation; plots with missing values for any of these variables are excluded first.
-For each geographic unit, the non-scaled indicator value is the area-weighted mean of the plot-level share, calculated as the sum of `dead_wood_share * au_areal` divided by the sum of `au_areal` over the included plots in that unit.
-Each county is scaled against the national reference levels X0 = 0% and X100 = 33%.
-Regional and national scaled values are area-weighted means of the scaled county values.
+The spatial aggregation pathway is Aggregate (NFI plots to county) – [Scale – Truncate] – Aggregate (geographic region) – Aggregate (national level).
+For each reporting period, non-scaled values for county (fylke), region, and Norway are obtained by pooling all included forest plots in the unit: the area-weighted mean of the plot-level dead wood share.
+Where NFI county labels are split into parts, those labels are merged to a single county name before aggregation.
+Only plots with complete dead wood, living wood and harvested wood volume enter the aggregation.
+Scaling and truncation are applied after non-scaled county aggregates have been calculated: each county is scaled against the national lower reference level X0 (0% share) and upper reference level X100 (33% share) using a linear scaling function, and values above 1 are truncated to 1 at that step.
+Regional and national scaled point estimates are area-weighted means of the already scaled county values, using each county's represented area as weight.
+Non-scaled regional and national point estimates are calculated directly from all plots within each region or the whole country.
 
 ## 4. Reference condition and levels
 
@@ -293,8 +319,9 @@ The reference condition is considered to be intact forest ecosystems where effec
 The reference value is based on expert assessments of the relationship between the indicator and measures of logging impact, based on reported dead wood data for a range of site conditions and dominating tree species [@storaunet-skarpaas-2022; and references therein].
 A proportion of 1/3 dead wood to all living, harvested and dead wood (by volume) is judged to be a robust measure for forests with only minor impact from forestry over the last 100 years for a range of site conditions and dominating tree species.
 Reference values are expert assessments without estimated uncertainty.
-Hence, the lower reference value (X0) is set to 0% and the upper reference value (X100) is set to 33% for the share of dead wood to all wood.
-The same national reference levels are applied when scaling county, regional and national values in the analyses below.
+Hence, the lower reference level X0 is set to 0% and the upper reference level X100 is set to 33% for the share of dead wood to all wood.
+The national reference levels used in the analyses are listed in @sec-dtvs-reference-values.
+The same X0 and X100 are applied when scaling each county before regional and national aggregation.
 For lack of better knowledge, the relationship between indicator values and ecosystem condition is assumed to be linear for values between X0 and X100.
 Hence, indicator values are scaled between 0 and 1 based on a linear scaling function between X0 and X100; scaled indicator values above 1 are truncated to 1.
 
@@ -316,14 +343,10 @@ These uncertainties are not quantified.
 ### 5.2 Reported uncertainties
 
 The uncertainties reported in @sec-results are inferential and refer to uncertainty around the point estimates, not to the full spatial variation in dead wood share among NFI plots.
-For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within the relevant geographic unit and recalculating the area-weighted mean.
-This is done separately for counties, regions, and the national level.
-For scaled county values, the bootstrap mean, median, standard error, confidence interval, and quartiles from the non-scaled bootstrap are transformed with the same national linear scaling function used for the point estimate.
-This is an approximation when many bootstrap replicates exceed X100, because truncation is not applied inside each bootstrap replicate before summarising the scaled distribution.
-For scaled regional and national values, uncertainty is estimated by bootstrapping plots, calculating county non-scaled values in each replicate, scaling each county with the national reference levels, and then taking the area-weighted mean of the scaled county values within each region or for the whole country.
-The resulting bootstrap distribution is summarised with mean, median, standard error, confidence interval, and quartiles.
-The reported point estimate is the bootstrap median.
-Standard errors, confidence intervals, and quartiles are calculated from the same bootstrap replicate distribution.
+For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within each county and recalculating the area-weighted mean dead wood share.
+For scaled county values, bootstrap draws are transformed with `ecTools::ec_normalise()` using the same national reference levels X0 and X100 as the point estimates (truncation at scaling).
+For scaled regional and national values, uncertainty is propagated from the scaled county bootstrap draws with `ecTools::ec_upscale()`.
+The resulting distributions are summarised with median and quantile intervals.
 
 ## 6. References
 
@@ -332,30 +355,37 @@ Standard errors, confidence intervals, and quartiles are calculated from the sam
 
 ## 7. Import and prepare datasets
 
-R package versions for this indicator are managed with `renv`.
-The project lockfile `renv.lock` records the package versions used to render the document.
-After cloning the repository, run `renv::restore()` in the project root before rendering.
-
 ### 7.1 Living, harvested and dead wood volume per hectare
 
 The volumes of living and dead wood per hectare are quantified for each NFI plot according to methods described in [@viken2021-feltinstruks].
 Harvested volume within each plot is quantified as the cumulative volume of harvested trees since the establishment of the permanent NFI-plots in the late 1980s.
 For this indicator data from each full 5-yr inventory cycle, starting in 2010, are used.
 The plot-level indicator is the share of dead wood volume to the volume of all living, harvested and dead wood.
-Aggregated values are area-weighted means of this share for counties, regions and the whole country using `au_areal`.
-Plots with missing dead wood, living wood or harvested wood volume are excluded before aggregation.
-As the NFI plots vary in density for forest below/above the coniferous forest line and in Finnmark, each type of plot represents a different part of all forest land.
-In addition, some NFI plots are divided in two parts in the data.
-These variations in plot representativity must be accounted for in aggregated estimates.
-Normally, data from NFI will contain an area-weighting variable to be used in aggregating NFI data for spatial units larger than individual NFI plots.
+
 
 ```{r load-data}
 #| code-summary: "Load data"
 
 # Load main data file
-lsk_data_raw <- read_csv(here("data/LSK_data_naturregnskap.csv"),
-                     show_col_types = FALSE,
-                     locale = locale(encoding = "UTF-8")) |>
+# This export wraps each physical line in an extra pair of double quotes, so a
+# single read_csv() sees one column spanning the whole file. Read once as one
+# character column per line (readr unwraps the outer quotes), then parse the
+# inner CSV text.
+lsk_inner_csv <- read_csv(
+  here("data/LSK_data_okologisk_tilstand_2026.csv"),
+  col_names = FALSE,
+  show_col_types = FALSE,
+  locale = locale(encoding = "UTF-8"),
+  col_types = cols(.default = col_character())
+) |>
+  pull(1) |>
+  paste(collapse = "\n")
+
+lsk_data_raw <- read_csv(
+  I(lsk_inner_csv),
+  show_col_types = FALSE,
+  locale = locale(encoding = "UTF-8")
+) |>
   clean_names()
 
 ```
@@ -369,10 +399,9 @@ Aggregated indicator values should not be applied for spatial units finer than t
 
 ## 9. Analyses
 
-### 9.1 Prepare data and create derived variables
+### 9.1 Prepare data and create derived variables {#sec-dtvs-derived-vars}
 
 This section prepares the NFI plot data for calculating the indicator.
-We retain both productive and unproductive forest plots (`arealtype` 1 and 12), exclude plots with missing dead wood, living wood or harvested wood volume, merge split county labels to county level, and create the derived variables used in subsequent aggregation steps.
 
 First we define the 5-year reporting periods that match the temporal structure of the indicator.
 
@@ -388,8 +417,9 @@ reporting_periods <- list(
 
 ```
 
-Next we filter the raw dataset to include only the two relevant forest area types, remove records missing the required volume variables, standardise county names by merging split NFI labels to county level, and compute the share of dead wood volume relative to all wood volume.
-The indicator is calculated as `dw_prha / (dw_prha + vm10_prha + kum_avvirka_prha)`, where `dw_prha` is dead wood volume per hectare, `vm10_prha` is living wood volume per hectare, and `kum_avvirka_prha` is cumulative harvested wood volume per hectare.
+We filter the raw dataset to include both productive and unproductive forest plots (`arealtype` 1 and 12), remove records missing the required volume variables, standardise county names by merging split NFI labels to county level.
+We compute the share of dead wood volume relative to all wood volume.
+The indicator is calculated as `dw_prha / (dw_prha + vm10_prha + kum_avvirka)`, where `dw_prha` is dead wood volume per hectare, `vm10_prha` is living wood volume per hectare, and `kum_avvirka` is cumulative harvested wood volume per hectare.
 For each included plot, the area-weighted contribution to later aggregation is `dead_wood_share * au_areal`.
 Only plots with complete volume data remain in the dataset used for county, regional and national aggregation.
 
@@ -401,7 +431,7 @@ lsk_data <- lsk_data_raw |>
   filter(
     arealtype %in% c(1, 12)
   ) |>
-  filter(!is.na(dw_prha), !is.na(vm10_prha), !is.na(kum_avvirka_prha)) |>
+  filter(!is.na(dw_prha), !is.na(vm10_prha), !is.na(kum_avvirka)) |>
   mutate(
     fylke_name = region_fylke |>
       stringr::str_remove("^\\d+-\\d+\\s+") |>
@@ -418,7 +448,7 @@ lsk_data <- lsk_data_raw |>
     region_name = assign_region_name(region_code),
     
     # Calculate total wood volume (dead + living + harvested)
-    total_wood_volume = dw_prha + vm10_prha + kum_avvirka_prha,
+    total_wood_volume = dw_prha + vm10_prha + kum_avvirka,
     # Indicator value: proportion of dead wood volume to total wood volume
     dead_wood_share = if_else(total_wood_volume > 0, dw_prha / total_wood_volume, 0),
     dead_wood_share_weighted = dead_wood_share * au_areal,
@@ -444,7 +474,7 @@ lsk_data <- lsk_data |>
     fylke_name_clean,
     dw_prha,
     vm10_prha,
-    kum_avvirka_prha,
+    kum_avvirka,
     total_wood_volume,
     dead_wood_share,
     dead_wood_share_weighted,
@@ -454,12 +484,10 @@ lsk_data <- lsk_data |>
 
 ```
 
-The indicator will be scaled against the national reference levels X0 = 0% and X100 = 33% in subsequent steps.
+### 9.2 Calculate non-scaled area-weighted indicator values {#sec-dtvs-non-scaled}
 
-### 9.2 Calculate non-scaled area-weighted indicator values
-
-With the indicator-specific values we produce area-weighted summaries for each reporting period at county, regional and national scales.
-For each unit, the non-scaled value is the sum of `indicator_continuous_weighted` divided by the sum of `au_areal` over included plots in that unit.
+For each reporting period, we calculate non-scaled indicator values separately for counties or sub-counties, regions, and the whole country.
+Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 
 ```{r calculate-dtvs-all-periods}
 #| code-summary: "Calculate non-scaled values"
@@ -476,250 +504,67 @@ For each unit, the non-scaled value is the sum of `indicator_continuous_weighted
 
 ```
 
-### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
+### 9.3 Bootstrap draws per county
 
-Uncertainty in the non-scaled indicator estimates is quantified using bootstrapping.
-For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
+For each county and period, NFI plots are resampled with replacement 1000 times.
+Each replicate computes the area-weighted non-scaled dead wood share, giving a distribution of 1000 draws per county.
 
-```{r bootstrap-dtvs-all-periods}
-#| code-summary: "Bootstrap uncertainty"
+```{r county-draws-long}
+#| code-summary: "Bootstrap draws per county (1000 per county per period)"
+#| cache: true
+#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026.csv")), file.mtime(here::here("R/NO_DTVS_001.qmd")))
 
-# Prepare bootstrap objects per reporting period
- dtvs_bootstrap <- dtvs_results |>
-   purrr::imap(
-     ~ list(
-       period = .y,
-       data = .x$data,
-       county = .x$county,
-       region = .x$region,
-       national = .x$national,
-      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 1000),
-       county_boot = purrr::map(
-         split(.x$data, .x$data$fylke_name),
-        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
-       ),
-       region_boot = purrr::map(
-         split(.x$data, .x$data$region_code),
-        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
-       )
-     )
-   )
+county_draws_long <- purrr::imap_dfr(dtvs_results, function(period_result, period_name) {
+  county_meta <- period_result$county |>
+    dplyr::select(fylke_name, total_area, region_code)
 
-# County-level summaries with uncertainty
- dtvs_results_county_non_scaled_uncertainty <- purrr::map_dfr(
-   dtvs_bootstrap,
-   ~ {
-     county_summary <- purrr::imap_dfr(
-       .x$county_boot,
-       function(boot, county_name) {
-         dplyr::tibble(
-           fylke_name = county_name,
-          mean = boot$mean,
-           indicator_value = boot$median,
-           se = boot$se,
-           ci_lower = boot$ci_lower,
-           ci_upper = boot$ci_upper,
-           q1 = boot$q1,
-           median = boot$median,
-           q3 = boot$q3
-         )
-       }
-     )
-
-     .x$county |>
-       dplyr::select(fylke_name, period, total_area, n_plots) |>
-       dplyr::left_join(county_summary, by = "fylke_name")
-   }
- )
-
-# Region-level summaries with uncertainty
- dtvs_results_region_non_scaled_uncertainty <- purrr::map_dfr(
-   dtvs_bootstrap,
-   ~ {
-     region_summary <- purrr::imap_dfr(
-       .x$region_boot,
-       function(boot, region_code) {
-         dplyr::tibble(
-           region_code = region_code,
-          mean = boot$mean,
-           indicator_value = boot$median,
-           se = boot$se,
-           ci_lower = boot$ci_lower,
-           ci_upper = boot$ci_upper,
-           q1 = boot$q1,
-           median = boot$median,
-           q3 = boot$q3
-         )
-       }
-     )
-
-     .x$region |>
-       dplyr::select(region_code, period, total_area, n_plots) |>
-       dplyr::left_join(region_summary, by = "region_code")
-   }
- )
-
-# National-level summaries with uncertainty
- dtvs_results_national_non_scaled_uncertainty <- purrr::map_dfr(
-   dtvs_bootstrap,
-   ~ .x$national |>
-     dplyr::mutate(
-      mean = .x$national_boot$mean,
-       indicator_value = .x$national_boot$median,
-       se = .x$national_boot$se,
-       ci_lower = .x$national_boot$ci_lower,
-       ci_upper = .x$national_boot$ci_upper,
-       q1 = .x$national_boot$q1,
-       median = .x$national_boot$median,
-       q3 = .x$national_boot$q3
-     )
- )
+  purrr::imap_dfr(
+    split(period_result$data, period_result$data$fylke_name),
+    function(county_data, county_name) {
+      boot <- bootstrap_indicator(county_data, n_bootstrap = 1000)
+      dplyr::tibble(
+        period           = period_name,
+        fylke_name       = county_name,
+        sim_id           = seq_along(boot$draws),
+        non_scaled_value = boot$draws
+      )
+    }
+  ) |>
+    dplyr::left_join(county_meta, by = "fylke_name")
+})
 
 ```
 
-### 9.4 Scale indicator values and aggregate to regional and national levels
+The table below (@tbl-dtvs-county-nonscaled) summarises non-scaled bootstrap draws for all reporting periods: the median area-weighted dead wood share per county.
 
-For each county, the non-scaled point estimate is scaled with the national reference levels X0 = 0% and X100 = 33%.
-Regional and national scaled point estimates are area-weighted means of the scaled county values, weighted by each county's represented area.
-Non-scaled regional and national point estimates are also retained for reporting and truncation summaries.
-For scaled county uncertainty, the non-scaled bootstrap summaries from section 9.3 are transformed with the same national scaling function.
-For scaled regional and national uncertainty, each bootstrap replicate resamples plots, calculates county non-scaled values, scales each county with the national reference levels, and then aggregates the scaled county values within each region or for the whole country before the bootstrap distribution is summarised.
-The `scale_indicator` function automatically truncates values above 1 (i.e., values exceeding 33% are scaled to 1).
+```{r tbl-dtvs-county-nonscaled}
+#| tbl-cap: "Non-scaled dead wood volume share by county for all reporting periods (median of 1000 bootstrap draws)."
+#| echo: false
 
-```{r scale-and-aggregate}
-#| code-summary: "Scale and aggregate"
-
-# Define reference values: x0 = 0% (worst condition), x100 = 33% (best condition)
-x0 <- 0
-x100 <- 0.33
-
-# Scale county values (point estimates) for all periods
-county_scaled_all_periods <- dtvs_results_county_all_periods |>
-  dplyr::mutate(
-    scaled_value = scale_indicator(indicator_value, x0, x100)
-  )
-
-# Uncertainty for county scaled: apply linear scaling to non-scaled CIs and quartiles
-county_scaled_with_uncertainty <- dtvs_results_county_non_scaled_uncertainty |>
+county_draws_long |>
+  dplyr::group_by(period, fylke_name, region_code, total_area) |>
+  dplyr::summarise(
+    non_scaled_median = median(non_scaled_value),
+    .groups = "drop"
+  ) |>
   dplyr::left_join(
-    county_scaled_all_periods |>
-      dplyr::select(period, fylke_name, scaled_value),
+    dtvs_results_county_all_periods |>
+      dplyr::select(period, fylke_name, n_plots),
     by = c("period", "fylke_name")
   ) |>
   dplyr::mutate(
-    scaled_mean = scale_indicator(mean, x0, x100),
-    scaled_median = scale_indicator(indicator_value, x0, x100),
-    scaled_ci_lower = scale_indicator(ci_lower, x0, x100),
-    scaled_ci_upper = scale_indicator(ci_upper, x0, x100),
-    scaled_q1 = scale_indicator(q1, x0, x100),
-    scaled_q3 = scale_indicator(q3, x0, x100)
-  )
-
-# Aggregate non-scaled values to regional level (point estimates) for all periods
-region_non_scaled_agg_all_periods <- dtvs_results_region_all_periods |>
-  dplyr::group_by(period, region_code) |>
-  dplyr::summarise(
-    indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Aggregate non-scaled values to national level (point estimates) for all periods
-national_non_scaled_agg_all_periods <- dtvs_results_national_all_periods |>
-  dplyr::group_by(period) |>
-  dplyr::summarise(
-    indicator_value = sum(indicator_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Aggregate scaled county values to regional level (point estimates) for all periods
-region_scaled_agg_all_periods <- county_scaled_all_periods |>
-  dplyr::group_by(period, region_code) |>
-  dplyr::summarise(
-    scaled_value = sum(scaled_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
+    region_name = assign_region_name(region_code),
+    non_scaled_median_pct = non_scaled_median * 100
   ) |>
-  dplyr::mutate(region_name = assign_region_name(region_code))
-
-# Aggregate scaled county values to national level (point estimates) for all periods
-national_scaled_agg_all_periods <- county_scaled_all_periods |>
-  dplyr::group_by(period) |>
-  dplyr::summarise(
-    scaled_value = sum(scaled_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-    total_area = sum(total_area, na.rm = TRUE),
-    n_plots = sum(n_plots, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
-  dplyr::mutate(region = "National")
-
-# Check for truncation: count values exceeding 33% (x100)
-truncation_summary <- dplyr::bind_rows(
-  dtvs_results_county_all_periods |>
-    dplyr::mutate(
-      level = "County",
-      exceeds_threshold = indicator_value > x100,
-      original_value_pct = round(indicator_value * 100, 2),
-      region_code = NA_character_,
-      region_name = NA_character_
-    ) |>
-    dplyr::select(period, level, region_code, region_name, fylke_name, exceeds_threshold, original_value_pct),
-  region_non_scaled_agg_all_periods |>
-    dplyr::mutate(
-      level = "Region",
-      exceeds_threshold = indicator_value > x100,
-      original_value_pct = round(indicator_value * 100, 2),
-      region_name = assign_region_name(region_code),
-      fylke_name = NA_character_
-    ) |>
-    dplyr::select(period, level, region_code, region_name, fylke_name, exceeds_threshold, original_value_pct),
-  national_non_scaled_agg_all_periods |>
-    dplyr::mutate(
-      level = "National",
-      exceeds_threshold = indicator_value > x100,
-      original_value_pct = round(indicator_value * 100, 2),
-      region_code = NA_character_,
-      region_name = "National",
-      fylke_name = NA_character_
-    ) |>
-    dplyr::select(period, level, region_code, region_name, fylke_name, exceeds_threshold, original_value_pct)
-)
-
-# Summary of truncation by period and level
-truncation_counts <- truncation_summary |>
-  dplyr::group_by(period, level) |>
-  dplyr::summarise(
-    n_total = dplyr::n(),
-    n_exceeding_33pct = sum(exceeds_threshold, na.rm = TRUE),
-    pct_exceeding_33pct = round(100 * n_exceeding_33pct / n_total, 1),
-    .groups = "drop"
-  )
-
-# Values that were truncated (for reporting)
-truncated_values <- truncation_summary |>
-  dplyr::filter(exceeds_threshold) |>
-  dplyr::arrange(period, level, dplyr::desc(original_value_pct))
-
-```
-
-
-Values exceeding the reference value of 33% are truncated to 1.0 in the scaled indicator.
-The following table shows the values that were truncated for each period and level.
-
-```{r report-truncation}
-#| code-summary: "Report truncation"
-
-truncation_counts |>
-  dplyr::rename(
+  dplyr::arrange(period, region_code, fylke_name) |>
+  dplyr::select(
     Period = period,
-    Level = level,
-    `Total` = n_total,
-    `Exceeding 33%` = n_exceeding_33pct,
-    `% Exceeding 33%` = pct_exceeding_33pct
+    County = fylke_name,
+    Region = region_name,
+    `Non-scaled value (proportion)` = non_scaled_median,
+    `Non-scaled value (%)` = non_scaled_median_pct,
+    `Total area (ha)` = total_area,
+    `Number of plots` = n_plots
   ) |>
   gt::gt() |>
   gt::tab_style(
@@ -727,14 +572,321 @@ truncation_counts |>
     locations = gt::cells_column_labels()
   ) |>
   gt::fmt_number(
-    columns = `% Exceeding 33%`,
+    columns = `Non-scaled value (proportion)`,
+    decimals = 4
+  ) |>
+  gt::fmt_number(
+    columns = `Non-scaled value (%)`,
+    decimals = 2
+  ) |>
+  gt::fmt_number(
+    columns = c(`Total area (ha)`, `Number of plots`),
+    decimals = 0,
+    use_seps = TRUE
+  ) |>
+  gt::opt_interactive(
+    use_search = TRUE,
+    use_pagination = TRUE,
+    use_page_size_select = TRUE,
+    page_size_default = 12,
+    page_size_values = c(12, 24, 66)
+  )
+```
+
+### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-dtvs-reference-values}
+
+National reference levels are X0 = 0% and X100 = 33% for the share of dead wood volume to all wood volume.
+
+```{r dtvs-reference-values}
+#| code-summary: "National reference levels"
+
+x0 <- 0
+x100 <- 0.33
+
+
+```
+
+Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, X100 = 33%; truncation at scaling).
+@fig-dtvs-norm shows the mapping.
+
+```{r county-draws-scaled}
+#| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
+
+county_draws_scaled <- county_draws_long |>
+  dplyr::mutate(
+    scaled_value = ec_normalise(
+      non_scaled_value,
+      x0 = x0,
+      x100 = x100,
+      fun = "linear"
+    ),
+    nation = "National"
+  )
+
+county_scaled_with_uncertainty <- county_draws_scaled |>
+  dplyr::group_by(period, fylke_name, total_area, region_code) |>
+  dplyr::summarise(
+    median = median(scaled_value),
+    p_025  = as.numeric(quantile(scaled_value, 0.025)),
+    p_25   = as.numeric(quantile(scaled_value, 0.25)),
+    p_75   = as.numeric(quantile(scaled_value, 0.75)),
+    p_975  = as.numeric(quantile(scaled_value, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::left_join(
+    dtvs_results_county_all_periods |> dplyr::select(period, fylke_name, n_plots),
+    by = c("period", "fylke_name")
+  )
+
+```
+
+```{r fig-dtvs-norm}
+#| fig-cap: "Linear normalisation of dead wood volume share (proportion of all wood volume) to indicator values (0–1), using national reference levels X0 = 0% and X100 = 33%. Points are 500 sampled bootstrap draws, pooled across all reporting periods."
+#| code-summary: "Normalisation diagnostic figure"
+#| cache: false
+#| fig-height: 5
+#| fig-width: 6
+
+norm_plot_data <- county_draws_scaled |>
+  dplyr::slice_sample(n = min(500, nrow(county_draws_scaled)))
+
+dtvs_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
+  ggplot2::labs(
+    x = "Dead wood share (proportion of all wood volume)",
+    y = "Scaled indicator value"
+  ) +
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
+dtvs_norm_plot$layers[[1]]$aes_params$size <- 3
+
+suppressMessages(
+  ggsave(
+    filename = here::here("img/dtvs_norm_plot.png"),
+    plot = dtvs_norm_plot,
+    scale = 1.5
+  )
+)
+
+dtvs_norm_plot
+```
+
+The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
+For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
+
+```{r dtvs-ec-upscale-regional}
+#| code-summary: "ec_upscale: county to region (compute once, save RDS)"
+
+dtvs_mc_cache_deps <- c(
+  here::here("data/LSK_data_okologisk_tilstand_2026.csv"),
+  here::here("R/functions.R"),
+  here::here("R/NO_DTVS_001.qmd")
+)
+dtvs_mc_rds_regional <- here::here("data/dtvs_mc_regional.rds")
+
+if (
+  file.exists(dtvs_mc_rds_regional) &&
+  file.mtime(dtvs_mc_rds_regional) >= max(file.mtime(dtvs_mc_cache_deps), na.rm = TRUE)
+) {
+  dtvs_mc_regional <- readRDS(dtvs_mc_rds_regional)
+} else {
+  dtvs_mc_regional <- ecTools::ec_upscale(
+    data        = county_draws_scaled,
+    variable    = scaled_value,
+    weight      = total_area,
+    start_units = fylke_name,
+    end_units   = region_code,
+    year        = period,
+    end_units_name = "region_code",
+    n = 1000
+  )
+  saveRDS(dtvs_mc_regional, dtvs_mc_rds_regional)
+}
+```
+
+```{r dtvs-ec-upscale-national}
+#| code-summary: "ec_upscale: region to national (compute once, save RDS)"
+
+region_area_weights <- county_draws_scaled |>
+  dplyr::distinct(period, fylke_name, total_area, region_code) |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(region_area = sum(total_area), .groups = "drop")
+
+dtvs_mc_regional_for_national <- dtvs_mc_regional |>
+  dplyr::left_join(region_area_weights, by = c("period", "region_code")) |>
+  dplyr::mutate(nation = "National")
+
+dtvs_mc_rds_national <- here::here("data/dtvs_mc_national.rds")
+
+if (
+  file.exists(dtvs_mc_rds_national) &&
+  file.mtime(dtvs_mc_rds_national) >= max(
+    c(file.mtime(dtvs_mc_cache_deps), file.mtime(dtvs_mc_rds_regional)),
+    na.rm = TRUE
+  )
+) {
+  dtvs_mc_national <- readRDS(dtvs_mc_rds_national)
+} else {
+  dtvs_mc_national <- ecTools::ec_upscale(
+    data        = dtvs_mc_regional_for_national,
+    variable    = sampled_mean,
+    weight      = region_area,
+    start_units = region_code,
+    end_units   = nation,
+    year        = period,
+    end_units_name = "nation",
+    n = 1000
+  )
+  saveRDS(dtvs_mc_national, dtvs_mc_rds_national)
+}
+```
+
+```{r dtvs-mc-combined}
+#| code-summary: "Combine regional and national MC draws; build summary tables"
+
+dtvs_mc_combined <- dplyr::bind_rows(
+  dtvs_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
+  dtvs_mc_national |> dplyr::select(period, region = nation, sampled_mean)
+)
+
+county_scaled_all_periods <- dtvs_results_county_all_periods |>
+  dplyr::mutate(
+    scaled_value = ec_normalise(indicator_value, x0 = x0, x100 = x100, fun = "linear")
+  )
+
+region_scaled_agg_all_periods <- dtvs_mc_regional |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::mutate(region_name = assign_region_name(region_code))
+
+national_scaled_agg_all_periods <- dtvs_mc_national |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::mutate(region = "National")
+
+region_scaled_agg_with_uncertainty <- dtvs_mc_regional |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
+    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+  dplyr::left_join(
+    dtvs_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
+    by = c("period", "region_code")
+  )
+
+national_scaled_agg_with_uncertainty <- dtvs_mc_national |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
+    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region = "National") |>
+  dplyr::left_join(
+    dtvs_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
+    by = "period"
+  )
+
+truncation_summary <- dplyr::bind_rows(
+  dtvs_results_county_all_periods |>
+    dplyr::mutate(
+      level = "County",
+      exceeds_threshold = indicator_value > x100,
+      original_value_pct = round(indicator_value * 100, 2),
+      reference_value_pct = 33,
+      region_code = NA_character_,
+      region_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    ),
+  region_scaled_agg_all_periods |>
+    dplyr::left_join(
+      dtvs_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
+      by = c("period", "region_code")
+    ) |>
+    dplyr::mutate(
+      level = "Region",
+      exceeds_threshold = scaled_value >= 1,
+      original_value_pct = round(indicator_value * 100, 2),
+      reference_value_pct = NA_real_,
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    ),
+  national_scaled_agg_all_periods |>
+    dplyr::left_join(
+      dtvs_results_national_all_periods |> dplyr::select(period, indicator_value),
+      by = "period"
+    ) |>
+    dplyr::mutate(
+      level = "National",
+      exceeds_threshold = scaled_value >= 1,
+      original_value_pct = round(indicator_value * 100, 2),
+      reference_value_pct = NA_real_,
+      region_code = NA_character_,
+      region_name = "National",
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    )
+)
+
+truncation_counts <- truncation_summary |>
+  dplyr::group_by(period, level) |>
+  dplyr::summarise(
+    n_total = dplyr::n(),
+    n_exceeding_reference = sum(exceeds_threshold, na.rm = TRUE),
+    pct_exceeding_reference = round(100 * n_exceeding_reference / n_total, 1),
+    .groups = "drop"
+  )
+
+truncated_values <- truncation_summary |>
+  dplyr::filter(exceeds_threshold) |>
+  dplyr::arrange(period, level, dplyr::desc(original_value_pct))
+
+```
+
+At county level, truncation is evaluated by comparing the non-scaled point estimate to X100 (33%).
+At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
+The following tables summarise how often truncation occurred in each period and list the affected units.
+
+```{r dtvs-report-truncation}
+#| code-summary: "Report truncation"
+#| echo: false
+
+truncation_counts |>
+  dplyr::rename(
+    Period = period,
+    Level = level,
+    `Total` = n_total,
+    `Exceeding reference` = n_exceeding_reference,
+    `% Exceeding reference` = pct_exceeding_reference
+  ) |>
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `% Exceeding reference`,
     decimals = 1
   )
 
 if (nrow(truncated_values) > 0) {
-  cat("\n### Values that were truncated:\n")
-  # Format truncated values for better display
-  truncated_display <- truncated_values |>
+  truncated_values |>
     dplyr::mutate(
       location = dplyr::case_when(
         level == "County" ~ fylke_name,
@@ -743,233 +895,258 @@ if (nrow(truncated_values) > 0) {
         TRUE ~ NA_character_
       )
     ) |>
-    dplyr::select(period, level, location, original_value_pct) |>
+    dplyr::select(period, level, location, reference_value_pct, original_value_pct) |>
     dplyr::rename(
       Period = period,
       Level = level,
       Location = location,
-      `Original Value (%)` = original_value_pct
+      `Reference (%)` = reference_value_pct,
+      `Original value (%)` = original_value_pct
+    ) |>
+    gt::gt() |>
+    gt::tab_style(
+      style = gt::cell_text(weight = "bold"),
+      locations = gt::cells_column_labels()
+    ) |>
+    gt::fmt_number(
+      columns = c(`Reference (%)`, `Original value (%)`),
+      decimals = 1
     )
-  print(truncated_display)
 } else {
-  cat("\nNo values exceeded 33% and required truncation.\n")
+  cat("\nNo values exceeded X100 (33%) and required truncation.\n")
 }
 
 ```
 
-```{r bootstrap-scaled-uncertainty}
-#| code-summary: "Bootstrap uncertainty for scaled values"
+The time series below (@fig-dtvs-timeSeries) summarises regional and national values.
 
-# Bootstrap uncertainty for scaled-then-aggregated regions per period
-region_scaled_uncertainty <- purrr::imap_dfr(
-  dtvs_results,
-  function(period_result, period_name) {
-    period_data <- period_result$data
-    
-    if (nrow(period_data) == 0) return(NULL)
-    
-    bootstrap_region_scaled_agg(
-      period_data,
-      x0 = x0,
-      x100 = x100,
-      n_bootstrap = 1000
-    ) |>
-      dplyr::rename(
-        boot_mean = mean,
-        boot_median = median
-      ) |>
-      dplyr::mutate(period = period_name)
-  }
+```{r fig-dtvs-timeSeries}
+#| fig-cap: "Indicator values for dead wood volume share by region and reporting period. Points show the MC median; error bars are 95% credible intervals from the Monte Carlo propagation. National values use filled circles and a thicker line."
+#| code-summary: "Time series of indicator values by region and period"
+#| cache: false
+#| warning: false
+#| message: false
+
+dtvs_region_labels <- c(
+  "1" = "Øst", "2" = "Sør", "3" = "Vest",
+  "4" = "Midt", "5" = "Nord", "National" = "National"
+)
+dtvs_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
+dtvs_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(dtvs_region_levels)),
+  dtvs_region_levels
 )
 
-# Bootstrap uncertainty for scaled-then-aggregated national per period
-national_scaled_uncertainty <- purrr::imap_dfr(
-  dtvs_results,
-  function(period_result, period_name) {
-    period_data <- period_result$data
-    
-    if (nrow(period_data) == 0) return(NULL)
-    
-    boot_result <- bootstrap_national_scaled_agg(
-      period_data,
-      x0 = x0,
-      x100 = x100,
-      n_bootstrap = 1000
-    )
-    
-    dplyr::tibble(
-      period = period_name,
-      region = "National",
-      boot_mean = boot_result$mean,
-      boot_median = boot_result$median,
-      se = boot_result$se,
-      ci_lower = boot_result$ci_lower,
-      ci_upper = boot_result$ci_upper,
-      q1 = boot_result$q1,
-      q3 = boot_result$q3
-    )
-  }
-)
-
-# Attach uncertainty to scaled aggregated values and retain both bootstrap mean and median
-region_scaled_agg_with_uncertainty <- region_scaled_agg_all_periods |>
-  dplyr::left_join(region_scaled_uncertainty, by = c("period", "region_code")) |>
+dtvs_plot_data <- dtvs_mc_combined |>
   dplyr::mutate(
-    scaled_mean = boot_mean,
-    scaled_median = boot_median
-  )
+    region_name = dplyr::recode(region, !!!dtvs_region_labels),
+    series_type = dplyr::if_else(region == "National", "National", "Region")
+  ) |>
+  dplyr::group_by(period, region_name, series_type) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = factor(region_name, levels = dtvs_region_levels))
 
-national_scaled_agg_with_uncertainty <- national_scaled_agg_all_periods |>
-  dplyr::left_join(national_scaled_uncertainty, by = c("period", "region")) |>
-  dplyr::mutate(
-    scaled_mean = boot_mean,
-    scaled_median = boot_median
-  )
-
+ggplot2::ggplot(
+  dtvs_plot_data,
+  ggplot2::aes(x = period, y = median, colour = region_name, group = region_name)
+) +
+  ggplot2::geom_line(
+    ggplot2::aes(linewidth = series_type),
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::geom_pointrange(
+    ggplot2::aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8, linewidth = 0.45,
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::scale_colour_manual(values = dtvs_region_cols, name = NULL) +
+  ggplot2::scale_shape_manual(values = c(National = 19, Region = 17), name = NULL) +
+  ggplot2::scale_linewidth_manual(values = c(National = 1, Region = 0.55), guide = "none") +
+  ggplot2::scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme(
+    legend.position    = "bottom",
+    legend.box         = "horizontal",
+    panel.grid.minor   = ggplot2::element_blank(),
+    panel.grid.major.x = ggplot2::element_blank()
+  ) +
+  ggplot2::guides(
+    colour = ggplot2::guide_legend(
+      nrow = 2,
+      override.aes = list(size = 0.7, linewidth = 0.45)
+    ),
+    shape  = ggplot2::guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  ggplot2::labs(y = "Indicator value", x = "")
 ```
 
 
 ## 10. Results {#sec-results}
 
 The following tables present scaled indicator results at county, regional, and national scales for each reporting period.
-All scaled values are on a 0-1 scale, where 0 corresponds to X0 (0% dead wood share) and 1 corresponds to X100 (33% dead wood share).
-County tables report bootstrap means and medians, standard errors, confidence intervals, and quartiles derived from the non-scaled bootstrap and transformed with the national scaling function.
-The reported point estimate is the bootstrap median.
-Standard errors, confidence intervals, and quartiles are calculated from the same bootstrap replicate distribution and are not centred on the bootstrap mean.
-Regional and national tables report bootstrap means and medians together with standard errors, confidence intervals, and quartiles from the scale-then-aggregate bootstrap workflow in section 9.4.
-Scaled point estimates at regional and national levels are area-weighted means of scaled county values.
-Values exceeding 33% are truncated to 1.
+Tables report the median as the indicator value, with an approximate 95% interval (2.5% and 97.5% quantiles) and an approximate interquartile range (25% and 75% quantiles).
+All scaled values are on a 0–1 scale, where 0 corresponds to X0 (0% dead wood share) and 1 corresponds to X100 (33% dead wood share).
 
 ### 10.1 County-level results (scaled with uncertainty)
 
-```{r tbl-county-results-table}
-#| tbl-cap: 'County-level indicator values for dead wood volume as share of all wood volume by reporting period. Values are scaled to 0-1 using national X0 and X100. Uncertainty is obtained by applying the national scaling function to the non-scaled bootstrap summaries from section 9.3. The reported point estimate is the bootstrap median. The table includes bootstrap mean and median estimates, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+Use the search box and page controls in @tbl-dtvs-county-results to browse county rows across all reporting periods.
+
+```{r tbl-dtvs-county-results}
+#| tbl-cap: 'County indicator values for dead wood volume share by reporting period. Values are scaled to 0–1 using national X0 and X100. Uncertainty is derived from 1000 bootstrap draws. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
 #| echo: false
 
 county_scaled_with_uncertainty |>
   dplyr::mutate(
     fylke_name_clean = stringi::stri_trans_general(
       stringr::str_squish(
-        tolower(stringr::str_replace_all(fylke_name, "[0-9.-]", " "))
+        tolower(stringr::str_replace_all(.data$fylke_name, "[0-9.-]", " "))
       ),
       "Latin-ASCII"
     ),
-    region_code = assign_region_code(fylke_name_clean),
-    region_name = assign_region_name(region_code)
+    region_code = assign_region_code(.data$fylke_name_clean),
+    region_name = assign_region_name(.data$region_code),
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
   ) |>
-  dplyr::select(period, fylke_name, region_name, scaled_value, scaled_mean, scaled_median, se, scaled_ci_lower, scaled_ci_upper, 
-         scaled_q1, scaled_q3, total_area, n_plots) |>
-  dplyr::mutate(
-    scaled_value = round(scaled_value, 3),
-    scaled_mean = round(scaled_mean, 3),
-    scaled_median = round(scaled_median, 3),
-    se = round(se, 3),
-    scaled_ci_lower = round(scaled_ci_lower, 3),
-    scaled_ci_upper = round(scaled_ci_upper, 3),
-    scaled_q1 = round(scaled_q1, 3),
-    scaled_q3 = round(scaled_q3, 3),
-    total_area = round(total_area, 0)
+  dplyr::arrange(.data$period, .data$region_code, .data$fylke_name) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "B2",
+    Indicator = "Dead wood volume share",
+    ID = "NO_DTVS_001",
+    `Accounting area` = .data$fylke_name,
+    Region = .data$region_name,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
   ) |>
-  dplyr::rename(
-    Period = period,
-    County = fylke_name,
-    Region = region_name,
-    `Scaled value` = scaled_value,
-    `Bootstrapped (mean)` = scaled_mean,
-    `Bootstrapped (median)` = scaled_median,
-    `Standard Error` = se,
-    `CI Lower` = scaled_ci_lower,
-    `CI Upper` = scaled_ci_upper,
-    `Q1` = scaled_q1,
-    `Q3` = scaled_q3,
-    `Total Area (ha)` = total_area,
-    `Number of Plots` = n_plots
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
   ) |>
-  DT::datatable(
-    rownames = FALSE,
-    options = list(pageLength = 10, scrollX = TRUE, lengthMenu = c(10, 25, 50, 100))
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  ) |>
+  gt::opt_interactive(
+    use_search = TRUE,
+    use_pagination = TRUE,
+    use_page_size_select = TRUE,
+    page_size_default = 12,
+    page_size_values = c(12, 24, 66)
   )
 ```
 
 ### 10.2 Regional results (scaled with uncertainty)
 
-```{r tbl-region-results-table}
-#| tbl-cap: 'Regional-level indicator values for dead wood volume as share of all wood volume by reporting period. Scaled point estimates are area-weighted means of scaled county values. Uncertainty is estimated by bootstrapping plots, scaling counties in each replicate, and aggregating the scaled values within each region. The reported point estimate is the bootstrap median. The table includes the scaled point estimate, bootstrap mean and median, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+```{r tbl-dtvs-region-results}
+#| tbl-cap: 'Regional indicator values for dead wood volume share by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws per region per period). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
 #| echo: false
 
 region_scaled_agg_with_uncertainty |>
-  dplyr::select(period, region_name, scaled_value, scaled_mean, scaled_median, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
   dplyr::mutate(
-    scaled_value = round(scaled_value, 3),
-    scaled_mean = round(scaled_mean, 3),
-    scaled_median = round(scaled_median, 3),
-    se = round(se, 3),
-    ci_lower = round(ci_lower, 3),
-    ci_upper = round(ci_upper, 3),
-    q1 = round(q1, 3),
-    q3 = round(q3, 3),
-    total_area = round(total_area, 0)
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
   ) |>
-  dplyr::rename(
-    Period = period,
-    Region = region_name,
-    `Scaled value` = scaled_value,
-    `Bootstrapped (mean)` = scaled_mean,
-    `Bootstrapped (median)` = scaled_median,
-    `Standard Error` = se,
-    `CI Lower` = ci_lower,
-    `CI Upper` = ci_upper,
-    `Q1` = q1,
-    `Q3` = q3,
-    `Total Area (ha)` = total_area,
-    `Number of Plots` = n_plots
+  dplyr::arrange(.data$period, .data$region_code) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "B2",
+    Indicator = "Dead wood volume share",
+    ID = "NO_DTVS_001",
+    `Accounting area` = .data$region_name,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
   ) |>
-  kable() |>
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  )
 ```
 
 ### 10.3 National results (scaled with uncertainty)
 
-```{r tbl-national-results-table}
-#| tbl-cap: 'National-level indicator values for dead wood volume as share of all wood volume by reporting period. Scaled point estimates are area-weighted means of scaled county values. Uncertainty is estimated by bootstrapping plots, scaling counties in each replicate, and aggregating the scaled values nationally. The reported point estimate is the bootstrap median. The table includes the scaled point estimate, bootstrap mean and median, standard error (SE), 95% confidence intervals (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+```{r tbl-dtvs-national-results}
+#| tbl-cap: 'National indicator values for dead wood volume share by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
 #| echo: false
 
 national_scaled_agg_with_uncertainty |>
-  dplyr::select(period, region, scaled_value, scaled_mean, scaled_median, se, ci_lower, ci_upper, q1, q3, total_area, n_plots) |>
   dplyr::mutate(
-    scaled_value = round(scaled_value, 3),
-    scaled_mean = round(scaled_mean, 3),
-    scaled_median = round(scaled_median, 3),
-    se = round(se, 3),
-    ci_lower = round(ci_lower, 3),
-    ci_upper = round(ci_upper, 3),
-    q1 = round(q1, 3),
-    q3 = round(q3, 3),
-    total_area = round(total_area, 0)
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
   ) |>
-  dplyr::rename(
-    Period = period,
-    `Spatial Level` = region,
-    `Scaled value` = scaled_value,
-    `Bootstrapped (mean)` = scaled_mean,
-    `Bootstrapped (median)` = scaled_median,
-    `Standard Error` = se,
-    `CI Lower` = ci_lower,
-    `CI Upper` = ci_upper,
-    `Q1` = q1,
-    `Q3` = q3,
-    `Total Area (ha)` = total_area,
-    `Number of Plots` = n_plots
+  dplyr::arrange(.data$period) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "B2",
+    Indicator = "Dead wood volume share",
+    ID = "NO_DTVS_001",
+    `Accounting area` = "National",
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
   ) |>
-  kable() |>
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  )
 ```
 
 
 ## 11. Export file
 
+Regional and national Monte Carlo draws are exported in one table (`dtvs_mc_combined`: `period`, `region`, `sampled_mean`; `region` contains the five NI region codes and `"National"`).
+
 ```{r export}
 #| eval: false
+#| code-summary: "Export regional and national MC-propagated indicator draws"
+
+write.csv(
+  dtvs_mc_combined,
+  here::here("data/results_NO_DTVS_001.csv"),
+  row.names = FALSE
+)
 ```
 
 ## 12. Author contributions
