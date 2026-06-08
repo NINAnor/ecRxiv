@@ -291,9 +291,8 @@ The spatial aggregation pathway is Aggregate (NFI plots to county/sub-county) �
 For each NFI plot we first convert bilberry cover from percent to proportion and create `indicator_continuous_weighted = indicator_cover * au_areal`.
 Non-scaled indicator values for each reporting period are calculated separately for each geographic unit as area-weighted arithmetic means of all NFI plots within that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 This is done for counties or sub-counties, regions, and at national level.
-Scaling and truncation are applied only after these non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level X0 (0% cover) and upper reference level X100 using a linear scaling function, and values above NEEDS TO CHANGE: 1 are truncated to 1 at that step (not after regional or national aggregation).
-Regional and national scaled point estimates are area-weighted means of the already scaled county or sub-county values, using each county or sub-county's represented area as weight.
-Non-scaled regional and national point estimates are still calculated directly from all plots within each region or the whole country.
+Scaling is applied after these non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level X0 (0% cover) and upper reference level X100 using a linear scaling function without truncation.
+Regional and national scaled values are area-weighted means of these scaled county or sub-county values, using each county or sub-county's represented area as weight; mean values that are larger than the reference value are then truncated to 0–1 both at the regional and national level.
 
 ## 4. Reference condition and levels
 
@@ -308,7 +307,7 @@ The reference condition is considered to be intact forest ecosystems where effec
 The lower reference level X0 is set to 0% bilberry cover and the upper reference level X100 is set separately for each county or sub-county.
 X0 denotes the worst possible condition and X100 denotes the best possible condition on the original cover scale.
 Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
-CHANGE TRUNCATION:Scaled values above 1 are truncated to 1 when bilberry cover exceeds the county-specific X100.
+Scaled values may exceed 1 at county or sub-county level when bilberry cover exceeds the county-specific X100; truncation to 1 is applied only after area-weighted aggregation to regional and national level.
 The county and sub-county X100 values used in the analyses are listed in @sec-blaa-reference-values.
 X0 is 0 for all units.
 
@@ -329,10 +328,9 @@ Reference levels are held fixed in this workflow (their own uncertainties are no
 The uncertainties reported in @sec-results are inferential and refer to uncertainty around the point estimates, not to the full spatial variation in bilberry cover among NFI plots.
 For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within the relevant geographic unit and recalculating the area-weighted mean.
 This is done separately for counties or sub-counties, regions, and the national level.
-For scaled county or sub-county values, the bootstrap mean, median, standard error, confidence interval, and quartiles from the non-scaled bootstrap are transformed with the same county-specific linear scaling function used for the point estimate.
-This is an approximation when many bootstrap replicates exceed X100, because truncation is not applied inside each bootstrap replicate before summarising the scaled distribution.
-For scaled regional and national values, uncertainty is estimated by bootstrapping plots, calculating county or sub-county non-scaled values in each replicate, scaling each county or sub-county with its own reference levels, and then taking the area-weighted mean of the scaled county or sub-county values within each region or for the whole country.
-The resulting bootstrap distribution is summarised with mean, median, standard error, confidence interval, and quartiles.
+For scaled county or sub-county values, bootstrap draws are transformed with the same county-specific linear scaling function used for the point estimate, without truncation.
+For scaled regional and national values, uncertainty is propagated from the scaled county bootstrap draws; each Monte Carlo replicate is truncated to the 0–1 condition scale after aggregation.
+The resulting distributions are summarised with median and quantile intervals.
 
 ## 6. References
 
@@ -604,20 +602,19 @@ county_reference <- blaa_reference_values |>
 
 ```
 
-Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, county-specific X100).
+Each county's 1000 non-scaled draws from section 9.3 are linearly scaled with `ec_scale_linear()` (X0 = 0, county-specific X100) without truncation.
 @fig-blaa-norm shows the mapping for each sub-county.
 
 ```{r county-draws-scaled}
-#| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
+#| code-summary: "Scale county draws (no truncation); derive county uncertainty and feed ec_upscale"
 
 county_draws_scaled <- county_draws_long |>
   dplyr::inner_join(county_reference, by = "county_part") |>
   dplyr::mutate(
-    scaled_value = ec_normalise(
+    scaled_value = ec_scale_linear(
       non_scaled_value,
-      x0 = 0,
-      x100 = x100,
-      fun = "linear"
+      x0 = x0,
+      x100 = x100
     ),
     nation = "National"
   )
@@ -641,7 +638,7 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
 ```
 
 ```{r fig-blaa-norm}
-#| fig-cap: "Linear normalisation of bilberry cover proportion to indicator values (0–1), one panel per sub-county reference unit. Points are 100 sampled bootstrap draws per unit, pooled across all reporting periods."
+#| fig-cap: "Linear scaling of bilberry cover proportion to the indicator scale (without truncation), one panel per sub-county reference unit. Points are 100 sampled bootstrap draws per unit, pooled across all reporting periods; values may exceed 1 when cover exceeds X100."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
 #| fig-height: 8
@@ -670,61 +667,87 @@ ggsave(
 blaa_norm_plot
 ```
 
-The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
+The scaled draws are passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
 For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
+Truncation to the 0–1 condition scale is applied to regional and national Monte Carlo draws after aggregation.
 
 ```{r blaa-ec-upscale-regional}
-#| code-summary: "ec_upscale: county to region"
-#| eval: false
+#| code-summary: "ec_upscale: county to region (compute once, save RDS)"
 
-blaa_mc_regional <- ecTools::ec_upscale(
-  data        = county_draws_scaled,
-  variable    = scaled_value,
-  weight      = total_area,
-  start_units = fylke_name,
-  end_units   = region_code,
-  year        = period,
-  end_units_name = "region_code",
-  n = 1000
+blaa_mc_cache_deps <- c(
+  here::here("data/LSK_data_okologisk_tilstand_2026.csv"),
+  here::here("R/functions.R"),
+  here::here("R/NO_BLAA_001.qmd")
 )
-saveRDS(blaa_mc_regional, here::here("data/blaa_mc_regional.rds"))
-```
+blaa_mc_rds_regional <- here::here("data/blaa_mc_regional.rds")
 
-```{r blaa-load-mc-regional}
-#| include: false
-blaa_mc_regional <- readRDS(here::here("data/blaa_mc_regional.rds"))
+if (
+  file.exists(blaa_mc_rds_regional) &&
+  file.mtime(blaa_mc_rds_regional) >= max(file.mtime(blaa_mc_cache_deps), na.rm = TRUE)
+) {
+  blaa_mc_regional_raw <- readRDS(blaa_mc_rds_regional)
+} else {
+  blaa_mc_regional_raw <- ecTools::ec_upscale(
+    data        = county_draws_scaled,
+    variable    = scaled_value,
+    weight      = total_area,
+    start_units = fylke_name,
+    end_units   = region_code,
+    year        = period,
+    end_units_name = "region_code",
+    n = 1000
+  )
+  saveRDS(blaa_mc_regional_raw, blaa_mc_rds_regional)
+}
+
+blaa_mc_regional <- blaa_mc_regional_raw |>
+  dplyr::mutate(
+    sampled_mean_raw = sampled_mean,
+    sampled_mean = ec_truncate_indicator(sampled_mean)
+  )
 ```
 
 ```{r blaa-ec-upscale-national}
-#| code-summary: "ec_upscale: region to national"
-#| eval: false
+#| code-summary: "ec_upscale: region to national (compute once, save RDS)"
 
-# Region-level area weights (sum of county total_area within each region)
 region_area_weights <- county_draws_scaled |>
   dplyr::distinct(period, fylke_name, total_area, region_code) |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(region_area = sum(total_area), .groups = "drop")
 
-blaa_mc_regional_for_national <- blaa_mc_regional |>
+blaa_mc_regional_for_national <- blaa_mc_regional_raw |>
   dplyr::left_join(region_area_weights, by = c("period", "region_code")) |>
   dplyr::mutate(nation = "National")
 
-blaa_mc_national <- ecTools::ec_upscale(
-  data        = blaa_mc_regional_for_national,
-  variable    = sampled_mean,
-  weight      = region_area,
-  start_units = region_code,
-  end_units   = nation,
-  year        = period,
-  end_units_name = "nation",
-  n = 1000
-)
-saveRDS(blaa_mc_national, here::here("data/blaa_mc_national.rds"))
-```
+blaa_mc_rds_national <- here::here("data/blaa_mc_national.rds")
 
-```{r blaa-load-mc-national}
-#| include: false
-blaa_mc_national <- readRDS(here::here("data/blaa_mc_national.rds"))
+if (
+  file.exists(blaa_mc_rds_national) &&
+  file.mtime(blaa_mc_rds_national) >= max(
+    c(file.mtime(blaa_mc_cache_deps), file.mtime(blaa_mc_rds_regional)),
+    na.rm = TRUE
+  )
+) {
+  blaa_mc_national_raw <- readRDS(blaa_mc_rds_national)
+} else {
+  blaa_mc_national_raw <- ecTools::ec_upscale(
+    data        = blaa_mc_regional_for_national,
+    variable    = sampled_mean,
+    weight      = region_area,
+    start_units = region_code,
+    end_units   = nation,
+    year        = period,
+    end_units_name = "nation",
+    n = 1000
+  )
+  saveRDS(blaa_mc_national_raw, blaa_mc_rds_national)
+}
+
+blaa_mc_national <- blaa_mc_national_raw |>
+  dplyr::mutate(
+    sampled_mean_raw = sampled_mean,
+    sampled_mean = ec_truncate_indicator(sampled_mean)
+  )
 ```
 
 ```{r blaa-mc-combined}
@@ -732,29 +755,34 @@ blaa_mc_national <- readRDS(here::here("data/blaa_mc_national.rds"))
 
 blaa_mc_combined <- dplyr::bind_rows(
   blaa_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
-  blaa_mc_national |> dplyr::select(period, region = nation,      sampled_mean)
+  blaa_mc_national |> dplyr::select(period, region = nation, sampled_mean)
 )
 
-# County point estimates (non-bootstrapped) scaled for the truncation check
 county_scaled_all_periods <- blaa_results_county_all_periods |>
   dplyr::left_join(county_reference, by = "county_part") |>
   dplyr::filter(!is.na(x100)) |>
   dplyr::mutate(
-    scaled_value = ec_normalise(indicator_value, x0 = x0, x100 = x100, fun = "linear")
+    scaled_value = ec_scale_linear(indicator_value, x0 = x0, x100 = x100)
   )
 
-# Point-estimate summaries (median of MC draws) used in the truncation check
 region_scaled_agg_all_periods <- blaa_mc_regional |>
   dplyr::group_by(period, region_code) |>
-  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::summarise(
+    scaled_value_raw = median(sampled_mean_raw),
+    scaled_value = median(sampled_mean),
+    .groups = "drop"
+  ) |>
   dplyr::mutate(region_name = assign_region_name(region_code))
 
 national_scaled_agg_all_periods <- blaa_mc_national |>
   dplyr::group_by(period) |>
-  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::summarise(
+    scaled_value_raw = median(sampled_mean_raw),
+    scaled_value = median(sampled_mean),
+    .groups = "drop"
+  ) |>
   dplyr::mutate(region = "National")
 
-# Uncertainty summaries for the results tables (section 10)
 region_scaled_agg_with_uncertainty <- blaa_mc_regional |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(
@@ -787,22 +815,7 @@ national_scaled_agg_with_uncertainty <- blaa_mc_national |>
     by = "period"
   )
 
-# Truncation check across all spatial levels
 truncation_summary <- dplyr::bind_rows(
-  county_scaled_all_periods |>
-    dplyr::left_join(
-      blaa_reference_values |> dplyr::select(county_part, reference_value_pct = x100_pct),
-      by = "county_part"
-    ) |>
-    dplyr::mutate(
-      level = "County",
-      exceeds_threshold = indicator_value > x100,
-      original_value_pct = round(indicator_value * 100, 2),
-      region_code = NA_character_,
-      region_name = NA_character_
-    ) |>
-    dplyr::select(period, level, region_code, region_name, fylke_name,
-                  reference_value_pct, exceeds_threshold, original_value_pct),
   region_scaled_agg_all_periods |>
     dplyr::left_join(
       blaa_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
@@ -810,7 +823,7 @@ truncation_summary <- dplyr::bind_rows(
     ) |>
     dplyr::mutate(
       level = "Region",
-      exceeds_threshold = scaled_value >= 1,
+      exceeds_threshold = scaled_value_raw > 1,
       original_value_pct = round(indicator_value * 100, 2),
       reference_value_pct = NA_real_,
       fylke_name = NA_character_
@@ -824,7 +837,7 @@ truncation_summary <- dplyr::bind_rows(
     ) |>
     dplyr::mutate(
       level = "National",
-      exceeds_threshold = scaled_value >= 1,
+      exceeds_threshold = scaled_value_raw > 1,
       original_value_pct = round(indicator_value * 100, 2),
       reference_value_pct = NA_real_,
       region_code = NA_character_,
@@ -850,9 +863,9 @@ truncated_values <- truncation_summary |>
 
 ```
 
-At county or sub-county level, truncation is evaluated by comparing the non-scaled point estimate to the matching X100.
-At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
-The following tables summarise how often truncation occurred in each period and list the affected units.
+Truncation is applied only after regional and national aggregation.
+The tables below report cases where the area-weighted aggregated scaled value exceeded 1 before truncation (`scaled_value_raw > 1`).
+The following tables summarise how often this occurred in each period and list the affected units.
 
 ```{r report-truncation}
 #| code-summary: "Report truncation"
@@ -918,6 +931,7 @@ if (nrow(truncated_values) > 0) {
 ## 10. Results {#sec-results}
 
 The following tables present scaled indicator results at county or sub-county, regional, and national scales for each reporting period.
+County values are linearly scaled without truncation; regional and national values are truncated to 0–1 after area-weighted aggregation (section 9.4).
 Tables report the median as the indicator value, with an approximate 95% interval (2.5% and 97.5% quantiles) and an approximate interquartile range (25% and 75% quantiles).
 
 The time series below (@fig-blaa-timeSeries) summarises regional and national values.
@@ -986,7 +1000,7 @@ ggplot2::ggplot(blaa_plot_data,
 ### 10.1 County-level results (scaled with uncertainty)
 
 ```{r tbl-county-results-table}
-#| tbl-cap: 'County or sub-county indicator values for bilberry cover by area by reporting period. Values are scaled to 0–1 using county-specific X0 and X100 via ec_normalise(). Uncertainty is derived from 1000 bootstrap draws scaled with the same function (section 9.3–9.4). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
+#| tbl-cap: 'County or sub-county indicator values for bilberry cover by area by reporting period. Values are linearly scaled with county-specific X0 and X100 without truncation. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
 #| echo: false
 
 county_scaled_with_uncertainty |>
@@ -1029,7 +1043,7 @@ county_scaled_with_uncertainty |>
 ### 10.2 Regional results (scaled with uncertainty)
 
 ```{r tbl-region-results-table}
-#| tbl-cap: 'Regional indicator values for bilberry cover by area by reporting period. Scaled values and uncertainty are derived from the ecTools::ec_upscale() Monte Carlo propagation (1000 draws per region per period). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
+#| tbl-cap: 'Regional indicator values for bilberry cover by area by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws per region per period), with truncation to 0–1 applied after aggregation. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the truncated MC distribution.'
 #| echo: false
 
 region_scaled_agg_with_uncertainty |>
@@ -1062,7 +1076,7 @@ region_scaled_agg_with_uncertainty |>
 ### 10.3 National results (scaled with uncertainty)
 
 ```{r tbl-national-results-table}
-#| tbl-cap: 'National indicator values for bilberry cover by area by reporting period. Scaled values and uncertainty are derived from the ecTools::ec_upscale() Monte Carlo propagation (1000 draws). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
+#| tbl-cap: 'National indicator values for bilberry cover by area by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws), with truncation to 0–1 applied after aggregation. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the truncated MC distribution.'
 #| echo: false
 
 national_scaled_agg_with_uncertainty |>

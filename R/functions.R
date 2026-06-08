@@ -62,6 +62,43 @@ assign_region_code <- function(fylke_name_clean) {
   )
 }
 
+# Linear scaling to the indicator scale without truncation.
+# Matches the pre-truncation step of ecTools::ec_normalise(..., fun = "linear").
+ec_scale_linear <- function(variable, x0 = 0, x100) {
+  n <- length(variable)
+
+  expand_to_n <- function(x, n, name) {
+    if (is.null(x)) {
+      return(rep(NA_real_, n))
+    }
+    if (length(x) == 1) {
+      return(rep(x, n))
+    }
+    if (length(x) == n) {
+      return(x)
+    }
+    stop(name, " must have length 1 or length(variable).", call. = FALSE)
+  }
+
+  x0 <- expand_to_n(x0, n, "x0")
+  x100 <- expand_to_n(x100, n, "x100")
+
+  if (!all(x0 < x100) && !all(x0 > x100)) {
+    stop("x0 and x100 must have the same direction for all observations.", call. = FALSE)
+  }
+
+  if (all(x0 < x100)) {
+    (variable - x0) / (x100 - x0)
+  } else {
+    (x0 - variable) / (x0 - x100)
+  }
+}
+
+# Truncate scaled indicator values to the 0–1 condition scale.
+ec_truncate_indicator <- function(x) {
+  pmin(pmax(x, 0), 1)
+}
+
 # Map region codes to display names
 # Inputs: code as character ("1".."5") or numeric 1..5
 assign_region_name <- function(region_code) {
