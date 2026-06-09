@@ -24,12 +24,12 @@ Version: "1.0.0." # Beta-versions are numbers incrementally with values below 0.
 VersionComment: Last version was 000.003. This update has removed redundtant sensitivity analyses and simplified the workflow.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001
 Normalised: Yes
-SpatialAggregationPathway: 'sp. agg (polgying to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway, weighted by initial glacier area)'
+SpatialAggregationPathway: 'sp. agg (polygons to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway, weighted by initial glacier area)'
 Uncertainties: Inferrential
 AuthorList: Kolstad, A.
-data_availability: silver
-code_reproducibility: silver
-open_science_badge: silver
+data_availability: gold
+code_reproducibility: gold
+open_science_badge: gold
 format: 
   html:
     embed-resources: true
@@ -39,7 +39,7 @@ format:
     toc-depth: 3
     smooth-scroll: true
 execute: 
-  cache: true
+  cache: false
 author:
   - name: Anders L. Kolstad
     email: anders.kolstad@nina.no
@@ -164,7 +164,7 @@ meta |>
 
 
 ```{r fig-picture}
-#| fig-cap:'Nogardsbreen - a melting glacier in Norway. Photo: A. Kolstad. CC BY 4.0.'
+#| fig-cap: 'Nigardsbreen. A melting glacier in Norway. Photo: A. Kolstad. CC BY 4.0.'
 knitr::include_graphics(here::here("img/nigardsbreen - kolstad.png"))
 ```
 
@@ -321,7 +321,7 @@ X~60~ is defined as 30% loss of glaciers (70% remaining).
 This value was chosen after a discussion between several aline ecologist, and is documented [here](https://github.com/NINAnor/ECA_2026/issues/43).
 The indicator is designed to reflect the effects of a reduced supply of melt water.
 The supply of melt water from glaciers is more dependent on the glacer volume than the glacers extent or cover.
-Glacer area scale non-linearely with glacier volume such that $V = A^1.36$ [@bahr1997physical].
+Glacer area scale non-linearely with glacier volume such that $V = A^1\.36$ [@bahr1997physical].
 This means that a 30% reduction in glacier areas equates to approx. a 38% reduction in volume. 
 A 60% reduction in area would imply an approx. 71% less volume.
 
@@ -335,7 +335,7 @@ v3 <- 40^1.36
 
 ```
 
-The X~60~value therefore ensures that the indicator puts more weight on the ecological effect of a reduced supply of melt water from glacers then if there was no X~60~value defined.  
+The X~60~ value therefore ensures that the indicator puts more weight on the ecological effect of a reduced supply of melt water from glacers then if there was no X~60~ value defined.  
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -350,8 +350,7 @@ The reference condition, using the climate in 1961-1990, introduces some uncerta
 warm period between 7500 and 6000 year before present.
 
 ### 5.2 Reported uncertainties
-The reported uncertainties reflect the uncertainties around the true parameter means, i.e. they are inferrential uncertainties for the true value of the indicator for the given area and time combination.  
-These uncertainties originates from the spatial variation and the 3% measurement error in the dataset [@andreassen2022]. 
+The reported uncertainties reflect the uncertainties around the true parameter means, i.e. they are inferrential uncertainties for the true value of the indicator for the given area and time combination. These uncertainties originates from the spatial variation and the 3% measurement error in the dataset [@andreassen2022]. 
 
 
 ## 6. References
@@ -417,6 +416,7 @@ The original polygons in the glacier maps are referred to basal units (BS units)
 
 ## 9. Analyses
 
+
 The papers describing the glacier extent data report an estimated 3%
 uncertainty with their method [@andreassen2022]. I assume this to mean
 the standard deviation is 3% of the mean. I start by replacing the point
@@ -467,6 +467,24 @@ saveRDS(dat_new3, here::here("data/cache_dat_new3.rds"))
 #| include: false
 dat_new3 <- readRDS(here::here("data/cache_dat_new3.rds"))
 dat_old3 <- readRDS(here::here("data/cache_dat_old3.rds"))
+```
+
+
+I can now have a look at the summed initial glacier area per region. I then see that western and northern Norway has the most glaciers to start with (@fig-initialArea), and these regions will count the most towards the national estimate.
+
+```{r fig-initialArea}
+#| fig-cap: 'Area of glaciers in in Norway (km2) in 1947-1985.'
+dat_old3 |>
+  as_tibble() |>
+  group_by(region) |>
+  summarise(Initial_glacier_area = sum(areal_km2)) |>
+  arrange(Initial_glacier_area) |>
+  mutate(region = fct_reorder(region, Initial_glacier_area)) |>
+  ggplot() +
+  geom_col(aes(x = region, y = Initial_glacier_area), fill = "brown") +
+  theme_bw(base_size=20) +
+  coord_flip() +
+  labs(x = "", y = "Glacier area (1947-1985)")
 ```
 
 Then we can aggregate from BS units to EA units (region) using MC propagation. 
@@ -560,7 +578,7 @@ ind <- ecTools::ec_normalise(var, x100=100, x60=70)
 ec_norm_plot(var, ind) 
 ```
 
-```{r export}
+```{r exportPNG}
 #| include: false
 #| eval: false
 ec_norm_plot(var, ind, lan = "norsk") +
@@ -614,7 +632,7 @@ dat_comb <- dat_region |>
   )
 ```
 
-```{r export}
+```{r exportCSV}
 #| eval: false
 #| code-summary: 'Export data'
 write.csv(dat_comb, here::here("data/results_NO_GLAC_001_v1.0.0.csv"), row.names = F)
