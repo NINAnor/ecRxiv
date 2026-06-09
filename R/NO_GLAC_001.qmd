@@ -24,7 +24,7 @@ Version: "1.0.0." # Beta-versions are numbers incrementally with values below 0.
 VersionComment: Last version was 000.003. This update has removed redundtant sensitivity analyses and simplified the workflow.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001
 Normalised: Yes
-SpatialAggregationPathway: 'sp. agg (geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway, weighted by initial glacier area)'
+SpatialAggregationPathway: 'sp. agg (polgying to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway, weighted by initial glacier area)'
 Uncertainties: Inferrential
 AuthorList: Kolstad, A.
 data_availability: silver
@@ -67,6 +67,7 @@ library(tidyverse)
 library(kableExtra)
 library(here)
 library(sf)
+library(ecTools)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -161,6 +162,12 @@ meta |>
 
 <hr />
 
+
+```{r fig-picture}
+#| fig-cap:'Nogardsbreen - a melting glacier in Norway. Photo: A. Kolstad. CC BY 4.0.'
+knitr::include_graphics(here::here("img/nigardsbreen - kolstad.png"))
+```
+
 <!--# Document you work below.  -->
 
 ## 1. Summary
@@ -197,7 +204,8 @@ Values decreasing toward zero reflect a reduction an the positive impacts of gla
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-The indicator value for Norway as a whole in 2024 (using data from 2018-2019) is 0.62 [95% CI = 0.58-0.66], which indicates that glacier area and volume have been reduced considerably, to the point where this change starts to negtatively effects the integrity of mountain ecosystems. 
+The indicator value for Norway as a whole in 2024 (using data from 2018-2019) is 0.49 [95% CI = 0.48-0.50], which indicates that glacier area and volume have been reduced considerably, to the point where this change is having a negatative effect the integrity of mountain ecosystems. 
+The unceratinty for the national point estime for this indicator is very small, which is expected due to the high level of spatial replication.  
 Future updates will require new maps of glacier cover in Norway, which is highly possible to produce from satellite imagery.
 
 ## 1.2 Native language summary - Norwegian
@@ -208,7 +216,7 @@ Isbreer utgjør viktige strukturelle elementer i alpine økosystemer ved å tilf
 
 2. **Metoder**: 
 I Norge har vi relativt detaljerte og presise kart over bredekning fra perioden 1947–1985. Disse dataene brukes her som en representasjon av den klimatiske referansetilstanden (før den markerte klimaoppvarmingen), og sammenlignes med oppdaterte kart over bredekning fra 2018–2019 for å beregne en normalisert indikator for økosystemtilstand.
-Breal og endringer i breareal beregnes for hver av de fem geografiske regionene i Norge, samt for landet som helhet. Aggregeringen fra regionale til nasjonale estimater er basert på et vektet gjennomsnitt, der det opprinnelige brearealet brukes som vekter.
+Breareal og endringer i breareal beregnes for hver av de fem geografiske regionene i Norge, samt for landet som helhet. Aggregeringen fra regionale til nasjonale estimater er basert på et vektet gjennomsnitt, der det opprinnelige brearealet brukes som vekter.
 Usikkerheten i indikatoren har to hovedkilder: en målefeil på 3 %, basert på rapporterte usikkerheter i kartleggingsmetodene, og den romlige variasjonen mellom regionene.
 
 3. **Tolkning**: 
@@ -217,7 +225,8 @@ En indikatorverdi på 1 betyr at breutbredelsen er lik eller større enn den var
 Indikatoren representerer ikke direkte hvor stort areal som fortsatt er dekket av breis.
 
 4. **Resultater og utviklingsbehov**: 
-Indikatorverdien for hele Norge i 2024 (basert på data fra 2018–2019) er 0,62 [95 % KI = 0,58–0,66]. Dette indikerer at breareal og brevolum er betydelig redusert, til et nivå der endringene begynner å påvirke integriteten til fjelløkosystemene negativt.
+Indikatorverdien for hele Norge i 2024 (basert på data fra 2018–2019) er 0,49 [95 % KI = 0,48–0,50]. Dette indikerer at breareal og brevolum er betydelig redusert, til et nivå der endringene påvirker integriteten til fjelløkosystemene negativt.
+Usikkerheten rundt the nasjonale estimatet på indikatorverdien er svært lav, noe som er forventet grunnet den store utvalgsstørreslen.
 Fremtidige oppdateringer av indikatoren vil kreve nye kart over bredekningen i Norge. Slike kart kan med trolig produseres ved hjelp av satellittdata.
 
 
@@ -291,7 +300,7 @@ warming [@zemp2025].
 ### 3.5 Spatial aggregation
 The map data is prepared (clipped) to the spatial scale of five geographic regions in Norway. Then the variable is normalised before being aggregated to a national estimate.
 $$
-sp. agg (geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway)
+sp. agg (polgons to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway)
 $$
 
 ## 4. Reference condition and levels
@@ -327,15 +336,6 @@ v3 <- 40^1.36
 ```
 
 The X~60~value therefore ensures that the indicator puts more weight on the ecological effect of a reduced supply of melt water from glacers then if there was no X~60~value defined.  
-
-
-
-
-```{r X60}
-scalar <- 0.7
-```
-
-
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -412,106 +412,144 @@ greg <- readRDS(here::here("data/regions.rds")) |>
 
 The five geographic regions in Norway are defined as ecosystem assets.
 Mainland Norway is the ecosystem accounting area.
+The original polygons in the glacier maps are referred to basal units (BS units).
 
 
 ## 9. Analyses
-
-We need the initial and current glacier area per region.
-
-```{r tbl-areas}
-#| tbl-cap: 'Initial (1947-1985) and current (2018-2019) glacer area for fiver geographic regions in Norway.'
-
-dat_old2 <-  dat_old |>
-  st_union()|>
-  st_sf(geometry = _) |>  
-  st_intersection(greg) |>
-  mutate(Initial_area_km2 = units::drop_units(st_area(geometry)*10^-6))
-
-dat_new2 <-  dat_new |>
-  st_union()|>
-  st_sf(geometry = _) |>  
-  st_intersection(greg) |>
-  mutate(Current_area_km2 = units::drop_units(st_area(geometry)*10^-6))
-
-dat_comb <- dat_old2 |>
-  st_drop_geometry() |>
-  left_join(dat_new2 |> st_drop_geometry()) |>
-  select(region, Initial_area_km2, Current_area_km2)
-
-dat_comb |>
-  mutate(Initial_area_km2 = round(Initial_area_km2),
-         Current_area_km2 = round(Current_area_km2) ) |>
-  gt::gt()
-
-
-```
-
-
-### 9.1 Calculating indicator values (distributions) for the regions
-
-The next steps are a follows:
-
-1.  Add 3% methodological uncertainty to the data at the regional level by
-    sampling *n* numbers from a normal distribution with sd =
-    mean × 0.03.
-2.  Normalise the variable (now a prob. dist.) at the strata level using a
-    piecewise linear transformation.
-3.  Aggregate to a national estimate using monte carolo propagation.
-
 
 The papers describing the glacier extent data report an estimated 3%
 uncertainty with their method [@andreassen2022]. I assume this to mean
 the standard deviation is 3% of the mean. I start by replacing the point
 estimates in each region with a probability
 distribution centered on the point estimate, and with sd = mean × 0.03.
-In ecosystem accounting it is not common to allow uncertainty in the
-reference levels, but here it is quite easy to implement, and I
-therefore see no reason not to.
-
+These distributions are uncertainty (inferential) distributions for the true value of the mean,
+and I can use Monte Carlo propagation to aggregate these into join distributions for regions later.
 
 ```{r}
 #| warning: false
 #| code-fold: true
 #| code-summary: "Add measurement error"
 
-dat_comb2 <- dat_comb |>
+dat_new2 <- dat_new |>
   # adding 3% uncertainty
   rowwise() |>
   mutate(
-    init = list(rnorm(1000, Initial_area_km2, Initial_area_km2*0.03)), 
-    curr = list(rnorm(1000, Current_area_km2, Current_area_km2*0.03))
+    variable = list(rnorm(100, areal_km2, areal_km2*0.03))
     )
+
+# In ecosystem accounting it is not common to allow uncertainty in the
+# reference levels, but here it is quite easy to implement, and I
+# therefore see no reason not to.
+dat_old2 <- dat_old |>
+  # adding 3% uncertainty
+  rowwise() |>
+  mutate(
+    variable = list(rnorm(100, areal_km2, areal_km2*0.03))
+    )
+```
+
+Then we need to intersect the map of the glaciers with a map of the five geographic regions. 
+
+```{r}
+#| eval: false
+dat_old3 <-  dat_old2 |>
+  st_intersection(greg |> select(region)) 
+
+saveRDS(dat_old3, here::here("data/cache_dat_old3.rds"))
+
+dat_new3 <-  dat_new2 |>
+  st_intersection(greg |> select(region)) 
+
+saveRDS(dat_new3, here::here("data/cache_dat_new3.rds"))
+```
+
+```{r}
+#| include: false
+dat_new3 <- readRDS(here::here("data/cache_dat_new3.rds"))
+dat_old3 <- readRDS(here::here("data/cache_dat_old3.rds"))
+```
+
+Then we can aggregate from BS units to EA units (region) using MC propagation. 
+Now that we have the area per BS unit, and the corresponding EA names, 
+we can drop the geometry and work with tibbles.
+Then I normalise the variable using a piecewise linear transformation.
+
+```{r aggToReg}
+#| eval: false
+dat_old_region <- dat_old3 |>
+  st_drop_geometry() |>
+  rownames_to_column("BS") |>
+  add_column(
+    year = "old",
+    # we want to draw one sample from each polygon, with no weighting 
+    wgt = 1) |>
+  unnest_longer(variable) |>
+  ecTools::ec_upscale(
+    data = _,
+    variable = variable,
+    year = year,
+    weight = wgt,
+    start_units = BS,
+    end_units = region,
+    end_units_name = "part",
+    n = 1000
+  ) |>
+  # adding an ID column to make sure the left join that we do later is perfect
+  rownames_to_column("rowID") |>
+  unite("ID", c("rowID", "part"), remove = F) |>
+  rename(x100 = sampled_mean)
+
+saveRDS(dat_old_region, here::here("data/cache_dat_old_region.rds"))
+
+dat_new_region <- dat_new3 |>
+  st_drop_geometry() |>
+  rownames_to_column("BS") |>
+  add_column(year = "new", wgt = 1) |>
+  unnest_longer(variable) |>
+  ecTools::ec_upscale(
+    data = _,
+    variable = variable,
+    year = year,
+    weight = wgt,
+    start_units = BS,
+    end_units = region,
+    end_units_name = "part",
+    n = 1000
+  ) |>
+  rownames_to_column("rowID") |>
+  unite("ID", c("rowID", "part"), remove = F) |>
+  rename(variable = sampled_mean)
+
+saveRDS(dat_new_region, here::here("data/cache_dat_new_region.rds"))
+
 
 ```
 
-Then I normalise, using a piecewise linear transformation, and get
-similar probability distribution for indicator values. @tbl-normalise
-shows the dataset with indicator values (just the median value) at the
-reginal level. 
-The normalisation uses a piecewise linear transformation, with truncation (@fig-normplot).
+```{r}
+#| include: false
+#| eval: false
+dat_new_region <- readRDS(here::here("data/cache_dat_new_region.rds"))
+dat_old_region <- readRDS(here::here("data/cache_dat_old_region.rds"))
+```
 
-```{r tbl-normalise}
-#| tbl-cap: 'Table of ecosystem assets, with variable values, X100 values (glacier area 1947-1985), indicator values and quartiles.'
-#| code-fold: true
-#| code-summary: "Normalise variable"
-
-dat_comb3 <- dat_comb2 |>
-  # unlist and create new rows for each random pair of current and old glacier area estimate
-  unnest_longer(c(
-    curr,
-    init), 
-    keep_empty = T) |>
-  rename(variable = curr, 
-         x100 = init) |>
+```{r}
+#| eval: false
+dat_region <- dat_old_region |>
+  left_join(
+    dat_new_region |> select(ID, variable),
+    by = join_by(ID),
+    unmatched = "error"
+  ) |>
+  select(-ID, -rowID) |>
   mutate(
-    # define x60 value as 30% glacier loss (70% of X100)
-    x60 = x100*scalar,
-    # normalise using piecewise linear transformation
-    indicator =  ecTools::ec_normalise(
+    year = "2024",
+    x60 = x100 * scalar,
+    indicator = ecTools::ec_normalise(
       variable = variable,
       x100 = x100,
-      x60 = x60 
-    ))
+      x60 = x60
+    )
+  )
 ```
 
 ```{r fig-normplot}
@@ -519,65 +557,81 @@ dat_comb3 <- dat_comb2 |>
 
 var <- seq(0,100,.2)
 ind <- ecTools::ec_normalise(var, x100=100, x60=70)
-ec_norm_plot(var, ind)
+ec_norm_plot(var, ind) 
 ```
 
 ```{r export}
 #| include: false
 #| eval: false
 ec_norm_plot(var, ind, lan = "norsk") +
-  labs(x="Breareal som % av opprinnelig breareal", y = "Indikatorverdi")
+  labs(x="Breareal som % av opprinnelig breareal", y = "Indikatorverdi") +
+  xlim(c(0,100))
 ggsave(here::here("img/skaleringsfunksjone.png"))
 ```
 
 
-### Aggregate
+### Aggregate to Norway
 Then I propagate the uncertainties and a get an estimate for Norway as a whole.
 
 ```{r}
-dat_comb4 <- dat_comb3 |>
-  add_column(part = "Norway") |>
-  add_column(year = 2024)
-```
-```{r agg}
 #| eval: false
-mc_propagated <-  ecTools::ec_upscale(
-  data = dat_comb4,
-  variable = indicator,
-  year = year,
-  weight = Initial_area_km2,
-  start_units = region,
-  end_units = part,
-  end_units_name = "part",
-  n = 1000
-)
-
-out <- dat_comb4 |>
-  select(part = region, year, sampled_mean = indicator) |>
-  bind_rows(mc_propagated) |>
-  mutate(part = case_when(
-    part == "Midt-Norge" ~ "C",
-    part == "Nord-Norge" ~ "N",
-    part == "Oestlandet" ~ "E",
-    part == "Sørlandet" ~ "S",
-    part == "Vestlandet" ~ "W",
-    part == "Norway" ~ "Norway",
-    .unmatched = "error"
-  ))
-
-saveRDS(out, here::here("data/out.rds"))
+dat_norway <- dat_region |>
+  add_column(end = "Norway") |>
+  ecTools::ec_upscale(
+    data = _,
+    variable = indicator,
+    year = year,
+    weight = variable,
+    start_units = part,
+    end_units = end,
+    end_units_name = "part",
+    n = 1000
+  )
+saveRDS(dat_norway, here::here("data/cache_dat_norway.rds"))
 ```
 
 ```{r}
 #| include: false
-out <- readRDS(here::here("data/out.rds"))
+#| eval: false
+dat_norway <- readRDS(here::here("data/cache_dat_norway.rds"))
 ```
+
+```{r}
+#| eval: false
+dat_comb <- dat_region |>
+  select(year, part, sampled_mean = indicator) |>
+  bind_rows(dat_norway) |>
+  mutate(
+    part = case_when(
+      part == "Midt-Norge" ~ "C",
+      part == "Nord-Norge" ~ "N",
+      part == "Oestlandet" ~ "E",
+      part == "Sørlandet" ~ "S",
+      part == "Vestlandet" ~ "W",
+      part == "Norway" ~ "Norway",
+      .unmatched = "error"
+    )
+  )
+```
+
+```{r export}
+#| eval: false
+#| code-summary: 'Export data'
+write.csv(dat_comb, here::here("data/results_NO_GLAC_001_v1.0.0.csv"), row.names = F)
+```
+
+```{r}
+#| include: false
+#| message: false
+dat_comb <- read_csv(here::here("data/results_NO_GLAC_001_v1.0.0.csv"))
+```
+
 
 ## Results
 ```{r summaryStats}
 #| warning: false
 #| message: false
-summary_out <- out |>
+summary_out <- dat_comb |>
   group_by(part, year) |>
   summarise(
     median = round(median(sampled_mean), 2),
@@ -623,15 +677,10 @@ summary_out |>
 
 The indicator values are exported and can be found under `data/results_NO_GLAC_001_v1.0.0.csv`.
 
-```{r export}
-#| eval: false
-#| code-summary: 'Export data'
-write.csv(out, here::here("data/results_NO_GLAC_001_v1.0.0.csv"), row.names = F)
-```
 
 ## 12. Author contributions
 
-This is the work of a single author, although I would like to acknowledge interllectual contributions from the ecosystem group that was part of the assessment of the Norwegian mountain ecosystems for 2024.
+This is the work of a single author, although I would like to acknowledge intellectual contributions from the ecosystem group that was part of the assessment of the Norwegian mountain ecosystems for 2024.
 
 
 
