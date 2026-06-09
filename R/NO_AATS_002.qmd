@@ -232,8 +232,8 @@ The relationship between indicator values and ecosystem condition is assumed to 
 4. **Results and development needs**:
 
 At national level, scaled indicator values are high and close to the upper reference in all three reporting periods (@sec-results, @tbl-aats-national-results).
-The national median is 0.99 in all three periods (approximate 95% interval 0.98–0.99).
-These values correspond to a very low area-weighted mean share of alien coniferous species nationally.
+The national median is 0.97 in all three periods (approximate 95% interval 0.97–0.97).
+These values correspond to a low area-weighted mean share of alien coniferous species nationally (about 1.5–1.6%).
 The indicator is ready for use but should not be used at finer spatial resolution than counties.
 Development needs include refinement of the relationship between indicator values and ecosystem condition (linear vs. non-linear).
 
@@ -254,8 +254,8 @@ Indikatorverdi 0 tilsvarer 50 % eller mer fremmede bartrær (X0).
 
 **Resultater og utviklingsbehov**:
 På nasjonalt nivå er de skalerte indikatorverdiene høye og nær øvre referansenivå i alle tre rapporteringsperioder.
-Medianverdien er 0,99 i alle tre perioder (omtrentlig 95 %-intervall ca. 0,98–0,99).
-Dette tilsvarer en svært lav arealvektet andel fremmede bartrær nasjonalt.
+Medianverdien er 0,97 i alle tre perioder (omtrentlig 95 %-intervall ca. 0,97–0,97).
+Dette tilsvarer en lav arealvektet andel fremmede bartrær nasjonalt (omtrent 1,5–1,6 %).
 Over tid er den nasjonale utviklingen i praksis stabil.
 Indikatoren er klar til bruk, men bør ikke brukes på finere oppløsning enn fylker.
 
@@ -263,7 +263,7 @@ Indikatoren er klar til bruk, men bør ikke brukes på finere oppløsning enn fy
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Data are available from 2000, when the underlying variables (`intro_gran_pr`, `intro_furu_pr`) were first recorded.
+Data are available from 2000, when the underlying variables (`gran_pr`, `intro_gran_pr`, `intro_furu_pr`, `komm_m_nat_gran`) were first recorded.
 Annual estimates are possible due to representative sampling every year.
 The analyses use rolling 5-year reporting periods from 2010 onward (2010-2014, 2015-2019, and 2020-2024).
 The data are representative for all forest land within the selected region.
@@ -366,8 +366,8 @@ The resulting distributions are summarised with median and quantile intervals.
 ### 7.1 Alien coniferous tree species
 
 All trees larger than 5 cm dbh are recorded and identified for each 250 m² NFI plot according to methods described in (@viken2021-feltinstruks).
-For this indicator, data for the NFI variables `intro_gran_pr` and `intro_furu_pr` are used for the reporting periods defined in section 9.1.
-Plots with missing intro-species values are included in aggregated estimates with 0% share and full plot area weight.
+For this indicator, data for the NFI variables `gran_pr`, `intro_gran_pr`, `intro_furu_pr`, and `komm_m_nat_gran` are used for the reporting periods defined in section 9.1.
+Plots with missing species-percentage values are included in aggregated estimates with 0% share and full plot area weight.
 Aggregated area-weighted data must be used for appropriate spatial units such as counties, regions or the whole country.
 As the NFI plots vary in density for forest below/above the coniferous forest line and in Finnmark, each type of plot represents a different part of all forest land.
 In addition, some NFI plots are divided in two parts in the data.
@@ -424,8 +424,8 @@ reporting_periods <- list(
 ```
 
 We filter out Finnmark plots marked for removal (`merket_finnm == 0`), keep data from 2010 onward, and standardise county names by merging split NFI labels to county level.
-Missing (`NA`) values for `intro_gran_pr` and `intro_furu_pr` are set to 0 before aggregation, so these plots remain in the area basis (`au_areal`) with 0% alien coniferous share (missing values occur mainly in harvest class 1 stands).
-The plot-level indicator is the percentage share of alien coniferous species: `pmin(intro_gran_pr + intro_furu_pr, 100)`.
+Missing (`NA`) values for `gran_pr`, `intro_gran_pr`, and `intro_furu_pr` are set to 0 before aggregation, so these plots remain in the area basis (`au_areal`) with 0% alien coniferous share (missing values occur mainly in harvest class 1 stands).
+The plot-level indicator depends on `komm_m_nat_gran`: when `n` (no natural spruce), the share is `pmin(gran_pr + intro_gran_pr + intro_furu_pr, 100)`; when `j` (natural spruce present), it is `pmin(intro_gran_pr + intro_furu_pr, 100)`.
 For each included plot, the area-weighted contribution to later aggregation is `indicator_continuous * au_areal`.
 
 ```{r aats-create-derived-variables}
@@ -436,6 +436,7 @@ lsk_data <- lsk_data_raw |>
   filter(merket_finnm == 0) |>
   filter(sesong >= 2010) |>
   mutate(
+    gran_pr = dplyr::coalesce(gran_pr, 0),
     intro_gran_pr = dplyr::coalesce(intro_gran_pr, 0),
     intro_furu_pr = dplyr::coalesce(intro_furu_pr, 0),
     fylke_name = region_fylke |>
@@ -451,8 +452,11 @@ lsk_data <- lsk_data_raw |>
     ),
     region_code = assign_region_code(fylke_name_clean),
     region_name = assign_region_name(region_code),
-    total_intro_conif = intro_gran_pr + intro_furu_pr,
-    indicator_continuous = pmin(total_intro_conif, 100),
+    alien_conif_share = dplyr::case_when(
+      komm_m_nat_gran == "n" ~ gran_pr + intro_gran_pr + intro_furu_pr,
+      TRUE ~ intro_gran_pr + intro_furu_pr
+    ),
+    indicator_continuous = pmin(alien_conif_share, 100),
     indicator_continuous_weighted = indicator_continuous * au_areal
   )
 
@@ -468,9 +472,11 @@ lsk_data <- lsk_data |>
     sesong,
     merket_finnm,
     au_areal,
+    komm_m_nat_gran,
+    gran_pr,
     intro_gran_pr,
     intro_furu_pr,
-    total_intro_conif,
+    alien_conif_share,
     indicator_continuous,
     indicator_continuous_weighted,
     region_fylke,
