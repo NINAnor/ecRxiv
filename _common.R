@@ -253,9 +253,10 @@ folder_name <- meta |>
   dplyr::filter(Variable == "folderName") |>
   pull(Value)
 
+library(datawizard)
 meta <- meta |>
   dplyr::mutate(
-    Variable = dplyr::recode_values(
+    Variable = datawizard::recode_values(#dplyr::recode_values(
       Variable,
       "indicatorID" ~ "Indicator ID",
       "indicatorName" ~ "Indicator Name",
