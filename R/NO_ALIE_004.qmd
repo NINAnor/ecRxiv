@@ -427,15 +427,84 @@ summary(alien.re)
 The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
 ```{r}
 
-NO_ALIE_004 <- tibble(
+NO_ALIE_004_table <- tibble(
   Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
   indicator_value = c(plogis(summary(alien.no)$coef$cond[,1]), plogis(summary(alien.re)$coef$cond[,1])),
   CI_upper = c(plogis(summary(alien.no)$coef$cond[,1]+1.96*summary(alien.no)$coef$cond[,2]), plogis(summary(alien.re)$coef$cond[,1]+1.96*summary(alien.re)$coef$cond[,2])),
   CI_lower = as.numeric(plogis(summary(alien.no)$coef$cond[,1]-1.96*summary(alien.no)$coef$cond[,2]), plogis(summary(alien.re)$coef$cond[,1]-1.96*summary(alien.re)$coef$cond[,2]))
 )
-NO_ALIE_004
+NO_ALIE_004_table
 ```
 
+To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error as well as the dispersion parameter.
+```{r}
+
+## Norway
+# Fixed-effect intercept and SE
+b0 <- fixef(alien.no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(alien.no)$cond["(Intercept)", "(Intercept)"])
+# Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
+phi <- sigma(alien.no)
+
+# draw estimates and backtransform from logit-scale
+eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
+mu_draws  <- plogis(eta_draws)
+
+# draw from beta distribution to consider the dispersion parameter 
+alien.no_sim <- rbeta(
+  n = 1000,
+  shape1 = mu_draws * phi,
+  shape2 = (1 - mu_draws) * phi
+)
+
+
+## regions
+library(MASS)
+
+b_re <- fixef(alien.re)$cond
+vc_re <- vcov(alien.re)$cond
+phi <- sigma(alien.re)
+
+eta_draws <- MASS::mvrnorm(
+  n = 1000,
+  mu = b_re,
+  Sigma = vc_re
+)
+
+mu_draws <- plogis(eta_draws)
+
+alien_re_sim <- do.call(
+  rbind,
+  lapply(seq_along(b_re), function(i) {
+    
+    region <- names(b_re)[i]
+    mu_i <- mu_draws[, i]
+    
+    sim <- rbeta(
+      n = 1000,
+      shape1 = mu_i * phi,
+      shape2 = (1 - mu_i) * phi
+    )
+    
+    data.frame(
+      region = region,
+#      draw = 1:10,
+#      eta = eta_draws[, i],
+#      mu = mu_i,
+#      dispersion = phi,
+      sim = sim
+    )
+  })
+)
+
+alien_re_sim$region <- sub("^region", "", alien_re_sim$region)
+
+alien_re_sim
+
+# combining alien_no_sim and alien_re_sim
+NO_ALIE_004_sim <- rbind(data.frame(region = 'Norway', sim = alien.no_sim), alien_re_sim)
+
+```
 
 ## 11. Export file
 
