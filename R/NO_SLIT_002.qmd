@@ -486,15 +486,84 @@ summary(erosion.re)
 The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
 ```{r}
 
-NO_SLIT_002 <- tibble(
+NO_SLIT_002_table <- tibble(
   Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
   indicator_value = c(plogis(summary(erosion.no)$coef$cond[,1]), plogis(summary(erosion.re)$coef$cond[,1])),
   CI_upper = c(plogis(summary(erosion.no)$coef$cond[,1]+1.96*summary(erosion.no)$coef$cond[,2]), plogis(summary(erosion.re)$coef$cond[,1]+1.96*summary(erosion.re)$coef$cond[,2])),
   CI_lower = as.numeric(plogis(summary(erosion.no)$coef$cond[,1]-1.96*summary(erosion.no)$coef$cond[,2]), plogis(summary(erosion.re)$coef$cond[,1]-1.96*summary(erosion.re)$coef$cond[,2]))
 )
-NO_SLIT_002
+NO_SLIT_002_table
 ```
 
+To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error as well as the dispersion parameter.
+```{r}
+
+## Norway
+# Fixed-effect intercept and SE
+b0 <- fixef(erosion.no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(erosion.no)$cond["(Intercept)", "(Intercept)"])
+# Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
+phi <- sigma(erosion.no)
+
+# draw estimates and backtransform from logit-scale
+eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
+mu_draws  <- plogis(eta_draws)
+
+# draw from beta distribution to consider the dispersion parameter 
+erosion.no_sim <- rbeta(
+  n = 1000,
+  shape1 = mu_draws * phi,
+  shape2 = (1 - mu_draws) * phi
+)
+
+
+## regions
+library(MASS)
+
+b_re <- fixef(erosion.re)$cond
+vc_re <- vcov(erosion.re)$cond
+phi <- sigma(erosion.re)
+
+eta_draws <- MASS::mvrnorm(
+  n = 1000,
+  mu = b_re,
+  Sigma = vc_re
+)
+
+mu_draws <- plogis(eta_draws)
+
+erosion_re_sim <- do.call(
+  rbind,
+  lapply(seq_along(b_re), function(i) {
+    
+    region <- names(b_re)[i]
+    mu_i <- mu_draws[, i]
+    
+    sim <- rbeta(
+      n = 1000,
+      shape1 = mu_i * phi,
+      shape2 = (1 - mu_i) * phi
+    )
+    
+    data.frame(
+      region = region,
+#      draw = 1:10,
+#      eta = eta_draws[, i],
+#      mu = mu_i,
+#      dispersion = phi,
+      sim = sim
+    )
+  })
+)
+
+erosion_re_sim$region <- sub("^region", "", erosion_re_sim$region)
+
+erosion_re_sim
+
+# combining erosion_no_sim and erosion_re_sim
+NO_SLIT_002_sim <- rbind(data.frame(region = 'Norway', sim = erosion.no_sim), erosion_re_sim)
+
+```
 
 ## 11. Export file
 
