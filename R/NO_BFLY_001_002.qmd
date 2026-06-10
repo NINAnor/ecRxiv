@@ -8,6 +8,9 @@ indicatorID:
   - NO_BFLY_002
 indicatorName: 
   - Butterflies
+verbatimName:
+  - Dagsommerfugler
+folderName: NO_BFLY_001_002
 country: Norway
 continent: Europe
 ECT: B1 - Compositional State Characteristics
@@ -19,6 +22,9 @@ Biome:
 Ecosystem: 
   - T4.5 Temperate grasslands
   - T2.1 Boreal/montane forests
+verbatimEcosystem: 
+  - Skog
+  - Semi-naturlig mark
 yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
@@ -53,7 +59,6 @@ author:
 date: August 28, 2025 
 callout-icon: false
 lightbox: true
-css: ../../../style.css
 code-links:
       - text: Add a review
         icon: github
@@ -78,10 +83,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r source}
 #| echo: false
-# here find the project root and create relative paths from there. 
-# The project root will be different when this is on ecRxiv.
-# For example, now as I write this, R/ and data/ are at the root. 
-
 source("_common.R")
 ```
 
@@ -150,12 +151,12 @@ meta |>
 ::: {.callout-tip collapse="true"}
 ## Log
 
--   14th Dec. 2023 - [First version published](https://ninanor.github.io/ecosystemCondition/insect-indicators.html)
--   6th Jan. 2025 - Started work in ecRxive version (Kolstad)
--   27th Jan. 2025 - Updated PR to ecRxiv (Kolstad)
--   28th Aug. 2025 - Include 2024 data and update bombLepiSurv package; add Interpretation section.
--   21st Nov. 2025 - Restructure metadata and add open science badges (ALK). Version 1.0. 
--   20st Mar. 2026 - Export distributions for indicators values
+-   December 14, 2023 - [First version published](https://ninanor.github.io/ecosystemCondition/insect-indicators.html)
+-   January 6, 2025 - Started work in ecRxive version (Kolstad)
+-   January 27, 2025 - Updated PR to ecRxiv (Kolstad)
+-   Aughust 28, 2025 - Include 2024 data and update bombLepiSurv package; add Interpretation section.
+-   November 21, 2025 - Restructure metadata and add open science badges (ALK). Version 1.0. 
+-   June 10, 2026 - Export distributions for indicators values and shift uncertainty distribution to be centered on the point estimate
 :::
 
 <hr />
@@ -301,6 +302,73 @@ The indicator values are estimated with uncertainty in the sense of spatial vari
 
 The `bombLepiSurv` package has convenience functions to fetch data from the internal NINA database. This database is currently not available outside NINA, but we will implement a solution for this in the future. Either we will make the database externally available, or we will provide an alternative route to the data from the GBIF export. For now, we will fetch the data through the `bombLepiSurv` functions.
 
+Install package like this.
+
+```{r}
+#| eval: false
+#| code-fold: show
+remotes::install_github("NINAnor/bombLepiSurv")
+library(bombLepiSurv)
+```
+
+Here I illustrate how to connect to the database. Since the database is only accessible from NINA, I will not run this part of the analyses, but instead cache the output files so that others can reproduce the general workflow, even if they cannot access the database.
+
+```{r connect}
+#| eval: false
+# get secret username and password. I just keep mine in a local .R file that I also put in the gitignore file.
+source(here("R/_pw.R"))
+# connect
+bombLepiSurv::humlesommerfConnect(
+  username = BOMB_USER,
+  password = BOMB_PASSWORD
+)
+```
+
+Download data from 2024 as an example.
+
+```{r}
+#| eval: false
+allLepiGressmark2024 <- 
+  getAllData(type = "Butterflies", 
+habitat = "Gressmark",
+    year = 2024,
+    language = "Norsk") |>
+      mutate_if(bit64::is.integer64, as.numeric)
+
+ggsave(
+  here("img/fig_allLepiGressmark2024.png"),
+  surveyBarplot(allLepiGressmark2024),
+  width = 10,
+  height = 10)
+```
+
+```{r fig-allLepiGressmark2024}
+#| fig-cap: 'Butterflies in grasslands 2024.'
+knitr::include_graphics(here("img/fig_allLepiGressmark2024.png"))
+```
+
+Indicator data is already processed and we can get them from the R package like this:
+
+```{r}
+#| warning: false
+# List datasets
+dat <- CursoRopen::list_github_files(
+  "bombLepiSurv", 
+  path = "data/", 
+  owner = "NINAnor", 
+  regexp = "sInd") # The 's' stands for 'butterflies'. add regexp = "Gress" to filter for just grasslands
+
+# remove the first part of the path
+dat <- str_remove(dat, "data/")
+# and the second part
+dat <- str_remove(dat, ".rda")
+
+# read in all the data (as promise)
+data(package = "bombLepiSurv", list = dat)
+```
+
+The indicator data is stored in the environment as one dataframe per year/region/habitat.
+
 ### 7.2. Dataset B - Regions
 
 We here import a shape file with the regional delineations used in this monitoring program. Note that this delineation different from the more standard definitions used in ecosystem accounting Norway.
@@ -388,282 +456,155 @@ tm_shape(counties) +
 
 ## 8. Spatial units
 
-Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold, and the south region contain Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal.
+The indicator values are calculated as the scale of geographic regions, which I refer to as basal units or BS units. 
+These are not the same geographic regions that we are asked to calculate indicator values for in the ecosystem assessment project in 2026, where Rogaland belong to the south region. In this indicator, Rogaland belong to the southern region (@fig-regions).
+It is not possible to split the data point between the regions, since the indicator is defined based on this _a priory_ collation of localities. 
+I therefore chose to simply use the regions as is. 
+
+Ecosystem assets (EA): Mid-, central-, east-, and southern Norway. Note that eastern Norway only includes the old counties of Vestfold and Østfold, and the south region contain Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal.
 
 Ecosystem accounting area: Norway (although N-Norway and several sub-regions are missing).
 
-Data needs to be aggregated to EA level before interpretation. In addition, only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases.
 
 ## 9. Analyses
-
 These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
 
-Install package like this.
+Indicator values are computet at the level of EAs directly from the field data. 
+The uncertainties around the point estimates are from resampling localities with the EA, with replacement.
+This resampling procedure causes a downwards shift in the distribution of indicator values, at leastly partly because the species richness tends to decrease as some localities are selected more than once. 
+In order to harmonise with other indicator workflows in Norway, 
+our workflow here also needs to result in a uncertainty distribution where the point estimate is defined as the median of this distribution.
+The uncertainty distribution, we believe, has a shape and spread which is representative of the true parameter uncertainty.
+Therefore we will shift this distribution to become centered on the point estimate, as it is from the original, non-resampled data.
+
+Only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases.
+
+First we get the indicator values. We pool the year 2022-2024 into one.
 
 ```{r}
-#| eval: false
-#| code-fold: show
-remotes::install_github("NINAnor/bombLepiSurv")
-library(bombLepiSurv)
-```
-
-Here I illustrate how to connect to the database. Since the database is only accessible from NINA, I will not run this part of the analyses, but instead cache the output files so that others can reproduce the general workflow, even if they cannot access the database.
-
-```{r connect}
-#| eval: false
-# get secret username and password. I just keep mine in a local .R file that I also put in the gitignore file.
-source(here("R/_pw.R"))
-# connect
-bombLepiSurv::humlesommerfConnect(
-  username = BOMB_USER,
-  password = BOMB_PASSWORD
-)
-```
-
-Download data from 2024 as an example.
-
-```{r}
-#| eval: false
-allLepiGressmark2024 <- 
-  getAllData(type = "Butterflies", 
-habitat = "Gressmark",
-    year = 2024,
-    language = "Norsk") |>
-      mutate_if(bit64::is.integer64, as.numeric)
-
-ggsave(
-  here("img/fig_allLepiGressmark2024.png"),
-  surveyBarplot(allLepiGressmark2024),
-  width = 10,
-  height = 10)
-```
-
-```{r fig-allLepiGressmark2024}
-#| fig-cap: 'Butterflies in grasslands 2024.'
-knitr::include_graphics(here("img/fig_allLepiGressmark2024.png"))
-```
-
-Indicator data is already processed and we can get them from the R package like this:
-
-```{r}
-#| warning: false
-# List datasets
-dat <- CursoRopen::list_github_files(
-  "bombLepiSurv", 
-  path = "data/", 
-  owner = "NINAnor", 
-  regexp = "sInd") # The 's' stands for 'butterflies'. add regexp = "Gress" to filter for just grasslands
-
-# remove the first part of the path
-dat <- str_remove(dat, "data/")
-# and the second part
-dat <- str_remove(dat, ".rda")
-
-# read in all the data (as promise)
-data(package = "bombLepiSurv", list = dat)
-```
-
-The indicator data is stored in the environment as one dataframe per year/region/habitat.
-
-Then we compile the indicator values for the years 2009 to 2024.
-
-```{r fig-linegraph}
-#| fig-cap: 'Indicator values for butterflies in grasslands from 2009 to 2024'
-bGressIndVals <- collectIndData(type = "Butterflies", 
-                                habitat = "Gressmark",
-                                years = 2009:2024)
-
-indPlot(input = bGressIndVals,
-        confLevel = "95%",
-        lineWidth = 1,
-        dodge = 0.5,
-        pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2024)+
-  ylim(c(0,1))
-
-```
-
-```{r fig-linegraph2}
-#| fig-cap: 'Indicator values for butterflies in forests from 2009 to 2024'
-bSkogIndVals <- collectIndData(type = "Butterflies", 
-                                habitat = "Skogsmark",
-                                years = 2009:2024)
-
-indPlot(input = bSkogIndVals,
-        confLevel = "95%",
-        lineWidth = 1,
-        dodge = 0.5,
-        pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2024)+
-  ylim(c(0,1))
-```
-
-The data objects contain point estimates and some percentiles. 
-Here is the summary data for one region and one year, for illustration:
-
-```{r}
-sInd2023OstGress
-```
-
-The indicator value is calculated at the regional level. It cannot be calculated at the site or location level.
-The point estimate is therefore the indicator value, given the localities that we have in the dataset.
-The percentiles are taken from a randomization draw (`sInd2023OstGress$`Randomization draws, community``) created by bootstrapping the localities (resampling 100% with replacement).
-This creates a systematic downwards shift in the probability distribution relative to the point estimate, since the species richness must be lower in the resampled localities.
-Therefore, we cannot use the median or some other central tendency from the randomization as a point estimate. 
-But we need a distribution around the regional point estimates, for the purpose of reporting uncertainties and for aggregating spatially and thematically (into indices).
-Question then is how to obtain this distribution around the point estimate. 
-
-One solution that has been discussed is to resample at the transect level rather than the locality level.
-Another option is to create new, symmetrical distributions centred around the point estimates, inferred from the variation we see in the randomized draws. 
-For example, one could take the SD from the randomization draws and create a new gaussian distribution based on this. 
-It would be coarse, but at least the limit problem for values around 0 and 1 is not a big issue for this indicator, since the values are all hovering around the middle of the range.
+draw_col <- "Randomization draws, community"
+draw_col2 <- "Community indicator estimates, with percentiles"
 
 
+meta <- tribble(
+  ~year , ~region , ~obj               ,
+   2020 , "E"     , sInd2020OstGress   ,
+   2021 , "E"     , sInd2021OstGress   ,
+   2022 , "E"     , sInd2022OstGress   ,
+   2023 , "E"     , sInd2023OstGress   ,
+   2024 , "E"     , sInd2024OstGress   ,
 
-This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. I will aggregate the data from year 2022 and 2024 to produce the value for the year 2024. We are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregation spatially over regions.
+   2022 , "W"     , sInd2022VestGress  ,
+   2023 , "W"     , sInd2023VestGress  ,
+   2024 , "W"     , sInd2024VestGress  ,
 
-First we get the area weights. The localities are stratified to four regions of very different sizes.
+   2020 , "S"     , sInd2020SorGress   ,
+   2021 , "S"     , sInd2021SorGress   ,
+   2022 , "S"     , sInd2022SorGress   ,
+   2023 , "S"     , sInd2023SorGress   ,
+   2024 , "S"     , sInd2024SorGress   ,
 
-```{r tbl-wgt}
-#| tbl-cap: 'Area weights'
-regTable <- counties |>
-  filter(!is.na(Region)) |>
-  mutate(area_km2 = round(units::drop_units(st_area(geom))/1e6),
-  area_weight = round(area_km2/max(area_km2), 3)) |>
-  st_drop_geometry() |>
-  select(Region, area_km2, area_weight)
+   2020 , "C"     , sInd2020TrondGress ,
+   2021 , "C"     , sInd2021TrondGress ,
+   2022 , "C"     , sInd2022TrondGress ,
+   2023 , "C"     , sInd2023TrondGress ,
+   2024 , "C"     , sInd2024TrondGress ,
 
-regTable |>
-  kable()
-```
+   2015 , "E"     , sInd2015OstGress   ,
+   2016 , "E"     , sInd2016OstGress   ,
+   2017 , "E"     , sInd2017OstGress   ,
+   2018 , "E"     , sInd2018OstGress   ,
+   2019 , "E"     , sInd2019OstGress   ,
 
-We use bootstrapping for getting the errors, but we use area-weighted arithmetic mean to get the point estimate.
+   2015 , "S"     , sInd2015SorGress   ,
+   2016 , "S"     , sInd2016SorGress   ,
+   2017 , "S"     , sInd2017SorGress   ,
+   2018 , "S"     , sInd2018SorGress   ,
+   2019 , "S"     , sInd2019SorGress   ,
 
-```{r getPointEst}
-
-# define grouping variables
-years <- 2022:2024
-habitat <- c("Gress", "Skog")
-region <- c(
-  "Ost",
-  "Vest",
-  "Sor",
-  "Trond")
-
-# Create tibble with all combinations
-pointEstimates <- expand_grid(
-  year = years,
-  habitat = habitat,
-  region = region
+   2015 , "C"     , sInd2015TrondGress ,
+   2016 , "C"     , sInd2016TrondGress ,
+   2017 , "C"     , sInd2017TrondGress ,
+   2018 , "C"     , sInd2018TrondGress ,
+   2019 , "C"     , sInd2019TrondGress
 )
 
-# define a function that retrieves the value for one combination
-get_point_estimate <- function(year, region, habitat) {
-  # Construct the object name, e.g. hInd2022OstGress
-  obj_name <- paste0("sInd", year, region, habitat)
-  
-  # Get the object by name
-  obj <- get(obj_name)
-  
-  # Extract the value
-  val <- obj$`Community indicator estimates, with percentiles` |>
-    enframe() |>
-    filter(name == "Point estimate") |>
-    pull("value")
-  
-  return(val)
-}
+seminat <- meta %>%
+  mutate(
+    indicator = map(obj, ~ .x[[draw_col]][1:1000]),
+    point_estimate = map_dbl(obj, ~ .x[[draw_col2]]["Point estimate"])
+  ) |>
+  select(year1 = year, region, indicator, point_estimate) |>
+  mutate(
+    year = case_when(
+      year1 %in% c(2015:2019) ~ 2019,
+      year1 %in% c(2020:2024) ~ 2024,
+      TRUE ~ year1
+    )
+  )
+```
 
-# Run function for each row
-pointEstimates <- pointEstimates |>
+```{r tbl-boot}
+#| tbl-cap: 'Number of years of data from each geographic region.'
+seminat %>%
+  count(year, region, name = "# years") |>
+  gt::gt()
+```
+
+The I shift the distributions so that their mean equals the point estimate
+```{r}
+seminat <- seminat |>
   rowwise() |>
-  mutate(point = get_point_estimate(year, region, habitat)) |>
-  ungroup()
-
-# Make 'region' variable consistent with regTable variable names Region
-pointEstimates <- pointEstimates |>
-  mutate(region2 = case_when(
-    region == "Ost" ~ "Øst",
-    region == "Sor" ~ "Sør",
-    region == "Trond" ~ "Midt",
-    .default = region
-  )) 
-
-  # aggregate by first taking the mean of the years, then the area weighted mean of the four regions
-pointEstimates_overYears <- pointEstimates |>
-  summarise(mean = mean(point), .by = c(habitat, region2)) |>
-  left_join(regTable, by = join_by(region2 == Region)) |>
-  summarise(wmean = mean(mean, weights = area_weight), .by = habitat)
-
-pointEstimates_overYears |> kable()
-
+  mutate(
+    dist_mean = mean(indicator),
+    shift = point_estimate - dist_mean,
+    indicator_shifted = list(indicator + shift),
+    shifted_mean = mean(indicator_shifted)
+  )
+seminat
 ```
 
-Now the errors. We first combine the data from all years and sample from these with *n* corresponding to the area weights
+
+
+Then we can use MC propagation of uncertainties to get an estimate and an uncertainty distribution for Norway as a whole.
+This raises a question about how to weigh the different regions. 
+@fig-regions show has eastern Norway is only represented with data from a very small part.
+In the other regions, the sampling is more spread out.
+If we give the eastern region a low weight, matching the area that they cover in the map, 
+the national estimate, which will be used to infer about all of Norway, including the unsampled areas, will be dictated by the other regions. Also within the Agder county, the sampling is not very spread out, so that giving this data a weigt proportional to that county would not make more sense than giving the eastern localities a weight proportional to the eastern region.
+Because of this rather untidy delineation of regions and spreading of sampling localities, I will give each region an equal weight in the national estimate.   
 
 ```{r}
-east <- c(
-  sInd2022OstGress$`Randomization draws, community`,
-  sInd2023OstGress$`Randomization draws, community`,
-  sInd2024OstGress$`Randomization draws, community`)
-vest <- c(
-  sInd2022VestGress$`Randomization draws, community`,
-  sInd2023VestGress$`Randomization draws, community`,
-  sInd2024VestGress$`Randomization draws, community`)
-south <- c(
-  sInd2022SorGress$`Randomization draws, community`,
-  sInd2023SorGress$`Randomization draws, community`,
-  sInd2024SorGress$`Randomization draws, community`)
-mid <- c(
-  sInd2022TrondGress$`Randomization draws, community`,
-  sInd2023TrondGress$`Randomization draws, community`,
-  sInd2024TrondGress$`Randomization draws, community`)
+#| eval: false
+out <- seminat |>
+  select(year, part = region, indicator = indicator_shifted) |>
+  add_column(end = "Norway", wgt = 1) |>
+  unnest(indicator)
 
-# sample
-east2 <- sample(east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
-west2 <- sample(vest, size = regTable |> filter(Region == "Vest") |> pull(area_weight)*10000, replace = T)
-south2 <- sample(south, size = regTable |> filter(Region == "Sør") |> pull(area_weight)*10000, replace = T)
-mid2 <- sample(mid, size = regTable |> filter(Region == "Midt") |> pull(area_weight)*10000, replace = T)
+temp <- ecTools::ec_upscale(
+  data = out,
+  variable = indicator,
+  weight = wgt,
+  start_units = part,
+  end_units = end,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
 
-# repeat for forests (skog)
-s_east <- c(
-  sInd2022OstSkog$`Randomization draws, community`,
-  sInd2023OstSkog$`Randomization draws, community`,
-  sInd2024OstSkog$`Randomization draws, community`)
-s_vest <- c(
-  sInd2022VestSkog$`Randomization draws, community`,
-  sInd2023VestSkog$`Randomization draws, community`,
-  sInd2024VestSkog$`Randomization draws, community`)
-s_south <- c(
-  sInd2022SorSkog$`Randomization draws, community`,
-  sInd2023SorSkog$`Randomization draws, community`,
-  sInd2024SorSkog$`Randomization draws, community`)
-s_mid <- c(
-  sInd2022TrondSkog$`Randomization draws, community`,
-  sInd2023TrondSkog$`Randomization draws, community`,
-  sInd2024TrondSkog$`Randomization draws, community`)
+out <- out |>
+  select(year, part, indicator) |>
+  bind_rows(temp |> rename(indicator = sampled_mean))
 
-# sample
-s_east2 <- sample(s_east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
-s_west2 <- sample(s_vest, size = regTable |> filter(Region == "Vest") |> pull(area_weight)*10000, replace = T)
-s_south2 <- sample(s_south, size = regTable |> filter(Region == "Sør") |> pull(area_weight)*10000, replace = T)
-s_mid2 <- sample(s_mid, size = regTable |> filter(Region == "Midt") |> pull(area_weight)*10000, replace = T)
-
-
+write.csv(out, file = here::here("data/results_NO_BFLY_001_v1.0.0.csv"), row.names = F)
 ```
-
-Then we combine these into one big string and draw from it
 
 ```{r}
-all <- c(east2, west2, south2, mid2)
-all_s <- c(s_east2, s_west2, s_south2, s_mid2)
-
-(nationalDist <- sample(all, size = 10000, replace = T) |>
-  quantile(probs = c(0.25, 0.75)))
-
-(nationalDist_s <- sample(all_s, size = 10000, replace = T) |>
-  quantile(probs = c(0.25, 0.75)))
+#| measage: false
+#| include: false
+out <- read_csv(here::here("data/results_NO_BFLY_001_v1.0.0.csv"))
 ```
+
 
 ## 10. Results
 
