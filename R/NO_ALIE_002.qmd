@@ -472,14 +472,14 @@ eta_draws <- MASS::mvrnorm(
 
 mu_draws <- plogis(eta_draws)
 
-estimates_re <- do.call(
+alien_re_sim <- do.call(
   rbind,
   lapply(seq_along(b_re), function(i) {
     
     region <- names(b_re)[i]
     mu_i <- mu_draws[, i]
     
-    alien_re_sim <- rbeta(
+    sim <- rbeta(
       n = 1000,
       shape1 = mu_i * phi,
       shape2 = (1 - mu_i) * phi
@@ -491,14 +491,14 @@ estimates_re <- do.call(
 #      eta = eta_draws[, i],
 #      mu = mu_i,
 #      dispersion = phi,
-      alien_re_sim = alien_re_sim
+      sim = sim
     )
   })
 )
 
-estimates_region$region <- sub("^region", "", estimates_region$region)
+alien_re_sim$region <- sub("^region", "", alien_re_sim$region)
 
-estimates_region
+alien_re_sim
 
 
 
