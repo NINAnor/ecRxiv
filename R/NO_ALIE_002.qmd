@@ -426,13 +426,13 @@ summary(alien.re)
 The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
 ```{r}
 
-NO_ALIE_002 <- tibble(
+NO_ALIE_002_table <- tibble(
   Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
   indicator_value = c(plogis(summary(alien.no)$coef$cond[,1]), plogis(summary(alien.re)$coef$cond[,1])),
   CI_upper = c(plogis(summary(alien.no)$coef$cond[,1]+1.96*summary(alien.no)$coef$cond[,2]), plogis(summary(alien.re)$coef$cond[,1]+1.96*summary(alien.re)$coef$cond[,2])),
   CI_lower = as.numeric(plogis(summary(alien.no)$coef$cond[,1]-1.96*summary(alien.no)$coef$cond[,2]), plogis(summary(alien.re)$coef$cond[,1]-1.96*summary(alien.re)$coef$cond[,2]))
 )
-NO_ALIE_002
+NO_ALIE_002_table
 ```
 
 To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error as well as the dispersion parameter.
@@ -500,7 +500,8 @@ alien_re_sim$region <- sub("^region", "", alien_re_sim$region)
 
 alien_re_sim
 
-
+# combining alien_no_sim and alien_re_sim
+NO_ALIE_002_sim <- rbind(data.frame(region = 'Norway', sim = alien.no_sim), alien_re_sim)
 
 ```
 
