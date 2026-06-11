@@ -78,6 +78,7 @@ library(sf)
 library(NinaR)
 library(CursoRopen)
 library(bombLepiSurv)
+library(MetBrewer)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -165,6 +166,13 @@ meta |>
 -   June 10, 2026 - new version
 :::
 
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This workflow uses `renv`. Run `renv::restore()` to recreate the working environment in an R session. 
+ 
+:::
+
 <hr />
 
 
@@ -172,18 +180,39 @@ meta |>
 #| fig-cap: 'Bumblebee. Photo: Arnstein Staverløkk.'
 knitr::include_graphics(here::here("img/lundhumle - Arnstein Staverløkk.png"))
 ```
+
 ## 1. Summary
 
-
+1. **Background and rationale**:
 Bumblebees represent a conspicuous aspect of biodiversity, as well as indicators of habitat quality and important ecosystem functions, such as pollination. As a community they are dependent on a diverse herbaceous flora. Bumblebee community structure can become disturbed by human activities, such as intensive agriculture and land-use change, and is therefore a key indicator of ecosystem condition.
 
-Here we calculate nationally aggregated indicator estimates for all of Norway, for both the forest and the semi-natural meadow ecosystems. The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB) [@åström2024]. This is a transect based survey using a representative sample of grassland localities in four regions of Norway (northern Norway is not included, but is expected to become included in the near future). The indicator is based on the number of bumblebees in each locality, which is then compared to expert elicited reference communities that show the expected number of each bumblebee species.
+2. **Methods**:
+Here we calculate indicator estimates for four geographic regions, and for Norway as a whole, for both the forest and the semi-natural meadow ecosystems. The indicator is based on data from the Norwegian monitoring of bumblebees and butterflies (NMBB) [@åström2024]. This is a transect based survey using a representative sample of localities in four regions of Norway (northern Norway is included from 2024, but data is not yet available). The indicator is based on the number of bumblebees in each locality, which is then compared to expert elicited reference communities that show the expected number of each bumblebee species.
+The workflow for calculating indicator values, and for storing data, is integrated into an R-package called [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv). The indicator is fully operational and used in several national reporting settings. The indicator is very similar to the indicator *Butterflies* \[NO_BFLY_001 and 002\] [@kolstad2025butterflies].
 
-The workflow for calculating indicator values, and for storing data, is integrated into an R-package called [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv). The indicator is fully operational and used in several national reporting settings. The indicator is very similar to the indicator *Butterflies* \[NO_BFLY_001 and 002\] [@åström].
-
-> ### Interpretation
+3. **Interpretation**:
 An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species.
 
+4. **Results and development needs**:
+The indicator values for for Norway in 2024 is 0.61 [95% CI: 0.52-0.68] for forests 0.63 [0.45-0.71] for semi-natural ecosystems. These are relatively low numbers, indicating a level of alteration to the bumblebee communities which is starting to have adverse effects on ecosystem integrity. 
+Development needs include a larger geographic coverage of monitoring sites. 
+ There is some uncertainty around the validity of reference level X~100~, which is based on export opinion, and there is a need to develop more reference levels, especially around the critical part of the range around X~60~. There is also some uncertainty in how the field data are tied to specific ecosystems.
+
+## 1.2 Native language summary - Norwegian
+
+1. **Bakgrunn og begrunnelse**: 
+Humler representerer en synlig og lett observerbar del av det biologiske mangfoldet, samtidig som de fungerer som indikatorer på habitatkvalitet og viktige økosystemfunksjoner, som pollinering. Som artsgruppe er de avhengige av en variert urteflora. Sammensetningen av humlesamfunn kan forstyrres av menneskelig aktivitet, som intensivt jordbruk og arealbruksendringer, og de utgjør derfor en viktig indikator på økosystemtilstand.
+
+2. **Metoder**: 
+Her beregnes indikatorverdier for fire geografiske regioner og for Norge som helhet, både for skogøkosystemer og semi-naturlige økosystemer. Indikatoren er basert på data fra Norsk overvåking av humler og dagsommerfugler (NMBB) [@åström2024]. Dette er en transektbasert overvåking som benytter et representativt utvalg av lokaliteter i fire regioner av Norge (Nord-Norge ble inkludert fra 2024, men disse dataene er ennå ikke tilgjengelige). Indikatoren baserer seg på antall sommerfugler registrert på hver lokalitet, som deretter sammenlignes med ekspertvurderte referansesamfunn som angir forventet forekomst av de ulike sommerfuglartene. Arbeidsflyten for beregning av indikatorverdier og lagring av data er integrert i R-pakken ´bombLepiSurv´. Indikatoren er fullt operativ og brukes i flere nasjonale rapporteringssammenhenger.
+
+3. **Tolkning**: 
+En indikatorverdi på 1 tilsvarer et intakt sommerfuglsamfunn. Verdier som nærmer seg null reflekterer negative økologiske endringer, nærmere bestemt tilbakegang hos arter som forventes å være til stede. Indikatoren fanger ikke opp potensielt positive endringer, som økt forekomst av enkelte arter eller etablering av nye arter.
+
+4. **Resultater og utviklingsbehov**: 
+Indikatorverdien for Norge i 2024 er 0,61 [95 % KI: 0,52–0,68] for skog og 0,63 [95 % KI: 0,45–0,71] for semi-naturlige økosystemer. Dette er relativt lave verdier, noe som indikerer en grad av endring i humlesamfunnene som begynner å ha negative konsekvenser for økosystemenes integritet.
+Utviklingsbehov inkluderer større geografisk dekning av overvåkingslokaliteter.
+Det er også noe usikkerhet knyttet til gyldigheten av referansenivået X~100~, som er basert på ekspertvurderinger, og det er behov for å utvikle flere referansenivåer, særlig i den kritiske delen av gradienten rundt X~60~. Videre er det noe usikkerhet knyttet til hvordan feltdataene kobles til spesifikke økosystemer.
 
 ## 2. About the underlying data
 
@@ -199,21 +228,21 @@ There are in total 71 sampling locations as of 2024, divided between the forests
 
 Since the same locations are visited each year, yearly estimates of the condition could be calculated, but should be interpreted by caution due to natural yearly variability.
 
+### 2.2 Sampling design
 
+A number of 50 m transects are selected from each sampling locality. All butterflues (and bumblebees) are identified along this transect, with 2,5 m buffer to each side. Field work was only done if it ws either above 15 degree C, or less than 60% cloud cover [@öberg2011].
 
-### 2.2 Original units
+### 2.3 Original units
 
 Original units are number of individuals of each species within a transect, although only presences in transects (as presence frequencies) are used for the indicator calculations.
 
-### 2.3 Additional comments about the dataset
+#### 2.4 Instructions for citing, using and accessing data
+
+We get the data from the githup repository for the R package (https://github.com/NINAnor/bombLepiSurv). Most of the data is also available on GBIF [@dataset] and in an internal server at NINA.
+
+### 2.5 Additional comments about the dataset
 
 This indicator was first developed in 2012 for the Nature Index of Norway [@öberg2011] , and is calculated routinely on a yearly basis (see @åström2024 for the latest report). The indicator is also described in detail \[here\](https://ninanor.github.io/ecosystemCondition/insect-indicators.html), from where most of the text and code in the current document is taken (often directly).
-
-#### 2.3.1 Instructions for citing, using and accessing data
-
-
-The version of the data used here is only stored at NINA, but will be made available upon request. 
-Most of the data is, however, available on GBIF [@dataset].
 
 ## 3. Indicator properties
 
@@ -223,23 +252,24 @@ B1 - Compositional state characteristics. This indicator fits here as it describ
 
 ### 3.2 Ecosystem condition characteristic
 
-Intakt biotic communities.
+The indicator is designed measure the degree to which ecosystems have intakt biotic communities.
 
-### 3.3 Other standards
+### 3.3 Collinearities with other indicators
 
-In the Norwegian _fagsystem_ [@nybø2017], the indicator fits with the _Biologisk mangfold_ characteristic.
+Possibly co-varied with NO_BFLY [@kolstad2025butterflies] as they both represent insect communities and rely on the same sampling localtionsa dn partly on the same sampling protocol.
 
-### 3.4 Collinearities with other indicators
-
-Possibly co-varied with NO_BFLY [@åström] as they both represent insect communities.
-
-### 3.5 Impact factors
+### 3.4 Impact factors
 
 Bumblebees in Norway are negatively affected by the loss and fragmentation of flower rich habitats in the agricultural landscape, including good nest sites [@adb]. The reduction is good habitat is attributed to both land abandonment and increased land use intensity (pesticides, fertilize use with reduced flower diversity).
 
-### 3.6 Spatial aggregation
+### 3.5 Spatial aggregation
 
-The variable is scaled at the transect level and the point estimate is a simple arithmetic mean of all transect data points for Norway. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1.
+The data comes into this workflo directly as an indicator, and there is no need to normalise them. The spatial resolution is that of geographical regions. The region are used as is, and these regional uncertaunty distributions are propagated, without weights, to a national estimate.
+
+$$
+sp. agg. (regions\ to\ national)
+$$
+
 
 ## 4. Reference condition and levels
 
@@ -249,7 +279,7 @@ The reference condition for forests is one with minimal negative human impact (p
 
 ### 4.2 Reference levels
 
-Reference levels are calculated the same way as for @åström, but repeated here for coherency.
+Reference levels are calculated the same way as for @kolstad2025butterflies, but repeated here for coherency.
 
 Assessing the current state of insect communities is a complicated task, due to their taxonomic and functional breadth and high temporal and spatial variability. Still, even more challenging is establishing reference levels, when the reference states are extinct or prohibitively difficult to measure empirically.
 
@@ -290,11 +320,7 @@ The second point refers to the reference communities, that are defined based on 
 
 ### 5.2 Reported uncertainties
 
-What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. 
-It does not directly describe variation in the data itself. 
-However, the variation in the mean is defined by the spatial variation only, 
-and quartiles are obtained by bootstrapping the set of localities within a region, 
-and calculating the indicator for each of 9999 such samples. 
+The indicator values are estimated with an inferential type of uncertainty for the true parameter value. The uncertainties for the regions is created using a randomization draw procedure., and it is a little unclear if this is truly an inferential type of uncertainty, but it is treated as such.
 
 
 ## 6. References
@@ -304,84 +330,11 @@ and calculating the indicator for each of 9999 such samples.
 
 ### 7.1 Dataset A - NMBB
 
-The `bombLepiSurv` package has convenience functions to fetch data from the internal NINA database. This database is currently not available outside NINA, but we will implement a solution for this in the future. Either we will make the database externally available, or we will provide an alternative route to the data from the GBIF export. For now, we will fetch the data through the `bombLepiSurv` functions.
-
-### 7.2. Dataset B - Regions
-
-We here import the delineations used in this monitoring program. Note that this delineation different from the more standard definitions used in ecosystem accounting Norway.
-
-```{r readReg}
-readRDS(here::here("indicators/NO_BUMB_001_002/data/regions.rds")) -> counties
-```
-
-```{r fig-regions}
-#| fig-cap: 'Regions in Norway'
-tm_shape(counties) + 
-  tm_polygons(col = "Region") +
-  tm_layout(legend.position = c("right", "bottom"))
-
-```
-
-## 8. Spatial units
-
-
-Ecosystem assets: Mid-, central-, east-, and southern Norway. Note that southern Norway only includes the old counties of Vestfold and Østfold, and the south region contain Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal.
-
-Ecosystem accounting area: Norway (although N-Norway and several sub-regions are missing).
-
-Data needs to be aggregated to EA level before interpretation. In addition, only locations with complete sampling (three replicated per season) should be included to avoid seasonal biases.
-
-## 9. Analyses
-
-These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
-
-Install package like this.
-
-```{r}
-#| eval: false
-#| code-fold: show
-remotes::install_github("NINAnor/bombLepiSurv")
-library(bombLepiSurv)
-```
-
-Here I illustrate how to connect to the database. Since the database is only accessible from NINA, I will not run this part of the analyses, but instead cache the output files so that others can reproduce the general workflow, even if they cannot access the database.
-
-```{r connect}
-#| eval: false
-# get secret username and password. I just keep mine in a local .R file that I also put in the gitignore file.
-source(here::here("_pw.R"))
-# connect
-bombLepiSurv::humlesommerfConnect(
-  username = BOMB_USER,
-  password = BOMB_PASSWORD
-)
-```
-
-Download data from 2024 as an example. 
-
-```{r}
-#| eval: false
-allBumbGressmark2024 <- 
-  getAllData(type = "Bumblebees", 
-    habitat = "Gressmark",
-    year = 2024) |>
-  mutate_if(bit64::is.integer64, as.numeric)
-
-ggsave(
-  here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2024.png"),
-  surveyBarplot(allBumbGressmark2024),
-  width = 10,
-  height = 5)
-```
-
-```{r fig-allBumbGressmark2024}
-#| fig-cap: 'Bumblebees in grasslands 2024.'
-knitr::include_graphics(here::here("indicators/NO_BUMB_001_002/img/fig_allBumbGressmark2024.png"))
-```
-
+The `bombLepiSurv` package has convenience functions to fetch data from the internal NINA database. This database is currently not available outside NINA, so we will instead get the data from the GitHub repo. 
 Indicator data is already processed and we can get them from the R package like this:
 
 ```{r}
+#| warning: false
 # List datasets
 dat <- CursoRopen::list_github_files(
   "bombLepiSurv", 
@@ -398,252 +351,497 @@ dat <- str_remove(dat, ".rda")
 data(package = "bombLepiSurv", list = dat)
 ```
 
-The indicator data gets stored in the environment as one dataframe per year/region/habitat.
+The indicator data is stored in the environment as one dataframe per year/region/habitat.
 
-Then we compile the indicator values for the years 2009 to 2024.
+### 7.2. Dataset B - Regions
 
-```{r fig-linegraph}
-#| fig-cap: 'Indicator values for bumblebees in grasslands from 2009 to 2022'
-hGressIndVals <- collectIndData(type = "Bumblebees", 
-                                habitat = "Gressmark",
-                                years = 2009:2024)
+We here import the delineations used in this monitoring program. Note that this delineation different from the more standard definitions used in ecosystem accounting Norway. For details on how this regional delinatins map is produces, please see Kolstad et a. [-@kolstad2025butterflies].
 
-indPlot(input = hGressIndVals,
-        confLevel = "95%",
-        lineWidth = 1,
-        dodge = 0.5,
-        pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2024)+
-  ylim(c(0,1))
+```{r readReg}
+readRDS(here::here("data/regions.rds")) -> counties
 ```
 
-```{r fig-linegraph2}
-#| fig-cap: 'Indicator values for bumblebees in forests from 2009 to 2022'
-hSkogIndVals <- collectIndData(type = "Bumblebees", 
-                                habitat = "Skogsmark",
-                                years = 2009:2024)
-
-indPlot(input = hSkogIndVals,
-        confLevel = "95%",
-        lineWidth = 1,
-        dodge = 0.5,
-        pointSize = 4) +
-  scale_x_continuous(breaks = 2009:2024)+
-    ylim(c(0,1))
+```{r fig-regions}
+#| fig-cap: 'Regions in Norway'
+tm_shape(counties) + 
+  tm_polygons(col = "Region") +
+  tm_layout(legend.position = c("right", "bottom"))
 ```
 
-The data objects contain point estimates and some percentiles. However, in certain ecosystem accounting contexts, we may want the standard deviation (SD). We can get the symmetrical SD from the vector of randomized draws of community indices, like this:
+## 8. Spatial units
 
-```{r}
-hInd2024OstGress$`Randomization draws, community` |>
-  sd()
-```
+The indicator values are calculated as the scale of geographic regions, which I refer to as basal units or BS units. 
+These are not the same geographic regions that we are asked to calculate indicator values for in the ecosystem assessment project in 2026, where Rogaland belong to the western region. In this indicator, Rogaland belong to the southern region (@fig-regions).
+It is not possible to split the data point between the regions, since the indicator is defined based on this _a priory_ collation of localities. 
+I therefore chose to simply use the regions as is. 
 
-However, the errors or extremely skewed. We shall therefore use the 50% confidence interval (Interquantile range, or IQR).
+Ecosystem assets (EA): Mid-, central-, east-, and southern Norway. Note that eastern Norway only includes the old counties of Vestfold and Østfold, and the south region contain Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal. As noted above, we say that BSs equals EAs.
 
-Here is the summary data for one region and one year, for illustration:
+Ecosystem accounting area: Norway (although N-Norway and several sub-regions are missing).
 
-```{r}
-hInd2024OstGress$`Community indicator estimates, with percentiles` |>
-  kable()
-```
+## 9. Analyses
 
-I can get the correct 2.5 and 97.5 percentiles by using the `quantile` function.
+These calculations with bootstrap sampling are implemented in the R-package [bombLepiSurv](https://github.com/NINAnor/bombLepiSurv).
 
-```{r}
-hInd2024OstGress$`Randomization draws, community` |>
-  quantile(probs = c(0.025, 0.5, 0.975))
-```
+Indicator values are computet at the level of BSs directly from the field data. 
+The uncertainties around the point estimates are from resampling localities with the EA, with replacement.
+This resampling procedure causes a downwards shift in the distribution of indicator values, at leastly partly because the species richness tends to decrease as some localities are selected more than once. 
+In order to harmonise with other indicator workflows in Norway, 
+our workflow here also needs to result in uncertainty distributions where the point estimate is defined as the mean of this distribution.
+The uncertainty distribution, we believe, has a shape and spread which is representative of the true parameter uncertainty.
+Therefore we will shift this distribution to become centered on the point estimate, as it is from the original, non-resampled data.
 
-But notice that the point estimate is not the median of the distribution. Nor is it the mean. The point estimate is rather taken from the actual sample of sampling locations, and not from a bootstrap.
+Only locations with complete sampling (three replicated per season) should be included to avoids seasonal biases.
 
-This particular version of the indicator is developed for the Norwegian pilot for national ecosystem condition accounting. In this context we need to adhere to some guidelines. The accounting year (closing year) is 2024, and the accounting period is 3 years. I will aggregate the data from year 2022 and 2024 and produce the value for the closing year 2024. Although it is possible to estimate regional indicator values. we are only concerned with the national estimate for now. We also need to carry the errors through every calculation step and to use an area weighted mean when aggregating spatially over regions.
+First we get the indicator values. We pool the year 2022-2024 into one.
 
-First we get the area weights. The localities are stratified to four regions of very different sizes.
+```{r getSemiNatDat}
+draw_col <- "Randomization draws, community"
+draw_col2 <- "Community indicator estimates, with percentiles"
 
-```{r tbl-wgt}
-#| tbl-cap: 'Area weights'
 
-regTable <- counties |>
-    filter(!is.na(Region)) |>
-    mutate(area_km2 = round(units::drop_units(st_area(geom))/1e6),
-    area_weight = round(area_km2/max(area_km2), 3)) |>
-    st_drop_geometry() |>
-    select(Region, area_km2, area_weight) 
+meta <- tribble(
+  ~year , ~region , ~obj               ,
+   2020 , "E"     , hInd2020OstGress   ,
+   2021 , "E"     , hInd2021OstGress   ,
+   2022 , "E"     , hInd2022OstGress   ,
+   2023 , "E"     , hInd2023OstGress   ,
+   2024 , "E"     , hInd2024OstGress   ,
 
-regTable |> kable()
-```
+   2022 , "W"     , hInd2022VestGress  ,
+   2023 , "W"     , hInd2023VestGress  ,
+   2024 , "W"     , hInd2024VestGress  ,
 
-We use bootstrapping for getting the errors, but we use area-weighted arithmetic mean to get the point estimate.
+   2020 , "S"     , hInd2020SorGress   ,
+   2021 , "S"     , hInd2021SorGress   ,
+   2022 , "S"     , hInd2022SorGress   ,
+   2023 , "S"     , hInd2023SorGress   ,
+   2024 , "S"     , hInd2024SorGress   ,
 
-First the point estimate for grasslands.
+   2020 , "C"     , hInd2020TrondGress ,
+   2021 , "C"     , hInd2021TrondGress ,
+   2022 , "C"     , hInd2022TrondGress ,
+   2023 , "C"     , hInd2023TrondGress ,
+   2024 , "C"     , hInd2024TrondGress ,
 
-```{r}
-# define grouping variables
-years <- 2022:2024
-habitat <- c("Gress", "Skog")
-region <- c(
-  "Ost",
-  "Vest",
-  "Sor",
-  "Trond")
+   2015 , "E"     , hInd2015OstGress   ,
+   2016 , "E"     , hInd2016OstGress   ,
+   2017 , "E"     , hInd2017OstGress   ,
+   2018 , "E"     , hInd2018OstGress   ,
+   2019 , "E"     , hInd2019OstGress   ,
 
-# Create tibble with all combinations
-pointEstimates <- expand_grid(
-  year = years,
-  habitat = habitat,
-  region = region
+   2015 , "S"     , hInd2015SorGress   ,
+   2016 , "S"     , hInd2016SorGress   ,
+   2017 , "S"     , hInd2017SorGress   ,
+   2018 , "S"     , hInd2018SorGress   ,
+   2019 , "S"     , hInd2019SorGress   ,
+
+   2015 , "C"     , hInd2015TrondGress ,
+   2016 , "C"     , hInd2016TrondGress ,
+   2017 , "C"     , hInd2017TrondGress ,
+   2018 , "C"     , hInd2018TrondGress ,
+   2019 , "C"     , hInd2019TrondGress
 )
 
-# define a function that retrieves the value for one combination
-get_point_estimate <- function(year, region, habitat) {
-  # Construct the object name, e.g. hInd2022OstGress
-  obj_name <- paste0("hInd", year, region, habitat)
-  
-  # Get the object by name
-  obj <- get(obj_name)
-  
-  # Extract the value
-  val <- obj$`Community indicator estimates, with percentiles` |>
-    enframe() |>
-    filter(name == "Point estimate") |>
-    pull("value")
-  
-  return(val)
-}
-
-# Run function for each row
-pointEstimates <- pointEstimates |>
-  rowwise() |>
-  mutate(point = get_point_estimate(year, region, habitat)) |>
-  ungroup()
-
-# Make 'region' variable consistent with regTable variable names Region
-pointEstimates <- pointEstimates |>
-  mutate(region2 = case_when(
-    region == "Ost" ~ "Øst",
-    region == "Sor" ~ "Sør",
-    region == "Trond" ~ "Midt",
-    .default = region
-  )) 
-
-# aggregate by first taking the mean of the years, then the area weighted mean of the four regions
-pointEstimates_overYears <- pointEstimates |>
-  summarise(mean = mean(point), .by = c(habitat, region2)) |>
-  left_join(regTable, by = join_by(region2 == Region)) |>
-  summarise(wmean = mean(mean, weights = area_weight), .by = habitat)
-
-pointEstimates_overYears |> kable()
-```
-
-
-Then the errors. We first combine the data from all years and sample from these with *n* corresponding to the area weights
-
-```{r}
-east <- c(
-  hInd2022OstGress$`Randomization draws, community`,
-  hInd2023OstGress$`Randomization draws, community`, 
-  hInd2024OstGress$`Randomization draws, community`
+seminat <- meta %>%
+  mutate(
+    indicator = map(obj, ~ .x[[draw_col]][1:1000]),
+    point_estimate = map_dbl(obj, ~ .x[[draw_col2]]["Point estimate"])
+  ) |>
+  select(year1 = year, region, indicator, point_estimate) |>
+  mutate(
+    year = case_when(
+      year1 %in% c(2015:2019) ~ 2019,
+      year1 %in% c(2020:2024) ~ 2024,
+      TRUE ~ year1
+    )
   )
-vest <- c(
-  hInd2022VestGress$`Randomization draws, community`,
-  hInd2023VestGress$`Randomization draws, community`,
-  hInd2024VestGress$`Randomization draws, community`)
-south <- c(
-  hInd2022SorGress$`Randomization draws, community`,
-  hInd2023SorGress$`Randomization draws, community`,
-  hInd2024SorGress$`Randomization draws, community`)
-mid <- c(
-  hInd2022TrondGress$`Randomization draws, community`,
-  hInd2023TrondGress$`Randomization draws, community`,
-  hInd2024TrondGress$`Randomization draws, community`)
-
-# sample
-
-
-east2 <- sample(east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
-west2 <- sample(vest, size = regTable |> filter(Region == "Vest") |> pull(area_weight)*10000, replace = T)
-south2 <- sample(south, size = regTable |> filter(Region == "Sør") |> pull(area_weight)*10000, replace = T)
-mid2 <- sample(mid, size = regTable |> filter(Region == "Midt") |> pull(area_weight)*10000, replace = T)
-
-# repeat for forests (skog)
-s_east <- c(
-  hInd2022OstSkog$`Randomization draws, community`,
-  hInd2023OstSkog$`Randomization draws, community`,
-  hInd2024OstSkog$`Randomization draws, community`)
-s_vest <- c(
-  hInd2022VestSkog$`Randomization draws, community`,
-  hInd2023VestSkog$`Randomization draws, community`,
-  hInd2024VestSkog$`Randomization draws, community`)
-s_south <- c(
-  hInd2022SorSkog$`Randomization draws, community`,
-  hInd2023SorSkog$`Randomization draws, community`,
-  hInd2024SorSkog$`Randomization draws, community`)
-s_mid <- c(
-  hInd2022TrondSkog$`Randomization draws, community`,
-  hInd2023TrondSkog$`Randomization draws, community`,
-  hInd2024TrondSkog$`Randomization draws, community`)
-
-# sample
-s_east2 <- sample(s_east, size = regTable |> filter(Region == "Øst") |> pull(area_weight)*10000, replace = T)
-s_west2 <- sample(s_vest, size = regTable |> filter(Region == "Vest") |> pull(area_weight)*10000, replace = T)
-s_south2 <- sample(s_south, size = regTable |> filter(Region == "Sør") |> pull(area_weight)*10000, replace = T)
-s_mid2 <- sample(s_mid, size = regTable |> filter(Region == "Midt") |> pull(area_weight)*10000, replace = T)
-
-
 ```
 
-Then we combine these into one big string and draw from it
+```{r tbl-boot}
+#| tbl-cap: 'Number of years of data from each geographic region.'
+seminat %>%
+  count(year, region, name = "# years") |>
+  gt::gt()
+```
+
+```{r getForestDat}
+draw_col <- "Randomization draws, community"
+draw_col2 <- "Community indicator estimates, with percentiles"
+
+
+metaF <- tribble(
+  ~year , ~region , ~obj               ,
+   2020 , "E"     , hInd2020OstSkog   ,
+   2021 , "E"     , hInd2021OstSkog   ,
+   2022 , "E"     , hInd2022OstSkog   ,
+   2023 , "E"     , hInd2023OstSkog   ,
+   2024 , "E"     , hInd2024OstSkog   ,
+
+   2022 , "W"     , hInd2022VestSkog  ,
+   2023 , "W"     , hInd2023VestSkog  ,
+   2024 , "W"     , hInd2024VestSkog  ,
+
+   2020 , "S"     , hInd2020SorSkog   ,
+   2021 , "S"     , hInd2021SorSkog   ,
+   2022 , "S"     , hInd2022SorSkog   ,
+   2023 , "S"     , hInd2023SorSkog   ,
+   2024 , "S"     , hInd2024SorSkog   ,
+
+   2020 , "C"     , hInd2020TrondSkog ,
+   2021 , "C"     , hInd2021TrondSkog ,
+   2022 , "C"     , hInd2022TrondSkog ,
+   2023 , "C"     , hInd2023TrondSkog ,
+   2024 , "C"     , hInd2024TrondSkog ,
+
+   2015 , "E"     , hInd2015OstSkog   ,
+   2016 , "E"     , hInd2016OstSkog   ,
+   2017 , "E"     , hInd2017OstSkog   ,
+   2018 , "E"     , hInd2018OstSkog   ,
+   2019 , "E"     , hInd2019OstSkog   ,
+
+   2015 , "S"     , hInd2015SorSkog   ,
+   2016 , "S"     , hInd2016SorSkog   ,
+   2017 , "S"     , hInd2017SorSkog   ,
+   2018 , "S"     , hInd2018SorSkog   ,
+   2019 , "S"     , hInd2019SorSkog   ,
+
+   2015 , "C"     , hInd2015TrondSkog ,
+   2016 , "C"     , hInd2016TrondSkog ,
+   2017 , "C"     , hInd2017TrondSkog ,
+   2018 , "C"     , hInd2018TrondSkog ,
+   2019 , "C"     , hInd2019TrondSkog
+)
+
+skog <- metaF %>%
+  mutate(
+    indicator = map(obj, ~ .x[[draw_col]][1:1000]),
+    point_estimate = map_dbl(obj, ~ .x[[draw_col2]]["Point estimate"])
+  ) |>
+  select(year1 = year, region, indicator, point_estimate) |>
+  mutate(
+    year = case_when(
+      year1 %in% c(2015:2019) ~ 2019,
+      year1 %in% c(2020:2024) ~ 2024,
+      TRUE ~ year1
+    )
+  )
+```
+
+Then I shift the distributions so that their mean equals the point estimate.
 
 ```{r}
-all <- c(east2, west2, south2, mid2)
-all_s <- c(s_east2, s_west2, s_south2, s_mid2)
-
-(nationalDist <- sample(all, size = 10000, replace = T) |>
-  quantile(probs = c(0.25, 0.75)))
-
-(nationalDist_s <- sample(all_s, size = 10000, replace = T) |>
-  quantile(probs = c(0.25, 0.75)))
+seminat <- seminat |>
+  rowwise() |>
+  mutate(
+    dist_mean = mean(indicator),
+    shift = point_estimate - dist_mean,
+    indicator_shifted = list(indicator + shift),
+    shifted_mean = mean(indicator_shifted)
+  )
+seminat |>
+  select(region, year, point_estimate, dist_mean, shift, shifted_mean)
 ```
+
+```{r}
+skog <- skog |>
+  rowwise() |>
+  mutate(
+    dist_mean = mean(indicator),
+    shift = point_estimate - dist_mean,
+    indicator_shifted = list(indicator + shift),
+    shifted_mean = mean(indicator_shifted)
+  )
+```
+
+
+Then we can use MC propagation of uncertainties to get an estimate and an uncertainty distribution for Norway as a whole.
+This raises a question about how to weigh the different regions. 
+@fig-regions show has eastern Norway is only represented with data from a very small part.
+In the other regions, the sampling is more spread out.
+If we give the eastern region a low weight, matching the area that they cover in the map, 
+the national estimate, which will be used to infer about all of Norway, including the unsampled areas, will be dictated by the other regions. Also within the Agder county, the sampling is not very spread out, so that giving this data a weigt proportional to that county would not make more sense than giving the eastern localities a weight proportional to the eastern region.
+Because of this rather untidy delineation of regions and spreading of sampling localities, I will give each region an equal weight in the national estimate.   
+
+```{r}
+#| eval: false
+out <- seminat |>
+  select(year, part = region, indicator = indicator_shifted) |>
+  add_column(end = "Norway", wgt = 1) |>
+  unnest(indicator)
+
+temp <- ecTools::ec_upscale(
+  data = out,
+  variable = indicator,
+  weight = wgt,
+  start_units = part,
+  end_units = end,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+
+out <- out |>
+  select(year, part, indicator) |>
+  bind_rows(temp |> rename(indicator = sampled_mean))
+
+write.csv(out, file = here::here("data/results_NO_BUMB_001_v1.0.0.csv"), row.names = F)
+```
+
+```{r}
+#| eval: false
+outF <- skog |>
+  select(year, part = region, indicator = indicator_shifted) |>
+  add_column(end = "Norway", wgt = 1) |>
+  unnest(indicator)
+
+temp <- ecTools::ec_upscale(
+  data = outF,
+  variable = indicator,
+  weight = wgt,
+  start_units = part,
+  end_units = end,
+  year = year,
+  end_units_name = "part",
+  n = 1000
+)
+
+outF <- outF |>
+  select(year, part, indicator) |>
+  bind_rows(temp |> rename(indicator = sampled_mean))
+
+write.csv(outF, file = here::here("data/results_NO_BUMB_002_v1.0.0.csv"), row.names = F)
+```
+
+```{r}
+#| measage: false
+#| include: false
+out <- read_csv(here::here("data/results_NO_BUMB_001_v1.0.0.csv"))
+outF <- read_csv(here::here("data/results_NO_BUMB_002_v1.0.0.csv"))
+```
+
 
 ## 10. Results
 
-```{r tbl-finalTable}
-#| tbl-cap: Accounting table with indicator values. IQR = interquantile range.
-tibble(
-  ECT = rep("B1", 2),
-  Indicator = rep("Bumblebees", 2),
-  ID = c("NO_BUMB_001", "NO_BUMB_002"),
-  "Accounting area" = "Norway",
-  Ecosystem = c("Grasslands", "Forest"),
-  "Closing year" = rep(2024, 2),
-  "Indicator value" = c(
-    round(pointEstimates_overYears |>
-      filter(habitat == "Gress") |>
-      pull(wmean), 3), 
-    round(pointEstimates_overYears |>
-      filter(habitat == "Skog") |>
-      pull(wmean), 3)),
-  "Error (IQR)" = c(
-    paste(round(nationalDist[1], 2), "-", round(nationalDist[2], 2)),
-    paste(round(nationalDist_s[1], 2), "-", round(nationalDist_s[2], 2))
+The final indicator values for Norway are given in @tbl-results.
+
+```{r summaryStats}
+#| warning: false
+#| message: false
+summary_out <- out |>
+  group_by(part, year) |>
+  summarise(
+    median = round(median(indicator), 2),
+    p_025 = round(quantile(indicator, probs = 0.025), 2),
+    p_25 = round(quantile(indicator, probs = 0.25), 2),
+    p_75 = round(quantile(indicator, probs = 0.75), 2),
+    p_975 = round(quantile(indicator, probs = 0.975), 2),
+  ) |>
+  add_column(
+    ECT = "B1",
+    Indicator = "Bumblebees",
+    Ecosystem = "Semi-natural",
+    ID = "NO_BUMB_001"
   )
-) |>
-  kable()
 
-
+summary_outF <- outF |>
+  group_by(part, year) |>
+  summarise(
+    median = round(median(indicator), 2),
+    p_025 = round(quantile(indicator, probs = 0.025), 2),
+    p_25 = round(quantile(indicator, probs = 0.25), 2),
+    p_75 = round(quantile(indicator, probs = 0.75), 2),
+    p_975 = round(quantile(indicator, probs = 0.975), 2),
+  ) |>
+  add_column(
+    ECT = "B1",
+    Indicator = "Bumblebees",
+    Ecosystem = "Forest",
+    ID = "NO_BUMB_002"
+  )
 ```
 
 
-::: {.callout-tip collapse="true"}
-## Session Info
 
-This information is mainly aimed at developers that need to recreate the R environment that produced the html.
-Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+```{r tbl-results}
+#| warning: false
+#| message: false
+#| tbl-cap: 'Indicator values and uncertainty estimates for NO_BUMB_001.'
 
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
+summary_out |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  arrange(year, part) |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = part,
+    Ecosystem,
+    "Closing year" = year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  knitr::kable()
 ```
 
-:::
+```{r tbl-resultsF}
+#| warning: false
+#| message: false
+#| tbl-cap: 'Indicator values and uncertainty estimates for NO_BUMB_002.'
+
+summary_outF |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  arrange(year, part) |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = part,
+    Ecosystem,
+    "Closing year" = year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  knitr::kable()
+```
+
+```{r prepping}
+part_labels <- c(
+  N = "North",
+  C = "Central",
+  W = "West",
+  S = "South",
+  E = "East",
+  Norway = "Norway",
+  All = "Norway"
+)
+
+region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+
+region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(region_levels)),
+  region_levels
+)
+myYears <- c(2019, 2024)
+plot_data <- summary_out |>
+  mutate(
+    year = factor(year, levels = myYears),
+    series_type = if_else(part == "Norway", "National", "Region"),
+    part2 = recode(part, !!!part_labels)
+  )
+
+plot_dataF <- summary_outF |>
+  mutate(
+    year = factor(year, levels = myYears),
+    series_type = if_else(part == "Norway", "National", "Region"),
+    part2 = recode(part, !!!part_labels)
+  )
+```
+```{r fig-timeSeries}
+#| fig-cap: 'Indicator values for NO_BUMB_001 (Bumblebees in semi-natural or agricultural ecosystems) plotted over time and for four different regions (there is no data from Northern Norway), as well as the combined national estimated. The error bars are 95% confidence intervals.'
+ggplot(plot_data, aes(x = year, y = median, colour = part2, group = part2)) +
+  geom_line(
+    aes(linewidth = series_type),
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_linewidth_manual(
+    values = c(National = 2, Region = 0.55),
+    guide = "none"
+  ) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8,
+    linewidth = 0.45,
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_colour_manual(values = region_cols, name = NULL) +
+  scale_shape_manual(
+    values = c(National = 19, Region = 17),
+    name = NULL
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  guides(
+    colour = guide_legend(
+      nrow = 2,
+      override.aes = list(size = 0.7, linewidth = 0.45)
+    ),
+    shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  labs(y = "Indicator value", x = "")
+```
+
+```{r fig-timeSeriesF}
+#| fig-cap: 'Indicator values for NO_BUMB_00F (Bumblebees in forest ecosystems) plotted over time and for four different regions (there is no data from Northern Norway), as well as the combined national estimated. The error bars are 95% confidence intervals.'
+ggplot(plot_dataF, aes(x = year, y = median, colour = part2, group = part2)) +
+  geom_line(
+    aes(linewidth = series_type),
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_linewidth_manual(
+    values = c(National = 2, Region = 0.55),
+    guide = "none"
+  ) +
+  geom_pointrange(
+    aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8,
+    linewidth = 0.45,
+    position = position_dodge(width = 0.18)
+  ) +
+  scale_colour_manual(values = region_cols, name = NULL) +
+  scale_shape_manual(
+    values = c(National = 19, Region = 17),
+    name = NULL
+  ) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  ) +
+  guides(
+    colour = guide_legend(
+      nrow = 2,
+      override.aes = list(size = 0.7, linewidth = 0.45)
+    ),
+    shape = guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  labs(y = "Indicator value", x = "")
+```
+
+## 11. Export file
+
+The results are exported to `data/results_NO_BUMB_001 and *_002`. 
+
+## 12. Author contributions
+
+<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+
+**CRediT statement**
+
+* Conceptualization: ALK, JÅ
+* Methodology: ALK, JÅ
+* Data curation: JÅ
+* Formal analysis: ALK, JÅ
+* Software: ALK, JÅ
+* Visualization: ALK
+* Writing – original draft: ALK
+* Writing – review & editing: JÅ
+* Funding acquisition: ALK
+
+
+
+
+
