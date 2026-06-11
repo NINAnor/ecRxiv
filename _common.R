@@ -231,8 +231,11 @@ version <- meta |>
 auth <- meta |>
   dplyr::filter(Variable == "AuthorList") |>
   pull(Value)
-year <- meta |>
+yearAdded <- meta |>
   dplyr::filter(Variable == "yearAdded") |>
+  pull(Value)
+year <- meta |>
+  dplyr::filter(Variable == "yearLastUpdate") |>
   pull(Value)
 id <- meta |>
   dplyr::filter(Variable == "indicatorID") |>
