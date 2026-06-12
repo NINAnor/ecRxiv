@@ -38,20 +38,22 @@ format:
 execute: 
   cache: true
 author:
-  - name: Erik Framstad              # Enter name
-    email: erik.framstad@nina.no  # Enter email
+  - name: Ken Olaf Storaunet
     affiliations:
-        name: Norwegian Institute for Nature Research # Enter affiliations
-  - name: Ken Olav Storaunet       
-    affiliations:             
-        name: Norwegian Institute of Bioeconomy Research # Enter affiliations
-  - name: Oliver Snoksrud      
-    affiliations:             
-        name: Norwegian Institute of Bioeconomy Research # Enter affiliations
-  - name: Aud Helen Halbritter             
-    affiliations:             
-        name: University of Bergen # Enter affiliations
-AuthorList: Framstad, E., Storaunet, K.O., Snoksrud, O. and Halbritter, A. H.
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Ulrika Jansson Asplund
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Erik Framstad
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Oliver Snoksrud
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Aud Helen Halbritter
+    affiliations:
+      - name: University of Bergen
+AuthorList: Storaunet, K. O., Jansson Asplund, U., Framstad, E., Snoksrud, O., and Halbritter, A. H.
 date: May 11, 2026 # Enter date
 data_availability: bronze
 code_reproducibility: gold
@@ -375,24 +377,18 @@ These variations in plot representativity must be accounted for in aggregated es
 Data from NFI contain an area-weighting variable to be used in aggregating NFI data for spatial units larger than individual NFI plots.
 
 ```{r load-data}
+#| cache: false
 #| code-summary: "Load data"
 
-# This export wraps each physical line in an extra pair of double quotes, so a
-# single read_csv() sees one column spanning the whole file. Read once as one
-# character column per line (readr unwraps the outer quotes), then parse the
-# inner CSV text.
-lsk_inner_csv <- read_csv(
-  here("data/LSK_data_okologisk_tilstand_2026.csv"),
-  col_names = FALSE,
-  show_col_types = FALSE,
-  locale = locale(encoding = "UTF-8"),
-  col_types = cols(.default = col_character())
-) |>
-  pull(1) |>
-  paste(collapse = "\n")
+lsk_data_file <- here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")
+aats_cache_deps <- c(
+  lsk_data_file,
+  here::here("R/functions.R"),
+  here::here("R/NO_AATS_002.qmd")
+)
 
 lsk_data_raw <- read_csv(
-  I(lsk_inner_csv),
+  lsk_data_file,
   show_col_types = FALSE,
   locale = locale(encoding = "UTF-8")
 ) |>
@@ -423,7 +419,7 @@ reporting_periods <- list(
 
 ```
 
-We filter out Finnmark plots marked for removal (`merket_finnm == 0`), keep data from 2010 onward, and standardise county names by merging split NFI labels to county level.
+We keep data from 2010 onward and standardise county names by merging split NFI labels to county level.
 Missing (`NA`) values for `gran_pr`, `intro_gran_pr`, and `intro_furu_pr` are set to 0 before aggregation, so these plots remain in the area basis (`au_areal`) with 0% alien coniferous share (missing values occur mainly in harvest class 1 stands).
 The plot-level indicator depends on `komm_m_nat_gran`: when `n` (no natural spruce), the share is `pmin(gran_pr + intro_gran_pr + intro_furu_pr, 100)`; when `j` (natural spruce present), it is `pmin(intro_gran_pr + intro_furu_pr, 100)`.
 For each included plot, the area-weighted contribution to later aggregation is `indicator_continuous * au_areal`.
@@ -433,7 +429,6 @@ For each included plot, the area-weighted contribution to later aggregation is `
 #| code-summary: "Create derived variables"
 
 lsk_data <- lsk_data_raw |>
-  filter(merket_finnm == 0) |>
   filter(sesong >= 2010) |>
   mutate(
     gran_pr = dplyr::coalesce(gran_pr, 0),
@@ -465,12 +460,12 @@ lsk_data <- lsk_data_raw |>
 Finally, we retain only the columns required for subsequent aggregation and reporting.
 
 ```{r aats-select-downstream-fields}
+#| cache: false
 #| code-summary: "Select downstream fields"
 
 lsk_data <- lsk_data |>
   dplyr::select(
     sesong,
-    merket_finnm,
     au_areal,
     komm_m_nat_gran,
     gran_pr,
@@ -494,6 +489,8 @@ For each reporting period, we calculate non-scaled indicator values separately f
 Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 
 ```{r aats-calculate-all-periods}
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(aats_cache_deps), na.rm = TRUE))
 #| code-summary: "Calculate non-scaled values"
 
 aats_results <- purrr::imap(
@@ -516,7 +513,7 @@ Each replicate computes the area-weighted non-scaled mean alien coniferous share
 ```{r aats-county-draws-long}
 #| code-summary: "Bootstrap draws per county (1000 per county per period)"
 #| cache: true
-#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026.csv")), file.mtime(here::here("R/NO_AATS_002.qmd")))
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(aats_cache_deps), na.rm = TRUE))
 
 county_draws_long <- purrr::imap_dfr(aats_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
@@ -605,6 +602,8 @@ Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::e
 @fig-aats-norm shows the mapping.
 
 ```{r aats-county-draws-scaled}
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(aats_cache_deps), na.rm = TRUE))
 #| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
 
 county_draws_scaled <- county_draws_long |>
@@ -668,37 +667,29 @@ The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates un
 For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
 
 ```{r aats-ec-upscale-regional}
-#| code-summary: "ec_upscale: county to region (compute once, save RDS)"
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(aats_cache_deps), na.rm = TRUE))
+#| code-summary: "ec_upscale: county to region"
 
-aats_mc_cache_deps <- c(
-  here::here("data/LSK_data_okologisk_tilstand_2026.csv"),
-  here::here("R/functions.R"),
-  here::here("R/NO_AATS_002.qmd")
-)
 aats_mc_rds_regional <- here::here("data/aats_mc_regional.rds")
 
-if (
-  file.exists(aats_mc_rds_regional) &&
-  file.mtime(aats_mc_rds_regional) >= max(file.mtime(aats_mc_cache_deps), na.rm = TRUE)
-) {
-  aats_mc_regional <- readRDS(aats_mc_rds_regional)
-} else {
-  aats_mc_regional <- ecTools::ec_upscale(
-    data        = county_draws_scaled,
-    variable    = scaled_value,
-    weight      = total_area,
-    start_units = fylke_name,
-    end_units   = region_code,
-    year        = period,
-    end_units_name = "region_code",
-    n = 1000
-  )
-  saveRDS(aats_mc_regional, aats_mc_rds_regional)
-}
+aats_mc_regional <- ecTools::ec_upscale(
+  data        = county_draws_scaled,
+  variable    = scaled_value,
+  weight      = total_area,
+  start_units = fylke_name,
+  end_units   = region_code,
+  year        = period,
+  end_units_name = "region_code",
+  n = 1000
+)
+saveRDS(aats_mc_regional, aats_mc_rds_regional)
 ```
 
 ```{r aats-ec-upscale-national}
-#| code-summary: "ec_upscale: region to national (compute once, save RDS)"
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(aats_cache_deps), na.rm = TRUE))
+#| code-summary: "ec_upscale: region to national"
 
 region_area_weights <- county_draws_scaled |>
   dplyr::distinct(period, fylke_name, total_area, region_code) |>
@@ -711,30 +702,22 @@ aats_mc_regional_for_national <- aats_mc_regional |>
 
 aats_mc_rds_national <- here::here("data/aats_mc_national.rds")
 
-if (
-  file.exists(aats_mc_rds_national) &&
-  file.mtime(aats_mc_rds_national) >= max(
-    c(file.mtime(aats_mc_cache_deps), file.mtime(aats_mc_rds_regional)),
-    na.rm = TRUE
-  )
-) {
-  aats_mc_national <- readRDS(aats_mc_rds_national)
-} else {
-  aats_mc_national <- ecTools::ec_upscale(
-    data        = aats_mc_regional_for_national,
-    variable    = sampled_mean,
-    weight      = region_area,
-    start_units = region_code,
-    end_units   = nation,
-    year        = period,
-    end_units_name = "nation",
-    n = 1000
-  )
-  saveRDS(aats_mc_national, aats_mc_rds_national)
-}
+aats_mc_national <- ecTools::ec_upscale(
+  data        = aats_mc_regional_for_national,
+  variable    = sampled_mean,
+  weight      = region_area,
+  start_units = region_code,
+  end_units   = nation,
+  year        = period,
+  end_units_name = "nation",
+  n = 1000
+)
+saveRDS(aats_mc_national, aats_mc_rds_national)
 ```
 
 ```{r aats-mc-combined}
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(aats_cache_deps), na.rm = TRUE))
 #| code-summary: "Combine regional and national MC draws; build summary tables"
 
 aats_mc_combined <- dplyr::bind_rows(
