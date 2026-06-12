@@ -1,11 +1,11 @@
 ---
-title: "Density of large trees"
+title: "Share of forest with large trees"
 subtitle: |
   NO_DLTA_001
 indicatorID: 
   - NO_DLTA_001
 indicatorName: 
-  - Density of large trees
+  - Share of forest with large trees
 verbatimName: 
   - Arealandel med forekomst av store trær
 folderName: NO_DLTA_001
@@ -40,20 +40,26 @@ format:
 execute: 
   cache: true
 author:
+  - name: Ken Olaf Storaunet
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Ulrika Jansson Asplund
+    affiliations:
+      - name: Norwegian Institute for Nature Research
   - name: Erik Framstad
     email: erik.framstad@nina.no
     affiliations:
       - name: Norwegian Institute for Nature Research
-  - name: Ken Olav Storaunet
+  - name: Mari Jönsson
     affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
+      - name: Norwegian Institute for Nature Research
   - name: Oliver Snoksrud
     affiliations:
       - name: Norwegian Institute of Bioeconomy Research
   - name: Aud Helen Halbritter
     affiliations:
       - name: University of Bergen
-AuthorList: Framstad, E., Storaunet, K. O., Snoksrud, O. and Halbritter, A. H.
+AuthorList: Storaunet, K. O., Jansson Asplund, U., Framstad, E., Jönsson, M., Snoksrud, O., and Halbritter, A. H.
 date: June 9, 2026
 data_availability: bronze
 code_reproducibility: gold
@@ -203,7 +209,7 @@ meta |>
 ## 1. Summary
 
 1. **Background and rationale**:
-This indicator represents the proportion of forest area with trees of all species with a diameter at breast height of at least 40 cm.
+This indicator represents the share of forest area with trees of all species with a diameter at breast height of at least 40 cm.
 In forests shaped by natural disturbances and succession, large trees are expected to occur to a much higher extent than today.
 Historical harvesting of large trees and short harvest rotations in current forestry tend to prevent trees from growing very large.
 
@@ -252,7 +258,7 @@ The diameter at breast height (dbh) of all trees larger than 5 cm dbh is recorde
 There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
 The indicator value is an unbiased area-weighted estimate of the proportion of NFI plots with at least one tree with dbh ≥ 40 cm for included NFI plots in any selected region.
 Both productive and unproductive forest (`arealtype` 1 and 12) are included.
-Plots with missing `dbh_40` are excluded before aggregation.
+Plots with missing `stort_tre` are excluded before aggregation.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
 For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020–2024.
 The data are available upon request from NFI.
@@ -361,30 +367,23 @@ The resulting distributions are summarised with median and quantile intervals.
 
 The diameter at breast height (dbh) is measured for all trees > 5 cm dbh for each 250 m² NFI plot according to methods described in [@viken2021-feltinstruks].
 For this indicator data from each full 5-yr inventory cycle, starting in 2010, are used.
-The variable `dbh_40` is binary: 1 if the plot has at least one tree with dbh ≥ 40 cm, 0 otherwise.
+The variable `stort_tre` is binary: 1 if the plot has at least one tree with dbh ≥ 40 cm, 0 otherwise.
 Both productive and unproductive forest plots (`arealtype` 1 and 12) are included.
 
 
 ```{r load-data}
+#| cache: false
 #| code-summary: "Load data"
 
-# Load main data file
-# This export wraps each physical line in an extra pair of double quotes, so a
-# single read_csv() sees one column spanning the whole file. Read once as one
-# character column per line (readr unwraps the outer quotes), then parse the
-# inner CSV text.
-lsk_inner_csv <- read_csv(
-  here("data/LSK_data_okologisk_tilstand_2026.csv"),
-  col_names = FALSE,
-  show_col_types = FALSE,
-  locale = locale(encoding = "UTF-8"),
-  col_types = cols(.default = col_character())
-) |>
-  pull(1) |>
-  paste(collapse = "\n")
+lsk_data_file <- here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")
+dlta_cache_deps <- c(
+  lsk_data_file,
+  here::here("R/functions.R"),
+  here::here("R/NO_DLTA_001.qmd")
+)
 
 lsk_data_raw <- read_csv(
-  I(lsk_inner_csv),
+  lsk_data_file,
   show_col_types = FALSE,
   locale = locale(encoding = "UTF-8")
 ) |>
@@ -420,7 +419,7 @@ reporting_periods <- list(
 ```
 
 We filter the raw dataset to include both productive and unproductive forest plots (`arealtype` 1 and 12) and standardise county names by merging split NFI labels to county level.
-The plot-level indicator is the binary NFI variable `dbh_40` (1 = at least one tree with dbh ≥ 40 cm, 0 = no large trees).
+The plot-level indicator is the binary NFI variable `stort_tre` (1 = at least one tree with dbh ≥ 40 cm, 0 = no large trees).
 For each included plot, the area-weighted contribution to later aggregation is `indicator_continuous * au_areal`.
 
 ```{r dlta-create-derived-variables}
@@ -443,7 +442,7 @@ lsk_data <- lsk_data_raw |>
     ),
     region_code = assign_region_code(fylke_name_clean),
     region_name = assign_region_name(region_code),
-    indicator_continuous = dbh_40,
+    indicator_continuous = stort_tre,
     indicator_continuous_weighted = indicator_continuous * au_areal
   )
 
@@ -452,6 +451,7 @@ lsk_data <- lsk_data_raw |>
 Finally, we retain only the columns required for subsequent aggregation and reporting.
 
 ```{r dlta-select-downstream-fields}
+#| cache: false
 #| code-summary: "Select downstream fields"
 
 lsk_data <- lsk_data |>
@@ -463,7 +463,7 @@ lsk_data <- lsk_data |>
     region_name,
     fylke_name,
     fylke_name_clean,
-    dbh_40,
+    stort_tre,
     indicator_continuous,
     indicator_continuous_weighted
   )
@@ -476,6 +476,8 @@ For each reporting period, we calculate non-scaled indicator values separately f
 Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 
 ```{r calculate-dlta-all-periods}
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
 #| code-summary: "Calculate non-scaled values"
 
  dlta_results <- purrr::imap(
@@ -498,7 +500,7 @@ Each replicate computes the area-weighted non-scaled large trees share, giving a
 ```{r county-draws-long}
 #| code-summary: "Bootstrap draws per county (1000 per county per period)"
 #| cache: true
-#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026.csv")), file.mtime(here::here("R/NO_DLTA_001.qmd")))
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
 
 county_draws_long <- purrr::imap_dfr(dlta_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
@@ -596,6 +598,8 @@ Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::e
 @fig-dlta-norm shows the mapping.
 
 ```{r county-draws-scaled}
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
 #| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
 
 county_draws_scaled <- county_draws_long |>
@@ -659,37 +663,29 @@ The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates un
 For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
 
 ```{r dlta-ec-upscale-regional}
-#| code-summary: "ec_upscale: county to region (compute once, save RDS)"
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
+#| code-summary: "ec_upscale: county to region"
 
-dlta_mc_cache_deps <- c(
-  here::here("data/LSK_data_okologisk_tilstand_2026.csv"),
-  here::here("R/functions.R"),
-  here::here("R/NO_DLTA_001.qmd")
-)
 dlta_mc_rds_regional <- here::here("data/dlta_mc_regional.rds")
 
-if (
-  file.exists(dlta_mc_rds_regional) &&
-  file.mtime(dlta_mc_rds_regional) >= max(file.mtime(dlta_mc_cache_deps), na.rm = TRUE)
-) {
-  dlta_mc_regional <- readRDS(dlta_mc_rds_regional)
-} else {
-  dlta_mc_regional <- ecTools::ec_upscale(
-    data        = county_draws_scaled,
-    variable    = scaled_value,
-    weight      = total_area,
-    start_units = fylke_name,
-    end_units   = region_code,
-    year        = period,
-    end_units_name = "region_code",
-    n = 1000
-  )
-  saveRDS(dlta_mc_regional, dlta_mc_rds_regional)
-}
+dlta_mc_regional <- ecTools::ec_upscale(
+  data        = county_draws_scaled,
+  variable    = scaled_value,
+  weight      = total_area,
+  start_units = fylke_name,
+  end_units   = region_code,
+  year        = period,
+  end_units_name = "region_code",
+  n = 1000
+)
+saveRDS(dlta_mc_regional, dlta_mc_rds_regional)
 ```
 
 ```{r dlta-ec-upscale-national}
-#| code-summary: "ec_upscale: region to national (compute once, save RDS)"
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
+#| code-summary: "ec_upscale: region to national"
 
 region_area_weights <- county_draws_scaled |>
   dplyr::distinct(period, fylke_name, total_area, region_code) |>
@@ -702,30 +698,22 @@ dlta_mc_regional_for_national <- dlta_mc_regional |>
 
 dlta_mc_rds_national <- here::here("data/dlta_mc_national.rds")
 
-if (
-  file.exists(dlta_mc_rds_national) &&
-  file.mtime(dlta_mc_rds_national) >= max(
-    c(file.mtime(dlta_mc_cache_deps), file.mtime(dlta_mc_rds_regional)),
-    na.rm = TRUE
-  )
-) {
-  dlta_mc_national <- readRDS(dlta_mc_rds_national)
-} else {
-  dlta_mc_national <- ecTools::ec_upscale(
-    data        = dlta_mc_regional_for_national,
-    variable    = sampled_mean,
-    weight      = region_area,
-    start_units = region_code,
-    end_units   = nation,
-    year        = period,
-    end_units_name = "nation",
-    n = 1000
-  )
-  saveRDS(dlta_mc_national, dlta_mc_rds_national)
-}
+dlta_mc_national <- ecTools::ec_upscale(
+  data        = dlta_mc_regional_for_national,
+  variable    = sampled_mean,
+  weight      = region_area,
+  start_units = region_code,
+  end_units   = nation,
+  year        = period,
+  end_units_name = "nation",
+  n = 1000
+)
+saveRDS(dlta_mc_national, dlta_mc_rds_national)
 ```
 
 ```{r dlta-mc-combined}
+#| cache: true
+#| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
 #| code-summary: "Combine regional and national MC draws; build summary tables"
 
 dlta_mc_combined <- dplyr::bind_rows(
