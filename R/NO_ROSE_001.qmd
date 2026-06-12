@@ -35,20 +35,23 @@ format:
 execute: 
   cache: true
 author:
+  - name: Ken Olaf Storaunet
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Ulrika Jansson Asplund
+    affiliations:
+      - name: Norwegian Institute for Nature Research
   - name: Erik Framstad
     email: erik.framstad@nina.no
     affiliations:
       - name: Norwegian Institute for Nature Research
-  - name: Ken Olav Storaunet
-    affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
   - name: Oliver Snoksrud
     affiliations:
       - name: Norwegian Institute of Bioeconomy Research
   - name: Aud Helen Halbritter
     affiliations:
-      - name: University of Bergen 
-AuthorList: Framstad, E., Storaunet, K. O., Snoksrud, O. and Halbritter, A. H.  
+      - name: University of Bergen
+AuthorList: Storaunet, K. O., Jansson Asplund, U., Framstad, E., Snoksrud, O., and Halbritter, A. H.
 date: May 7, 2026
 data_availability: bronze
 code_reproducibility: gold
@@ -356,23 +359,10 @@ For this indicator data from each full 5-year inventory cycle, starting in 2010,
 ```{r load-data}
 #| code-summary: "Load data"
 
-# Load main data file
-# This export wraps each physical line in an extra pair of double quotes, so a
-# single read_csv() sees one column spanning the whole file. Read once as one
-# character column per line (readr unwraps the outer quotes), then parse the
-# inner CSV text.
-lsk_inner_csv <- read_csv(
-  here("data/LSK_data_okologisk_tilstand_2026.csv"),
-  col_names = FALSE,
-  show_col_types = FALSE,
-  locale = locale(encoding = "UTF-8"),
-  col_types = cols(.default = col_character())
-) |>
-  pull(1) |>
-  paste(collapse = "\n")
+lsk_data_file <- here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")
 
 lsk_data_raw <- read_csv(
-  I(lsk_inner_csv),
+  lsk_data_file,
   show_col_types = FALSE,
   locale = locale(encoding = "UTF-8")
 ) |>
@@ -404,7 +394,7 @@ reporting_periods <- list(
 
 ```
 
-Next we filter the raw dataset to include both productive and unproductive forest plots (`arealtype` 1 and 12), remove records missing in `ros_10_prha`, and standardise the county names.
+Next we filter the raw dataset to include both productive and unproductive forest plots (`arealtype` 1 and 12) and standardise the county names.
 Area-weighted values are created using `indicator_continuous_weighted = ros_10_prha * au_areal`.
 
 ```{r create-derived-variables}
@@ -416,8 +406,6 @@ lsk_data <- lsk_data_raw |>
     # productive and unproductive forest plots
     arealtype %in% c(1, 12)
   ) |>
-  # remove records with missing data on rowan-aspen-goat willow volume
-  filter(!is.na(ros_10_prha)) |>
   mutate(
     fylke_name = region_fylke |>
       stringr::str_remove("^\\d+-\\d+\\s+") |>
@@ -518,10 +506,10 @@ county_draws_long <- purrr::imap_dfr(rose_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-rose-county-nonscaled-latest) summarises the non-scaled bootstrap draws for the latest reporting period (`2020-2024`): the median area-weighted rowan-aspen-goat willow volume per county or sub-county.
+The table below (@tbl-rose-county-nonscaled-latest) summarises the non-scaled bootstrap draws for the latest reporting period (`2020-2024`): the median area-weighted rowan-aspen-goat willow volume per county or sub-county, with approximate 95% and interquartile intervals from the bootstrap distribution.
 
 ```{r tbl-rose-county-nonscaled-latest}
-#| tbl-cap: "Non-scaled, area-weighted rowan-aspen-goat willow volume by county or sub-county for reporting period 2020–2024 (median of 1000 bootstrap draws)."
+#| tbl-cap: "Non-scaled, area-weighted rowan-aspen-goat willow volume by county or sub-county for reporting period 2020–2024 (median of 1000 bootstrap draws, with approximate 95% and interquartile intervals)."
 #| echo: false
 
 rose_latest_period <- tail(names(reporting_periods), 1)
@@ -531,6 +519,10 @@ county_draws_long |>
   dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
   dplyr::summarise(
     non_scaled_median = median(non_scaled_value),
+    p_025 = as.numeric(quantile(non_scaled_value, 0.025)),
+    p_25  = as.numeric(quantile(non_scaled_value, 0.25)),
+    p_75  = as.numeric(quantile(non_scaled_value, 0.75)),
+    p_975 = as.numeric(quantile(non_scaled_value, 0.975)),
     .groups = "drop"
   ) |>
   dplyr::left_join(
@@ -541,19 +533,26 @@ county_draws_long |>
   ) |>
   dplyr::mutate(
     region_name = assign_region_name(region_code),
-    non_scaled_median_round = round(non_scaled_median, 2)
+    non_scaled_median = round(non_scaled_median, 2),
+    p_025 = round(p_025, 2),
+    p_25  = round(p_25, 2),
+    p_75  = round(p_75, 2),
+    p_975 = round(p_975, 2)
   ) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
   dplyr::arrange(region_code, fylke_name) |>
-  dplyr::select(
+  dplyr::transmute(
     Period = period,
     County = fylke_name,
     `Sub-county` = county_part,
     Region = region_name,
-    `Non-scaled value (m³ ha⁻¹)` = non_scaled_median_round,
-    `Total area (ha)` = total_area,
+    `Non-scaled value (m³ ha⁻¹)` = non_scaled_median,
+    `95% CI` = CI_95,
+    `50% CI` = IQR,
+    `Total area (ha)` = round(total_area, 0),
     `Number of plots` = n_plots
   ) |>
-  dplyr::mutate(`Total area (ha)` = round(`Total area (ha)`, 0)) |>
   knitr::kable() |>
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
