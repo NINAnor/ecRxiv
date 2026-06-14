@@ -265,7 +265,7 @@ The variable is scaled at the initial ANO-point level and the indicator estimate
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
-In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. Thus, in terms of alien species, the reference condition is defined as an ecosystem without any alien plant species.
+In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. In terms of nitrogen, the reference condition is defined by a reference community.
 
 ### 4.2 Reference levels
 Reference and limit values (scaling values) for functional plant community indicators are derived as the 0.025, 0.5, and 0.975 quantiles (lower limit values, reference value, upper limit value, respectively) from distributions of community weighted means of the respective plant indicators originating from bootstrapped generalized species lists.
@@ -277,7 +277,7 @@ The same reference levels apply to all types of ecosystems and all regions.
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
-Uncertainties relate partly to sampling and observer variability (and possible observer bias) in the recording of the plant cover data. Presumably, there is also uncertainty related to the scoring of indicator values for species, and this will probably vary among species (cf. Tyler et al. 2021 and Grime 1974). These potential sources uncertainty can only be assumed and not quantified.
+Uncertainties relate partly to sampling and observer variability (and possible observer bias) in the recording of the plant cover data. Presumably, there is also uncertainty related to the scoring of indicator values for species, and this will probably vary among species (cf. Tyler et al. 2021). These potential sources uncertainty can only be assumed and not quantified.
 Spatial variability as a source of uncertainty can be quantified. For every mean or median indicator value (after scaling) for every region (or any other delimited area of interest) we can calculate its corresponding standard error or confidence interval quantiles as a measure of spatial uncertainty for a geographical area.
 There is some uncertainty related to the ecosystem categorization at the field sites (see Ullerud et al. 2018 and Naas et al. 2023), but since ANO monitoring does not include spatial delineation of ecosystem polygons this problem is considered smaller than in spatial ecosystem mapping which these references mainly relate to.
 Other uncertainties connected to the indicator arise from community weighted means calculated from plant communities of different species richness in the observation data; since no uncertainty measure for these community-weighted means is calculated and propagated, the actual uncertainty of functional community signals for the single community observations is unknown.
@@ -575,27 +575,6 @@ regnor <- st_intersection(reg,nor)
 
 ANO.forest = st_join(ANO.forest, regnor, left = TRUE, join = st_nearest_feature)
 
-## add region information
-nor <- st_read(here::here("data/outlineOfNorway_EPSG25833.shp"),
-               quiet = T)%>%
-  st_as_sf() %>%
-  st_transform(crs = st_crs(ANO.forest))
-
-reg <- st_read(here::here("data/regions.shp"),
-               quiet = T) %>%
-  st_as_sf() %>%
-  st_transform(crs = st_crs(ANO.forest))
-
-# change region names to something R-friendly
-# reg$region
-reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
-
-regnor <- st_intersection(reg,nor)
-
-ANO.forest = st_join(ANO.forest, regnor, left = TRUE, join = st_nearest_feature)
-
-
-
 ### fix species names
 ANO.sp$Species <- ANO.sp$art_navn
 unique(as.factor(ANO.sp$Species))
@@ -751,7 +730,7 @@ summary(NiN.sp.ind)
 NiN.sp.ind[NiN.sp.ind==999] <- NA
 
 ## checking which species didn't find a match
-unique(NiN.sp.ind[is.na(NiN.sp.ind$Moisture) & NiN.sp.ind$spgr %in% list("a1a","a1b","a1c"),'sp'])
+unique(NiN.sp.ind[is.na(NiN.sp.ind$Nitrogen) & NiN.sp.ind$spgr %in% list("a1a","a1b","a1c"),'sp'])
 
 ## fix species name issues
 #ind.dat <- ind.dat %>% 
@@ -867,7 +846,7 @@ summary(NiN.sp.ind)
 NiN.sp.ind[NiN.sp.ind==999] <- NA
 
 # checking which species didn't find a match
-unique(NiN.sp.ind[is.na(NiN.sp.ind$Moisture) & NiN.sp.ind$spgr %in% list("a1a","a1b","a1c"),'sp'])
+unique(NiN.sp.ind[is.na(NiN.sp.ind$Nitrogen) & NiN.sp.ind$spgr %in% list("a1a","a1b","a1c"),'sp'])
 # ok now
 
 ## matching with NiN ecosystem types - for wetlands, mountains, and forests
@@ -1080,11 +1059,11 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 forest.ref.cov[[1]][0,]
 
 # NiN-types where each type is represented by one species list (including when one species list represents two NiN-types), i.e. excluding types with a- and b-suffix
-names(forest.ref.cov[["Moisture"]])
+names(forest.ref.cov[["Nitrogen"]])
 x <- c(1:17,22:26)
 
 # checking the actual NiN-types in the forest lists
-forest.NiNtypes <- colnames(forest.ref.cov[["Moisture"]])
+forest.NiNtypes <- colnames(forest.ref.cov[["Nitrogen"]])
 forest.NiNtypes[-x] <- substr(forest.NiNtypes[-x], 1, nchar(forest.NiNtypes[-x])-1)
 forest.NiNtypes
 
@@ -1093,7 +1072,7 @@ indEll.n=2
 # creating a table to hold:
 # for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator), for Heat_requirement in alpine/arctic systems we do 0.05 quantile and  0.95 quantile and ignore the former as it is a one-sided indicator
 # for every nature type (nrows)
-tab <- matrix(ncol=3*indEll.n, nrow=24 ) # 26 basic ecosystem types
+tab <- matrix(ncol=3*indEll.n, nrow=24 ) # 24 basic ecosystem types
 # coercing the values into the table
 
 myQuantiles <- c(0.25, 0.5, 0.75)
