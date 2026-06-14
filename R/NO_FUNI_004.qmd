@@ -552,9 +552,51 @@ unique(ANO.geo$slitasje)
 #length(levels(as.factor(ANO.geo$ano_flate_id)))
 #length(levels(as.factor(ANO.geo$ano_punkt_id)))
 summary(as.factor(ANO.geo$ano_punkt_id))
-# there's many double presences, probably some wrong registrations of point numbers,
+# there's many double presences, probably some wrong registrations of point numbers
 
-# fix species names
+# we filter out everything that is not forest
+ANO.forest <- ANO.geo %>% dplyr::filter(hovedoekosystem_rute == "Forest")
+## add region information
+nor <- st_read(here::here("data/outlineOfNorway_EPSG25833.shp"),
+               quiet = T)%>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.forest))
+
+reg <- st_read(here::here("data/regions.shp"),
+               quiet = T) %>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.forest))
+
+# change region names to something R-friendly
+# reg$region
+reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
+
+regnor <- st_intersection(reg,nor)
+
+ANO.forest = st_join(ANO.forest, regnor, left = TRUE, join = st_nearest_feature)
+
+## add region information
+nor <- st_read(here::here("data/outlineOfNorway_EPSG25833.shp"),
+               quiet = T)%>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.forest))
+
+reg <- st_read(here::here("data/regions.shp"),
+               quiet = T) %>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.forest))
+
+# change region names to something R-friendly
+# reg$region
+reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
+
+regnor <- st_intersection(reg,nor)
+
+ANO.forest = st_join(ANO.forest, regnor, left = TRUE, join = st_nearest_feature)
+
+
+
+### fix species names
 ANO.sp$Species <- ANO.sp$art_navn
 unique(as.factor(ANO.sp$Species))
 ANO.sp[,'Species'] <- word(ANO.sp[,'Species'], 1,2) # lose subspecies
@@ -1153,17 +1195,232 @@ forest.ref.cov.val %>%
   kable("html", caption = "Reference values (Rv and threshold values (Gv) for each indicator and nature type combination") %>% kable_styling("striped") %>% scroll_box(width = "100%", height = "300px")
 ```
 
+Once test data and the scaling values from the reference data are in place, we can calculate CWMs of the selected indicator for the ANO community data and scale them against the scaling values from the reference distribution. Note that we scale each ANO plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. An ANO plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
+
+For scaling ANO-data against the reference we use the normalisation function from package ecTools.
+```{r, echo = F, warning = F}
+
+#### calculating scaled and non-truncated values for the indicators based on the dataset ####
+# drop geometry
+ANO.forest <- ANO.forest %>%
+  mutate(
+    X = st_coordinates(.)[, 1],
+    Y = st_coordinates(.)[, 2]
+  ) %>%
+  st_drop_geometry()
+
+
+for (i in 1:nrow(ANO.forest) ) {  #
+  tryCatch({
+    print(i)
+    print(paste(ANO.forest$ano_flate_id[i]))
+    print(paste(ANO.forest$ano_punkt_id[i]))
+    #    ANO.forest$Hovedoekosystem_sirkel[i]
+    #    ANO.forest$Hovedoekosystem_rute[i]
+    
+    
+    
+    # if the ANO.hovedtype exists in the forest reference
+    if ( ANO.forest$hovedtype_rute[i] %in% unique(sub("\\-.*", "", forest.ref.cov.val$grunn)) ) {
+      
+      # if there is any species present in current ANO point  
+      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.forest$globalid[i]),'Species']) > 0 ) {
+        
+        
+        # Nitrogen
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.forest$globalid[i]),c('art_dekning','Nitrogen')]
+        ANO.forest[i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Nitrogen),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Nitrogen'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- forest.ref.cov.val[forest.ref.cov.val$Ind=='Nitrogen1' & forest.ref.cov.val$grunn==as.character(ANO.forest[i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- forest.ref.cov.val[forest.ref.cov.val$Ind=='Nitrogen1' & forest.ref.cov.val$grunn==as.character(ANO.forest[i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- forest.ref.cov.val[forest.ref.cov.val$Ind=='Nitrogen1' & forest.ref.cov.val$grunn==as.character(ANO.forest[i,"kartleggingsenhet_1m2"]),'maxmin']
+          # normalisation
+          ANO.forest[i,'Nitrogen1'] <- ec_normalise(variable = val, x0 = maxmin, x60 = lim, x100 = ref, fun = "linear")
+
+          # upper part of distribution
+          ref <- forest.ref.cov.val[forest.ref.cov.val$Ind=='Nitrogen2' & forest.ref.cov.val$grunn==as.character(ANO.forest[i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- forest.ref.cov.val[forest.ref.cov.val$Ind=='Nitrogen2' & forest.ref.cov.val$grunn==as.character(ANO.forest[i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- forest.ref.cov.val[forest.ref.cov.val$Ind=='Nitrogen2' & forest.ref.cov.val$grunn==as.character(ANO.forest[i,"kartleggingsenhet_1m2"]),'maxmin']
+          # normalisation
+          ANO.forest[i,'Nitrogen2'] <- ec_normalise(variable = val, x0 = maxmin, x60 = lim, x100 = ref, fun = "linear")
+
+        }
+        
+        
+      }
+      
+    }
+    
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+# generate overall Nitrogen indicator
+ANO.forest$Nitrogen <- ANO.forest$Nitrogen1*ANO.forest$Nitrogen2
+
+ANO.forest$Nitrogen1[ANO.forest$Nitrogen1==1] <- NA
+ANO.forest$Nitrogen2[ANO.forest$Nitrogen2==1] <- NA
+
+# add geometry again
+ANO.forest <- ANO.forest %>%
+  st_as_sf(coords = c("X", "Y"), crs = st_crs(ANO.geo))
+
+```
+
+```{r}
+head(ANO.forest) %>%
+      kable("html", caption = "ANO plots for ecosystems with scaled indicator values in the far-right columns.") %>% 
+  kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+#### Calculating national and regional indices
+
+<<<<<<< HEAD
+We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
+The uncertainty around the national and region indicator values is derived from the same statistical model.
+The national and regional estimates are computed separately.
+
+```{r, warning=F}
+## Fit ordered beta regression null-model with a random effect
+# Norway
+
+nitrogen.no <- glmmTMB(
+  Nitrogen ~ 1 + (1|ano_flate_id),
+  data = ANO.forest,
+  family = ordbeta
+)
+
+nitrogen1.no <- glmmTMB(
+  Nitrogen1 ~ 1 + (1|ano_flate_id),
+  data = ANO.forest[!is.na(ANO.forest$Nitrogen1),],
+  family = ordbeta
+)
+
+nitrogen2.no <- glmmTMB(
+  Nitrogen2 ~ 1 + (1|ano_flate_id),
+  data = ANO.forest[!is.na(ANO.forest$Nitrogen2),],
+  family = ordbeta
+)
+
+summary(nitrogen.no)
+summary(nitrogen1.no)
+summary(nitrogen2.no)
+
+# regions
+nitrogen.re <- glmmTMB(
+  Nitrogen ~ 0 + region + (1|ano_flate_id),
+  data = ANO.forest,
+  family = ordbeta
+)
+
+nitrogen1.re <- glmmTMB(
+  Nitrogen1 ~ 0 + region + (1|ano_flate_id),
+  data = ANO.forest[!is.na(ANO.forest$Nitrogen1),],
+  family = ordbeta
+)
+
+nitrogen2.re <- glmmTMB(
+  Nitrogen2 ~ 0 + region + (1|ano_flate_id),
+  data = ANO.forest[!is.na(ANO.forest$Nitrogen2),],
+  family = ordbeta
+)
+
+summary(nitrogen.re)
+summary(nitrogen1.re)
+summary(nitrogen2.re)
+```
 
 
 ## 10. Results
 
-<!--# 
+The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
+```{r}
 
-Repeat the final results here. Typically this is a map or table of indicator values.
+NO_FUNI_004_table <- tibble(
+  Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
+  indicator_value = c(plogis(summary(nitrogen.no)$coef$cond[,1]), plogis(summary(nitrogen.re)$coef$cond[,1])),
+  CI_upper = c(plogis(summary(nitrogen.no)$coef$cond[,1]+1.96*summary(nitrogen.no)$coef$cond[,2]), plogis(summary(nitrogen.re)$coef$cond[,1]+1.96*summary(nitrogen.re)$coef$cond[,2])),
+  CI_lower = as.numeric(plogis(summary(nitrogen.no)$coef$cond[,1]-1.96*summary(nitrogen.no)$coef$cond[,2]), plogis(summary(nitrogen.re)$coef$cond[,1]-1.96*summary(nitrogen.re)$coef$cond[,2])),
+  upper_indicator_value = c(plogis(summary(nitrogen2.no)$coef$cond[,1]), plogis(summary(nitrogen2.re)$coef$cond[,1])),
+  n_upper_indicator_value = c(summary(nitrogen2.no)$nobs,as.vector(table(nitrogen2.re$frame$region))),
+  lower_indicator_value = c(plogis(summary(nitrogen1.no)$coef$cond[,1]), plogis(summary(nitrogen1.re)$coef$cond[,1])),
+  n_lower_indicator_value = c(summary(nitrogen1.no)$nobs,as.vector(table(nitrogen1.re$frame$region)))
+)
+NO_FUNI_004_table
+```
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error as well as the dispersion parameter.
+```{r}
 
--->
+## Norway
+# Fixed-effect intercept and SE
+b0 <- fixef(nitrogen.no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(nitrogen.no)$cond["(Intercept)", "(Intercept)"])
+# Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
+phi <- sigma(nitrogen.no)
+
+# draw estimates and backtransform from logit-scale
+eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
+mu_draws  <- plogis(eta_draws)
+
+# draw from beta distribution to consider the dispersion parameter 
+nitrogen.no_sim <- rbeta(
+  n = 1000,
+  shape1 = mu_draws * phi,
+  shape2 = (1 - mu_draws) * phi
+)
+
+
+## regions
+b_re <- fixef(nitrogen.re)$cond
+vc_re <- vcov(nitrogen.re)$cond
+phi <- sigma(nitrogen.re)
+
+eta_draws <- MASS::mvrnorm(
+  n = 1000,
+  mu = b_re,
+  Sigma = vc_re
+)
+
+mu_draws <- plogis(eta_draws)
+
+nitrogen_re_sim <- do.call(
+  rbind,
+  lapply(seq_along(b_re), function(i) {
+    
+    region <- names(b_re)[i]
+    mu_i <- mu_draws[, i]
+    
+    sim <- rbeta(
+      n = 1000,
+      shape1 = mu_i * phi,
+      shape2 = (1 - mu_i) * phi
+    )
+    
+    data.frame(
+      region = region,
+#      draw = 1:10,
+#      eta = eta_draws[, i],
+#      mu = mu_i,
+#      dispersion = phi,
+      sim = sim
+    )
+  })
+)
+
+nitrogen_re_sim$region <- sub("^region", "", nitrogen_re_sim$region)
+
+nitrogen_re_sim
+
+# combining nitrogen_no_sim and nitrogen_re_sim
+NO_FUNI_004_sim <- rbind(data.frame(region = 'Norway', sim = nitrogen.no_sim), nitrogen_re_sim)
+
+```
+
 
 ## 11. Export file
 
