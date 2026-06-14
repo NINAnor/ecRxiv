@@ -1,0 +1,1467 @@
+---
+title: "Nitrogen impact on vegetation"
+subtitle: |
+  [NO_FUNI_002] (mountains) 
+# delete the line with the second indicatorID (line 5) 
+# if it's not relevant for you.
+# In the parentheses you can add a word to distinguish multiple indicators 
+# from each other, for example the ecosystem type that they cover
+indicatorID: 
+  - [NO_FUNI_002]
+# If you are presenting multiple indicators, and have multiple 
+# indicator IDs, then add them as a list here, and make sure you add
+# the same number of list entries, 
+# and in the same order that corresponds to the indicator IDs,  
+# to the meta data fields where the indicators differ. 
+# For example, if the indicators cover different ecosystem types, 
+# add the ecosystems as a list under 'Ecosystems', but if they are in the
+# same realm, same country etc., then you only need to write the realm and
+# country once. 
+indicatorName: 
+  - Nitrogen impact on vegetation
+verbatimName: 
+  - Nitrogenpåvirkning på vegetasjon # the indicator name that us used in the native language
+folderName: XXX_YYY_ZZZ # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
+# If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
+# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
+country: Norway
+continent: Europe
+ECT: A2 - Chemical State characteristics
+Realm: # Please copy and paste Realms, Biomes and Ecostsem names from here: https://github.com/NINAnor/ecRxiv/wiki#ecosystem-typology 
+  - Terrestrial (T)
+Biome: 
+  - T6 Polar-alpine (cryogenic) biome
+Ecosystem: 
+  - T6.3 Polar tundra
+  - T6.4 Temp alpine grasslands
+verbatimEcosystem:
+  - Fjell
+yearAdded: 2026
+yearLastUpdate: 2026
+status: incomplete # options are complete, incomplete, or deprecated
+Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+VersionComment: Comment here # Describe briefly how this version differs from earlier versions 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
+# To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Uncertainties: 95% confidence intervals for the indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
+author:
+  - name: Joachim Töpper              # Enter name
+    email: joachim.topper@nina.no  # Enter email
+    affiliations: NINA
+      - id: myID
+        name: Norwegian institute for nature research # Enter affiliations
+AuthorList: Töpper, J.  
+date: June 6, 2026
+data_availability: Openly available and accessible at Miljøidirektoratets kartkatalog
+code_reproducibility: Fully documented on github and executable in R
+open_science_badge: Data Integrated, Documented and executable
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+hide: TRUE # Change to FALSE
+bibliography: references.bib
+---
+
+<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
+
+<!--# Load all you dependencies here -->
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+library(sf)
+library(ecTools)
+library(glmmTMB)
+library(MASS)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+source(here::here("_common.R"))
+```
+
+
+
+<!--# The following parts are autogenerated. Do not edit. -->
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+# The following inserts a badge specifying the GPL GNU version 3 license. ecRxiv recommends using this license, but you can decide to use another. Contact ecRxiv for help in insert a badge for a different license
+license_badge()
+```
+
+
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
+
+```
+:::
+
+::: {.callout-tip collapse="true"}
+
+## Log
+
+<!--# Update this logg with short messages for each update -->
+- 01 Jan. 1901 - Original PR
+:::
+
+
+<hr />
+
+<!--# Document you work below.  -->
+
+## 1. Summary
+
+1. **Background and rationale**: This indicator represents plant community responses to nitrogen. It represents the lowest score of deviations from an optimal state either to higher or to lower nitrogen levels. 
+
+2. **Methods**: The data comes from field sampled plant community data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019). We combine this with functional trait values from Tyler et al. (2021) and plant strategies towards stressors from Grime (1974). Indicator values are based on calculating community-weighted means (Diekmann 2003, Töpper et al. 2018) or cumulative abundance (see Framstad et al. 2022) of functional trait values for plant community data. Deviations in such an indicator beyond a certain range of indicator values indicate a directional shift in the plant community. As reference communities we use ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020, see Evju et al. 2023 for naturally open lowland ecosystems). For each major ecosystem type a separate set of indicators, related to the main drivers of change today, is computed. The lowest scoring functional plant community indicator is then reported as the ‘Functional plant community index’.
+
+3. **Interpretation**:
+An indicator value of 1 indicates no discernible difference in the functional plant composition due to nitrogen impacts. 
+Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state, either as a response to increased or decreased nitrogen.
+
+4. **Results and development needs**:
+
+XXXX
+
+To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southhern and eastern Norway. The indicator values also need validation against independent datasets.
+
+
+
+
+## 2. About the underlying data
+We use three types of data for building functional plant community indicators for ecological condition:
+
+- as observation data  we use plant community data from the ANO monitoring scheme (cf. Tingstad et al. 2019)
+- as reference data we use generalized species lists from the Norwegian categorization system for eco-diversity (NiN) (Halvorsen et al. 2020)
+- Swedish functional plant indicator data from Tyler et al. (2021) and indicator values for plant strategies from Grime (1974)
+
+For details see point 7 below.
+
+### 2.1 Spatial and temporal resolution and extent
+The ANO monitoring data available now represent one cycle of sampling from 2019-2024 comprising ca. 1000 sites across Norway.
+ANO has no defined end date. 2025 is the first year of repeated sampling for about 20% of the approximately 1000 ANO sites for all of mainland Norway (i.e. the Ecosystem Accounting Area). Annual sampling is spatially representative, in principle allowing to compute area-representative estimates for single years but also multiple-yr-reporting periods. The indicator at hand is calculated based on the ANO data from 2020-2024.
+
+### 2.2 Sampling design
+At every ANO site, the the plant community is recorded (presence and percent cover of every vascular plant species) in the central 1 sqm plot of each of systematically arranged 18 monitoring points.
+
+### 2.3 Original units
+Abundance data for vascular plants in ANO is given as % cover within a 1 m2 sample quadrat. This is transformed to relative abundance data per quadrat. Each ANO quadrat is classified to its respective ecosystem type according to ‘Nature in Norway’ (NiN; <https://artsdatabanken.no/NiN>). Environmental indicator values from Tyler et al. (2021) are given on an ordinal scale from 1 (lowest affinity to the respective variable) to n (highest affinity to the respective variable), the number of levels (n) varying between environmental indicators.
+
+
+### 2.4 Instructions for citing, using and accessing data
+The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054
+
+### 2.5 Additional comments about the dataset
+The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+The functional plant community indicator for nitrogen reflects the availability of nutrients and soil chemical properties and thus represents the ECT class 'A2 Chemical characteristics'.
+
+### 3.2 Ecosystem condition characteristic
+The functional plant community indicator for nitrogen reflects the availability of nutrients and soil chemical properties and thus represents the characteristic 'Abiotic factors'.
+
+### 3.3 Collinearities with other indicators
+Different functional plant community indicators for different environmental variables (light, Lighture, ...) might show a certain degree of co-linearity with one another as they are derived from the very same plant community data.
+Functional plant community indicators can potentially exhibit co-linearities with other vegetation-oriented indicators, such as NDVI, though this depends greatly on which functional plant community indicator ends up as the leading one (i.e. the one with the lowest scaled score).
+
+
+### 3.4 Impact factors
+The plant community composition in mountain ecosystems is subject to changes with climate warming and precipitation changes as well as pollution and disturbance from human infrastructure.
+
+### 3.5 Spatial aggregation
+The variable is scaled at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points. There is no transformation, but indicator values are truncated at 1.
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. In terms of nitrogen, the reference condition is defined by a reference community.
+
+### 4.2 Reference levels
+Reference and limit values (scaling values) for functional plant community indicators are derived as the 0.025, 0.5, and 0.975 quantiles (lower limit values, reference value, upper limit value, respectively) from distributions of community weighted means of the respective plant indicators originating from bootstrapped generalized species lists.
+Bootstraps were set up with resampling of the original generalized species lists 1000 times. In every sample a random 1/3 of the original generalized species list was sampled (as ANO points on average contain roughly a third of the potential species richness in the generalized species lists -> local variation in species composition thus is large and needs to be reflected in the bootstraps), with the exception of dominant species (abundance value of 5 or higher in the original scale of the generalized species lists), which were retained in every sample.
+All reference distributions, and thus all scaling values are unique to NiN mapping units at a scale of 1:5000.
+
+#### 4.2.1 Spatial resolution and validity
+The same reference levels apply to all types of ecosystems and all regions.
+
+## 5. Uncertainties
+### 5.1 General uncertainties
+Uncertainties relate partly to sampling and observer variability (and possible observer bias) in the recording of the plant cover data. Presumably, there is also uncertainty related to the scoring of indicator values for species, and this will probably vary among species (cf. Tyler et al. 2021). These potential sources uncertainty can only be assumed and not quantified.
+Spatial variability as a source of uncertainty can be quantified. For every mean or median indicator value (after scaling) for every region (or any other delimited area of interest) we can calculate its corresponding standard error or confidence interval quantiles as a measure of spatial uncertainty for a geographical area.
+There is some uncertainty related to the ecosystem categorization at the field sites (see Ullerud et al. 2018 and Naas et al. 2023), but since ANO monitoring does not include spatial delineation of ecosystem polygons this problem is considered smaller than in spatial ecosystem mapping which these references mainly relate to.
+Other uncertainties connected to the indicator arise from community weighted means calculated from plant communities of different species richness in the observation data; since no uncertainty measure for these community-weighted means is calculated and propagated, the actual uncertainty of functional community signals for the single community observations is unknown.
+
+
+### 5.2 Reported uncertainties
+For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
+
+## 6. References
+Artsdatabanken (2023, 11. august). Fremmede arter i Norge - med økologisk risiko 2023. http://www.artsdatabanken.no/lister/fremmedartslista/2023.
+
+Diekmann, M. 2003. Species indicator values as an important tool in applied plant ecology - a review. Basic and Applied Ecology 4: 493-506, doi:10.1078/1439-1791-00185
+
+Evju, M., Olsen, S.L., Prestø, T., Vange, V., Bratli, H. & Töpper, J. 2023. Ecological condition of naturally open areas below the mountain line. Background, proposed indicators, and knowledge needs. NINA Report 2341. Norwegian Institute for Nature Research.
+
+Framstad, E., Kolstad, A. L., Nybø, S., Töpper, J. & Vandvik, V. 2022. The condition of mountain and mountain ecosystems in Norway. Assessment by the IBECA method. NINA Report 2100. Norwegian Institute for Nature Research.
+
+Halvorsen, R., Skarpaas, O., Bryn, A., Bratli, H., Erikstad, L., Simensen, T., & Lieungh, E. (2020). Towards a systematics of ecodiversity: The EcoSyst framework. Global Ecology and Biogeography, 29(11), 1887-1906. doi:10.1111/geb.13164
+
+Jakobsson, S., Töpper, J.P., Evju, M., Framstad, E., Lyngstad, A., Pedersen, B., Sickel, H., Sverdrup-Thygeson, A., Vandvik. V., Velle, L.G., Aarrestad, P.A. & Nybø, S. 2020. Setting reference levels and limits for good ecological condition in terrestrial ecosystems. Insights from a case study based on the IBECA approach. Ecological Indicators 116: 106492.
+
+Jakobsson, S., Evju, M., Framstad, E., Imbert, A., Lyngstad, A., Sickel, H., Sverdrup-Thygeson, A., Töpper, J., Vandvik, V., Velle, L.G., Aarrestad, P.A. & Nybø, S. 2021. An index-based assessment of ecological condition and its links to international frameworks. Ecological Indicators 124: 107252.
+
+Naas, A.E., Halvorsen, R., Horvath, P., Wollan, A.K., Bratli, H., Brynildsrud, K. et al. (2023) What explains inconsistencies in field-based ecosystem mapping? Applied Vegetation Science, 26, e12715. Available from: https://doi.org/10.1111/avsc.12715
+
+Nybø, S. & Evju, M. (red.) 2017. Fagsystem for fastsetting av god økologisk tilstand. Forslag fra et ekspertråd, https://regjeringen.no/no/dokument/rapportar-og-planar/id438817/.
+
+Tingstad, L., Evju, M., Sickel, H., & Töpper, J. 2019. Utvikling av nasjonal arealrepresentativ naturovervåking (ANO). Forslag til gjennomføring, protokoller og kostnadsvurderinger med utgangspunkt i erfaringer fra uttesting i Trøndelag. NINA Rapport 1642.
+
+Töpper, J., Velle, L.G. & Vandvik, V. 2018. Developing a method for assessment of ecological state based on indicator values after Ellenberg and Grime (revised edition). NINA Report 1529b. Norwegian Institute for Nature Research.
+
+Tyler, T., Herbertsson, L., Olofsson, J., & Olsson, P. A. 2021. Ecological indicator and traits values for Swedish vascular plants. Ecological In-dicators, 120. doi:10.1016/j.ecolind.2020.106923
+
+Ullerud HA, Bryn A, Halvorsen R, Hemsing LØ. Consistency in land-cover mapping: Influence of field workers, spatial scale and classification system. Appl Veg Sci. 2018; 21: 278–288. https://doi.org/10.1111/avsc.12368
+
+
+## 7. Import and prepare datasets
+
+<!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
+
+### 7.1 Dataset A
+Import ANO testing data:
+First, download from  Miljødirektoratet...
+```{r, eval = F, echo = F}
+# download 
+url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
+download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
+unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
+```
+
+...then upload from local storage
+The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and point data including alien plant species cover.
+```{r}
+#Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
+ANO.sp<- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb",
+                   layer="ANO_Art", quiet = T)
+ANO.geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb",
+                   layer="ANO_SurveyPoint", quiet = T)
+#head(ANO.sp)
+#head(ANO.geo)
+
+```
+
+### 7.2. Dataset B
+Import Reference data from NiN:
+```{r}
+load("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/reference from NiN/Eco_State.RData")
+# str(Eco_State)
+```
+
+The generalized species lists underlying the ecosystem categorization in NiN (Halvorsen et al. 2020) represent expert-compiled species lists based on empirical evidence from the literature and expert knowledge of the systems and their species. In these lists, every species is assigned an abundance value on a 6-step scale, with each step representing a range for the ‘expected combination of frequency and cover’ of occurrence
+
+1 = < 1/32
+
+2 = 1/32 - 1/8
+
+3 = 1/8 - 3/8
+
+4 = 3/8 - 4/5
+
+5 = 3/8 - 4/5 + dominance
+
+6 = > 4/5
+
+For the purpose of this project, these steps are simplified to maximum expected combination of frequency and cover, whereby steps 4 & 5 are assigned 0.6 and 0.8, respectively, in order to distinguish between them.
+
+
+
+### 7.3. Dataset C
+Import plant indicator values from Tyler et al. (2021):
+```{r}
+ind.Tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
+```
+
+The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for Lighture and nitrogen as these are thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
+
+
+## 8. Spatial units
+The spatial units for functional plant community indicators are governed by the ANO data, which consist of 1000 randomly chosen sites in Norway. Each site is a 500 x 500 m grid cell with 18 monitoring points of 250sqm and a central 1 x 1 m vegetation plot. The basic unit for which observational community data exist, and for which every functional plant community indicator is computed, is this central 1 x 1 m vegetation plot. Aggregation of these basic spatial units to higher ones - like sites, municipalities, counties, regions, or the national level - should be done with appropriate consideration of the spatial structure of the data, i.e. imbalances and clustering (highly unequal number of points of an ecosystem type between sites).
+
+
+## 9. Analyses
+
+<!--# 
+
+Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+
+Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
+
+Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
+
+-->
+
+#### Data handling
+- Checking for errors
+- Checking species nomenclature in the different species lists to make species and indicator data possible to merge
+- Merging indicator data with monitoring data and indicator data with reference data
+(not shown here, but documented in the code)
+
+```{r, include = T, results='hide', warning=F, message=F}
+
+#### Plant indicator data
+names(ind.Tyler)
+names(ind.Tyler)[1] <- 'species'
+ind.Tyler$species <- as.factor(ind.Tyler$species)
+summary(ind.Tyler$species)
+ind.Tyler <- ind.Tyler[!is.na(ind.Tyler$species),] # removing species-NAs
+ind.Tyler[,'species.orig'] <- ind.Tyler[,'species'] # make a backup of the original species variable
+ind.Tyler[,'species'] <- word(ind.Tyler[,'species'], 1,2) # trimming away sub-species & co, and descriptor info
+
+ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
+ind.Tyler.dup <- ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
+ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Lighture","Soil_reaction_pH","Nitrogen","Heat_requirement","species.orig","species")]
+ind.Tyler <- ind.Tyler %>% filter( !(species.orig %in% list("Ammophila arenaria x Calamagrostis epigejos",
+                                                            "Anemone nemorosa x ranunculoides",
+                                                            "Armeria maritima ssp. elongata",
+                                                            "Asplenium trichomanes ssp. quadrivalens",
+                                                            "Calystegia sepium ssp. spectabilis",
+                                                            "Campanula glomerata 'Superba'",
+                                                            "Dactylorhiza maculata ssp. fuchsii",
+                                                            "Erigeron acris ssp. droebachensis",
+                                                            "Erigeron acris ssp. politus",
+                                                            "Erysimum cheiranthoides L. ssp. alatum",
+                                                            "Euphrasia nemorosa x stricta var. brevipila",
+                                                            "Galium mollugo x verum",
+                                                            "Geum rivale x urbanum",
+                                                            "Hylotelephium telephium (ssp. maximum)",
+                                                            "Juncus alpinoarticulatus ssp. rariflorus",
+                                                            "Lamiastrum galeobdolon ssp. argentatum",
+                                                            "Lathyrus latifolius ssp. heterophyllus",
+                                                            "Medicago sativa ssp. falcata",
+                                                            "Medicago sativa ssp. x varia",
+                                                            "Monotropa hypopitys ssp. hypophegea",
+                                                            "Ononis spinosa ssp. hircina",
+                                                            "Ononis spinosa ssp. procurrens",
+                                                            "Pilosella aurantiaca ssp. decolorans",
+                                                            "Pilosella aurantiaca ssp. dimorpha",
+                                                            "Pilosella cymosa ssp. gotlandica",
+                                                            "Pilosella cymosa ssp. praealta",
+                                                            "Pilosella officinarum ssp. peleteranum",
+                                                            "Poa x jemtlandica (Almq.) K. Richt.",
+                                                            "Poa x herjedalica Harry Sm.",
+                                                            "Ranunculus peltatus ssp. baudotii",
+                                                            "Sagittaria natans x sagittifolia",
+                                                            "Salix repens ssp. rosmarinifolia",
+                                                            "Stellaria nemorum L. ssp. montana",
+                                                            "Trichophorum cespitosum ssp. germanicum")
+) )
+
+# checking duplicates again
+ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
+ind.Tyler.dup <- ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
+ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Lighture","Soil_reaction_pH","Nitrogen","Heat_requirement", "Soil_disturbance","Phosphorus","Grazing_mowing","species.orig","species")]
+# getting rid of sect. for Hieracium
+ind.Tyler <- ind.Tyler %>% mutate(species=gsub("sect. ","",species.orig))
+ind.Tyler[,'species'] <- word(ind.Tyler[,'species'], 1,2)
+
+ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
+ind.Tyler.dup <- ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
+ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Lighture","Soil_reaction_pH","Nitrogen","Heat_requirement", "Soil_disturbance","Phosphorus","Grazing_mowing","species.orig","species")]
+# only hybrids left -> get rid of these
+ind.Tyler <- ind.Tyler[!duplicated(ind.Tyler[,'species']),]
+ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
+
+ind.Tyler$species <- as.factor(ind.Tyler$species)
+summary(ind.Tyler$species)
+# no duplicates left
+
+# for compatibility with functional plant indicator code for other ecosystems
+ind.dat <- ind.Tyler
+rm(ind.Tyler)
+
+ind.dat$species <- as.factor(ind.dat$species)
+#summary(ind.dat$species)
+#head(ind.dat)
+
+
+#### ANO monitoring data
+
+#head(ANO.sp)
+#head(ANO.geo)
+
+## fix NiN information
+ANO.geo$hovedtype_rute <- substr(ANO.geo$kartleggingsenhet_1m2,1,3) # take the 3 first characters
+ANO.geo$hovedtype_rute <- gsub("-", "", ANO.geo$hovedtype_rute) # remove hyphen
+unique(as.factor(ANO.geo$hovedtype_rute))
+
+#ANO.geo$hovedoekosystem_rute <- ANO.geo$hovedtype_rute
+ANO.geo <- ANO.geo %>% mutate(hovedoekosystem_rute=recode(hovedtype_rute, 
+                                                          "T4"="mountain", "T30"="mountain",
+                                                          "T3"="Mountain", "T7"="Mountain", "T14"="Mountain", "T22"="Mountain",
+                                                          "V1"="Wetland", "V2"="Wetland", "V3"="Wetland", "V4"="Wetland", "V5"="Wetland", "V6"="Wetland", "V7"="Wetland", "V8"="Wetland", 
+                                                          "T31"="Seminat", "T32"="Seminat", "T33"="Seminat", "T34"="Seminat","V9"="Seminat", "V10"="Seminat",
+                                                          "T2"="Natopen", "T8"="Natopen", "T11"="Natopen", "T12"="Natopen","T13"="Natopen", "T15"="Natopen","T16"="Natopen", "T18"="Natopen","T21"="Natopen", "T24"="Natopen", "T29"="Natopen"
+))
+unique(as.factor(ANO.geo$hovedoekosystem_rute))
+
+## fix NiN-variables
+colnames(ANO.geo)
+colnames(ANO.geo)[42:47] <- c("groeftingsintensitet",
+                              "bruksintensitet",
+                              "beitetrykk",
+                              "slatteintensitet",
+                              "tungekjoretoy",
+                              "slitasje")
+#head(ANO.geo)
+
+# remove variable code in the data
+ANO.geo$groeftingsintensitet <- gsub("7GR-GI_", "", ANO.geo$groeftingsintensitet) 
+unique(ANO.geo$groeftingsintensitet)
+ANO.geo$groeftingsintensitet <- gsub("X", "NA", ANO.geo$groeftingsintensitet)
+unique(ANO.geo$groeftingsintensitet)
+ANO.geo$groeftingsintensitet <- as.numeric(ANO.geo$groeftingsintensitet)
+unique(ANO.geo$groeftingsintensitet)
+
+ANO.geo$bruksintensitet <- gsub("7JB-BA_", "", ANO.geo$bruksintensitet) 
+unique(ANO.geo$bruksintensitet)
+ANO.geo$bruksintensitet <- gsub("X", "NA", ANO.geo$bruksintensitet)
+unique(ANO.geo$bruksintensitet)
+ANO.geo$bruksintensitet <- as.numeric(ANO.geo$bruksintensitet)
+unique(ANO.geo$bruksintensitet)
+
+ANO.geo$beitetrykk <- gsub("7JB-BT_", "", ANO.geo$beitetrykk) 
+unique(ANO.geo$beitetrykk)
+ANO.geo$beitetrykk <- gsub("X", "NA", ANO.geo$beitetrykk)
+unique(ANO.geo$beitetrykk)
+ANO.geo$beitetrykk <- as.numeric(ANO.geo$beitetrykk)
+unique(ANO.geo$beitetrykk)
+
+ANO.geo$slatteintensitet <- gsub("7JB-SI_", "", ANO.geo$slatteintensitet) 
+unique(ANO.geo$slatteintensitet)
+ANO.geo$slatteintensitet <- gsub("X", "NA", ANO.geo$slatteintensitet)
+unique(ANO.geo$slatteintensitet)
+ANO.geo$slatteintensitet <- as.numeric(ANO.geo$slatteintensitet)
+unique(ANO.geo$slatteintensitet)
+
+ANO.geo$tungekjoretoy <- gsub("7TK_", "", ANO.geo$tungekjoretoy) 
+unique(ANO.geo$tungekjoretoy)
+ANO.geo$tungekjoretoy <- gsub("X", "NA", ANO.geo$tungekjoretoy)
+unique(ANO.geo$tungekjoretoy)
+ANO.geo$tungekjoretoy <- as.numeric(ANO.geo$tungekjoretoy)
+unique(ANO.geo$tungekjoretoy)
+
+ANO.geo$slitasje <- gsub("7SE_", "", ANO.geo$slitasje) 
+unique(ANO.geo$slitasje)
+ANO.geo$slitasje <- gsub("X", "NA", ANO.geo$slitasje)
+unique(ANO.geo$slitasje)
+ANO.geo$slitasje <- as.numeric(ANO.geo$slitasje)
+unique(ANO.geo$slitasje)
+
+## check that every point is present only once
+#length(levels(as.factor(ANO.geo$ano_flate_id)))
+#length(levels(as.factor(ANO.geo$ano_punkt_id)))
+summary(as.factor(ANO.geo$ano_punkt_id))
+# there's many double presences, probably some wrong registrations of point numbers
+
+# we filter out everything that is not mountain
+ANO.mountain <- ANO.geo %>% dplyr::filter(hovedoekosystem_rute == "Mountain")
+## add region information
+nor <- st_read(here::here("data/outlineOfNorway_EPSG25833.shp"),
+               quiet = T)%>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.mountain))
+
+reg <- st_read(here::here("data/regions.shp"),
+               quiet = T) %>%
+  st_as_sf() %>%
+  st_transform(crs = st_crs(ANO.mountain))
+
+# change region names to something R-friendly
+# reg$region
+reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Norway","Southern.Norway")
+
+regnor <- st_intersection(reg,nor)
+
+ANO.mountain = st_join(ANO.mountain, regnor, left = TRUE, join = st_nearest_feature)
+
+### fix species names
+ANO.sp$Species <- ANO.sp$art_navn
+unique(as.factor(ANO.sp$Species))
+ANO.sp[,'Species'] <- word(ANO.sp[,'Species'], 1,2) # lose subspecies
+ANO.sp$Species <- str_to_title(ANO.sp$Species) # make first letter capital
+ANO.sp$Species <- gsub("( .*)","\\L\\1",ANO.sp$Species,perl=TRUE) # make capital letters after hyphen to lowercase
+ANO.sp$Species <- gsub("( .*)","\\L\\1",ANO.sp$Species,perl=TRUE) # make capital letters after space to lowercase
+
+## merge species data with indicators
+ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "parentglobalid")], 
+                    y= ind.dat[,c("species", "Lighture", "Nitrogen")],
+                    by.x="Species", by.y="species", all.x=T)
+summary(ANO.sp.ind)
+
+
+## checking which species didn't find a match
+unique(ANO.sp.ind[is.na(ANO.sp.ind$Lighture),'Species'])
+
+# fix species name issues
+ind.dat <- ind.dat %>% 
+  mutate(species=str_replace(species,"Aconitum lycoctonum", "Aconitum septentrionale")) %>% 
+  mutate(species=str_replace(species,"Carex simpliciuscula", "Kobresia simpliciuscula")) %>%
+  mutate(species=str_replace(species,"Carex myosuroides", "Kobresia myosuroides")) %>%
+  mutate(species=str_replace(species,"Clinopodium acinos", "Acinos arvensis")) %>%
+  mutate(species=str_replace(species,"Artemisia rupestris", "Artemisia norvegica")) %>%
+  mutate(species=str_replace(species,"Cherleria biflora", "Minuartia biflora")) %>%
+  mutate(species=str_replace(species,"Rosa vosagica", "Rosa vosagiaca"))
+
+ANO.sp <- ANO.sp %>% 
+  mutate(Species=str_replace(Species,"Agrostis hyemalis", "Agrostis scabra")) %>%
+  mutate(Species=str_replace(Species,"Antennaria lapponica", "Antennaria alpina")) %>%
+  mutate(Species=str_replace(Species,"Antennaria porsildii", "Antennaria alpina")) %>%
+  mutate(Species=str_replace(Species,"Arctous alpinus", "Arctous alpina")) %>%
+  mutate(Species=str_replace(Species,"Betula tortuosa", "Betula pubescens")) %>%
+  mutate(Species=str_replace(Species,"Blysmopsis rufa", "Blysmus rufus")) %>%
+  mutate(Species=str_replace(Species,"Cardamine nymanii", "Cardamine pratensis")) %>%
+  mutate(Species=str_replace(Species,"Carex adelostoma", "Carex buxbaumii")) %>%
+  mutate(Species=str_replace(Species,"Carex concolor", "Carex aquatilis")) %>%
+  mutate(Species=str_replace(Species,"Carex leersii", "Carex echinata")) %>%
+  mutate(Species=str_replace(Species,"Carex myosuroides", "Kobresia myosuroides")) %>%
+  mutate(Species=str_replace(Species,"Carex paupercula", "Carex magellanica")) %>%
+  mutate(Species=str_replace(Species,"Carex simpliciuscula", "Kobresia simpliciuscula")) %>%
+  mutate(Species=str_replace(Species,"Carex viridula", "Carex flava")) %>%
+  mutate(Species=str_replace(Species,"Chamaepericlymenum suecicum", "Cornus suecia")) %>%
+  mutate(Species=str_replace(Species,"Cicerbita alpina", "Lactuca alpina")) %>%
+  mutate(Species=str_replace(Species,"Cornus suecia", "Cornus suecica")) %>%
+  mutate(Species=str_replace(Species,"Cotoneaster scandinavicus", "Cotoneaster integerrimus")) %>%
+  mutate(Species=str_replace(Species,"Dactylorhiza viridis", "Coeloglossum viride")) %>%
+  mutate(Species=str_replace(Species,"Diphasiastrum alpinum", "Lycopodium alpinum")) %>%
+  mutate(Species=str_replace(Species,"Diphasiastrum complanatum", "Lycopodium complanatum")) %>%
+  mutate(Species=str_replace(Species,"Dryopteris affinis", "Dryopteris filix-mas")) %>%
+  mutate(Species=str_replace(Species,"Empetrum hermaphroditum", "Empetrum nigrum")) %>%
+  mutate(Species=str_replace(Species,"Elymus alaskanus", "Elymus kronokensis")) %>%
+  mutate(Species=str_replace(Species,"Festuca prolifera", "Festuca rubra")) %>%
+  mutate(Species=str_replace(Species,"Galium album", "Galium mollugo")) %>%
+  mutate(Species=str_replace(Species,"Galium elongatum", "Galium palustre")) %>%
+  mutate(Species=str_replace(Species,"Helictotrichon pratense", "Avenula pratensis")) %>%
+  mutate(Species=str_replace(Species,"Helictotrichon pubescens", "Avenula pubescens")) %>%
+  mutate(Species=str_replace(Species,"Hieracium alpina", "Hieracium Alpina")) %>%
+  mutate(Species=str_replace(Species,"Hieracium alpinum", "Hieracium Alpina")) %>%
+  mutate(Species=str_replace(Species,"Hieracium hieracium", "Hieracium Hieracium")) %>%
+  mutate(Species=str_replace(Species,"Hieracium hieracioides", "Hieracium umbellatum")) %>%
+  mutate(Species=str_replace(Species,"Hieracium murorum", "Hieracium Vulgata")) %>%
+  mutate(Species=str_replace(Species,"Hieracium oreadea", "Hieracium Oreadea")) %>%
+  mutate(Species=str_replace(Species,"Hieracium prenanthoidea", "Hieracium Prenanthoidea")) %>%
+  mutate(Species=str_replace(Species,"Hieracium vulgata", "Hieracium Vulgata")) %>%
+  mutate(Species=str_replace(Species,"Hieracium pilosella", "Pilosella officinarum")) %>%
+  mutate(Species=str_replace(Species,"Hieracium vulgatum", "Hieracium umbellatum")) %>%
+  mutate(Species=str_replace(Species,"Hierochloã« alpina", "Hierochloë alpina")) %>%
+  mutate(Species=str_replace(Species,"Hierochloã« hirta", "Hierochloë hirta")) %>%
+  mutate(Species=str_replace(Species,"Hierochloã« odorata", "Hierochloë odorata")) %>%
+  mutate(Species=str_replace(Species,"Huperzia appressa", "Huperzia selago")) %>%
+  mutate(Species=str_replace(Species,"Huperzia arctica", "Huperzia selago")) %>%
+  mutate(Species=str_replace(Species,"Hylotelephium maximum", "Sedum telephium")) %>%
+  mutate(Species=str_replace(Species,"Listera cordata", "Neottia cordata")) %>%
+  mutate(Species=str_replace(Species,"Leontodon autumnalis", "Scorzoneroides autumnalis")) %>%
+  mutate(Species=str_replace(Species,"Loiseleuria procumbens", "Kalmia procumbens")) %>%
+  mutate(Species=str_replace(Species,"Minuartia rubella", "Sabulina rubella")) %>%
+  mutate(Species=str_replace(Species,"Minuartia stricta", "Sabulina stricta")) %>%
+  mutate(Species=str_replace(Species,"Mycelis muralis", "Lactuca muralis")) %>%
+  mutate(Species=str_replace(Species,"Omalotheca supina", "Gnaphalium supinum")) %>%
+  mutate(Species=str_replace(Species,"Omalotheca norvegica", "Gnaphalium norvegicum")) %>%
+  mutate(Species=str_replace(Species,"Omalotheca sylvatica", "Gnaphalium sylvaticum")) %>%
+  mutate(Species=str_replace(Species,"Oreopteris limbosperma", "Thelypteris limbosperma")) %>%
+  mutate(Species=str_replace(Species,"Oxycoccus microcarpus", "Vaccinium microcarpum")) %>%
+  mutate(Species=str_replace(Species,"Oxycoccus palustris", "Vaccinium oxycoccos")) %>%
+  mutate(Species=str_replace(Species,"Phalaris minor", "Phalaris arundinacea")) %>%
+  mutate(Species=str_replace(Species,"Pinus unicinata", "Pinus mugo")) %>%
+  mutate(Species=str_replace(Species,"Poa alpigena", "Poa pratensis")) %>%
+  mutate(Species=str_replace(Species,"Poa angustifolia", "Poa pratensis")) %>%
+  mutate(Species=str_replace(Species,"Poa ×jemtlandica", "Poa alpina")) %>%
+  mutate(Species=str_replace(Species,"Potentilla anserina", "Argentina anserina")) %>%
+  mutate(Species=str_replace(Species,"Potentilla arenosa", "Potentilla nivea")) %>%
+  mutate(Species=str_replace(Species,"Pyrola grandiflora", "Pyrola rotundifolia")) %>%
+  mutate(Species=str_replace(Species,"Rubus fruticosus", "Rubus plicatus")) %>%
+  mutate(Species=str_replace(Species,"Rumex alpestris", "Rumex acetosa")) %>%
+  mutate(Species=str_replace(Species,"Stellaria uliginosa", "Stellaria alsine")) %>%
+  mutate(Species=str_replace(Species,"Syringa emodi", "Syringa vulgaris")) %>%
+  mutate(Species=str_replace(Species,"Taraxacum crocea", "Taraxacum officinale")) %>%
+  mutate(Species=str_replace(Species,"Taraxacum croceum", "Taraxacum officinale")) %>%
+  mutate(Species=str_replace(Species,"Trientalis europaea", "Lysimachia europaea")) %>%
+  mutate(Species=str_replace(Species,"Trifolium pallidum", "Trifolium pratense")) %>%
+  mutate(Species=str_replace(Species,"Veratrum lobelianum", "Veratrum album"))
+
+## merge species data with indicators
+ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "parentglobalid")], 
+                    y= ind.dat[,c("species", "Lighture", "Nitrogen")],
+                    by.x="Species", by.y="species", all.x=T)
+summary(ANO.sp.ind)
+# checking which species didn't find a match
+unique(ANO.sp.ind[is.na(ANO.sp.ind$Lighture),'Species'])
+# don't find synonyms for these in the ind lists
+
+## trimming away the points without information on NiN, species or cover
+ANO.sp.ind <- ANO.sp.ind[!is.na(ANO.sp.ind$Species),]
+ANO.sp.ind <- ANO.sp.ind[!is.na(ANO.sp.ind$art_dekning),]
+
+
+summary(ANO.sp.ind)
+#head(ANO.sp.ind)
+rm(ANO.sp)
+
+
+#### reference data - data handling
+
+### generalized species lists for mountain, mountain, wetland, and semi-natural ecosystems
+str(Eco_State)
+
+# species
+Eco_State$Concept_Data$Species$Species_List$species
+# environments
+t(Eco_State$Concept_Data$Env$Env_Data)
+# abundances
+t(Eco_State$Concept_Data$Species$Species_Data)
+
+## transposing abundance data
+NiN.sp <- t(Eco_State$Concept_Data$Species$Species_Data)
+NiN.sp <- as.data.frame(NiN.sp)
+NiN.sp$sp <- as.factor(as.vector(Eco_State$Concept_Data$Species$Species_List$species))
+# only genus and species name
+NiN.sp$sp <- word(NiN.sp$sp, 1,2)
+NiN.sp$spgr <- as.factor(as.vector(Eco_State$Concept_Data$Species$Species_List$art.code))
+# if relevant, trimming to desired species groups (for mountains e.g. removing trees)
+#NiN.sp <- NiN.sp[NiN.sp$spgr!="a1a",]
+
+## environment data
+NiN.env <- Eco_State$Concept_Data$Env$Env_Data
+
+## merging with indicator values
+NiN.sp.ind <- merge(NiN.sp,ind.dat, by.x="sp", by.y="species", all.x=T)
+summary(NiN.sp.ind)
+
+NiN.sp.ind[NiN.sp.ind==999] <- NA
+
+## checking which species didn't find a match
+unique(NiN.sp.ind[is.na(NiN.sp.ind$Nitrogen) & NiN.sp.ind$spgr %in% list("a1a","a1b","a1c"),'sp'])
+
+## fix species name issues
+#ind.dat <- ind.dat %>% 
+#  mutate(species=str_replace(species,"Aconitum lycoctonum", "Aconitum septentrionale")) %>% 
+#  mutate(species=str_replace(species,"Carex simpliciuscula", "Kobresia simpliciuscula")) %>%
+#  mutate(species=str_replace(species,"Carex myosuroides", "Kobresia myosuroides")) %>%
+#  mutate(species=str_replace(species,"Clinopodium acinos", "Acinos arvensis")) %>%
+#  mutate(species=str_replace(species,"Artemisia rupestris", "Artemisia norvegica")) %>%
+#  mutate(species=str_replace(species,"Cherleria biflora", "Minuartia biflora"))
+
+NiN.sp <- NiN.sp %>% 
+  mutate(sp=str_replace(sp,"Aconitum lycoctonum", "Aconitum septentrionale")) %>% 
+  mutate(sp=str_replace(sp,"Anagallis arvensis", "Lysimachia arvensis")) %>% 
+  mutate(sp=str_replace(sp,"Anagallis minima", "Lysimachia minima")) %>% 
+  mutate(sp=str_replace(sp,"Arctous alpinus", "Arctous alpina")) %>%
+  mutate(sp=str_replace(sp,"Betula tortuosa", "Betula pubescens")) %>%
+  mutate(sp=str_replace(sp,"Blysmopsis rufa", "Blysmus rufus")) %>%
+  mutate(sp=str_replace(sp,"Chamerion angustifolium", "Chamaenerion angustifolium")) %>%
+  mutate(sp=str_replace(sp,"Cardamine nymanii", "Cardamine pratensis")) %>%
+  mutate(sp=str_replace(sp,"Carex adelostoma", "Carex buxbaumii")) %>%
+  mutate(sp=str_replace(sp,"Carex leersii", "Carex echinata")) %>%
+  mutate(sp=str_replace(sp,"Carex paupercula", "Carex magellanica")) %>%
+  mutate(sp=str_replace(sp,"Carex simpliciuscula", "Kobresia simpliciuscula")) %>%
+  mutate(sp=str_replace(sp,"Carex _vacillans", "Carex vacillans")) %>%
+  mutate(sp=str_replace(sp,"Carex viridula", "Carex flava")) %>%
+  mutate(sp=str_replace(sp,"Chamaepericlymenum suecicum", "Cornus suecia")) %>%
+  mutate(sp=str_replace(sp,"Cornus suecia", "Cornus suecica")) %>%
+  mutate(sp=str_replace(sp,"Cicerbita alpina", "Lactuca alpina")) %>%
+  mutate(sp=str_replace(sp,"Dactylorhiza fuchsii", "Dactylorhiza maculata")) %>%
+  mutate(sp=str_replace(sp,"Dactylorhiza sphagnicola", "Dactylorhiza majalis")) %>%
+  mutate(sp=str_replace(sp,"Diphasiastrum alpinum", "Lycopodium alpinum")) %>%
+  mutate(sp=str_replace(sp,"Diphasiastrum complanatum", "Lycopodium complanatum")) %>%
+  mutate(sp=str_replace(sp,"Elymus alaskanus", "Elymus kronokensis")) %>%
+  mutate(sp=str_replace(sp,"Empetrum hermaphroditum", "Empetrum nigrum")) %>%
+  mutate(sp=str_replace(sp,"Erigeron acer", "Erigeron acris")) %>%
+  mutate(sp=str_replace(sp,"Erigeron eriocephalus", "Erigeron uniflorus")) %>%
+  mutate(sp=str_replace(sp,"Festuca altissima", "Drymochloa sylvatica")) %>%
+  mutate(sp=str_replace(sp,"Festuca prolifera", "Festuca rubra")) %>%
+  mutate(sp=str_replace(sp,"Galium album", "Galium mollugo")) %>%
+  mutate(sp=str_replace(sp,"Galium elongatum", "Galium palustre")) %>%
+  mutate(sp=str_replace(sp,"Glaux maritima", "Lysimachia maritima")) %>%
+  mutate(sp=str_replace(sp,"Helictotrichon pratense", "Avenula pratensis")) %>%
+  mutate(sp=str_replace(sp,"Helictotrichon pubescens", "Avenula pubescens")) %>%
+  mutate(sp=str_replace(sp,"Hieracium alpina", "Hieracium Alpina")) %>%
+  mutate(sp=str_replace(sp,"Hieracium alpinum", "Hieracium Alpina")) %>%
+  mutate(sp=str_replace(sp,"Hieracium aurantiacum", "Pilosella aurantiaca")) %>%
+  mutate(sp=str_replace(sp,"Hieracium dovrense", "Hieracium Alpestria")) %>%
+  mutate(sp=str_replace(sp,"Hieracium hieracium", "Hieracium Hieracium")) %>%
+  mutate(sp=str_replace(sp,"Hieracium hieracioides", "Hieracium umbellatum")) %>%
+  mutate(sp=str_replace(sp,"Hieracium lactucella", "Pilosella lactucella")) %>%
+  mutate(sp=str_replace(sp,"Hieracium murorum", "Hieracium Vulgata")) %>%
+  mutate(sp=str_replace(sp,"Hieracium oreadea", "Hieracium Oreadea")) %>%
+  mutate(sp=str_replace(sp,"Hieracium prenanthoidea", "Hieracium Prenanthoidea")) %>%
+  mutate(sp=str_replace(sp,"Hieracium vulgata", "Hieracium Vulgata")) %>%
+  mutate(sp=str_replace(sp,"Hieracium pilosella", "Pilosella officinarum")) %>%
+  mutate(sp=str_replace(sp,"Hieracium vulgatum", "Hieracium umbellatum")) %>%
+  mutate(sp=str_replace(sp,"Hierochloã« alpina", "Hierochloë alpina")) %>%
+  mutate(sp=str_replace(sp,"Hierochloã« hirta", "Hierochloë hirta")) %>%
+  mutate(sp=str_replace(sp,"Hierochloã« odorata", "Hierochloë odorata")) %>%
+  mutate(sp=str_replace(sp,"Huperzia appressa", "Huperzia selago")) %>%
+  mutate(sp=str_replace(sp,"Hylotelephium maximum", "Hylotelephium telephium")) %>%
+  mutate(sp=str_replace(sp,"Lappula myosotis", "Lappula squarrosa")) %>%
+  mutate(sp=str_replace(sp,"Lepidotheca suaveolens", "Matricaria discoidea")) %>%
+  mutate(sp=str_replace(sp,"Listera cordata", "Neottia cordata")) %>%
+  mutate(sp=str_replace(sp,"Listera ovata", "Neottia ovata")) %>%
+  mutate(sp=str_replace(sp,"Leontodon autumnalis", "Scorzoneroides autumnalis")) %>%
+  mutate(sp=str_replace(sp,"Loiseleuria procumbens", "Kalmia procumbens")) %>%
+  mutate(sp=str_replace(sp,"Logfia arvensis", "Filago arvensis")) %>%
+  mutate(sp=str_replace(sp,"Mentha _verticillata", "Mentha verticillata")) %>%
+  mutate(sp=str_replace(sp,"Minuartia rubella", "Sabulina rubella")) %>%
+  mutate(sp=str_replace(sp,"Minuartia stricta", "Sabulina stricta")) %>%
+  mutate(sp=str_replace(sp,"Mycelis muralis", "Lactuca muralis")) %>%
+  mutate(sp=str_replace(sp,"Omalotheca supina", "Gnaphalium supinum")) %>%
+  mutate(sp=str_replace(sp,"Omalotheca norvegica", "Gnaphalium norvegicum")) %>%
+  mutate(sp=str_replace(sp,"Omalotheca sylvatica", "Gnaphalium sylvaticum")) %>%
+  mutate(sp=str_replace(sp,"Ononis arvensis", "Ononis spinosa")) %>%
+  mutate(sp=str_replace(sp,"Oreopteris limbosperma", "Thelypteris limbosperma")) %>%
+  mutate(sp=str_replace(sp,"Oxycoccus microcarpus", "Vaccinium microcarpum")) %>%
+  mutate(sp=str_replace(sp,"Oxycoccus palustris", "Vaccinium oxycoccos")) %>%
+  mutate(sp=str_replace(sp,"Phalaris minor", "Phalaris arundinacea")) %>%
+  mutate(sp=str_replace(sp,"Phalaroides arundinacea", "Phalaris arundinacea")) %>%
+  mutate(sp=str_replace(sp,"Pinus unicinata", "Pinus mugo")) %>%
+  mutate(sp=str_replace(sp,"Platanthera montana", "Platanthera chlorantha")) %>%
+  mutate(sp=str_replace(sp,"Poa alpigena", "Poa pratensis")) %>%
+  mutate(sp=str_replace(sp,"Poa angustifolia", "Poa pratensis")) %>%
+  mutate(sp=str_replace(sp,"Poa laxa", "Poa flexuosa")) %>%
+  mutate(sp=str_replace(sp,"Poa _herjedalica", "Poa herjedalica")) %>%
+  mutate(sp=str_replace(sp,"Poa _jemtlandica", "Poa jemtlandica")) %>%
+  mutate(sp=str_replace(sp,"Poa jemtlandica", "Poa alpina")) %>%
+  mutate(sp=str_replace(sp,"Poa lindebergii", "Poa arctica")) %>%
+  mutate(sp=str_replace(sp,"Potentilla anserina", "Argentina anserina")) %>%
+  mutate(sp=str_replace(sp,"Pyrola grandiflora", "Pyrola rotundifolia")) %>%
+  mutate(sp=str_replace(sp,"Rhamnus catharticus", "Rhamnus cathartica")) %>%
+  mutate(sp=str_replace(sp,"Rumex alpestris", "Rumex acetosa")) %>%
+  mutate(sp=str_replace(sp,"Salix _fragilis", "Salix fragilis")) %>%
+  mutate(sp=str_replace(sp,"Saxifraga _opdalensis", "Saxifraga opdalensis")) %>%
+  mutate(sp=str_replace(sp,"Sorbus hybrida", "Hedlundia hybrida")) %>%
+  mutate(sp=str_replace(sp,"Spergularia salina", "Spergularia marina")) %>%
+  mutate(sp=str_replace(sp,"Syringa emodi", "Syringa vulgaris")) %>%
+  mutate(sp=str_replace(sp,"Taraxacum crocea", "Taraxacum officinale")) %>%
+  mutate(sp=str_replace(sp,"Taraxacum croceum", "Taraxacum officinale")) %>%
+  mutate(sp=str_replace(sp,"Taraxacum erythrospermum", "Taraxacum officinale")) %>%
+  mutate(sp=str_replace(sp,"Taraxacum hamatum", "Taraxacum officinale")) %>%
+  mutate(sp=str_replace(sp,"Trientalis europaea", "Lysimachia europaea")) %>%
+  mutate(sp=str_replace(sp,"Trifolium pallidum", "Trifolium pratense")) %>%
+  mutate(sp=str_replace(sp,"Vicia orobus", "Vicia cassubica"))
+
+
+## merge species data with indicators
+NiN.sp.ind <- merge(NiN.sp,ind.dat, by.x="sp", by.y="species", all.x=T)
+summary(NiN.sp.ind)
+
+NiN.sp.ind[NiN.sp.ind==999] <- NA
+
+# checking which species didn't find a match
+unique(NiN.sp.ind[is.na(NiN.sp.ind$Nitrogen) & NiN.sp.ind$spgr %in% list("a1a","a1b","a1c"),'sp'])
+# ok now
+
+## matching with NiN ecosystem types - for wetlands, mountains, and mountains
+# NB! beware of rogue spaces in the 'Nature_type' & 'Sub_Type' variables, e.g. "Spring_mountain " & "Mountain "
+NiN.mountain <- NiN.sp.ind[,c("sp",paste(NiN.env[NiN.env$Nature_Type %in% c("Mountain "),"ID"]),colnames(ind.dat)[c(15,18)])]   # Light, Nitrogen
+NiN.mountain[1,]
+names(NiN.mountain)
+
+cbind(colnames(NiN.mountain),
+      c("",
+
+        "T14-C1","T14-C2","T3-C3C6","T3-C9C12",
+        "T3-C2C5","T3-C8C11","T3-C1a","T3-C1b",
+        "T3-C4","T3-C7","T3-C10","T3-C13",
+        "T3-C14","T7-C1","T7-C2","T7-C3",
+        "T7-C6","T7-C8",
+        "",
+        "T7-C12","T7-C13C14","T7-C4","T7-C7C9","T7-C5","T7-C10",
+        rep("",8),
+        "T22-C1C3a","","T22-C1C3b","","T22-C2C4",
+        
+        rep("",2) # indicators
+      )
+)
+
+NiN.mountain <- NiN.mountain[,c(1,2:19,21:26,35,37,39,    # mountain types
+                            40:41       # indicators
+                            )]
+
+colnames(NiN.mountain)[2:28] <- c(
+
+'T14-C1','T14-C2','T3-C3C6','T3-C9C12',
+                                                  'T3-C2C5','T3-C8C11','T3-C1a','T3-C1b',
+                                                  'T3-C4','T3-C7','T3-C10','T3-C13',
+                                                  'T3-C14','T7-C1','T7-C2','T7-C3',
+                                                  'T7-C6','T7-C8',
+                                                  'T7-C12','T7-C13C14','T7-C4','T7-C7C9','T7-C5','T7-C10',
+                                                  'T22-C1C3a','T22-C1C3b','T22-C2C4'
+
+)
+#head(NiN.mountain)
+
+
+# translating the abundance classes into %-cover
+coverscale <- data.frame(orig=0:6,
+                         cov=c(0,1/32,1/8,3/8,0.6,4/5,1)
+)
+
+NiN.mountain.cov <- NiN.mountain
+colnames(NiN.mountain.cov)
+for (i in 2:28) {
+  NiN.mountain.cov[,i] <- coverscale[,2][ match(NiN.mountain[,i], 0:6 ) ]
+}
+
+NiN.mountain.cov$sp <- as.factor(NiN.mountain.cov$sp)
+
+```
+
+This leaves us with the monitoring data including plant indicators (ANO.sp.ind) and the reference data including plant indicators (NiN.mountain.cov):
+
+<!-- Print head of data set with horizontal scrolling -->
+```{r ano-sp-tab, echo=F}
+head(ANO.sp.ind) %>%
+  kable("html",caption = "ANO species occurence data set with attached plant trait data.") %>% 
+  kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+```{r wetland_mountain_mountain_seminatural-ref-data-tab, echo=FALSE}
+head(NiN.mountain.cov) %>% 
+  kable("html", caption = "Reference data set for wetland, mountain, mountain, and semi-natural ecosystems") %>% 
+  kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+<br />
+
+For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators.
+In order to get distributions of these metrics rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped.
+
+<br />
+
+##### Bootstrap functions for frequency abundance and cumulative density
+- function to calculate community weighted means (indBoot.freq() ) or cumulative density (indBoot.HeatOverhang() ) of selected indicator values (ind)
+- for species lists (sp) with given abundances in percent (or on a scale from 0 to 1) in one or more 'sites' (abun)
+- with a given number of iterations (iter),
+- with species given a certain minimum abundance occurring in all bootstraps (obl), and
+- with a given re-sampling ratio of the original species list (rat)
+- in every bootstrap iteration the abundance of the sampled species can be randomly changed by a limited amount if wished by introducing a re-sampling of abundance values from adjacent abundance steps with a certain probability (var.abun)
+
+```{r, echo = T}
+indBoot.freq <- function(sp,abun,ind,iter,obl,rat=2/3,var.abun=F) {
+  
+  ind.b <- matrix(nrow=iter,ncol=length(colnames(abun)))
+  colnames(ind.b) <- colnames(abun)
+  ind.b <- as.data.frame(ind.b)  
+  
+  ind <- as.data.frame(ind)
+  ind.list <- as.list(1:length(colnames(ind)))
+  names(ind.list) <- colnames(ind)
+  
+  for (k in 1:length(colnames(ind)) ) {
+    ind.list[[k]] <- ind.b }
+  
+  for (j in 1:length(colnames(abun)) ) {
+    
+    dat <- cbind(sp,abun[,j],ind)
+    dat <- dat[dat[,2]>0,]            # only species that are present in the ecosystem
+    dat <- dat[!is.na(dat[,3]),]      # only species that have indicator values
+    
+    for (i in 1:iter) {
+      
+      speciesSample <- sample(dat$sp[dat[,2] < obl], size=round( (length(dat$sp)-length(dat$sp[dat[,2]>=obl])) *rat,0), replace=F)  
+      dat.b <- rbind(dat[dat[,2] >= obl,],
+                     dat[match(speciesSample,dat$sp),]
+      )
+      
+      if (var.abun==T) {
+        for (m in 1:nrow(coverscale[-1,]) ) {
+          xxx <- dat.b[dat.b[,2]==coverscale[-1,][m,2],2]
+          if ( m==1 ) { dat.b[dat.b[,2]==coverscale[-1,][m,2],2] <- sample( c(0.01,coverscale[2:7,2]), prob = c(0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0) ,size=length(xxx),replace=T) }
+          if ( m==2 ) { dat.b[dat.b[,2]==coverscale[-1,][m,2],2] <- sample( c(0.01,coverscale[2:7,2]), prob = c(0.2, 0.3, 0.5, 0.0, 0.0, 0.0, 0.0) ,size=length(xxx),replace=T) }
+          if ( m==3 ) { dat.b[dat.b[,2]==coverscale[-1,][m,2],2] <- sample( c(0.01,coverscale[2:7,2]), prob = c(0.0, 0.2, 0.3, 0.5, 0.0, 0.0, 0.0) ,size=length(xxx),replace=T) }
+          if ( m==4 ) { dat.b[dat.b[,2]==coverscale[-1,][m,2],2] <- sample( c(0.01,coverscale[2:7,2]), prob = c(0.0, 0.0, 0.2, 0.3, 0.5, 0.0, 0.0) ,size=length(xxx),replace=T) }
+          if ( m==5 ) { dat.b[dat.b[,2]==coverscale[-1,][m,2],2] <- sample( c(0.01,coverscale[2:7,2]), prob = c(0.0, 0.0, 0.0, 0.2, 0.3, 0.5, 0.0) ,size=length(xxx),replace=T) }
+          if ( m==6 ) { dat.b[dat.b[,2]==coverscale[-1,][m,2],2] <- sample( c(0.01,coverscale[2:7,2]), prob = c(0.0, 0.0, 0.0, 0.0, 0.2, 0.3, 0.5) ,size=length(xxx),replace=T) }
+        }
+        dat.b[!is.na(dat.b[,2]) & dat.b[,2]<=(0),2] <- 0.01
+        dat.b[!is.na(dat.b[,2]) & dat.b[,2]>1,2] <- 1
+      }
+      
+      for (k in 1:length(colnames(ind))) {
+        
+        if ( nrow(dat.b)>2 ) {
+          
+          ind.b <- sum(dat.b[!is.na(dat.b[,2+k]),2] * dat.b[!is.na(dat.b[,2+k]),2+k] , na.rm=T) / sum(dat.b[!is.na(dat.b[,2+k]),2],na.rm=T)
+          ind.list[[k]][i,j] <- ind.b
+          
+        } else {ind.list[[k]][i,j] <- NA}
+        
+      }
+ 
+#      print(paste(i,"",j)) 
+    }
+    
+  }
+  return(ind.list)
+}
+```
+
+```{r}
+#colnames(NiN.mountain.cov)
+# 1st column is the species
+# 2nd-29th column is the abundances of sp in different ecosystem types
+# 29th-30th column is the indicator values of the respective species
+# we choose 1000 iterations
+# species with abundance 0.8 or more (dominant species) must be included in each sample
+# each sample re-samples 1/3 of the number of species
+# the abundance of the re-sampled species may vary (see bootstrap function for details)
+```
+
+Running the bootstraps:
+```{r, eval = F}
+mountain.ref.cov <- indBoot.freq(sp=NiN.mountain.cov[,1],abun=NiN.mountain.cov[,2:28],ind=NiN.mountain.cov[,29:30],
+                          iter=1000,obl=0.8,rat=1/2,var.abun=T)
+
+# fixing NaNs
+for (i in 1:length(mountain.ref.cov) ) {
+  for (j in 1:ncol(mountain.ref.cov[[i]]) ) {
+    v <- mountain.ref.cov[[i]][,j]
+    v[is.nan(v)] <- NA
+    mountain.ref.cov[[i]][,j] <- v
+  }
+}
+
+#saveRDS(mountain.ref.cov, paste0(here::here(),"/data/cache/mountain.ref.cov.RDS"))
+
+```
+
+```{r, include = F}
+# Data from cache
+mountain.ref.cov<-readRDS(paste0(here::here(), "/data/cache/mountain.ref.cov.RDS"))
+```
+
+```{r}
+head(mountain.ref.cov[[1]]) %>%
+    kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+This results in an R-list for mountain ecosystem, with a data frame for every selected plant indicator and each data frame with as many columns as there are NiN species lists and as many rows as there were iterations in the bootstrap.
+
+Next, we need to derive scaling values from these bootstrap-lists (the columns) for every mapping unit in NiN. Here, we define things in the following way:
+  
+- Median = reference values
+- 0.025 and 0.975 quantiles = lower and upper limit values
+- min and max of the respective indicator's scale = min/max values
+
+
+
+```{r, attr.output='style="max-height: 300px;"', results='hide'}
+
+### wetland, mountain, mountain, and semi-natural ecosystems
+
+# every NiN-type is represented by one 'generalisert artsliste'
+# some NiN-types are represented by two such species lists
+# in some cases two NiN-types are represented by the same species list
+#head(mountain.ref.cov[[1]])
+mountain.ref.cov[[1]][0,]
+
+# NiN-types where each type is represented by one species list (including when one species list represents two NiN-types), i.e. excluding types with a- and b-suffix
+names(mountain.ref.cov[["Nitrogen"]])
+x <- c(1:6,9:24,27)
+
+# checking the actual NiN-types in the mountain lists
+mountain.NiNtypes <- colnames(mountain.ref.cov[["Nitrogen"]])
+mountain.NiNtypes[-x] <- substr(mountain.NiNtypes[-x], 1, nchar(mountain.NiNtypes[-x])-1)
+mountain.NiNtypes
+
+# 2 indicator-value indicators: Lighture, "Nitrogen"
+indEll.n=2
+# creating a table to hold:
+# for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator), for Heat_requirement in alpine/arctic systems we do 0.05 quantile and  0.95 quantile and ignore the former as it is a one-sided indicator
+# for every nature type (nrows)
+tab <- matrix(ncol=3*indEll.n, nrow=25 ) # 25 basic ecosystem types
+# coercing the values into the table
+
+myQuantiles <- c(0.25, 0.5, 0.75)
+
+for (i in 1:length(x) ) {
+  tab[i,1:3] <- quantile(as.matrix(mountain.ref.cov[["Light"]][,x[i]]),probs=myQuantiles,na.rm=T)
+  tab[i,4:6] <- quantile(as.matrix(mountain.ref.cov[["Nitrogen"]][,x[i]]),probs=myQuantiles,na.rm=T)
+}
+
+tab <- as.data.frame(tab)
+tab$NiN <- NA
+tab$NiN[1:length(x)] <- names(mountain.ref.cov[[1]])[x]
+tab
+
+
+# NiN-types represented by several species lists
+mountain.NiNtypes2 <- mountain.NiNtypes[-x]
+unique(mountain.NiNtypes2)
+grep(pattern=unique(mountain.NiNtypes2)[1], x=mountain.NiNtypes) # finds columns in e.g. colnames(mountain.ref.cov[["Light"]]) that match the first NiN-type
+
+
+for (i in 1:length(unique(mountain.NiNtypes2)) ) {
+  
+  tab[length(x)+i,1:3] <- quantile(as.matrix(mountain.ref.cov[["Light"]][,grep(pattern=unique(mountain.NiNtypes2)[i], x=mountain.NiNtypes)]),probs=myQuantiles,na.rm=T)
+  tab[length(x)+i,4:6] <- quantile(as.matrix(mountain.ref.cov[["Nitrogen"]][,grep(pattern=unique(mountain.NiNtypes2)[i], x=mountain.NiNtypes)]),probs=myQuantiles,na.rm=T)
+
+  tab$NiN[length(x)+i] <- unique(mountain.NiNtypes2)[i]
+  
+}
+
+tab
+
+# when species lists represent several NiN-types
+tab$NiN
+tab <- rbind(tab,tab[c(3:6,18,20,23,25),])
+tab$NiN[c(3:6,18,20,23,25,26:33)] <- c("T3-C3","T3-C9","T3-C2","T3-C8",
+  "T7-C13","T7-C7","T22-C2","T22-C1", 
+  "T3-C6","T3-C12","T3-C5","T3-C11",                                                    "T7-C14","T7-C9","T22-C4","T22-C3"
+ )
+tab
+
+# making it a proper data frame
+dim(tab)
+round(tab[,1:6],digits=2)
+
+colnames(tab) <- c("Light_q2.5","Light_q50","Light_q97.5",
+                   "Nitrogen_q2.5","Nitrogen_q50","Nitrogen_q97.5",
+
+                   "NiN")
+summary(tab)
+tab$NiN <- gsub("C", "C-", tab$NiN) # add extra hyphen after C for NiN-types
+tab
+
+
+# restructuring into separate indicators for lower (q2.5) and higher (q97.5) than reference value (=median, q50)
+y.Light <- numeric(length=nrow(tab)*2)
+y.Light[((1:dim(tab)[1])*2)-1] <- tab$Light_q2.5 
+y.Light[((1:dim(tab)[1])*2)] <- tab$Light_q97.5 
+
+y.Nitrogen <- numeric(length=nrow(tab)*2)
+y.Nitrogen[((1:dim(tab)[1])*2)-1] <- tab$Nitrogen_q2.5 
+y.Nitrogen[((1:dim(tab)[1])*2)] <- tab$Nitrogen_q97.5 
+
+# creating final objects holding the reference and limit values for all indicators
+
+# ref object for indicators
+mountain.ref.cov.val <- data.frame( grunn=c(rep(rep(tab$NiN,each=2),indEll.n)),
+                                                    county=rep('all',(nrow(tab)*2*indEll.n)),
+                                                    region=rep('all',(nrow(tab)*2*indEll.n)),
+                                                    Ind=c(rep(c('Light1','Light2'),nrow(tab)),
+                                                          rep(c('Nitrogen1','Nitrogen2'),nrow(tab))
+                                                          
+                                                    ),
+                                                    Rv=c(rep(tab$Light_q50,each=2),
+                                                         rep(tab$Nitrogen_q50,each=2)
+                                                    ),
+                                                    Gv=c(y.Light,y.Nitrogen),
+                                                    maxmin=c(rep(c(1,7),nrow(tab)), # 7 levels of Light
+                                                             rep(c(1,9),nrow(tab))  # 9 levels of nitrogen
+                                                    )
+)
+
+mountain.ref.cov.val
+mountain.ref.cov.val$grunn <- as.factor(mountain.ref.cov.val$grunn)
+mountain.ref.cov.val$Ind <- as.factor(mountain.ref.cov.val$Ind)
+summary(mountain.ref.cov.val)
+
+
+```
+
+```{r}
+mountain.ref.cov.val %>%
+  kable("html", caption = "Reference values (Rv and threshold values (Gv) for each indicator and nature type combination") %>% kable_styling("striped") %>% scroll_box(width = "100%", height = "300px")
+```
+
+Once test data and the scaling values from the reference data are in place, we can calculate CWMs of the selected indicator for the ANO community data and scale them against the scaling values from the reference distribution. Note that we scale each ANO plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. An ANO plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
+
+For scaling ANO-data against the reference we use the normalisation function from package ecTools.
+```{r, echo = F, warning = F}
+
+#### calculating scaled and non-truncated values for the indicators based on the dataset ####
+# drop geometry
+ANO.mountain <- ANO.mountain %>%
+  mutate(
+    X = st_coordinates(.)[, 1],
+    Y = st_coordinates(.)[, 2]
+  ) %>%
+  st_drop_geometry()
+
+
+for (i in 1:nrow(ANO.mountain) ) {  #
+  tryCatch({
+    print(i)
+    print(paste(ANO.mountain$ano_flate_id[i]))
+    print(paste(ANO.mountain$ano_punkt_id[i]))
+    #    ANO.mountain$Hovedoekosystem_sirkel[i]
+    #    ANO.mountain$Hovedoekosystem_rute[i]
+    
+    
+    
+    # if the ANO.hovedtype exists in the mountain reference
+    if ( ANO.mountain$hovedtype_rute[i] %in% unique(sub("\\-.*", "", mountain.ref.cov.val$grunn)) ) {
+      
+      # if there is any species present in current ANO point  
+      if ( length(ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.mountain$globalid[i]),'Species']) > 0 ) {
+        
+        
+        # Nitrogen
+        dat <- ANO.sp.ind[ANO.sp.ind$parentglobalid==as.character(ANO.mountain$globalid[i]),c('art_dekning','Nitrogen')]
+        ANO.mountain[i,'richness'] <- nrow(dat)
+        dat <- dat[!is.na(dat$Nitrogen),]
+        
+        if ( nrow(dat)>0 ) {
+          
+          val <- sum(dat[,'art_dekning'] * dat[,'Nitrogen'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
+          # lower part of distribution
+          ref <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'maxmin']
+          # normalisation
+          ANO.mountain[i,'Nitrogen1'] <- ec_normalise(variable = val, x0 = maxmin, x60 = lim, x100 = ref, fun = "linear")
+
+          # upper part of distribution
+          ref <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen2' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Rv']
+          lim <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen2' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Gv']
+          maxmin <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen2' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'maxmin']
+          # normalisation
+          ANO.mountain[i,'Nitrogen2'] <- ec_normalise(variable = val, x0 = maxmin, x60 = lim, x100 = ref, fun = "linear")
+
+        }
+        
+        
+      }
+      
+    }
+    
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+# generate overall Nitrogen indicator
+ANO.mountain$Nitrogen <- ANO.mountain$Nitrogen1*ANO.mountain$Nitrogen2
+
+ANO.mountain$Nitrogen1[ANO.mountain$Nitrogen1==1] <- NA
+ANO.mountain$Nitrogen2[ANO.mountain$Nitrogen2==1] <- NA
+
+# add geometry again
+ANO.mountain <- ANO.mountain %>%
+  st_as_sf(coords = c("X", "Y"), crs = st_crs(ANO.geo))
+
+```
+
+```{r}
+head(ANO.mountain) %>%
+      kable("html", caption = "ANO plots for ecosystems with scaled indicator values in the far-right columns.") %>% 
+  kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+#### Calculating national and regional indices
+
+<<<<<<< HEAD
+We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
+The uncertainty around the national and region indicator values is derived from the same statistical model.
+The national and regional estimates are computed separately.
+
+```{r, warning=F}
+## Fit ordered beta regression null-model with a random effect
+# Norway
+
+nitrogen.no <- glmmTMB(
+  Nitrogen ~ 1 + (1|ano_flate_id),
+  data = ANO.mountain,
+  family = ordbeta
+)
+
+nitrogen1.no <- glmmTMB(
+  Nitrogen1 ~ 1 + (1|ano_flate_id),
+  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen1),],
+  family = ordbeta
+)
+
+nitrogen2.no <- glmmTMB(
+  Nitrogen2 ~ 1 + (1|ano_flate_id),
+  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen2),],
+  family = ordbeta
+)
+
+summary(nitrogen.no)
+summary(nitrogen1.no)
+summary(nitrogen2.no)
+
+# regions
+nitrogen.re <- glmmTMB(
+  Nitrogen ~ 0 + region + (1|ano_flate_id),
+  data = ANO.mountain,
+  family = ordbeta
+)
+
+nitrogen1.re <- glmmTMB(
+  Nitrogen1 ~ 0 + region + (1|ano_flate_id),
+  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen1),],
+  family = ordbeta
+)
+
+nitrogen2.re <- glmmTMB(
+  Nitrogen2 ~ 0 + region + (1|ano_flate_id),
+  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen2),],
+  family = ordbeta
+)
+
+summary(nitrogen.re)
+summary(nitrogen1.re)
+summary(nitrogen2.re)
+```
+
+
+## 10. Results
+
+The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
+```{r}
+
+NO_FUNI_002_table <- tibble(
+  Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
+  indicator_value = c(plogis(summary(nitrogen.no)$coef$cond[,1]), plogis(summary(nitrogen.re)$coef$cond[,1])),
+  CI_upper = c(plogis(summary(nitrogen.no)$coef$cond[,1]+1.96*summary(nitrogen.no)$coef$cond[,2]), plogis(summary(nitrogen.re)$coef$cond[,1]+1.96*summary(nitrogen.re)$coef$cond[,2])),
+  CI_lower = as.numeric(plogis(summary(nitrogen.no)$coef$cond[,1]-1.96*summary(nitrogen.no)$coef$cond[,2]), plogis(summary(nitrogen.re)$coef$cond[,1]-1.96*summary(nitrogen.re)$coef$cond[,2])),
+  upper_indicator_value = c(plogis(summary(nitrogen2.no)$coef$cond[,1]), plogis(summary(nitrogen2.re)$coef$cond[,1])),
+  n_upper_indicator_value = c(summary(nitrogen2.no)$nobs,as.vector(table(nitrogen2.re$frame$region))),
+  lower_indicator_value = c(plogis(summary(nitrogen1.no)$coef$cond[,1]), plogis(summary(nitrogen1.re)$coef$cond[,1])),
+  n_lower_indicator_value = c(summary(nitrogen1.no)$nobs,as.vector(table(nitrogen1.re$frame$region)))
+)
+NO_FUNI_002_table
+```
+
+To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error as well as the dispersion parameter.
+```{r}
+
+## Norway
+# Fixed-effect intercept and SE
+b0 <- fixef(nitrogen.no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(nitrogen.no)$cond["(Intercept)", "(Intercept)"])
+# Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
+phi <- sigma(nitrogen.no)
+
+# draw estimates and backtransform from logit-scale
+eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
+mu_draws  <- plogis(eta_draws)
+
+# draw from beta distribution to consider the dispersion parameter 
+nitrogen.no_sim <- rbeta(
+  n = 1000,
+  shape1 = mu_draws * phi,
+  shape2 = (1 - mu_draws) * phi
+)
+
+
+## regions
+b_re <- fixef(nitrogen.re)$cond
+vc_re <- vcov(nitrogen.re)$cond
+phi <- sigma(nitrogen.re)
+
+eta_draws <- MASS::mvrnorm(
+  n = 1000,
+  mu = b_re,
+  Sigma = vc_re
+)
+
+mu_draws <- plogis(eta_draws)
+
+nitrogen_re_sim <- do.call(
+  rbind,
+  lapply(seq_along(b_re), function(i) {
+    
+    region <- names(b_re)[i]
+    mu_i <- mu_draws[, i]
+    
+    sim <- rbeta(
+      n = 1000,
+      shape1 = mu_i * phi,
+      shape2 = (1 - mu_i) * phi
+    )
+    
+    data.frame(
+      region = region,
+#      draw = 1:10,
+#      eta = eta_draws[, i],
+#      mu = mu_i,
+#      dispersion = phi,
+      sim = sim
+    )
+  })
+)
+
+nitrogen_re_sim$region <- sub("^region", "", nitrogen_re_sim$region)
+
+nitrogen_re_sim
+
+# combining nitrogen_no_sim and nitrogen_re_sim
+NO_FUNI_002_sim <- rbind(data.frame(region = 'Norway', sim = nitrogen.no_sim), nitrogen_re_sim)
+
+```
+
+
+## 11. Export file
+
+<!--# 
+
+Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+
+-->
+
+```{r export}
+#| eval: false
+```
+
+
+## 12. Author contributions
+
+<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+
+**CRediT statement**
+
+* Conceptualization: [Initials]
+* Methodology: [Initials]
+* Data curation: [Initials]
+* Formal analysis: [Initials]
+* Investigation: [Initials]
+* Software: [Initials]
+* Validation: [Initials]
+* Visualization: [Initials]
+* Resources: [Initials]
+* Writing – original draft: [Initials]
+* Writing – review & editing: [Initials]
+* Supervision: [Initials]
+* Project administration: [Initials]
+* Funding acquisition: [Initials]
+
+
+**MeRIT attribution**
+
+This part supplements the CRediT statement with more granularity for method section.
+
+**Study design**
+The study was designed by [AB, CD].
+
+**Data collection / fieldwork**
+Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
+
+**Laboratory procedures**
+DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
+
+**Data processing**
+Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
+
+**Statistical analysis**
+All analyses were conducted by [CD] using [software], with verification by [AB].
+
+**Visualization**
+Figures were produced by [KL], with input from [CD].
+
+**Reproducibility**
+All code was reviewed and validated by [AB, CD].
+
+
+
+::: {.callout-tip collapse="true"}
+## Session Info
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
