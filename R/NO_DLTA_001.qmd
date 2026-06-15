@@ -22,11 +22,11 @@ yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: ecTools workflow with national reference X0 = 0%, X100 = 65%
+VersionComment: ecTools workflow with X0 = 0% and county/sub-county-specific X100
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DLTA_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (NFI plots to county/sub-county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -198,7 +198,7 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 08 Nov. 2025 - Original PR (NO_LTFA_001)
-- 09 Jun. 2026 - NO_DLTA_001: ecTools workflow, national refs X0 = 0%, X100 = 65%, productive and unproductive forest
+- 09 Jun. 2026 - NO_DLTA_001: ecTools workflow, national refs X0 = 0%, X100 are county specific
 :::
 
 
@@ -219,9 +219,9 @@ Data for this indicator come from the National Forest Inventory (NFI), where the
 For each reporting period, the indicator is the area-weighted mean of this binary variable across NFI plots in the selected geographic unit.
 
 3. **Interpretation**:
-An indicator value of 1 corresponds to 65% or more of the forest area with large trees (best condition, X100).
+An indicator value of 1 corresponds to the county or sub-county X100 share of forest area with large trees or more (best condition).
 An indicator value of 0 corresponds to 0% of the forest area with large trees (worst condition, X0).
-Values between 0 and 1 reflect intermediate shares on a linear scale between the national reference levels.
+Values between 0 and 1 reflect intermediate shares on a linear scale between X0 and the matching county or sub-county X100.
 
 4. **Results and development needs**:
 At national level, scaled indicator values are well below the upper reference in all three reporting periods (@sec-results, @tbl-dlta-national-results).
@@ -242,9 +242,9 @@ Data kommer fra Landsskogtakseringen (NFI), der dbh er registrert for alle trær
 For hver rapporteringsperiode beregnes arealvektede gjennomsnitt for fylker, regioner og nasjonalt nivå.
 
 **Tolkning**:
-Indikatorverdi 1 tilsvarer 65 % eller mer av skogarealet med store trær (X100).
+Indikatorverdi 1 tilsvarer fylkes-/delfylkes-X100 eller mer av skogarealet med store trær.
 Indikatorverdi 0 tilsvarer 0 % (X0).
-Verdier mellom 0 og 1 reflekterer mellomliggende andeler på en lineær skala.
+Verdier mellom 0 og 1 reflekterer mellomliggende andeler på en lineær skala mot gjeldende X100.
 
 **Resultater og utviklingsbehov**:
 På nasjonalt nivå ligger de skalerte verdiene under øvre referansenivå i alle tre rapporteringsperioder.
@@ -316,8 +316,8 @@ However, such climate change may also induce more frequent disturbances, drought
 
 The spatial aggregation pathway is Aggregate (NFI plots to county) – [Scale – Truncate] – Aggregate (geographic region) – Aggregate (national level).
 For each reporting period, non-scaled values for county, region, and Norway are obtained by pooling all included forest plots in the unit: the area-weighted mean of the plot-level large-tree presence.
-Where NFI county labels are split into parts, those labels are merged to a single county name before aggregation.
-Scaling and truncation are applied at county level using national reference levels X0 (0%) and X100 (65%) with a linear scaling function; values outside [0, 1] are truncated at scaling.
+Where NFI county labels are split into parts, those parts are retained as separate accounting units for scaling.
+Scaling and truncation are applied at county or sub-county level using X0 (0%) and county or sub-county-specific X100 values with a linear scaling function; values outside [0, 1] are truncated at scaling.
 Regional and national scaled values are derived from scaled county bootstrap draws.
 The indicator is likely to have a high frequency of NFI plots without large trees, so results should not be interpreted at finer resolution than counties.
 
@@ -331,13 +331,13 @@ The reference condition is considered to be intact forest ecosystems where effec
 
 Intact forest ecosystems are expected to contain a substantial share of forest area with large trees.
 The lower reference value (X0) is therefore 0% of forest area with large trees (worst condition).
-The upper reference value (X100) is provisionally set to 65% of forest area with large trees (best condition) at national level.
-For lack of better knowledge, a linear relationship is assumed between X0 and X100.
+The upper reference value (X100) is defined separately for each county or sub-county accounting unit (@sec-dlta-reference-values).
+For lack of better knowledge, a linear relationship is assumed between X0 and X100 within each unit.
 Hence, indicator values are scaled between 0 and 1 based on a linear scaling function; scaled indicator values outside [0, 1] are truncated at scaling.
 
 #### 4.2.1 Spatial resolution and validity
 
-Reference levels are defined as one national value for the share of forest area with large trees.
+Reference levels are defined at county or sub-county resolution for the share of forest area with large trees.
 Although indicator values from NFI plots may technically be aggregated at finer spatial units than counties, scaling at such finer levels may result in biases.
 
 ## 5. Uncertainties
@@ -352,7 +352,7 @@ These uncertainties are not quantified.
 
 The uncertainties reported in @sec-results are inferential and refer to uncertainty around the point estimates, not to the full spatial variation among NFI plots.
 For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within each county and recalculating the area-weighted mean share of forest area with large trees.
-For scaled county values, bootstrap draws are transformed using the same national reference levels X0 and X100 as the point estimates (truncation at scaling).
+For scaled county or sub-county values, bootstrap draws are transformed using the same unit-specific reference levels X0 and X100 as the point estimates (truncation at scaling).
 For scaled regional and national values, uncertainty is propagated from the scaled county bootstrap draws.
 The resulting distributions are summarised with median and quantile intervals.
 
@@ -394,8 +394,8 @@ lsk_data_raw <- read_csv(
 
 ## 8. Spatial units
 
-Aggregated indicator values are reported for counties, regions and nationally.
-Where counties are split into parts, those parts are merged to a single county name before aggregation.
+Aggregated indicator values are reported for counties or sub-counties, regions and nationally.
+Where counties are split into parts in the NFI data, those parts are retained as separate accounting units before scaling.
 Aggregated indicator values should not be applied for spatial units finer than those that allow reliable estimates.
 
 ## 9. Analyses
@@ -418,7 +418,7 @@ reporting_periods <- list(
 
 ```
 
-We filter the raw dataset to include both productive and unproductive forest plots (`arealtype` 1 and 12) and standardise county names by merging split NFI labels to county level.
+We filter the raw dataset to include both productive and unproductive forest plots (`arealtype` 1 and 12) and standardise NFI county labels while retaining split county or sub-county units.
 The plot-level indicator is the binary NFI variable `stort_tre` (1 = at least one tree with dbh ≥ 40 cm, 0 = no large trees).
 For each included plot, the area-weighted contribution to later aggregation is `indicator_continuous * au_areal`.
 
@@ -433,10 +433,16 @@ lsk_data <- lsk_data_raw |>
       stringr::str_remove("^\\d+-\\d+\\s+") |>
       stringr::str_remove("^\\d+\\s*") |>
       stringr::str_squish(),
-    fylke_name = normalize_county_parts(fylke_name),
+    county_part = assign_bbca_county_part(fylke_name),
     fylke_name_clean = stringi::stri_trans_general(
       stringr::str_squish(
-        tolower(stringr::str_replace_all(fylke_name, "[0-9.-]", " "))
+        tolower(
+          stringr::str_replace_all(
+            normalize_county_parts(fylke_name),
+            "[0-9.-]",
+            " "
+          )
+        )
       ),
       "Latin-ASCII"
     ),
@@ -461,6 +467,7 @@ lsk_data <- lsk_data |>
     arealtype,
     region_code,
     region_name,
+    county_part,
     fylke_name,
     fylke_name_clean,
     stort_tre,
@@ -504,7 +511,7 @@ Each replicate computes the area-weighted non-scaled large trees share, giving a
 
 county_draws_long <- purrr::imap_dfr(dlta_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
-    dplyr::select(fylke_name, total_area, region_code)
+    dplyr::select(fylke_name, county_part, total_area, region_code)
 
   purrr::imap_dfr(
     split(period_result$data, period_result$data$fylke_name),
@@ -530,7 +537,7 @@ The table below (@tbl-dlta-county-nonscaled) summarises non-scaled bootstrap dra
 #| echo: false
 
 county_draws_long |>
-  dplyr::group_by(period, fylke_name, region_code, total_area) |>
+  dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
   dplyr::summarise(
     non_scaled_median = median(non_scaled_value),
     .groups = "drop"
@@ -548,6 +555,7 @@ county_draws_long |>
   dplyr::select(
     Period = period,
     County = fylke_name,
+    `Sub-county` = county_part,
     Region = region_name,
     `Non-scaled value (proportion)` = non_scaled_median,
     `Non-scaled value (%)` = non_scaled_median_pct,
@@ -583,19 +591,34 @@ county_draws_long |>
 
 ### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-dlta-reference-values}
 
-National reference levels are X0 = 0% and X100 = 65% for the share of forest area with large trees.
+County or sub-county reference levels are listed below.
+X0 is 0% for all units; X100 is the share of forest area with large trees at best condition for each county or sub-county accounting unit.
 
 ```{r dlta-reference-values}
-#| code-summary: "National reference levels"
+#| code-summary: "Reference values by county or sub-county"
+
+dlta_reference_values <- dplyr::tibble(
+  county_part = c(
+    "Øs", "OA", "HeS", "HeN", "OpS", "OpN", "BuS", "BuV", "Ve",
+    "TeS", "TeN", "AA", "VA", "Ro", "Ho", "SF", "MR", "ST", "NT",
+    "NoS", "NoN", "Tr", "Fi"
+  ),
+  x100_pct = c(
+    70, 75, 70, 55, 65, 60, 70, 60, 75,
+    70, 60, 65, 65, 60, 60, 60, 65,
+    60, 60, 60, 55, 55, 50
+  )
+) |>
+  dplyr::mutate(x100 = x100_pct / 100)
 
 x0 <- 0
-x100 <- 0.65
-
+county_reference <- dlta_reference_values |>
+  dplyr::select(county_part, x100, x100_pct)
 
 ```
 
-Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, X100 = 65%; truncation at scaling).
-@fig-dlta-norm shows the mapping.
+Each county or sub-county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, unit-specific X100; truncation at scaling).
+@fig-dlta-norm shows the mapping with one panel per county or sub-county accounting unit.
 
 ```{r county-draws-scaled}
 #| cache: true
@@ -603,6 +626,7 @@ Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::e
 #| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
 
 county_draws_scaled <- county_draws_long |>
+  dplyr::inner_join(county_reference, by = "county_part") |>
   dplyr::mutate(
     scaled_value = ec_normalise(
       non_scaled_value,
@@ -614,7 +638,7 @@ county_draws_scaled <- county_draws_long |>
   )
 
 county_scaled_with_uncertainty <- county_draws_scaled |>
-  dplyr::group_by(period, fylke_name, total_area, region_code) |>
+  dplyr::group_by(period, fylke_name, county_part, total_area, region_code) |>
   dplyr::summarise(
     median = median(scaled_value),
     p_025  = as.numeric(quantile(scaled_value, 0.025)),
@@ -631,28 +655,42 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
 ```
 
 ```{r fig-dlta-norm}
-#| fig-cap: "Linear normalisation of the share of forest area with large trees (proportion) to indicator values (0–1), using national reference levels X0 = 0% and X100 = 65%. Points are 500 sampled bootstrap draws, pooled across all reporting periods."
+#| fig-cap: "Linear normalisation of the share of forest area with large trees (proportion) to indicator values (0–1), using X0 = 0% and county/sub-county-specific X100. One panel per county or sub-county accounting unit; points are sampled bootstrap draws pooled across reporting periods."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
-#| fig-height: 5
-#| fig-width: 6
+#| fig-height: 14
+#| fig-width: 12
 
 norm_plot_data <- county_draws_scaled |>
-  dplyr::slice_sample(n = min(500, nrow(county_draws_scaled)))
+  dplyr::group_by(county_part) |>
+  dplyr::group_modify(~{
+    n_sample <- min(30L, nrow(.x))
+    dplyr::slice_sample(.x, n = n_sample, replace = FALSE)
+  }) |>
+  dplyr::ungroup()
 
-dlta_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
+dlta_norm_plot <- ec_norm_plot(
+  norm_plot_data$non_scaled_value,
+  norm_plot_data$scaled_value
+) +
+  ggplot2::facet_wrap(. ~ norm_plot_data$county_part, ncol = 5) +
   ggplot2::labs(
     x = "Share of forest area with large trees (proportion)",
     y = "Scaled indicator value"
   ) +
-  ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
-dlta_norm_plot$layers[[1]]$aes_params$size <- 3
+  ggplot2::theme(
+    axis.text = ggplot2::element_text(size = 7),
+    strip.text = ggplot2::element_text(size = 8)
+  )
+dlta_norm_plot$layers[[1]]$aes_params$size <- 1.5
 
 suppressMessages(
   ggsave(
     filename = here::here("img/dlta_norm_plot.png"),
     plot = dlta_norm_plot,
-    scale = 1.5
+    width = 12,
+    height = 14,
+    dpi = 150
   )
 )
 
@@ -722,6 +760,7 @@ dlta_mc_combined <- dplyr::bind_rows(
 )
 
 county_scaled_all_periods <- dlta_results_county_all_periods |>
+  dplyr::inner_join(county_reference, by = "county_part") |>
   dplyr::mutate(
     scaled_value = ec_normalise(indicator_value, x0 = x0, x100 = x100, fun = "linear")
   )
@@ -770,11 +809,12 @@ national_scaled_agg_with_uncertainty <- dlta_mc_national |>
 
 truncation_summary <- dplyr::bind_rows(
   dlta_results_county_all_periods |>
+    dplyr::inner_join(county_reference, by = "county_part") |>
     dplyr::mutate(
       level = "County",
       exceeds_threshold = indicator_value > x100,
       original_value_pct = round(indicator_value * 100, 2),
-      reference_value_pct = 65,
+      reference_value_pct = x100_pct,
       region_code = NA_character_,
       region_name = NA_character_
     ) |>
@@ -833,7 +873,7 @@ truncated_values <- truncation_summary |>
 
 ```
 
-At county level, truncation is evaluated by comparing the non-scaled point estimate to X100 (65%).
+At county or sub-county level, truncation is evaluated by comparing the non-scaled point estimate to the matching X100.
 At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
 The following tables summarise how often truncation occurred in each period and list the affected units.
 
@@ -887,7 +927,7 @@ if (nrow(truncated_values) > 0) {
       decimals = 1
     )
 } else {
-  cat("\nNo values exceeded X100 (65% of forest area with large trees) and required truncation.\n")
+  cat("\nNo values exceeded the county/sub-county X100 reference and required truncation.\n")
 }
 
 ```
@@ -962,16 +1002,16 @@ ggplot2::ggplot(
 
 ## 10. Results {#sec-results}
 
-The following tables present scaled indicator results at county, regional, and national scales for each reporting period.
+The following tables present scaled indicator results at county or sub-county, regional, and national scales for each reporting period.
 Tables report the median as the indicator value, with an approximate 95% interval (2.5% and 97.5% quantiles) and an approximate interquartile range (25% and 75% quantiles).
-All scaled values are on a 0–1 scale, where 0 corresponds to X0 (0% of forest area with large trees) and 1 corresponds to X100 (65% of forest area with large trees).
+All scaled values are on a 0–1 scale, where 0 corresponds to X0 (0% of forest area with large trees) and 1 corresponds to the county or sub-county X100.
 
 ### 10.1 County-level results (scaled with uncertainty)
 
 Use the search box and page controls in @tbl-dlta-county-results to browse county rows across all reporting periods.
 
 ```{r tbl-dlta-county-results}
-#| tbl-cap: 'County indicator values for density of large trees by reporting period. Values are scaled to 0–1 using national X0 and X100. Uncertainty is derived from 1000 bootstrap draws. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
+#| tbl-cap: 'County or sub-county indicator values for density of large trees by reporting period. Values are scaled to 0–1 using X0 and county/sub-county-specific X100 via ec_normalise(). Uncertainty is derived from 1000 bootstrap draws scaled with the same function. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
 #| echo: false
 
 county_scaled_with_uncertainty |>
@@ -999,6 +1039,7 @@ county_scaled_with_uncertainty |>
     ID = "NO_DLTA_001",
     `Accounting area` = .data$fylke_name,
     Region = .data$region_name,
+    `Sub-county` = .data$county_part,
     Ecosystem = "Boreal/montane forests",
     `Reporting period` = .data$period,
     `Indicator value` = .data$median,
