@@ -251,7 +251,7 @@ The functional plant community indicator for nitrogen reflects the availability 
 The functional plant community indicator for nitrogen reflects the availability of nutrients and soil chemical properties and thus represents the characteristic 'Abiotic factors'.
 
 ### 3.3 Collinearities with other indicators
-Different functional plant community indicators for different environmental variables (light, Lighture, ...) might show a certain degree of co-linearity with one another as they are derived from the very same plant community data.
+Different functional plant community indicators for different environmental variables (light, Light, ...) might show a certain degree of co-linearity with one another as they are derived from the very same plant community data.
 Functional plant community indicators can potentially exhibit co-linearities with other vegetation-oriented indicators, such as NDVI, though this depends greatly on which functional plant community indicator ends up as the leading one (i.e. the one with the lowest scaled score).
 
 
@@ -371,7 +371,7 @@ Import plant indicator values from Tyler et al. (2021):
 ind.Tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
 ```
 
-The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for Lighture and nitrogen as these are thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
+The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for Light and nitrogen as these are thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
 
 
 ## 8. Spatial units
@@ -409,7 +409,7 @@ ind.Tyler[,'species'] <- word(ind.Tyler[,'species'], 1,2) # trimming away sub-sp
 
 ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
 ind.Tyler.dup <- ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
-ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Lighture","Soil_reaction_pH","Nitrogen","Heat_requirement","species.orig","species")]
+ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Nitrogen","species.orig","species")]
 ind.Tyler <- ind.Tyler %>% filter( !(species.orig %in% list("Ammophila arenaria x Calamagrostis epigejos",
                                                             "Anemone nemorosa x ranunculoides",
                                                             "Armeria maritima ssp. elongata",
@@ -449,14 +449,14 @@ ind.Tyler <- ind.Tyler %>% filter( !(species.orig %in% list("Ammophila arenaria 
 # checking duplicates again
 ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
 ind.Tyler.dup <- ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
-ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Lighture","Soil_reaction_pH","Nitrogen","Heat_requirement", "Soil_disturbance","Phosphorus","Grazing_mowing","species.orig","species")]
+ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Light","Soil_reaction_pH","Nitrogen","Heat_requirement", "Soil_disturbance","Phosphorus","Grazing_mowing","species.orig","species")]
 # getting rid of sect. for Hieracium
 ind.Tyler <- ind.Tyler %>% mutate(species=gsub("sect. ","",species.orig))
 ind.Tyler[,'species'] <- word(ind.Tyler[,'species'], 1,2)
 
 ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
 ind.Tyler.dup <- ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
-ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Lighture","Soil_reaction_pH","Nitrogen","Heat_requirement", "Soil_disturbance","Phosphorus","Grazing_mowing","species.orig","species")]
+ind.Tyler[ind.Tyler$species %in% ind.Tyler.dup,c("Light","Nitrogen","species.orig","species")]
 # only hybrids left -> get rid of these
 ind.Tyler <- ind.Tyler[!duplicated(ind.Tyler[,'species']),]
 ind.Tyler[duplicated(ind.Tyler[,'species']),"species"]
@@ -584,13 +584,13 @@ ANO.sp$Species <- gsub("( .*)","\\L\\1",ANO.sp$Species,perl=TRUE) # make capital
 
 ## merge species data with indicators
 ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "parentglobalid")], 
-                    y= ind.dat[,c("species", "Lighture", "Nitrogen")],
+                    y= ind.dat[,c("species", "Light", "Nitrogen")],
                     by.x="Species", by.y="species", all.x=T)
 summary(ANO.sp.ind)
 
 
 ## checking which species didn't find a match
-unique(ANO.sp.ind[is.na(ANO.sp.ind$Lighture),'Species'])
+unique(ANO.sp.ind[is.na(ANO.sp.ind$Light),'Species'])
 
 # fix species name issues
 ind.dat <- ind.dat %>% 
@@ -680,11 +680,11 @@ ANO.sp <- ANO.sp %>%
 
 ## merge species data with indicators
 ANO.sp.ind <- merge(x=ANO.sp[,c("Species", "art_dekning", "parentglobalid")], 
-                    y= ind.dat[,c("species", "Lighture", "Nitrogen")],
+                    y= ind.dat[,c("species", "Light", "Nitrogen")],
                     by.x="Species", by.y="species", all.x=T)
 summary(ANO.sp.ind)
 # checking which species didn't find a match
-unique(ANO.sp.ind[is.na(ANO.sp.ind$Lighture),'Species'])
+unique(ANO.sp.ind[is.na(ANO.sp.ind$Light),'Species'])
 # don't find synonyms for these in the ind lists
 
 ## trimming away the points without information on NiN, species or cover
@@ -1045,8 +1045,6 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 
 ```{r, attr.output='style="max-height: 300px;"', results='hide'}
 
-### wetland, mountain, mountain, and semi-natural ecosystems
-
 # every NiN-type is represented by one 'generalisert artsliste'
 # some NiN-types are represented by two such species lists
 # in some cases two NiN-types are represented by the same species list
@@ -1062,7 +1060,7 @@ mountain.NiNtypes <- colnames(mountain.ref.cov[["Nitrogen"]])
 mountain.NiNtypes[-x] <- substr(mountain.NiNtypes[-x], 1, nchar(mountain.NiNtypes[-x])-1)
 mountain.NiNtypes
 
-# 2 indicator-value indicators: Lighture, "Nitrogen"
+# 2 indicator-value indicators: Light, "Nitrogen"
 indEll.n=2
 # creating a table to hold:
 # for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator), for Heat_requirement in alpine/arctic systems we do 0.05 quantile and  0.95 quantile and ignore the former as it is a one-sided indicator
