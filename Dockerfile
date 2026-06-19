@@ -54,7 +54,7 @@ RUN rm -rf /srv/shiny-server/* \
     && chown -R shiny:shiny /srv/shiny-server
 
 # Copy application files in a single consolidated layer
-COPY --chown=shiny:shiny app/ indicators/ style.css ./
+COPY --chown=shiny:shiny app.R Create_metadata.R HowToUse.R contact.R contribute.R global.R overview.R indicators/ www/ style.css ./
 
 # Switch to non-root user
 USER shiny
