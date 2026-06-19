@@ -56,13 +56,13 @@ RUN rm -rf /srv/shiny-server/* \
 # Copy application files in a single consolidated layer
 COPY --chown=shiny:shiny app/ indicators/ style.css ./
 
-# Switch to non-root user
-USER shiny
+# Switch back to root so s6-init can set up the environment
+# and drop privileges to shiny internally (rocker/shiny handles this)
+USER root
 
-# Healthcheck
-RUN echo "ok" > /srv/shiny-server/healthz.html
+# Healthcheck: / returns HTTP 200 when the Shiny app is serving
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
-    CMD curl -fsS http://localhost:3838/healthz.html > /dev/null || exit 1
+    CMD curl -fsS http://localhost:3838/ > /dev/null || exit 1
 
 EXPOSE 3838
 
