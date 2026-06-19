@@ -124,31 +124,30 @@ combined_metadata<-combined_metadata |>
 App_data <- create_data(combined_metadata)
 #print(App_data)
 App_data<-App_data |> 
-  filter(is.na(hide) | hide!="TRUE") 
+  filter(is.na(hide) | hide!="TRUE", str_detect(indicator_id, "_")) 
 App_data <- App_data %>%
   transmute(
-    indicator_id,
-    title,
-    indicator_name,
+    Name = title,
+    ID = indicator_id,
+    #indicator_name,
     ECT = str_to_upper(ect),                 # Capitalise to ECT
     continent,
     country,
     realm,
     biome,
     ecosystem,                               # Assuming this is the correct ecosystem column
-    authors = author_list,                   # Renamed
-    year_added,
-    year_last_update,
-    status,
+    #authors = author_list,                   # Renamed
+    #year_added,
+    #year_last_update,
+    #status,
     version,
-    version_comment,
-    normalised,
-    data_availability,
-    code_reproducibility,
-    open_science_badge,
+    #version_comment,
+    #normalised,
+    #data_availability,
+    #code_reproducibility,
+    #open_science_badge,
     html_file_rel, url,html_file_abs, file
-  ) |> 
-  filter(!indicator_id=="R")
+  ) 
 
 
 
