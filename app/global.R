@@ -1,4 +1,18 @@
 # Global
+
+# Route R errors and warnings to stderr so they appear in Docker logs
+options(
+  shiny.error = function() {
+    msg <- paste0(
+      "[R ERROR] ", format(Sys.time(), "%Y-%m-%dT%H:%M:%S"), " - ",
+      geterrmessage()
+    )
+    cat(msg, "\n", file = stderr())
+  },
+  shiny.sanitize.errors = FALSE,
+  warn = 1  # print warnings immediately rather than collecting them
+)
+
 # Determine the path of this file (global.R) reliably
 get_app_dir <- function() {
   # Case 1: Running normally, global.R is sourced and ofile is set
