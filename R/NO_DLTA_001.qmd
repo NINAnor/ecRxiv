@@ -1,11 +1,11 @@
 ---
-title: "Share of forest with large trees"
+title: "Large trees"
 subtitle: |
   NO_DLTA_001
 indicatorID: 
   - NO_DLTA_001
 indicatorName: 
-  - Share of forest with large trees
+  - Large trees
 verbatimName: 
   - Arealandel med forekomst av store trær
 folderName: NO_DLTA_001
@@ -658,8 +658,8 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
 #| fig-cap: "Linear normalisation of the share of forest area with large trees (proportion) to indicator values (0–1), using X0 = 0% and county/sub-county-specific X100. One panel per county or sub-county accounting unit; points are sampled bootstrap draws pooled across reporting periods."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
-#| fig-height: 14
-#| fig-width: 12
+#| fig-height: 6
+#| fig-width: 8
 
 norm_plot_data <- county_draws_scaled |>
   dplyr::group_by(county_part) |>
@@ -673,24 +673,19 @@ dlta_norm_plot <- ec_norm_plot(
   norm_plot_data$non_scaled_value,
   norm_plot_data$scaled_value
 ) +
-  ggplot2::facet_wrap(. ~ norm_plot_data$county_part, ncol = 5) +
+  ggplot2::facet_wrap(~norm_plot_data$county_part, scales = "free_x") +
   ggplot2::labs(
     x = "Share of forest area with large trees (proportion)",
     y = "Scaled indicator value"
   ) +
-  ggplot2::theme(
-    axis.text = ggplot2::element_text(size = 7),
-    strip.text = ggplot2::element_text(size = 8)
-  )
-dlta_norm_plot$layers[[1]]$aes_params$size <- 1.5
+  ggplot2::theme_bw(base_size = 11)
+dlta_norm_plot$layers[[1]]$aes_params$size <- 2.5
 
 suppressMessages(
   ggsave(
     filename = here::here("img/dlta_norm_plot.png"),
     plot = dlta_norm_plot,
-    width = 12,
-    height = 14,
-    dpi = 150
+    scale = 1.5
   )
 )
 
