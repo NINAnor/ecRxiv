@@ -57,6 +57,10 @@ create_metadata_table <- function(path) {
     !grepl("([/\\\\]_.*$)|template|sandbox|version", qmd_files, ignore.case = TRUE)
   ]
   
+  message("QMD files found: ", length(qmd_files))
+  message("And they look like this: ", qmd_files[1])
+  
+
   metadata_list <- map(qmd_files, function(qmd_path) {
     
     meta <- tryCatch(
@@ -152,4 +156,3 @@ App_data <- App_data %>%
 
 
 
-message("QMD files found: ", length(qmd_files))
