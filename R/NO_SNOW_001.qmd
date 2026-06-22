@@ -1,0 +1,692 @@
+---
+title: "NO_SNOW_001"
+subtitle: |
+  NO_SNOW_001 (Mountain snow depth)
+indicatorID: 
+  - NO_SNOW_001
+indicatorName: 
+  - Mean winter snow depth in mountain ecosystems
+folderName: NO_SNOW_001
+country: Norway
+continent: Europe
+ECT: Abiotic state characteristics
+Realm:
+  - Terrestrial (T)
+Biome: 
+  - Mountain and alpine ecosystems
+Ecosystem: 
+  - Norwegian mountain ecosystems
+yearAdded: 2026
+yearLastUpdate: 2026
+status: incomplete
+Version: "0.1.0"
+VersionComment: First draft implementation using seNorge snow depth data, a national mountain mask, and regional aggregation to five mountain assessment regions.
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_SNOW_001
+Normalised: yes
+SpatialAggregationPathway: Mask - temporal aggregation - spatial aggregation (regional arithmetic mean)
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
+author:
+  - name: Matthew Grainger
+    email: matthew.grainger@nina.no
+    affiliations:
+      - id: nina
+        name: Norwegian Institute for Nature Research
+  - name: Anders Kolstad
+    email: Anders.Kolstad@nina.no
+    affiliations:
+      - id: ninaAK
+        name: Norwegian Institute for Nature Research
+AuthorList: Grainger, M., Kolstad A.
+date: June 8, 2026
+data_availability: "silver"
+code_reproducibility: "silver"
+open_science_badge: "silver"
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+hide: FALSE
+bibliography: references.bib
+---
+
+<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+library(sf)
+library(terra)
+library(ncdf4)
+library(lubridate)
+library(abind)
+
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull <- dplyr::pull
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| warning: false
+#| cache: false
+
+source(here::here("_common.R"))
+```
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+license_badge()
+```
+
+::: 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
+```
+:::
+
+::: {.callout-tip collapse="true"}
+
+## Log
+
+- 19 Jun. 2026 - First draft of the snow depth indicator workflow using seNorge snow data and regional mountain aggregation.
+:::
+
+<hr />
+
+## 1. Summary
+
+1. **Background and rationale**:
+This indicator describes mean winter snow depth in Norwegian mountain ecosystems. Snow depth is a key physical characteristic of mountain ecosystems because it influences the length of the snow season, soil temperatures, freeze-thaw exposure, plant phenology, grazing access, hydrology, and the winter conditions experienced by alpine and subalpine species. Changes in snow depth are closely linked to climate change and can alter ecological processes even where land-use pressure is low.
+
+2. **Methods**:
+The indicator is calculated from daily seNorge snow depth data. For each "winter year", snow depth is averaged over the period December of the previous year to May of the current year. The resulting winter mean raster is clipped to the Norwegian mountain area using a mountain mask. Mean snow depth is then calculated separately for five mountain regions: Nord-Norge, Midt-Norge, Østlandet, Vestlandet and Sørlandet.
+
+The workflow is:
+
+- retrieve daily snow depth data from seNorge for December of the previous year and January-May of the current year;
+- crop the data to the bounding box of the mountain mask to reduce processing time;
+- calculate the mean snow depth over the December-May winter period;
+- mask the raster to mountain areas;
+- calculate mean snow depth within each mountain region;
+- calculate region-specific reference values from the 1961–1990 baseline period and convert annual values to a normalised 0–1 condition score;
+- export a table of annual regional values and condition scores.
+
+3. **Interpretation**:
+The indicator is reported as a normalised ecosystem-condition score ranging from 0 to 1. Reference conditions are defined separately for each mountain region using the median winter snow depth during the 1961–1990 baseline period.
+
+A value of 1 indicates snow depth equal to or greater than the historical reference condition, while values below 1 indicate reduced snow depth relative to the reference period. For example, a value of 0.8 indicates that mean winter snow depth was 80% of the regional reference level.
+
+Lower values therefore indicate increasing departure from historical snow conditions and may reflect climate-driven reductions in winter snow accumulation. The indicator assumes that reductions in snow depth represent deterioration in ecosystem condition because snow cover is a key driver of mountain ecosystem structure and functioning.
+
+4. **Results and development needs**:
+The current workflow produces annual regional condition scores for Norwegian mountain ecosystems from 1959 onwards. Snow depth is normalised relative to region-specific reference conditions derived from the 1961–1990 baseline period, allowing direct comparison among years while accounting for natural regional differences in snow climate.
+
+Further development should evaluate the sensitivity of results to the choice of reference period and summary statistic (median versus mean), assess whether capping values at 1 is appropriate, and validate indicator behaviour against previous ecosystem-condition assessments and independent evidence of climate impacts on mountain ecosystems.
+
+## 2. About the underlying data
+
+The indicator uses daily snow depth data from seNorge, accessed through the MET Norway THREDDS service. The spatial delineation of mountain areas is based on the national modelled mountain layer `Modellert_fjell_50` from the geodatabase `Fjell_norge_publisering.gdb`. Regional aggregation is based on a helper file containing five mountain regions and their estimated mountain area.
+
+### 2.1 Spatial and temporal resolution and extent
+
+The snow depth data are gridded daily raster data covering Norway. In this workflow, daily values are aggregated to a winter-year mean for the period December-May. The first complete winter year in the analysis is 1959, because this uses December 1958 and January-May 1959. The current script is set up to process winter years 1959-2026, depending on data availability from seNorge.
+
+Spatially, the analysis is restricted to modelled mountain areas in Norway. Final indicator values are reported for five broad regions: Nord-Norge, Midt-Norge, Østlandet, Vestlandet and Sørlandet.
+
+### 2.2 Sampling design
+
+The data are modelled gridded climate data rather than field samples collected specifically for this indicator. The indicator therefore inherits uncertainties from the underlying meteorological observations, interpolation/model structure, elevation effects, and the density and distribution of weather stations. Uncertainty may be larger in remote mountain areas where observations are sparse, and in areas where local topography produces fine-scale snow variation that is not fully represented by the raster resolution.
+
+### 2.3 Original units
+
+The underlying variable is snow depth. Winter mean snow depth is initially calculated in the original units provided by seNorge. These values are subsequently normalised relative to the regional median snow depth during the 1961–1990 reference period to produce a dimensionless ecosystem-condition score ranging from 0 to 1.
+
+### 2.4 Instructions for citing, using and accessing data
+
+The snow data are accessed from the seNorge snow depth NetCDF files hosted through the MET Norway THREDDS service. The spatial mountain mask is read from `Fjell_norge_publisering.gdb`, layer `Modellert_fjell_50`. The regional helper file is an `sf` object containing five polygons and an `arealFjell` attribute. The final reproducible version should include instructions for obtaining both the mountain mask and the regional helper file, or provide scripts that generate the regional helper file from openly available spatial data.
+
+### 2.5 Additional comments about the dataset
+
+The current script crops remote NetCDF files to the bounding box of the mountain mask before downloading the daily snow depth values. This makes processing substantially faster, but it also means that CRS alignment and raster orientation should be checked carefully. A visual overlay of the winter mean raster and regional polygons should be inspected before finalising the indicator.
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+This indicator represents an abiotic physical state characteristic of mountain ecosystems, describing the winter snow conditions that structure ecological processes in alpine and subalpine environments.
+
+### 3.1.1 Other condition typologies
+
+In a national ecosystem-condition assessment, the indicator can be interpreted as part of the physical or climatic state of mountain ecosystems. It is not a direct biodiversity response indicator, but it describes a key environmental condition that affects species, habitats and ecosystem processes.
+
+### 3.2 Ecosystem condition characteristic
+
+The ecosystem condition characteristic represented by this indicator is the winter snow regime of mountain ecosystems. Snow depth affects insulation of soils and vegetation, timing of melt-out, water availability, accessibility of forage for herbivores, and exposure of plants and animals to winter climate.
+
+### 3.3 Collinearities with other indicators
+
+This indicator is expected to be correlated with other climate-related indicators, including winter temperature, winter precipitation, snow-cover duration, date of snowmelt, and growing-season length. If several snow and temperature indicators are included in the same assessment, care is needed to avoid double-counting climate-change effects.
+
+### 3.4 Impact factors
+
+The main impact factor affecting this metric is climate change, particularly changes in winter temperature and precipitation. Natural drivers include elevation, latitude, distance from the coast, topography, wind redistribution of snow, and interannual weather variability. Land use may have local effects on snow accumulation and redistribution, but these effects are not explicitly modelled here.
+
+### 3.5 Spatial aggregation
+
+Daily snow depth values are first temporally aggregated to a winter mean raster for each winter year. The winter mean raster is then masked to mountain areas. Spatial aggregation is carried out by calculating the arithmetic mean of all valid mountain raster cells within each of five mountain regions. The resulting regional mean snow depth values are normalised relative to region-specific reference levels derived from the 1961–1990 baseline period. Values greater than the reference level are capped at 1, producing a bounded ecosystem-condition score between 0 and 1.
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+The reference condition is defined as the typical winter snow depth observed during the historical reference period 1961–1990. This period is used to represent earlier climatic snow conditions in Norwegian mountain ecosystems before the strongest recent warming signal.
+
+Reference values are calculated separately for each mountain region, because expected snow depth differs strongly across Norway.
+
+### 4.2 Reference levels
+
+For each region, the reference level is calculated as the median winter mean snow depth during 1961–1990. The median is used because snow depth can be strongly influenced by unusually snowy or unusually snow-poor winters.
+
+Annual values are then expressed relative to the regional reference level:
+
+
+```{r}
+#| echo: true
+#| eval: false
+
+normalised_snow = mean_snow / reference_snow
+```
+
+Values are capped at 1 so that years with snow depth equal to or greater than the reference period receive the maximum condition score:
+
+```{r}
+#| echo: true
+#| eval: false
+
+condition_score = pmin(normalised_snow, 1)
+```
+
+
+This gives a bounded 0–1 indicator where:
+
+- 1 = snow depth equal to or above the regional reference condition
+
+- <1 = reduced snow depth relative to the regional reference condition
+
+- 0.6 = 60% of the regional reference snow depth
+
+
+#### 4.2.1 Spatial resolution and validity
+
+The reference values are applied at the same spatial scale as the final indicator values: the five mountain regions. This avoids comparing naturally low-snow regions with naturally high-snow regions. Future versions could develop cell-level reference values before regional aggregation, but the current regional approach is transparent and consistent with the reporting scale of this indicator.
+
+## 5. Uncertainties
+
+### 5.1 General uncertainties
+
+The main uncertainties relate to the underlying seNorge snow depth product, the spatial delineation of mountain areas, the regional aggregation layer, and the ecological interpretation of snow depth as an indicator of condition. Mountain snow depth varies strongly over short distances due to elevation, aspect, wind exposure and local terrain. These fine-scale patterns may not be fully captured in gridded climate data. The indicator is also sensitive to the selected winter period. December-May was chosen to match the previous assessment, but other choices, such as snow-season length or date of melt-out, could represent different ecological mechanisms.
+
+Additional uncertainty arises from the selection of the 1961–1990 reference period and the assumption that historical snow conditions represent a desirable ecological reference state. Different baseline periods or alternative normalisation approaches could produce different condition scores, particularly in regions experiencing strong long-term climatic trends.
+
+### 5.2 Reported uncertainties
+
+The current version reports point estimates only. No inferential uncertainty or descriptive spatial variation is currently exported. Future versions could report regional standard deviations, quantiles across raster cells, bootstrap intervals over spatial units, or uncertainty information from the underlying climate product if available. Any reported uncertainty should distinguish between spatial variation in snow depth and uncertainty in the estimated regional mean.
+
+## 6. References
+
+References to the seNorge snow depth product, the national mountain mask, and the previous ecosystem condition assessment should be added here before publication.
+
+## 7. Import and prepare datasets
+
+This section imports the spatial layers and retrieves daily snow depth data from seNorge. The workflow processes one winter year at a time to reduce memory use. A winter year is defined as December of the previous calendar year plus January-May of the current calendar year.
+
+```{r import-prepare}
+#| echo: true
+#| message: false
+#| eval: false
+# -------------------------------
+# 1. LOAD SPATIAL DATA
+# -------------------------------
+
+fjell <- st_read(here::here(
+  "data/Fjell_norge_publisering.gdb"),
+  layer = "Modellert_fjell_50"
+)
+
+reg_helperfile <- readRDS(here::here(
+  "data/reg_helperfile.rds"
+))
+
+reg_helperfile <- st_transform(reg_helperfile, st_crs(fjell))
+
+bbox <- st_bbox(fjell)
+
+# -------------------------------
+# 2. DEFINE YEARS AND EMPTY OUTPUT
+# -------------------------------
+
+# Starts at 1959 because winter 1958 would require Dec 1957.
+years <- 1959:2026
+
+results <- data.frame(
+  year = integer(),
+  id = integer(),
+  region = character(),
+  arealFjell = numeric(),
+  mean_snow = numeric()
+)
+
+# -------------------------------
+# 3. LOOP THROUGH WINTER YEARS
+# -------------------------------
+
+for (yr in years) {
+
+  cat("Processing winter year:", yr, "\n")
+
+  tryCatch({
+
+    url_prev <- paste0(
+      "https://thredds.met.no/thredds/dodsC/senorge/seNorge_snow/sd/sd_",
+      yr - 1,
+      ".nc"
+    )
+
+    url_curr <- paste0(
+      "https://thredds.met.no/thredds/dodsC/senorge/seNorge_snow/sd/sd_",
+      yr,
+      ".nc"
+    )
+
+    # Current year: January-May
+    nc_curr <- nc_open(url_curr)
+
+    time_curr <- ncvar_get(nc_curr, "time")
+
+    dates_curr <- as.POSIXct(
+      time_curr,
+      origin = "1900-01-01",
+      tz = "UTC"
+    )
+
+    idx_jan_may <- which(month(dates_curr) %in% 1:5)
+
+    x_vals <- nc_curr$dim$x$vals
+    y_vals <- nc_curr$dim$y$vals
+
+    x_idx <- which(
+      x_vals >= bbox["xmin"] &
+        x_vals <= bbox["xmax"]
+    )
+
+    y_idx <- which(
+      y_vals >= bbox["ymin"] &
+        y_vals <= bbox["ymax"]
+    )
+
+    sd_jan_may <- ncvar_get(
+      nc_curr,
+      "snow_depth",
+      start = c(min(x_idx), min(y_idx), min(idx_jan_may)),
+      count = c(length(x_idx), length(y_idx), length(idx_jan_may))
+    )
+
+    nc_close(nc_curr)
+
+    # Previous year: December
+    nc_prev <- nc_open(url_prev)
+
+    time_prev <- ncvar_get(nc_prev, "time")
+
+    dates_prev <- as.POSIXct(
+      time_prev,
+      origin = "1900-01-01",
+      tz = "UTC"
+    )
+
+    idx_dec <- which(month(dates_prev) == 12)
+
+    sd_dec <- ncvar_get(
+      nc_prev,
+      "snow_depth",
+      start = c(min(x_idx), min(y_idx), min(idx_dec)),
+      count = c(length(x_idx), length(y_idx), length(idx_dec))
+    )
+
+    nc_close(nc_prev)
+
+    # Combine December and January-May
+    snow_array <- abind(sd_dec, sd_jan_may, along = 3)
+
+    # Convert array to raster stack.
+    # The aperm() and flip() steps correct the orientation of the NetCDF array
+    # for use as a terra SpatRaster.
+    r <- rast(aperm(snow_array, c(2, 1, 3)))
+
+    ext(r) <- c(
+      min(x_vals[x_idx]), max(x_vals[x_idx]),
+      min(y_vals[y_idx]), max(y_vals[y_idx])
+    )
+
+    crs(r) <- "EPSG:25833"
+
+    r <- flip(r, direction = "vertical")
+
+    # Mean snow depth over the full December-May period
+    r_mean <- mean(r, na.rm = TRUE)
+
+    # Mask to mountain areas
+    fjell_rast <- rasterize(
+      vect(fjell),
+      r_mean,
+      field = 1
+    )
+
+    r_masked <- mask(r_mean, fjell_rast)
+
+    # Calculate mean snow depth by mountain region
+    region_vals <- terra::extract(
+      r_masked,
+      vect(reg_helperfile),
+      fun = mean,
+      na.rm = TRUE
+    )
+
+    region_results <- cbind(
+      st_drop_geometry(reg_helperfile)[, c("id", "region", "arealFjell")],
+      mean_snow = region_vals[, 2]
+    )
+
+    region_results$year <- yr
+
+    results <- bind_rows(
+      results,
+      region_results[, c("year", "id", "region", "arealFjell", "mean_snow")]
+    )
+
+    write.csv(
+      results,
+      "snow_indicator_fjell_by_region_winter_year.csv",
+      row.names = FALSE
+    )
+
+    rm(
+      sd_dec, sd_jan_may, snow_array,
+      r, r_mean, r_masked, fjell_rast,
+      region_vals, region_results
+    )
+
+    gc()
+
+  }, error = function(e) {
+    message("Failed for winter year ", yr, ": ", e$message)
+  })
+}
+```
+
+### 7.1 seNorge snow depth data
+
+The seNorge snow depth data are accessed as annual NetCDF files. For each winter year, the script reads December from the previous year and January-May from the current year. These daily values are combined and averaged to produce a single winter mean snow depth raster.
+
+### 7.2 Mountain mask and regional helper file
+
+The mountain mask is based on the modelled mountain layer `Modellert_fjell_50`. The regional helper file divides the mountain area into five broad regions and includes the region names and mountain area. These polygons are used for the final spatial aggregation.
+
+## 8. Spatial units
+
+The Basic Spatial Units are raster cells in the seNorge snow depth product. The Ecosystem Asset is the modelled mountain area in Norway. The Ecosystem Accounting Area is Norway, with final results reported separately for five mountain regions. Indicator values should be interpreted at the regional scale, not at the individual raster-cell scale, because the final values are regional means across all valid mountain raster cells.
+
+## 9. Analyses
+
+The main analytical step is the calculation of mean winter snow depth by region. The workflow first creates a winter mean raster for each year, then masks this raster to mountain areas, and finally extracts the arithmetic mean for each region.
+
+```{r analysis-summary}
+#| echo: true
+#| message: false
+#| warning: false
+results <- read.csv(here::here("data/snow_indicator_fjell_by_region_winter_year.csv"))
+
+results |>
+  arrange(region, year) |>
+  group_by(region) |>
+  summarise(
+    first_year = min(year, na.rm = TRUE),
+    last_year = max(year, na.rm = TRUE),
+    mean_snow_all_years = mean(mean_snow, na.rm = TRUE),
+    min_snow = min(mean_snow, na.rm = TRUE),
+    max_snow = max(mean_snow, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  kable(digits = 2)
+```
+
+```{r plot-timeseries}
+#|echo: true
+#|warning: false
+#|message: false
+#|
+ggplot(results, aes(year, mean_snow)) +
+  geom_line() +
+  facet_wrap(~ region, scales = "free_y") +
+  labs(
+    x = "Winter year",
+    y = "Mean winter snow depth",
+    title = "Mean winter snow depth in Norwegian mountain regions",
+    subtitle = "Winter year is defined as December of the previous year plus January-May of the current year"
+  ) +
+  theme_minimal()
+```
+
+```{r reference-values}
+## Define the reference period
+
+reference_years <- 1961:1990
+
+# Calculate regional reference values
+reference_values <- results |>
+  filter(year %in% reference_years) |>
+  group_by(id, region) |>
+  summarise(
+    reference_snow = median(mean_snow, na.rm = TRUE),
+    reference_mean_snow = mean(mean_snow, na.rm = TRUE),
+    n_reference_years = sum(!is.na(mean_snow)),
+    .groups = "drop"
+  )
+
+# Join reference values back to the full results table
+results_normalised <- results |>
+  left_join(reference_values, by = c("id", "region")) |>
+  mutate(
+    relative_snow = mean_snow / reference_snow,
+    condition_score = pmin(relative_snow, 1)
+  )
+
+# Inspect reference values
+reference_values |>
+  arrange(id) |>
+  kable(
+    digits = 2,
+    caption = "Regional snow-depth reference values for the 1961–1990 reference period"
+  )
+  
+
+```
+
+## 10. Results
+
+The table below gives the most recent available condition score for each mountain region. Scores are expressed relative to the median winter snow depth observed during the 1961–1990 reference period. Values of 1 indicate snow depth equal to or greater than the historical reference condition, whereas lower values indicate reduced snow depth relative to the reference period.
+
+```{r results-normalised}
+latest_year <- max(results_normalised$year, na.rm = TRUE)
+
+final_table <- results_normalised |>
+  filter(year == latest_year) |>
+  arrange(id)
+
+final_table |>
+  select(
+    year,
+    region,
+    mean_snow,
+    reference_snow,
+    relative_snow,
+    condition_score
+  ) |>
+  kable(
+    digits = 2,
+    caption = paste(
+      "Mean winter snow depth and normalised condition score by mountain region in",
+      latest_year
+    )
+  )
+
+```
+
+
+```{r plot-results-normalised}
+ggplot(results_normalised, aes(year, condition_score)) +
+  geom_line() +
+  geom_hline(aes(yintercept=0.6),lty=2)+
+  facet_wrap(~ region) +
+  labs(
+    x = "Winter year",
+    y = "Condition score",
+    title = "Normalised winter snow-depth condition score in Norwegian mountain regions",
+    subtitle = "Scores are relative to the regional median snow depth during 1961–1990 and capped at 1"
+  ) +
+  theme_minimal()
+```
+
+```{r write-results}
+write.csv(
+  results_normalised,
+  "snow_indicator_fjell_by_region_winter_year_normalised.csv",
+  row.names = FALSE
+)
+
+```
+
+
+
+## 12. Author contributions
+
+**CRediT statement**
+
+* Conceptualization: AK,MG
+* Methodology: MG
+* Data curation: MG
+* Formal analysis: MG
+* Software: MG
+* Validation: MG
+* Visualization: MG
+* Writing – original draft: MG
+* Writing – review & editing: AK
+
+**MeRIT attribution**
+
+This part supplements the CRediT statement with more granularity for the method section.
+
+**Study design**
+The indicator workflow was designed by MG.
+
+**Data collection / fieldwork**
+No new field data were collected. The indicator uses existing gridded snow depth data and existing spatial delineations of mountain areas and regions.
+
+**Data processing**
+Snow depth data were retrieved from seNorge NetCDF files and processed in R using `ncdf4`, `terra`, `sf` and related packages. The mountain mask and regional polygons were used to restrict and aggregate the raster data.
+
+**Statistical analysis**
+The analysis consists of temporal averaging over the December-May winter period and spatial averaging within each mountain region.
+
+**Visualization**
+Figures were produced in R using `ggplot2`.
+
+**Reproducibility**
+The workflow is scripted in R. Further work is needed to make all spatial inputs openly accessible or reproducibly generated from public source data.
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
