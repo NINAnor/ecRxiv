@@ -151,3 +151,5 @@ App_data <- App_data %>%
 
 
 
+
+message("QMD files found: ", length(qmd_files))

@@ -43,4 +43,7 @@ app_dir <- get_app_dir()
 # test for correct directory can be commented out when working
 print(paste("App directory detected:", app_dir))
 
+message("app_dir = ", app_dir)
+message("Looking for indicators in: ", file.path(app_dir, "indicators"))
+
 source("Create_metadata.R")
