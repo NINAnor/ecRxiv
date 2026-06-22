@@ -93,9 +93,8 @@ ui <- navbarPage(
 server <- function(input, output, session) {
   shiny::addResourcePath("indicators", file.path(app_dir, "indicators"))
   output$indicatorTable <- DT::renderDT(
-    data #|>
-      #dplyr::select(!c(html_file_rel, url,html_file_abs, file)),
-      ,
+    data |>
+      dplyr::select(!c(html_file_rel, url,html_file_abs, file)),
     selection = "single",
     filter = "top",
     options = list(
@@ -126,12 +125,9 @@ server <- function(input, output, session) {
 
     if (length(selected_row) == 0) message("Whoops, it seems like no row was selected.")
 
-    #selected_ID <- data$indicator_id[selected_row]
     html_rel <- data$html_file_rel[selected_row]
 
     html_full <- normalizePath(file.path(app_dir, html_rel), mustWork = FALSE)
-
-    print(html_full)
 
     if (!file.exists(html_full)) {
       return(tags$p("No documentation available for the selected indicator."))
