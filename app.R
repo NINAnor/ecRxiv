@@ -124,12 +124,14 @@ server <- function(input, output, session) {
   output$documentation <- renderUI({
     selected_row <- input$indicatorTable_rows_selected
 
-    if (length(selected_row) == 0) return(NULL)
+    if (length(selected_row) == 0) message("Whoops, it seems like no row was selected.")
 
-    selected_ID <- data$indicator_id[selected_row]
-    html_rel <- data$html_file_rel[data$indicator_id == selected_ID]
+    #selected_ID <- data$indicator_id[selected_row]
+    html_rel <- data$html_file_rel[selected_row]
 
     html_full <- normalizePath(file.path(app_dir, html_rel), mustWork = FALSE)
+
+    print(html_full)
 
     if (!file.exists(html_full)) {
       return(tags$p("No documentation available for the selected indicator."))
