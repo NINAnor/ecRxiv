@@ -54,7 +54,9 @@ RUN rm -rf /srv/shiny-server/* \
     && chown -R shiny:shiny /srv/shiny-server
 
 # Copy application files in a single consolidated layer
-COPY --chown=shiny:shiny app/ indicators/ style.css ./
+COPY --chown=shiny:shiny app.R Create_metadata.R global.R style.css contact.md contribute.md overview.md HowToUse.md ./
+COPY --chown=shiny:shiny indicators/ ./indicators/  
+COPY --chown=shiny:shiny www/ ./www/  
 
 # Switch back to root so s6-init can set up the environment
 # and drop privileges to shiny internally (rocker/shiny handles this)
