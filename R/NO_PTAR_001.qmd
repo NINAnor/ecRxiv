@@ -27,6 +27,7 @@ VersionComment: First version on ecRxiv, but this indicator is already published
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_PTAR_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (population model, county level) - [Scale - Truncate] - Aggregate (national level)
+Precision: Uncertainties around the estimated true value reported as probability distributions and 95% confidence intervals.
 format: 
   html:
     embed-resources: true
@@ -36,7 +37,7 @@ format:
     toc-depth: 3
     smooth-scroll: true
 execute: 
-  cache: true
+  cache: false
 author:
   - name: Anders Kolstad
     email: anders.kolstad@nina.no
@@ -44,13 +45,12 @@ author:
       - id: myID
         name: The Norwegian Institute for Nature Research (NINA)
 AuthorList: Kolstad, A.
-date: April 16, 2026
+date: June 23, 2026
 data_availability: gold
 code_reproducibility: gold
 open_science_badge: gold
 callout-icon: false
 lightbox: true
-css: ../../../style.css
 code-links:
       - text: Add a review
         icon: github
@@ -71,11 +71,6 @@ library(anybadger)
 library(yaml)
 library(tibble)
 library(conflicted)
-# weird workarounds for cache issues
-conflicts_prefer(dplyr::filter)
-conflicts_prefer(dplyr::lag)
-conflicts_prefer(dplyr::select)
-pull<-dplyr::pull
 library(NIcalc)
 library(gghighlight)
 knitr::opts_chunk$set(echo = TRUE)
@@ -149,22 +144,24 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
-
 :::
 
 ::: {.callout-tip collapse="true"}
@@ -690,7 +687,7 @@ The indicator values are exported and can be found under `data/results_NO_PTAR_0
 ```{r export}
 #| eval: false
 #| code-summary: 'Export data'
-write.csv(mc_propagated, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
+write.csv(mc_propagated3, here::here("data/results_NO_PTAR_001_v1.0.0.csv"), row.names = F)
 ```
 
 ## 12. Author contributions
