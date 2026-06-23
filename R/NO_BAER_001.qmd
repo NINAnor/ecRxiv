@@ -1,11 +1,11 @@
 ---
-title: "Brown bear abundance"
+title: "Brown bear"
 subtitle: |
   [NO_BAER_001]
 indicatorID: 
   - NO_BAER_001
 indicatorName: 
-  - Brown bear abundance [Brunbjørnbestand]
+  - Brown bear abundance
 verbatimName: 
   - Brunbjørnbestand
 folderName: NO_BAER_001
@@ -40,9 +40,14 @@ author:
   - name: Aud H. Halbritter
     email: aud.halbritter@uib.no
     affiliations:
-      - id: myID
-        name: University of Bergen
-AuthorList: Halbritter, A. H.
+      - name: University of Bergen
+  - name: Erik Framstad
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Katrine Eldegard
+    affiliations:
+      - name: Norwegian University of Life Sciences
+AuthorList: Halbritter, A. H., Framstad, E., Eldegard, K.
 date: May 15, 2026
 data_availability: gold
 code_reproducibility: gold
@@ -243,8 +248,7 @@ Prepared indicator objects (population estimates or indices with uncertainty, pl
 Indicator values are available for the assessment years in _Naturindeksen_: 1990, 2000, 2010, 2014, 2019, and 2024.
 To produce indicator estimates for these years, input from the DNA-monitoring programme is combined over a short window (typically two to three years).
 
-Brown bear abundance is estimated for large-carnivore management regions (_forvaltningsregioner for rovvilt_).
-Regional and national monitoring and management use regions 5–8 (Hedmark; Møre og Romsdal and Trøndelag; Nordland; Troms and Finnmark; see [Rovdata](https://rovdata.no/Brunbj%C3%B8rn/Bestandsstatus.aspx) and @fig-baer-carnivoreRegions).
+Brown bear abundance is estimated for large-carnivore management regions (_forvaltningsregioner for rovvilt_), see [Rovdata](https://rovdata.no/Brunbj%C3%B8rn/Bestandsstatus.aspx) and @fig-baer-carnivoreRegions).
 Indicator and reference values are stored at this management-region level (as IC units in the Naturindeksdatabase).
 
 ### 2.2 Sampling design
@@ -320,7 +324,7 @@ Monitoring design and sample effort differ between species and regions; uneven c
 
 ### 5.2 Reported uncertainties
 
-The intervals in @tbl-baer-results, @fig-baer-norm, and @fig-baer-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.
+The intervals in @tbl-baer-results-regional, @tbl-baer-results-national, @fig-baer-norm, and @fig-baer-timeSeries are inferential: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for management-region abundance in Naturindeksen.
 
 For each management region and assessment year, Naturindeks provides a predictive distribution for the population index (on the variable scale before scaling).
 We draw `nsim = 1000` values per region, scale each draw to the 0–1 indicator scale using the regional reference level and linear scaling, then downscale by assigning each scaled draw to every municipality in that region and aggregate with `ecTools::ec_upscale()`: first from municipalities (`BSunits`) to each NI geographic region (`part`), then from regions to Norway, using forest area (`Skog`) as the weight.
@@ -495,15 +499,26 @@ The scatter plot below (@fig-baer-norm) shows the mapping from variable to indic
 
 ```{r baer-normplot}
 #| eval: true
-#| code-summary: "Save normalisation diagnostic figure (English)"
-bear_plot <- ec_norm_plot(mgmt_draws$value, mgmt_draws$indicator) +
-  facet_wrap(. ~ mgmt_draws$ICunitName)
-ggsave(filename = here::here("img/baer_norm_plot_eng.png"), plot = bear_plot, scale = 1.5)
+#| code-summary: "Save normalisation diagnostic figure"
+
+bear_norm_plot <- ec_norm_plot(mgmt_draws$value, mgmt_draws$indicator) +
+  facet_wrap(. ~ mgmt_draws$ICunitName) +
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
+bear_norm_plot$layers[[1]]$aes_params$size <- 3
+
+suppressMessages(
+  ggsave(
+    filename = here::here("img/bear_norm_plot.png"),
+    plot = bear_norm_plot,
+    scale = 1.5
+  )
+)
+
 ```
 
 ```{r fig-baer-norm}
 #| fig-cap: "Linear normalisation of brown bear population index to indicator values (one panel per management region)."
-knitr::include_graphics(here::here("img/baer_norm_plot_eng.png"))
+knitr::include_graphics(here::here("img/bear_norm_plot.png"))
 ```
 
 ### Aggregation weights (forest area by municipality)
@@ -621,7 +636,7 @@ mc_propagated_combined <- mc_propagated |>
 ## 10. Results
 
 From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the forest-area-weighted mean indicator (inferential uncertainty, not descriptive spread between management regions).
-The table (@tbl-baer-results) and time series (@fig-baer-timeSeries) summarise regional and national (`Norway`) values.
+The tables (@tbl-baer-results-regional, @tbl-baer-results-national) and time series (@fig-baer-timeSeries) summarise regional and national (`Norway`) values separately.
 
 ```{r baer-part-labels}
 #| include: false
@@ -720,14 +735,40 @@ ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
   labs(y = "Indicator value", x = "")
 ```
 
-```{r tbl-baer-results}
+```{r tbl-baer-results-regional}
 #| warning: false
 #| message: false
 #| cache: false
-#| tbl-cap: "Indicator values and uncertainty estimates for brown bear abundance."
+#| tbl-cap: "Indicator values and uncertainty estimates for brown bear abundance by geographic region."
 
 summary_out |>
+  filter(part != "Norway") |>
   arrange(part, year) |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = part,
+    Ecosystem,
+    "Closing year" = year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  kable()
+```
+
+```{r tbl-baer-results-national}
+#| warning: false
+#| message: false
+#| cache: false
+#| tbl-cap: "Indicator values and uncertainty estimates for brown bear abundance nationally (Norway)."
+
+summary_out |>
+  filter(part == "Norway") |>
+  arrange(year) |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
   unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
   select(
