@@ -203,9 +203,9 @@ meta |>
 1. **Background and rationale**: The 'Alien plant species' indicator describes how abundant alien plant species are in an ecosystem on a scale from 0-100% cover. Alien plant species have a profound impact on native species and ecosystem dynamics and thus affect ecosystem condition significantly. The main anthropogenic factors behind increasing alien plant species abundance are i) introduction of alien plant species, and ii) climate change. See Framstad et al. (2022) for previous implementations of this indicator.
 2. **Methods**: The indicator uses ANO monitoring data on alien plant species cover. The reference values for scaling the original cover values to a condition index are as follows:
 - x100 (best possible condition) is set to 0% alien plant species cover and scales to an indicator value of 1
-- x60 (limit for good ecological condition) is set to 5% alien plant species cover and scales to an indicator value of 0.6
 - x0 (lowest possible condition) is set to 50% and higher alien species cover and scales to an indicator value of 0
 These reference values are expert-judgement based. The x0-values of >=50% follows the rationale in NiN for a natural ecosystem turning into a 'clearly altered system' when alien plant species dominate the vegetation.
+We do not specify ax60 due to lack of empirical evidence at which cover x60 should lie. In practice, this though means that a cover of 20% scales to 0.6 and thus represents x60.
 3. **Interpretation**: An indicator value of 1 represents perfect condition as it signifies abscence of alien plant species. An indicator value of 0.6 represents the lowest indicator values still interpretable as 'good condition'. Values decreasing from 0.6 toward zero represent increasing degrees of condition degradation. A value of 0 signifies that the ecosystem has changed into another altered system due to dominance of alien plant species.
 4. **Results and development needs**: The indicator is well developed and argued, and is thus operational. Potential improvements to the indicator could be including non-linear scaling functions instead of the pointwise linear scaling between the reference values.
 
@@ -253,7 +253,7 @@ In Norway, the reference condition for natural ecosystems has been one of largel
 
 ### 4.2 Reference levels
 
-X~100~: 0% alien plant species cover 
+X~100~: 0% alien plant species cover
 
 X~60~: 5% alien plant species cover
 
@@ -371,7 +371,7 @@ temp <- tibble(
 
 temp <- temp %>% mutate(indicator = ec_normalise(variable = variable,
                           x0 = 50,
-                          x60 = 5,
+                          #x60 = 5,
                           x100 = 0,
                           fun = "linear")
 )
@@ -387,7 +387,7 @@ We scale the variable values to indicator values using ec_normalise() from ecToo
 ```{r, results='hide'}
 ANO.forest <- ANO.forest %>% mutate(alien_res = ec_normalise(variable = fremmedarter_total_dekning,
                           x0 = 50,
-                          x60 = 5,
+                          #x60 = 5,
                           x100 = 0,
                           fun = "linear")
 )
