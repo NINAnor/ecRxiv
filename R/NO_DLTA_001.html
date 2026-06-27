@@ -3828,7 +3828,6 @@ Table 1: Indicator metadata
 </section>
 <section id="ecosystem-condition-characteristic" class="level3">
 <h3 class="anchored" data-anchor-id="ecosystem-condition-characteristic">3.2 Ecosystem condition characteristic</h3>
-<p>Large trees are indicative of forests under large-scale, long-term and rather stable conditions and represent important habitat for many species. The indicator is characterised as Functionally important species and biophysical structures.</p>
 </section>
 <section id="collinearities-with-other-indicators" class="level3">
 <h3 class="anchored" data-anchor-id="collinearities-with-other-indicators">3.3 Collinearities with other indicators</h3>
@@ -3978,7 +3977,7 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <section id="sec-dlta-non-scaled" class="level3">
 <h3 class="anchored" data-anchor-id="sec-dlta-non-scaled">9.2 Calculate non-scaled area-weighted indicator values</h3>
 <p>For each reporting period, we calculate non-scaled indicator values separately for counties or sub-counties, regions, and the whole country. Within each geographic unit, the point estimate is the area-weighted arithmetic mean of all NFI plots in that unit: sum of <code>indicator_continuous_weighted</code> divided by sum of <code>au_areal</code>.</p>
-<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-20 09:07:31&quot;}">
+<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-27 09:03:15&quot;}">
 <details class="code-fold">
 <summary>Calculate non-scaled values</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a> dlta_results <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap</span>(</span>
@@ -3996,7 +3995,7 @@ Viken, K. O. 2021. <em>Landsskogtakseringens Feltinstruks — 2021</em>. Vol. 7.
 <section id="bootstrap-draws-per-county" class="level3">
 <h3 class="anchored" data-anchor-id="bootstrap-draws-per-county">9.3 Bootstrap draws per county</h3>
 <p>For each county and period, NFI plots are resampled with replacement 1000 times. Each replicate computes the area-weighted non-scaled large trees share, giving a distribution of 1000 draws per county.</p>
-<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-20 09:07:31&quot;}">
+<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-27 09:03:15&quot;}">
 <details class="code-fold">
 <summary>Bootstrap draws per county (1000 per county per period)</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>county_draws_long <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap_dfr</span>(dlta_results, <span class="cf">function</span>(period_result, period_name) {</span>
@@ -4459,7 +4458,7 @@ height: 0px !important;
 </details>
 </div>
 <p>Each county or sub-county’s 1000 non-scaled draws from section 9.3 are scaled with <code>ecTools::ec_normalise()</code> (linear, X0 = 0, unit-specific X100; truncation at scaling). <a href="#fig-dlta-norm" class="quarto-xref">Figure 1</a> shows the mapping with one panel per county or sub-county accounting unit.</p>
-<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-20 09:07:31&quot;}">
+<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-27 09:03:15&quot;}">
 <details class="code-fold">
 <summary>Scale county draws; derive county uncertainty and feed ec_upscale</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>county_draws_scaled <span class="ot">&lt;-</span> county_draws_long <span class="sc">|&gt;</span></span>
@@ -4537,7 +4536,7 @@ Figure 1: Linear normalisation of the share of forest area with large trees (pr
 </div>
 </div>
 <p>The scaled draws are then passed to <code>ecTools::ec_upscale()</code>, which propagates uncertainty through the spatial hierarchy. For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second <code>ec_upscale()</code> call repeats this from regions to national level.</p>
-<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-20 09:07:31&quot;}">
+<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-27 09:03:15&quot;}">
 <details class="code-fold">
 <summary>ec_upscale: county to region</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>dlta_mc_rds_regional <span class="ot">&lt;-</span> here<span class="sc">::</span><span class="fu">here</span>(<span class="st">&quot;data/dlta_mc_regional.rds&quot;</span>)</span>
@@ -4555,7 +4554,7 @@ Figure 1: Linear normalisation of the share of forest area with large trees (pr
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(dlta_mc_regional, dlta_mc_rds_regional)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-20 09:07:31&quot;}">
+<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-27 09:03:15&quot;}">
 <details class="code-fold">
 <summary>ec_upscale: region to national</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>region_area_weights <span class="ot">&lt;-</span> county_draws_scaled <span class="sc">|&gt;</span></span>
@@ -4582,7 +4581,7 @@ Figure 1: Linear normalisation of the share of forest area with large trees (pr
 <span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(dlta_mc_national, dlta_mc_rds_national)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-20 09:07:31&quot;}">
+<div class="cell" data-cache.extra="{&quot;deps_mtime&quot;:&quot;2026-06-27 09:03:15&quot;}">
 <details class="code-fold">
 <summary>Combine regional and national MC draws; build summary tables</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>dlta_mc_combined <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
