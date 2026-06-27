@@ -505,10 +505,10 @@ county_draws_long <- purrr::imap_dfr(rose_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-rose-county-nonscaled-latest) summarises the non-scaled bootstrap draws for the latest reporting period (`2020-2024`): the median area-weighted rowan-aspen-goat willow volume per county or sub-county, with approximate 95% and interquartile intervals from the bootstrap distribution.
+The table below (@tbl-rose-county-nonscaled-latest) summarises indicator values for the latest reporting period (`2020-2024`): the area-weighted mean rowan-aspen-goat willow volume per county or sub-county, with approximate 95% and interquartile intervals from 1000 bootstrap draws.
 
 ```{r tbl-rose-county-nonscaled-latest}
-#| tbl-cap: "Non-scaled, area-weighted rowan-aspen-goat willow volume by county or sub-county for reporting period 2020–2024 (median of 1000 bootstrap draws, with approximate 95% and interquartile intervals)."
+#| tbl-cap: "Non-scaled, area-weighted rowan-aspen-goat willow volume by county or sub-county for reporting period 2020–2024 (point estimate, with approximate 95% and interquartile intervals from 1000 bootstrap draws)."
 #| echo: false
 
 rose_latest_period <- tail(names(reporting_periods), 1)
@@ -517,7 +517,6 @@ county_draws_long |>
   dplyr::filter(period == rose_latest_period) |>
   dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
   dplyr::summarise(
-    non_scaled_median = median(non_scaled_value),
     p_025 = as.numeric(quantile(non_scaled_value, 0.025)),
     p_25  = as.numeric(quantile(non_scaled_value, 0.25)),
     p_75  = as.numeric(quantile(non_scaled_value, 0.75)),
@@ -527,12 +526,12 @@ county_draws_long |>
   dplyr::left_join(
     rose_results_county_all_periods |>
       dplyr::filter(period == rose_latest_period) |>
-      dplyr::select(period, fylke_name, n_plots),
+      dplyr::select(period, fylke_name, indicator_value, n_plots),
     by = c("period", "fylke_name")
   ) |>
   dplyr::mutate(
     region_name = assign_region_name(region_code),
-    non_scaled_median = round(non_scaled_median, 2),
+    indicator_value = round(indicator_value, 2),
     p_025 = round(p_025, 2),
     p_25  = round(p_25, 2),
     p_75  = round(p_75, 2),
@@ -546,7 +545,7 @@ county_draws_long |>
     County = fylke_name,
     `Sub-county` = county_part,
     Region = region_name,
-    `Non-scaled value (m³ ha⁻¹)` = non_scaled_median,
+    `Non-scaled value (m³ ha⁻¹)` = indicator_value,
     `95% CI` = CI_95,
     `50% CI` = IQR,
     `Total area (ha)` = round(total_area, 0),
