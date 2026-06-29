@@ -252,6 +252,7 @@ Spatially, data and indicator values are handled at county level, then aggregate
 
 The national monitoring program for cervids collects most material from harvested animals during hunting seasons [@hjortevilt_nasjonal_overvaking].
 For red deer, samples can include lower jaw and slaughter weight [@hjortevilt_nasjonal_overvaking].
+Further methodological details are given on [Naturindeksen – hjort](https://naturindeks.no/Indicators/hjort).
 
 ### 2.3 Original units
 
@@ -260,12 +261,10 @@ The red deer abundance is expressed as number of individuals per km².
 ### 2.4 Instructions for citing, using and accessing data
 
 The underlying data on hunting statistics are available upon request from Hjorteviltregisteret [@hjorteviltregisteret].
-However, these data must be combined with data on demographic variables and other parameters to calculate the density of red deer per county, as described here: https://naturindeks.nina.no/docs/1c2b2f52-4d91-4563-b65d-b9813798dd06.pdf.
+However, these data must be combined with data on demographic variables and other parameters to calculate the density of red deer per county, as described [here](https://naturindeks.nina.no/docs/1c2b2f52-4d91-4563-b65d-b9813798dd06.pdf).
 The resulting data for the density of red deer can be accessed directly and used in calculating scaled indicator values as described in sections 7 and 9 below.  
 
-Indicator values from the Norwegian Nature Index can be found in @nater_ni2025_2025. Indicator values, variable values and reference values can be downloaded from the Nature Index database using the API, as I have done below. The data is licenced under CC-BY 4.0.
-The data should be cited as https://naturindeks.no/Indicators/hjort.
-The method for the calculation of scaled indicator values should be cited using the recommended citation for this page (see at the top of the page). 
+Indicator values from the Norwegian Nature Index can be found in @nater_ni2025_2025. Indicator values, variable values and reference values can be downloaded from the Nature Index database using the API, as I have done below. The data is licenced under CC-BY 4.0. 
 
 ## 3. Indicator properties
 
@@ -276,13 +275,6 @@ Hence, this indicator is considered to fall under B3 Functional state characteri
 
 
 ### 3.2 Ecosystem condition characteristic
-
-<!--# 
-
-Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
-For example, and indicator called 'Trenching in mires' could be made to represent an ecosystem characteristic 'Intact hydrology'. The term 'characteristic' is used similar to the term 'criteria' in Multiple Criteria Decision Making.  
-
--->
 
 ### 3.3 Collinearities with other indicators
 
@@ -295,7 +287,7 @@ One of the major natural impact factors is variation in weather conditions, espe
 ### 3.5 Spatial aggregation
 
 Spatial aggregation follows the following pathway: Aggregate (population model, county level) - [Scale - Truncate - Transform] - Aggregate (national level): population density estimates are available per county.
-Each county value is normalised with a unimodal scaling function (optimum at X100; lower and upper reference values for very deteriorated condition at X0 and X0h, respectively; see @sec-reference-levels).
+Each county value is normalised with a unimodal scaling function (optimum at _X~100~_; lower and upper reference values for very deteriorated condition at _X~0~_ and _X~0h~_, respectively; see @sec-reference-levels).
 Regional (east, south, west, central, north) and national indicator values are then obtained as area-weighted combinations of the scaled county values. 
 
 
@@ -311,8 +303,8 @@ Population size naturally varies within dynamic ranges in response to climatic v
 ### 4.2 Reference levels {#sec-reference-levels}
 
 For this indicator, normalisation uses a unimodal scaling function.
-The optimum density in the reference condition corresponds to X100.
-The lower and upper reference values for the non-scaled variable in the worst possible condition (X0 and X0h) represent the scaling parameters, respectively, below and above the optimal density.
+The optimum density in the reference condition corresponds to _X~100~_.
+The lower and upper reference values for the non-scaled variable in the worst possible condition (_X~0~_ and _X~0h~_) represent the scaling parameters, respectively, below and above the optimal density.
 County-specific values for these reference levels are defined in Naturindeksen; see [Naturindeksen – hjort](https://naturindeks.no/Indicators/hjort) and the imported referenceValues object in @sec-import-prepare-datasets.
 
 
@@ -374,7 +366,7 @@ deerImport <- readRDS(here::here("data/deerImport.rds"))
 
 ## 8. Spatial units
 
-According to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units.
+According to the Naturindeks terminology, the Norwegian municipalities are BSunits, the 15 counties are ICunits, and the five geographic regions in Norway (east, south, west, central, north) are NI units.
 We can think of the counties as ecosystem assets, and mainland Norway as the Ecosystem accounting Area.
 
 ## 9. Analyses
@@ -414,7 +406,7 @@ x100 |>
   gt::gt()
 ```
 
-### Resample non-scaled county-scale variables
+### Resample non-scaled county-level variables
 
 For each assessment year, Naturindeks stores county values as a parameterised distribution (or a custom distribution).
 We draw `nsim = 1000` random values per county with `NIcalc::sampleObsMat()`.
