@@ -1,13 +1,13 @@
 ---
-title: "Roe deer abundance"
+title: "Roe deer"
 subtitle: |
   [NO_ROED_001]
 indicatorID: 
   - NO_ROED_001
 indicatorName: 
-  - Roe deer abundance [Rådyrbestand]
+  - Roe deer [Rådyr]
 verbatimName: 
-  - Rådyrbestand
+  - Rådyr
 folderName: NO_ROED_001
 country: Norway
 continent: Europe
@@ -25,7 +25,8 @@ Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#version
 VersionComment: First version on ecRxiv; indicator described in the Norwegian Nature Index
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ROED_001
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (county level) - [Scale - Truncate] - Aggregate (national level)
+SpatialAggregationPathway: Data (county level) - [Scale - Truncate - Transform] - Aggregate (national level)
+Precision: #Describe the precition metric you have used. Precision may be reported either as variation among observed values (e.g. standard deviation, variance, range, interquartile range) or as uncertainty around an estimated value (e.g. standard error, confidence interval, credible interval).
 format: 
   html:
     embed-resources: true
@@ -40,9 +41,14 @@ author:
   - name: Aud H. Halbritter
     email: aud.halbritter@uib.no
     affiliations:
-      - id: myID
-        name: University of Bergen
-AuthorList: Halbritter, A. H.
+      - name: University of Bergen
+  - name: Erik Framstad
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Katrine Eldegard
+    affiliations:
+      - name: Norwegian University of Life Sciences
+AuthorList: Halbritter, A. H., Framstad, E., and Eldegard, K.
 date: May 15, 2026
 data_availability: gold
 code_reproducibility: gold
@@ -74,14 +80,15 @@ library(anybadger)
 library(yaml)
 library(tibble)
 library(conflicted)
+library(NIcalc)
+library(ecTools)
+library(MetBrewer)
+
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
-library(NIcalc)
-library(ecTools)
-library(MetBrewer)
 
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
@@ -150,18 +157,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -182,39 +192,44 @@ meta |>
 
 ## 1. Summary
 
-<!--# 
-With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. Follow the four numbers sub-headers below. under point 2, it is possible under  include a bullet point list of the specific steps in the workflow. 
- -->
-
 1. **Background and rationale**:
-The roe deer (_Capreolus capreolus_) is a cervid associated with forest ecosystems in Norway.
-In the period with reasonably good overview of cervid densities in Norway (about the last 200 years), populations have been strongly influenced by human activity, and in several areas current roe deer densities are considered higher than the reference condition.
+The roe deer (*Capreolus capreolus*) is a small ungulate found in forest ecosystems in Norway.
+Through selective browsing on forbs, herbs and shrubs, roe deer influence understory plant biodiversity and vegetation composition, and as a prey animal also contribute to supporting populations of apex predators [@lorenzini2022_roedeer; @hewison2025_roedeer].
+In the period with reasonably good overview of cervid densities in Norway (about the last 200 years), populations have been strongly influenced by human activity, including hunting, varying levels of control of large predators, and changes in land use and climate.
 
 2. **Methods**:
-The roe deer abundance indicator (rådyrbestand) expresses population density as number of individuals per km² below the climatic tree line, reported at county (_fylke_) level, as described on [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr).
-Underlying population information for roe deer in Norway is linked to the national monitoring programme for cervids (elg, hjort, rådyr, and villrein), which has operated since 1991 and is owned by Landbruksdirektoratet and run by NINA [@hjortevilt_nasjonal_overvaking].
+The roe deer abundance indicator  expresses population density as number of individuals per km² below the climatic tree line, reported at county  level, as described on [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr).
+Underlying population information for roe deer in Norway is linked to the national monitoring programme for cervids, which has operated since 1991 and is owned by Landbruksdirektoratet and run by NINA [@hjortevilt_nasjonal_overvaking].
 Much of the monitoring material is collected from animals harvested during hunting (for example lower jaw and slaughter weight) [@hjortevilt_nasjonal_overvaking].
-The reference condition is an expert-assessed state in which roe deer may occur in suitable areas under current climate and predator regimes, with hunting management that keeps densities from rising far above the reference optimum; impacts on other biodiversity are considered less severe for this species than for larger cervids.
-For Naturindeks, estimated abundance or equivalent indices by county are normalised using a unimodal scaling function.
-Scaled county values are aggregated to five geographic regions and national level.
+The reference condition is an expert-assessed state in which roe deer may occur in suitable forest habitat under current climate conditions, with natural, non-managed predator regimes, and in the absence of forest management.
+Impacts on other biodiversity are considered as less pronounced for this species than for larger cervids.
+Estimated densities by county are normalised using a unimodal scaling function.
+Scaled county values are aggregated to five geographic regions and national level. 
 
 3. **Interpretation**:
-An indicator value of 1 means that roe deer abundance in the reporting unit is at least as large as expected under the reference condition used in Naturindeksen.
-Values decreasing toward zero indicate that the population index is further below that reference.
+An indicator value of 1 means that roe deer abundance in the reporting unit is as large as expected under the reference condition.
+Values <1 indicate that the density is either lower or higher than the reference value.
 
 4. **Results and development needs**:
-
+For the current reporting period (2020-2024) the national indicator value is 0.19, with very low values for regions East (0.07), West (0.02) and North (0,00). The national indicator value has decreased somewhat from 0.23 in 1990. Values for the regions have varied or been rather stable, except for a consistent decline since 2000 for region Central. There are no specific development needs, except for a possible review of reference values and the scaling function.
 
 
 ## 1.2 Native language summary - Norwegian
 
-1. **Bakgrunn og begrunnelse**: Rådyr (_Capreolus capreolus_) er et hjortedyr knyttet til skogøkosystemer i Norge. I perioden med rimelig oversikt over hjortevilttettheter i Norge (ca. 200 år) har bestandene vært sterkt påvirket av menneskelig aktivitet, og i flere områder vurderes dagens rådyrtettheter som høyere enn referansetilstanden. Data leveres på fylkesnivå.
+1. **Bakgrunn og begrunnelse**: Rådyr (*Capreolus capreolus*) er et lite plantespisende hjortedyr som lever i skogøkosystemer i Norge.
+Gjennom selektivt beite på urter, gress og busker påvirker rådyret plantebiodiversitet og vegetasjonssammensetning i skogens felt- og busksjikt, og som byttedyr bidrar det også til å opprettholde bestander av toppredatorer [@lorenzini2022_roedeer; @hewison2025_roedeer].
+I perioden med rimelig oversikt over hjortevilttettheter i Norge (ca. 200 år) har bestandene vært sterkt påvirket av menneskelig aktivitet. 
 
-2. **Metoder**: Indikatoren for rådyrbestand uttrykker tetthet som antall individer per km² under den klimatiske tregrensen, rapportert på fylkesnivå, som beskrevet på [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr). Underliggende bestandsinformasjon er knyttet til det nasjonale overvåkingsprogrammet for hjortevilt [@hjortevilt_nasjonal_overvaking], med mye materiale fra jakt [@hjortevilt_nasjonal_overvaking] og statistikk via [Hjorteviltregisteret](https://www.hjorteviltregisteret.no) [@hjorteviltregisteret]. Referansetilstanden er en ekspertvurdert tilstand der rådyr kan forekomme i egnete områder under dagens klima og rovdyrregimer, med jaktforvaltning som holder tettheten fra å stige langt over referanseoptimum; påvirkning på annet biologisk mangfold vurderes som mindre alvorlig for denne arten enn for større hjortedyr. For Naturindeks normaliseres fylkesverdier med en unimodals skaleringsfunksjon. Skalerte fylkesverdier aggregeres til fem geografiske regioner og nasjonalt nivå.
+2. **Metoder**: Indikatoren for rådyrbestand uttrykker tetthet som antall individer per km² under den klimatiske tregrensen, rapportert på fylkesnivå, som beskrevet på [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr).
+Underliggende bestandsinformasjon er knyttet til det nasjonale overvåkingsprogrammet for hjortevilt [@hjortevilt_nasjonal_overvaking], med mye materiale fra jakt [@hjortevilt_nasjonal_overvaking] og statistikk via [Hjorteviltregisteret](https://www.hjorteviltregisteret.no) [@hjorteviltregisteret].
+Referansetilstanden er en ekspertvurdert tilstand der rådyr kan forekomme i egnete skogområder med dagens klima, med naturlige, ikke-regulerte rovdyrbestander, og uten skogforvaltning.
+Påvirkning på annet biologisk mangfold vurderes som mindre omfattende for denne arten enn for større hjortedyr.
+Fylkesverdier normaliseres med en unimodal skaleringsfunksjon. Skalerte fylkesverdier aggregeres til fem geografiske regioner og nasjonalt nivå. 
 
-3. **Tolkning**: En indikatorverdi på 1 betyr at rådyrbestanden i rapporteringsenheten er minst like stor som forventet under referansetilstanden. Verdier mot null viser at bestandsindekset ligger lenger under referansen.
+3. **Tolkning**: En indikatorverdi på 1 betyr at rådyrtettheten i rapporteringsenheten er like stor som forventet under referansetilstanden.
+Verdier <1 viser at tettheten enten er lavere eller høyere enn referanseverdien. 
 
-4. **Resultater og utviklingsbehov**:
+4. **Resultater og utviklingsbehov**: For nåværende rapporteringsperiode (2020-2024) er den nasjonale indikatoren 0,19, med veldig lave verdier for regionene Øst (0,07), Vest (0,02) og Nord (0,00). For hele landet har indikatorverdien gått noe ned fra 0,23 i 1990. Indikatorverdien for de fleste regionene har variert eller vært nokså stabil, men det har vært en klar nedgang siden 2000 for region Midt. Det er ingen spesielle utviklingsbehov, med mulig unntak for en gjennomgang av referanseverdier og skaleringsfunksjonen.
 
 
 ## 2. About the underlying data
@@ -223,17 +238,17 @@ The roe deer abundance data comes from the national cervid monitoring programme 
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Indicator values are available for the assessment years in Naturindeksen: 1990, 2000, 2010, 2014, 2019, and 2024.
+The underlying data are collected annually. Indicator values are available for the assessment years in Naturindeksen: 1990, 2000, 2010, 2014, 2019, and 2024. 
 
-To produce indicator estimates for these years, input is typically combined over a short window (typically two to three years), as specified in the Naturindeks indicator protocol.
+To produce indicator estimates for these years, input is typically combined over a short window (typically two to three years). 
 
-Spatially, data and indicator values are handled at county (_fylke_) scale as IC units in Naturindeksen, then aggregated to five geographic regions and national level for reporting.
+Spatially, data and indicator values are handled at county level, then aggregated to five geographic regions and national level for reporting.
 
 ### 2.2 Sampling design
 
 The national monitoring programme for cervids collects most material from harvested animals during hunting seasons [@hjortevilt_nasjonal_overvaking].
 For roe deer, samples can include lower jaw and slaughter weight [@hjortevilt_nasjonal_overvaking].
-Further methodological detail for how county abundance enters Naturindeks is given on [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr).
+Further methodological details are given on [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr).
 
 ### 2.3 Original units
 
@@ -241,74 +256,58 @@ The roe deer abundance is expressed as number of individuals per km².
 
 ### 2.4 Instructions for citing, using and accessing data
 
-Monitoring programme: [@hjortevilt_nasjonal_overvaking] and [Hjorteviltregisteret](https://www.hjorteviltregisteret.no) [@hjorteviltregisteret].
+The underlying data on hunting statistics are available upon request from Hjorteviltregisteret [@hjorteviltregisteret].
+However, these data must be combined with data on demographic variables and other parameters to calculate the density of moose per county, as described [here](https://naturindeks.nina.no/docs/1c2b2f52-4d91-4563-b65d-b9813798dd06.pdf).
+The resulting data for the density of moose can be accessed directly and used in calculating scaled indicator values as described in sections 7 and 9 below.  
 
-Methodological documentation: [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr).
-
-<!-- ### 2.5 Additional comments about the dataset -->
-
-<!--# Optional. Text here -->
+Indicator values from the Norwegian Nature Index can be found in @nater_ni2025_2025. Indicator values, variable values and reference values can be downloaded from the Nature Index database using the API, as I have done below. The data is licenced under CC-BY 4.0.
 
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-<!--# Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
-This doesnt need to be very long. Maybe just a single sentence. -->
-
-B3 Functional state characteristics.
-
-<!-- 
-### 3.1.1 Other condition typologies -->
-
-<!--# Optional: Add text about other standards or typologies, such as alternative national condition typologies, and how the indicator relates to these -->
+Large herbivores may potentially have a strong impact on the composition of the vegetation. 
+Hence, this indicator is considered to fall under B3 Functional state characteristics. 
 
 
 ### 3.2 Ecosystem condition characteristic
 
-<!--# 
-
-Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
-For example, and indicator called 'Trenching in mires' could be made to represent an ecosystem characteristic 'Intact hydrology'. The term 'characteristic' is used similar to the term 'criteria' in Multiple Criteria Decision Making.  
-
--->
-
 
 ### 3.3 Collinearities with other indicators
 
-<!--# Describe known collinearities with other metrics (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
-
-The indicator may covary with other cervid abundance indicators (red deer, roe deer) and with other species indicators that share similar habitats or data sources.
+The indicator may covary with other cervid abundance indicators (red deer, moose) and with other species indicators that share similar habitats or data sources.
 
 ### 3.4 Impact factors
 
-<!--# Describe the main natural and anthropogenic factors that affecst the metric -->
-
+One of the major natural impact factors is variation in weather conditions, especially temperature during reproduction and snow conditions in winter, affecting food quality and availability, recruitment and survival.
+Predation from large carnivores and disease and parasites are other key factors affecting survival.
+Major anthropogenic impact factors are land use change, traffic accidents, hunting, strong limitation of large carnivore populations, and climate change. 
 
 ### 3.5 Spatial aggregation
 
-Following the metadata pathway Aggregate (county level) – [Scale – Truncate] – Aggregate (national level): population estimates or indices are available per county (IC unit in Naturindeksen).
-Each county value is normalised with a unimodal scaling function (optimum at _X~100~_; lower and upper reference values at _X~0~_; see Section 4.2).
+Following the metadata pathway Aggregate (population model, county level) – [Scale – Truncate] – Aggregate (regional/national level): population density estimates are available per county.
+Each county value is normalised with a unimodal scaling function (optimum at _X~100~_; lower and upper reference values for very deteriorated condition at _X~0L~_ and _X~0U~_; see @sec-reference-levels).
 Regional (east, south, west, central, north) and national indicator values are then obtained as area-weighted combinations of the scaled county values.
 
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
 
-The reference condition for roe deer is...
+The reference condition for roe deer represents the natural population state occurring in the absence of significant human influence, where population size, structure and dynamics are regulated primarily by natural processes – including predation by natural carnivore communities, food availability, snow depth and habitat carrying capacity under natural vegetation conditions.
+The population fulfills its natural functional role as a selective browser in forest ecosystems, influencing understory plant biodiversity and vegetation composition through selective browsing on forbs, herbs and shrubs at naturally occurring intensities, and contributing to the prey base of apex predators.
+Population size naturally varies within dynamic ranges in response to climatic variation including winter snow conditions, natural disturbance regimes, and ecological interactions with other herbivores such as red deer and moose.  
 
-### 4.2 Reference levels
+### 4.2 Reference levels {#sec-reference-levels}
 
-For this indicator, normalisation uses a unimodal scaling function.
-Optimum abundance corresponds to _X~100~_.
-The lower and upper reference values on the variable scale are both set at _X~0~_, so that densities both below and above the optimum are scaled towards worst condition.
-County-specific values for these reference levels are defined in Naturindeksen; see [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr) and the imported `referenceValues` object in Section 7.
+For this indicator, normalisation uses a unimodal scaling function. The optimum density in the reference condition corresponds to _X~100~_.
+The lower and upper reference values for the non-scaled variable in the worst possible condition (_X~0L~_ and _X~0U~_) represent the scaling parameters, respectively, below and above the optimal density.
+County-specific values for these reference levels are defined in Naturindeksen; see [Naturindeksen – rådyr](https://naturindeks.no/Indicators/raadyr) and the imported referenceValues object in @sec-import-prepare-datasets. 
 
 #### 4.2.1 Spatial resolution and validity
 
-Reference levels and indicator values apply at county (_fylke_) scale (IC units).
-Aggregated results for the five Naturindeks geographic regions and for Norway are summaries of those units with area weights.
-Normalisation should be done at county scale before regional or national aggregation.
+Reference levels and indicator values apply at county level.
+Aggregated results for five geographic regions and for Norway are area-weighted average indicator values for included counties.
+Normalisation should be done at county level before regional or national aggregation. 
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
@@ -318,14 +317,14 @@ Regional and national values are area-weighted summaries of counties, so they in
 
 ### 5.2 Reported uncertainties
 
-The intervals in @tbl-roed-results and @fig-roed-timeSeries are **inferential**: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for county-level abundance in Naturindeksen.
+The intervals in @tbl-roed-results-regional, @tbl-roed-results-national and @fig-roed-timeSeries are **inferential**: they describe uncertainty around the estimated area-weighted mean indicator for each reporting unit (a geographic region or Norway as a whole), given the statistical models used for county-level density in Naturindeks.
 
-For each county and assessment year, Naturindeks provides a predictive distribution for abundance (expressed on the variable scale before scaling).
-We draw many random values from that distribution per county, scale each draw to the 0–1 indicator scale using the county reference optimum and unimodal scaling, then build a large set of possible county indicators.
-To obtain uncertainty for a region, we repeat the following 1000 times: draw one random county indicator per county in that region, take the forest-area-weighted average across those counties, and record that regional mean.
+For each county and assessment year, Naturindeks provides a predictive distribution for density (expressed as variable values before scaling).
+We draw many random values from that distribution per county, scale each draw to the 0–1 indicator scale using the county reference optimum and unimodal scaling, then build a large set of possible county indicator values.
+To obtain uncertainty for a region, we repeat the following 1000 times: draw one random county indicator value per county in that region, take the forest-area-weighted average across those counties, and record that regional mean.
 The median of those regional means is reported as the point estimate; the 2.5% and 97.5% quantiles form an approximate 95% interval, and the 25% and 75% quantiles form an approximate interquartile range.
-For Norway, we apply a second Monte Carlo step at regional scale: draw one value from each region’s uncertainty distribution, take the forest-area-weighted mean across the five regions, and repeat 1000 times to obtain a national distribution, then summarise in the same way.
-This approach reflects uncertainty in the county models and in the scaled values, while treating the regional or national figure as a single summary parameter rather than as a random draw from one county.
+For Norway, we apply a second Monte Carlo step at regional level: draw one value from each region’s uncertainty distribution, take the forest-area-weighted mean across the five regions, and repeat 1000 times to obtain a national distribution, then summarise in the same way.
+This approach reflects uncertainty in the county models and in the scaled values, while treating the regional or national figure as a single summary parameter rather than as a random draw from one county. 
 
 
 ## 6. References
@@ -333,7 +332,7 @@ This approach reflects uncertainty in the county models and in the scaled values
 ::: {#refs}
 :::
 
-## 7. Import and prepare datasets
+## 7. Import and prepare datasets {#sec-import-prepare-datasets}
 
 Run the download chunk once to refresh the local export. This project’s renv environment installs `NIcalc` from GitHub `ChloeRN/NIcalc`, branch `include_ReadOnly_access` (see `renv.lock` and `install_deps.R`); that build defaults to the Naturindeks read-only API user, so you do not need `username` / `password` arguments here. When [NINAnor/NIcalc PR #59](https://github.com/NINAnor/NIcalc/pull/59) is merged into `NINAnor/NIcalc`, you can switch the renv install back to the main repo and update the lockfile.
 We save the RDS export under `data/` so that we do not need to download the data every time we run the analysis.
@@ -362,16 +361,16 @@ roedImport <- readRDS(here::here("data/roedImport.rds"))
 
 ## 8. Spatial units
 
-Accoring to the Naturindeks terminology, the Norwegian counties are BSunits, the 15 counties are IC units, and the five geographic regions in Norway (east, south, west, central, north) are NI units. 
+According to the Naturindeks terminology, the Norwegian municipalities are BSunits, the 15 counties are ICunits, and the five geographic regions in Norway (east, south, west, central, north) are NI units. 
 We can think of the counties as ecosystem assets, and mainland Norway as the Ecosystem accounting Area.
 
 ## 9. Analyses
 
-This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at county scale, then propagate uncertainty and aggregate spatially with area weights using `ecTools::ec_upscale()`.
-At regional and national scale, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per county (then, for Norway, one draw per region).
+This section uses the following workflow: we take variable values and reference levels from the Naturindeks import, normalise at county level, then propagate uncertainty and aggregate spatially with area weights using `ecTools::ec_upscale()`.
+At regional and national level, uncertainties are inferential: each replicate is an area-weighted mean based on one draw per county (then, for Norway, one draw per region).
 We use unimodal scaling and forest area (`Skog`) as weights.
 
-County-level abundance in the database is stored as a predictive distribution (parameters or custom distributions), not only as a point estimate.
+County-level abundance in the Naturindeks database is stored as a predictive distribution (parameters or custom distributions), not only as a point estimate.
 Reference optimum density per county comes from the reference slice of the same download (`expectedValue` for the reference year).
 We ignore uncertainty in reference levels.
 
@@ -403,7 +402,7 @@ x100 |>
   gt::gt()
 ```
 
-### Resample non-scaled county-scale variables
+### Resample non-scaled county-level variables
 
 For each assessment year, Naturindeks stores county values as a parameterised distribution (or a custom distribution).
 We draw `nsim = 1000` random values per county with `NIcalc::sampleObsMat()`.
@@ -489,8 +488,12 @@ The scatter plot below (@fig-roed-norm) shows the mapping from variable to indic
 #| eval: true
 #| code-summary: "Save normalisation diagnostic figure (English)"
 roe_deer_plot <- ec_norm_plot(county_draws$value, county_draws$indicator) +
-  facet_wrap(. ~ county_draws$ICunitName)
-ggsave(filename = here::here("img/roed_norm_plot_eng.png"), plot = roe_deer_plot, scale = 1.5)
+  ggplot2::facet_wrap(~ county_draws$ICunitName, scales = "free_x") +
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
+roe_deer_plot$layers[[1]]$aes_params$size <- 3
+suppressMessages(
+  ggsave(filename = here::here("img/roed_norm_plot_eng.png"), plot = roe_deer_plot, scale = 1.5)
+)
 ```
 
 ```{r fig-roed-norm}
@@ -603,7 +606,7 @@ mc_propagated_combined <- mc_propagated |>
 ## 10. Results
 
 From the 1000 Monte Carlo replicates per region and year in `mc_propagated_combined`, we report the median as the point estimate and use the 2.5% and 97.5% quantiles as an approximate 95% interval for the area-weighted mean indicator (inferential uncertainty, not descriptive between-county spread).
-The table (@tbl-roed-results) and time series (@fig-roed-timeSeries) summarise regional and national (`Norway`) values.
+The tables (@tbl-roed-results-regional and @tbl-roed-results-national) and time series (@fig-roed-timeSeries) summarise regional and national (`Norway`) values.
 
 ```{r roed-part-labels}
 #| include: false
@@ -694,13 +697,39 @@ ggplot(plot_data, aes(x = year, y = median, colour = part, group = part)) +
   labs(y = "Indicator value", x = "")
 ```
 
-```{r tbl-roed-results}
+```{r tbl-roed-results-regional}
 #| warning: false
 #| message: false
 #| cache: false
-#| tbl-cap: "Indicator values and uncertainty estimates for roe deer abundance."
+#| tbl-cap: "Indicator values and uncertainty estimates for roe deer abundance by region."
 
 summary_out |>
+  filter(part != "Norway") |>
+  arrange(part, year) |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = part,
+    Ecosystem,
+    "Closing year" = year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  kable()
+```
+
+```{r tbl-roed-results-national}
+#| warning: false
+#| message: false
+#| cache: false
+#| tbl-cap: "Indicator values and uncertainty estimates for roe deer abundance at national level."
+
+summary_out |>
+  filter(part == "Norway") |>
   arrange(part, year) |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
   unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
@@ -733,9 +762,15 @@ write.csv(
 ```
 
 
-<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+**CRediT statement**
+ 
+* Conceptualization: [All]
+* Methodology: [AHH]
+* Formal analysis: [AHH]
+* Writing – original draft: [AHH]
+* Writing – review & editing: [All] 
 
-Not relevant, as this is the work of a single author. I would, however, like to acknowledge the work of those that created the indicator on _Naturindeks_ [@nater_naturindeks_2025].
+ We would, also, like to acknowledge the work of those that created the indicator on _Naturindeks_ [@nater_naturindeks_2025].
 
 ::: {.callout-tip collapse="true"}
 ## Session Info
