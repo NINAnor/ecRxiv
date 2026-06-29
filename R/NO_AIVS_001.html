@@ -13,7 +13,7 @@
 <meta name="author" content="Ulrika Jansson Asplund">
 <meta name="dcterms.date" content="2026-06-09">
 
-<title>Drainage</title>
+<title>Intact water table</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -3534,7 +3534,7 @@ function(a,b,c){if(!Vd(b))throw Error(n(200));return Wd(null,a,b,!1,c)};Q.unmoun
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Drainage</h1>
+<h1 class="title">Intact water table</h1>
 <p class="subtitle lead"></p><p>NO_AIVS_001</p><p></p>
 </div>
 
@@ -3653,7 +3653,7 @@ function(a,b,c){if(!Vd(b))throw Error(n(200));return Wd(null,a,b,!1,c)};Q.unmoun
 </div>
 </div>
 <blockquote class="blockquote">
-<p><strong>Recommended citation</strong>: Halbritter, A. H., Storaunet, K. O., Jönsson, M., Snoksrud, O., and Jansson Asplund, U. 2026. Drainige (ID(s): NO_AIVS_001) v. 000.001. ecRxiv: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_AIVS_001</p>
+<p><strong>Recommended citation</strong>: Halbritter, A. H., Storaunet, K. O., Jönsson, M., Snoksrud, O., and Jansson Asplund, U. 2026. Intact water table (ID(s): NO_AIVS_001) v. 000.001. ecRxiv: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_AIVS_001</p>
 </blockquote>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
@@ -3995,7 +3995,7 @@ Viken, K. O. 2025. <em>Landsskogtakseringens Feltinstruks — 2025</em>. Vol. 7.
 <section id="bootstrap-draws-per-county" class="level3">
 <h3 class="anchored" data-anchor-id="bootstrap-draws-per-county">9.3 Bootstrap draws per county</h3>
 <p>For each county and period, NFI plots are resampled with replacement 1000 times. Each bootstrap replicate computes the area-weighted share of intact water table area on the non-scaled scale, giving a distribution of 1000 draws per county.</p>
-<div class="cell" data-cache.extra="[&quot;2026-06-29 16:16:26&quot;,&quot;2026-06-09 16:54:21&quot;,&quot;2026-06-29 16:16:26&quot;,&quot;2026-06-29 18:18:22&quot;]">
+<div class="cell" data-cache.extra="[&quot;2026-06-29 16:16:26&quot;,&quot;2026-06-09 16:54:21&quot;,&quot;2026-06-29 16:16:26&quot;,&quot;2026-06-29 18:42:03&quot;]">
 <details class="code-fold">
 <summary>Bootstrap draws per county (1000 per county per period)</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>county_draws_long <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">imap_dfr</span>(aivs_results, <span class="cf">function</span>(period_result, period_name) {</span>
@@ -4636,69 +4636,67 @@ Figure 1: Linear normalisation of intact water table area share (proportion) to
 </details>
 </div>
 <p>Truncation is not applicable for this indicator: the non-scaled value is an area proportion bounded between 0 and 1 (0%–100% unditched), so scaled values can never exceed X100 = 1.</p>
-<pre><code>
-The figure below (@fig-aivs-timeSeries) summarises regional and national indicator values by reporting period.
-
-
-::: {.cell}
-
-```{.r .cell-code  code-summary=&quot;Time series of indicator values by region and period&quot;}
-aivs_region_labels &lt;- c(
-  &quot;1&quot; = &quot;Øst&quot;, &quot;2&quot; = &quot;Sør&quot;, &quot;3&quot; = &quot;Vest&quot;,
-  &quot;4&quot; = &quot;Midt&quot;, &quot;5&quot; = &quot;Nord&quot;, &quot;National&quot; = &quot;National&quot;
-)
-aivs_region_levels &lt;- c(&quot;National&quot;, &quot;Midt&quot;, &quot;Nord&quot;, &quot;Øst&quot;, &quot;Sør&quot;, &quot;Vest&quot;)
-aivs_region_cols &lt;- setNames(
-  MetBrewer::met.brewer(&quot;Archambault&quot;, n = length(aivs_region_levels)),
-  aivs_region_levels
-)
-
-aivs_plot_data &lt;- aivs_mc_combined |&gt;
-  dplyr::mutate(
-    region_name = dplyr::recode(region, !!!aivs_region_labels),
-    series_type = dplyr::if_else(region == &quot;National&quot;, &quot;National&quot;, &quot;Region&quot;)
-  ) |&gt;
-  dplyr::group_by(period, region_name, series_type) |&gt;
-  dplyr::summarise(
-    median = median(sampled_mean),
-    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
-    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
-    .groups = &quot;drop&quot;
-  ) |&gt;
-  dplyr::mutate(region_name = factor(region_name, levels = aivs_region_levels))
-
-ggplot2::ggplot(
-  aivs_plot_data,
-  ggplot2::aes(x = period, y = median, colour = region_name, group = region_name)
-) +
-  ggplot2::geom_line(
-    ggplot2::aes(linewidth = series_type),
-    position = ggplot2::position_dodge(width = 0.18)
-  ) +
-  ggplot2::geom_pointrange(
-    ggplot2::aes(ymin = p_025, ymax = p_975, shape = series_type),
-    size = 0.8, linewidth = 0.45,
-    position = ggplot2::position_dodge(width = 0.18)
-  ) +
-  ggplot2::scale_colour_manual(values = aivs_region_cols, name = NULL) +
-  ggplot2::scale_shape_manual(values = c(National = 19, Region = 17), name = NULL) +
-  ggplot2::scale_linewidth_manual(values = c(National = 1, Region = 0.55), guide = &quot;none&quot;) +
-  ggplot2::scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
-  ggplot2::theme_bw(base_size = 12) +
-  ggplot2::theme(
-    legend.position    = &quot;bottom&quot;,
-    legend.box         = &quot;horizontal&quot;,
-    panel.grid.minor   = ggplot2::element_blank(),
-    panel.grid.major.x = ggplot2::element_blank()
-  ) +
-  ggplot2::guides(
-    colour = ggplot2::guide_legend(
-      nrow = 2,
-      override.aes = list(size = 0.7, linewidth = 0.45)
-    ),
-    shape  = ggplot2::guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
-  ) +
-  ggplot2::labs(y = &quot;Indicator value&quot;, x = &quot;&quot;)</code></pre>
+<p>The figure below (<a href="#fig-aivs-timeSeries" class="quarto-xref">Figure 2</a>) summarises regional and national indicator values by reporting period.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Time series of indicator values by region and period</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>aivs_region_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;1&quot;</span> <span class="ot">=</span> <span class="st">&quot;Øst&quot;</span>, <span class="st">&quot;2&quot;</span> <span class="ot">=</span> <span class="st">&quot;Sør&quot;</span>, <span class="st">&quot;3&quot;</span> <span class="ot">=</span> <span class="st">&quot;Vest&quot;</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;4&quot;</span> <span class="ot">=</span> <span class="st">&quot;Midt&quot;</span>, <span class="st">&quot;5&quot;</span> <span class="ot">=</span> <span class="st">&quot;Nord&quot;</span>, <span class="st">&quot;National&quot;</span> <span class="ot">=</span> <span class="st">&quot;National&quot;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>aivs_region_levels <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;National&quot;</span>, <span class="st">&quot;Midt&quot;</span>, <span class="st">&quot;Nord&quot;</span>, <span class="st">&quot;Øst&quot;</span>, <span class="st">&quot;Sør&quot;</span>, <span class="st">&quot;Vest&quot;</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>aivs_region_cols <span class="ot">&lt;-</span> <span class="fu">setNames</span>(</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  MetBrewer<span class="sc">::</span><span class="fu">met.brewer</span>(<span class="st">&quot;Archambault&quot;</span>, <span class="at">n =</span> <span class="fu">length</span>(aivs_region_levels)),</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  aivs_region_levels</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>aivs_plot_data <span class="ot">&lt;-</span> aivs_mc_combined <span class="sc">|&gt;</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">region_name =</span> dplyr<span class="sc">::</span><span class="fu">recode</span>(region, <span class="sc">!!!</span>aivs_region_labels),</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">series_type =</span> dplyr<span class="sc">::</span><span class="fu">if_else</span>(region <span class="sc">==</span> <span class="st">&quot;National&quot;</span>, <span class="st">&quot;National&quot;</span>, <span class="st">&quot;Region&quot;</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">group_by</span>(period, region_name, series_type) <span class="sc">|&gt;</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarise</span>(</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">median =</span> <span class="fu">median</span>(sampled_mean),</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_025  =</span> <span class="fu">as.numeric</span>(<span class="fu">quantile</span>(sampled_mean, <span class="fl">0.025</span>)),</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_975  =</span> <span class="fu">as.numeric</span>(<span class="fu">quantile</span>(sampled_mean, <span class="fl">0.975</span>)),</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">region_name =</span> <span class="fu">factor</span>(region_name, <span class="at">levels =</span> aivs_region_levels))</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>ggplot2<span class="sc">::</span><span class="fu">ggplot</span>(</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>  aivs_plot_data,</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">aes</span>(<span class="at">x =</span> period, <span class="at">y =</span> median, <span class="at">colour =</span> region_name, <span class="at">group =</span> region_name)</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">geom_line</span>(</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">aes</span>(<span class="at">linewidth =</span> series_type),</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> ggplot2<span class="sc">::</span><span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.18</span>)</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">geom_pointrange</span>(</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">aes</span>(<span class="at">ymin =</span> p_025, <span class="at">ymax =</span> p_975, <span class="at">shape =</span> series_type),</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">0.8</span>, <span class="at">linewidth =</span> <span class="fl">0.45</span>,</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> ggplot2<span class="sc">::</span><span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.18</span>)</span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">scale_colour_manual</span>(<span class="at">values =</span> aivs_region_cols, <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="at">National =</span> <span class="dv">19</span>, <span class="at">Region =</span> <span class="dv">17</span>), <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">scale_linewidth_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="at">National =</span> <span class="dv">1</span>, <span class="at">Region =</span> <span class="fl">0.55</span>), <span class="at">guide =</span> <span class="st">&quot;none&quot;</span>) <span class="sc">+</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="fl">0.2</span>)) <span class="sc">+</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">theme_bw</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">theme</span>(</span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position    =</span> <span class="st">&quot;bottom&quot;</span>,</span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.box         =</span> <span class="st">&quot;horizontal&quot;</span>,</span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor   =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>(),</span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.major.x =</span> ggplot2<span class="sc">::</span><span class="fu">element_blank</span>()</span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">guides</span>(</span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">colour =</span> ggplot2<span class="sc">::</span><span class="fu">guide_legend</span>(</span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>      <span class="at">nrow =</span> <span class="dv">2</span>,</span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>      <span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="fl">0.7</span>, <span class="at">linewidth =</span> <span class="fl">0.45</span>)</span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">shape  =</span> ggplot2<span class="sc">::</span><span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="fl">0.8</span>, <span class="at">linewidth =</span> <span class="fl">0.45</span>))</span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">labs</span>(<span class="at">y =</span> <span class="st">&quot;Indicator value&quot;</span>, <span class="at">x =</span> <span class="st">&quot;&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-aivs-timeSeries" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -4711,7 +4709,7 @@ Figure 2: Indicator values for share of area with intact water table by region 
 </figure>
 </div>
 </div>
-<p>:::</p>
+</div>
 </section>
 </section>
 <section id="sec-results" class="level2">
