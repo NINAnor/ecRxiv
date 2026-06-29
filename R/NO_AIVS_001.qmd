@@ -1,13 +1,13 @@
 ---
-title: "Share of area with intact water table"
+title: "Intact water table"
 subtitle: |
   NO_AIVS_001
 indicatorID: 
   - NO_AIVS_001
 indicatorName: 
-  - Share of area with intact water table
+  - Intact water table
 verbatimName: 
-  - Arealandel med intakt vannstand
+  - Intakt vannstand
 folderName: NO_AIVS_001
 country: Norway
 continent: Europe
@@ -18,15 +18,16 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
-yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
+  - T2.2 Deciduous temperate forests
+yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: ecTools workflow; national refs X0 = 0% intact water table area share, X100 = 100%
+VersionComment: ecTools workflow; national refs X0 = 0% intact water table area share, X100 = 100%; area basis defined by VEG_TYPE and VEGTYPE_FUKT combinations in data/ArealGrunnlag_Groftet.xlsx
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_AIVS_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale] - Aggregate (geographic region) - Aggregate (national level)
 format: 
   html:
     embed-resources: true
@@ -40,20 +41,22 @@ format:
 execute: 
   cache: true
 author:
-  - name: Ken Olav Storaunet
-    affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
-  - name: Oliver Snoksrud
-    affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
   - name: Aud Helen Halbritter
     affiliations:
       - name: University of Bergen
-  - name: Erik Framstad
-    email: erik.framstad@nina.no
+  - name: Ken Olav Storaunet
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Mari Jönsson
     affiliations:
       - name: Norwegian Institute for Nature Research
-AuthorList: Storaunet, K. O., Snoksrud, O., Halbritter, A. H., and Framstad, E.
+  - name: Oliver Snoksrud
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Ulrika Jansson Asplund
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+AuthorList: Halbritter, A. H., Storaunet, K. O., Jönsson, M., Snoksrud, O., and Jansson Asplund, U.
 date: June 9, 2026
 data_availability: bronze
 code_reproducibility: gold
@@ -204,60 +207,91 @@ meta |>
 
 1. **Background and rationale**:
 
-<!-- To be added. -->
+In forested peatlands, swamp forests, and moist forests on mineral soils, species composition is influenced by a continuously high water table.
+Forest drainage or ditching lowers the water table in such forests, resulting in changes in the composition of forest-floor vegetation, from dominance of species adapted to moist conditions to species adapted to drier conditions.
+Drainage often also improves the growing conditions for trees, resulting in increased tree growth and canopy closure.
+This, in turn, alters the conditions for understory species through changes in light availability.
+This indicator represents the proportion of forest area that retains an intact water table within mesic and moist forest types where drainage is expected to affect ecosystem condition.
+The assessment is generally restricted to mesic and moist forests, including forested peatlands, swamp forests, but also bilberry forests, thereby excluding only very dry forest vegetation types where drainage has no or little ecological relevance.
+The primary anthropogenic pressure captured by the indicator is forestry drainage or ditching.
+The percentage/share of undrained area indicates the extent to which natural hydrological conditions have been maintained. 
 
 2. **Methods**:
 
-Data come from the National Forest Inventory (NFI) LSK extract.
-The area basis is defined by combinations of `VEG_TYPE` and `VEGTYPE_FUKT` in `data/ArealGrunnlag_Groftet.xlsx`.
-At plot level, ditching status is recorded in the NFI variable `GROFTET` (1 = ditched, 2 = not ditched).
-The non-scaled indicator is the area-weighted share of area with intact water table (not ditched).
-Non-scaled values are estimated by bootstrapping counties, and the resulting draws are scaled and aggregated to regional and national levels.
+Data come from the National Forest Inventory (NFI).
+The area basis is defined by combinations of the variables VEG_TYPE and VEGTYPE_FUKT, as specified in data/ArealGrunnlag_Groftet.xlsx.
+The area basis for the indicator estimate is defined as forest areas where the combination of vegetation type (VEG_TYPE) and vegetation moisture type (VEGTYPE_FUKT) indicates mesic, moist or wet conditions, thereby excluding naturally dry forest types. 85% of the forest area is included in the area basis.
+At NFI plot level, drainage status is recorded in the NFI variable GROFTET (1 = ditched/drained, 2 = not ditched/ drained).
+The non-scaled indicator is calculated as the area-weighted share of the area with an intact water table (not drained).
+Non-scaled indicator values and associated uncertainty are estimated by bootstrapping county-level data, and the resulting draws are scaled and aggregated to regional and national levels. 
 
 3. **Interpretation**:
 
-An indicator value of 1 means that 100% of the area has intact water table (best condition, X100).
-An indicator value of 0 means that 0% of the area has intact water table (worst condition, X0).
+An indicator value of 1 means that 100% of the assessed area is not drained and therefore has an intact water table (best condition, _X~100~_).
+An indicator value of 0 means that 0% of the assessed area has an intact water table (worst condition, _X~0~_). 
 
 4. **Results and development needs**:
 
-<!-- To be added. -->
+The indicator value for the last two reporting periods has been stable at 0.93 (2015-2019 and 2020-2024).
+There is a slight variation between regions the lowest value in East (0.89) and the highest value in North (0.97).
+
+We have used the NFI variable GROFTET where only drained/not drained is recorded.
+There are other variables recorded in the NFI describing types of ditching and drainage effect, eventually also effects on the ground floor vegetation.
+These data should be evaluated for use in future versions of the indicator.
+Terrain slope could also be evaluated in such development.
+The current selection of vegetation types (VEG_TYPE) and their relative moisture condition (VEGTYPE_FUKT) should also be scrutinized.
+The current area basis includes 85 % of the Norwegian forest, and mainly very dry forest vegetation types have been excluded. Thus, there is potential to develop this indicator further.
+
 
 ### 1.2 Native language summary - Norwegian
 
-1. **Bakgrunn og begrunnelse**:
+1. **Bakgrunn og begrunnelse**: I torvmarksskog, sumpskog og fuktig fastmarksskog er artssammensetningen formet av høy grunnvannsstand. Skogsgrøfting senker grunnvannsnivået i slike skogtyper, noe som fører til endringer i skogbunnens artssammensetning.
+Grøfting på slike arealer forbedrer også ofte vekstforholdene for trær, noe som kan gi økt vekst for trærne og en tettere skog.
+Dette påvirker igjen forholdene for vegetasjonen i feltsjiktet gjennom endret lystilgang. 
+Indikatoren viser andelen skogareal som har et intakt grunnvannsnivå (dvs. som ikke er grøftet) innen friske og fuktige vegetasjonstyper der grøfting forventes å påvirke økosystemtilstanden.
+Vurderingen er avgrenset til friske og fuktige skoger, inkludert skogkledde myrer, sumpskog, men også mindre våte skogtyper som f.eks. blåbærskog.
+Arealutvalget inkluderer ikke naturlig tørre skogtyper der grøfting i utgangspunktet ikke har økologisk betydning.
+Den viktigste menneskeskapte påvirkningsfaktoren som fanges opp av indikatoren er grøfting for skogbruksformål.
+Andelen ugrøftet areal uttrykker i hvilken grad naturlige hydrologiske forhold er opprettholdt. 
 
-<!-- To be added. -->
+2. **Metoder**: Data er hentet fra Landsskogtakseringens (LSK).
+Arealgrunnlaget defineres av kombinasjoner av vegetasjonstype (VEG_TYPE) og de relative fuktighetsforholdene innen disse (VEGTYPE_FUKT, jfr. data/ArealGrunnlag_Groftet.xlsx).
+Arealgrunnlaget for beregningen er definert som skogarealer der kombinasjonen av vegetasjonstype (VEG_TYPE) og vegetasjonstypens relative fuktighetsforhold (VEGTYPE_FUKT) indikerer frisk, fuktig og våt skog. Naturlig tørre skogtyper, der grøfting ikke forventes å påvirke økosystemtilstanden, er utelatt.
+Totalt inngår 85% av skogarealet i arealgrunnlaget. På LSK-prøveflatenivå registreres grøfting i variabelen GROFTET (1 = grøftet, 2 = ikke-grøftet).
+Den uskalerte indikatorverdien beregnes som det arealvektede andelen av arealet med intakt grunnvannsnivå (ikke grøftet).
+Uskalerte indikatorverdier og tilhørende usikkerhet estimeres ved bootstrap av data på fylkesnivå. Disse skaleres og aggregeres til regionale og nasjonale indikatorverdier. 
 
-2. **Metoder**:
+3. **Tolkning**: En indikatorverdi på 1 betyr at 100 % av det vurderte arealet ikke er grøftet og dermed har et intakt grunnvannsnivå (_X~100~_).
+En indikatorverdi på 0 betyr at ingen andel av det vurderte arealet har et intakt grunnvannsnivå (_X~0~_). 
 
-Dataene kommer fra Landsskogtakseringens LSK-uttrekk.
-Arealgrunnlaget defineres av kombinasjoner av `VEG_TYPE` og `VEGTYPE_FUKT` i `data/ArealGrunnlag_Groftet.xlsx`.
-På flate-nivå registreres grøfting i variabelen `GROFTET` (1 = grøftet, 2 = ikke-grøftet).
-Den ikke-skalerte indikatoren er arealvektet andel med intakt vannstand (ikke-grøftet).
-Ikke-skalerte verdier estimeres ved bootstrap på fylkesnivå, og trekningene skaleres og aggregeres til region- og riksnivå.
+4. **Resultater og utviklingsbehov**: Indikatorverdien for de to siste rapporteringsperiodene har vært stabil på 0,93 (2015–2019 og 2020–2024).
+Det er en svak variasjon mellom regioner, med lavest verdi i Øst (0,89) og høyest verdi i Nord (0,97).
 
-3. **Tolkning**:
-
-En indikatorverdi på 1 tilsvarer 100 % arealandel med intakt vannstand (beste tilstand, X100).
-En indikatorverdi på 0 tilsvarer 0 % arealandel med intakt vannstand (verste tilstand, X0).
-
-4. **Resultater og utviklingsbehov**:
-
-<!-- To be added. -->
+Indikatoren er basert på LSK-variabelen GROFTET, der arealet registreres som grøftet eller ikke grøftet.
+Landsskogtakseringen registrerer imidlertid flere andre variabler som beskriver grøftenes type og dreneringseffekt.
+Disse bør gjennomgås og benyttes i framtidig versjon av indikatoren.
+Også utvalget av vegetasjonstyper/skogtyper bør vurderes nærmere.
+Dagens arealgrunnlag omfatter 85 % av Norges skogareal, og det er hovedsakelig naturlig tørre skogtyper som er utelatt.
+Terrenghelning kan også vurderes som et kriterium for å utelate arealer fra beregningsgrunnlaget, i tillegg til at variablene for vegetasjonstype (VEG_TYPE) og deres fuktighetsforhold (VEGTYPE_FUKT) bør gjennomgås på nytt.
+Det er således et sterkt behov for å videreutvikle indikatoren.  
 
 ## 2. About the underlying data
 
-<!-- To be added. -->
-
 ### 2.1 Spatial and temporal extent, resolution, and representativity
 
-The indicator is calculated for five-year reporting periods where the area basis and `GROFTET` data are available in the LSK extract.
-In the current data, plots meeting the area basis are present from 2015 onward.
+The indicator is generally calculated for five-year reporting periods, based on the NFI data across Norwegian forest land.
+However, the GROFTET variable is only available from 2016 onwards.
+Thus, the first of the two reporting periods (2015-2019) only includes 4 of 5 years in a full NFI cycle (cf. @sec-aivs-analyses below). 
 
 ### 2.2 Sampling design
 
-<!-- To be added. -->
+There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county [@viken2025-feltinstruks].
+The indicator is based on observations from NFI, where ditching  since 2016 has been recorded within a 0.1 ha observation area surrounding each 250 m2 inventory plot.
+In most cases, the observation area is circular with a radius of 17.8 m.
+However, where stand boundaries or other land-cover types intersect this distance, the shape of the observation area is adjusted while maintaining the total area of 0.1 ha. 
+
+Drainage ditches are recorded if present within the observation area. Because ditches may occur along stand boundaries or adjacent land-cover types, they can be located at the edge of the observation area.
+When a ditch forms the boundary between two forest stands, it is assigned to the stand for which it is considered to have the greatest drainage effect.
 
 ### 2.3 Original units
 
@@ -278,32 +312,32 @@ A1 Physical State Characteristics
 
 ### 3.2 Ecosystem condition characteristic
 
-<!-- To be added. -->
+The indicator represents the area proportion of the forest with intact hydrology. 
 
 ### 3.3 Collinearities with other indicators
 
-<!-- To be added. -->
+None of the other indicators describe the same aspect of ecological status as this indicator. 
 
 ### 3.4 Impact factors
 
-<!-- To be added. -->
+The most important impact factors affecting the water table in peatland forests, swamp forests and wet forests on mineral soil is drainage for forest production, agriculture or road construction. 
 
 ### 3.5 Spatial aggregation
 
-The spatial aggregation pathway is: aggregate (NFI plots to county) – [scale – truncate] – aggregate (geographic region) – aggregate (national level).
+The spatial aggregation pathway is: aggregate (NFI plots to county) – [scale] – aggregate (geographic region) – aggregate (national level).
 Non-scaled values are area-weighted means of the plot-level indicator (share of area with intact water table).
-Scaling uses national reference levels X0 = 0% and X100 = 100% intact water table area share (proportions 0 and 1 on the original scale).
+Scaling uses national reference levels _X~0~_ = 0% and _X~100~_ = 100% intact water table area share (proportions 0 and 1 on the original scale).
 
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
 
-<!-- To be added. -->
+The reference condition is considered to be intact water levels in forest ecosystems where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances. 
 
 ### 4.2 Reference levels
 
-X0 is set to 0% intact water table area share (worst condition) and X100 to 100% intact water table area share (best condition).
-Values are scaled linearly between X0 and X100, with truncation where values fall outside the reference range (@sec-aivs-reference-values).
+_X~0~_ is set to 0% intact water table area share (worst condition) and _X~100~_ to 100% intact water table area share (best condition).
+Values are scaled linearly between _X~0~_ and _X~100~_ (@sec-aivs-reference-values).
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -313,12 +347,16 @@ National reference levels are applied when scaling each county before regional a
 
 ### 5.1 General uncertainties
 
-<!-- To be added. -->
+The reported uncertainty reflects sampling variability but does not account for potential errors in field observations or ecological uncertainty.
+In particular, the indicator records the presence of drainage ditches rather than their current hydrological effects and assumes that presence of ditches is an adequate proxy for altered water-table conditions.
+It does not account for ditch characteristics, precise location or variation in the ditches’ hydrological effects.
+Observer judgement in recording ditches and assigning boundary ditches, as well as uncertainty in the definition of the area basis, may also influence estimates.
+While the intention of omitting certain forest areas was to include only forest areas where ditching has a documented effect on the water table and the species composition, the omittance criteria needs to be developed to better meet these intensions. 
 
 ### 5.2 Reported uncertainties
 
-County non-scaled values are bootstrapped with 1000 draws per county per period.
-County draws are scaled using the national X0 and X100.
+County non-scaled values are bootstrapped with 1000 draws per county per reporting period.
+County draws are linearly scaled using the reference levels _X~0~_ and _X~100~_.
 Uncertainty is propagated when aggregating to regional and national levels.
 
 ## 6. References
@@ -361,7 +399,7 @@ Aggregated indicator values are reported for counties, regions and nationally.
 Where counties are split into parts, those parts are merged to a single county name before aggregation.
 Aggregated indicator values should not be applied for spatial units finer than those that allow reliable estimates.
 
-## 9. Analyses
+## 9. Analyses {#sec-aivs-analyses}
 
 ### 9.1 Prepare data and create derived variables {#sec-aivs-derived-vars}
 
@@ -389,7 +427,7 @@ For each included plot, the area-weighted contribution to later aggregation is `
 
 lsk_data <- lsk_data_raw |>
   mutate(veg_type_fukt = paste0(veg_type, "-", vegtype_fukt)) |>
-  dplyr::inner_join(areal_grunnlag_groftet, by = "veg_type_fukt") |>
+  dplyr::inner_join(areal_grunnlag_groftet, by = "veg_type_fukt") |> 
   filter(!is.na(groftet), groftet %in% c(1, 2)) |>
   mutate(
     fylke_name = region_fylke |>
@@ -490,7 +528,7 @@ The table below (@tbl-aivs-county-nonscaled) summarises non-scaled bootstrap dra
 It shows the median area-weighted share of intact water table area per county.
 
 ```{r tbl-aivs-county-nonscaled}
-#| tbl-cap: "Non-scaled share of intact water table area by county (median of 1000 bootstrap draws per reporting period)."
+#| tbl-cap: "Non-scaled share of intact water table area by county (median of 1000 bootstrap draws per reporting period). Note: the first reporting period (2015–2019) is based on data from 2016–2019 only, as the GROFTET variable is only available from 2016."
 #| echo: false
 
 county_draws_long |>
@@ -558,7 +596,8 @@ x100 <- 1
 
 ```
 
-Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, X100 = 1; truncation at scaling).
+Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 0, X100 = 1).
+Because the non-scaled indicator is an area proportion bounded between 0 and 1 (0%–100% unditched), values can never exceed X100 and no truncation is needed.
 @fig-aivs-norm shows the mapping.
 
 ```{r county-draws-scaled}
@@ -747,134 +786,16 @@ national_scaled_agg_with_uncertainty <- aivs_mc_national |>
     by = "period"
   )
 
-truncation_summary <- dplyr::bind_rows(
-  aivs_results_county_all_periods |>
-    dplyr::mutate(
-      level = "County",
-      exceeds_threshold = indicator_value > x100,
-      original_value_pct = round(indicator_value * 100, 2),
-      reference_value_pct = 100,
-      region_code = NA_character_,
-      region_name = NA_character_
-    ) |>
-    dplyr::select(
-      period, level, region_code, region_name, fylke_name,
-      reference_value_pct, exceeds_threshold, original_value_pct
-    ),
-  region_scaled_agg_all_periods |>
-    dplyr::left_join(
-      aivs_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
-      by = c("period", "region_code")
-    ) |>
-    dplyr::mutate(
-      level = "Region",
-      exceeds_threshold = scaled_value >= 1,
-      original_value_pct = round(indicator_value * 100, 2),
-      reference_value_pct = NA_real_,
-      fylke_name = NA_character_
-    ) |>
-    dplyr::select(
-      period, level, region_code, region_name, fylke_name,
-      reference_value_pct, exceeds_threshold, original_value_pct
-    ),
-  national_scaled_agg_all_periods |>
-    dplyr::left_join(
-      aivs_results_national_all_periods |> dplyr::select(period, indicator_value),
-      by = "period"
-    ) |>
-    dplyr::mutate(
-      level = "National",
-      exceeds_threshold = scaled_value >= 1,
-      original_value_pct = round(indicator_value * 100, 2),
-      reference_value_pct = NA_real_,
-      region_code = NA_character_,
-      region_name = "National",
-      fylke_name = NA_character_
-    ) |>
-    dplyr::select(
-      period, level, region_code, region_name, fylke_name,
-      reference_value_pct, exceeds_threshold, original_value_pct
-    )
-)
-
-truncation_counts <- truncation_summary |>
-  dplyr::group_by(period, level) |>
-  dplyr::summarise(
-    n_total = dplyr::n(),
-    n_exceeding_reference = sum(exceeds_threshold, na.rm = TRUE),
-    pct_exceeding_reference = round(100 * n_exceeding_reference / n_total, 1),
-    .groups = "drop"
-  )
-
-truncated_values <- truncation_summary |>
-  dplyr::filter(exceeds_threshold) |>
-  dplyr::arrange(period, level, dplyr::desc(original_value_pct))
-
 ```
 
-At county level, truncation is evaluated by comparing the non-scaled point estimate to X100 (100% intact water table area share).
-At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
-The following tables summarise how often truncation occurred in each period and list the affected units.
-
-```{r aivs-report-truncation}
-#| code-summary: "Report truncation"
-#| echo: false
-
-truncation_counts |>
-  dplyr::rename(
-    Period = period,
-    Level = level,
-    `Total` = n_total,
-    `Exceeding reference` = n_exceeding_reference,
-    `% Exceeding reference` = pct_exceeding_reference
-  ) |>
-  gt::gt() |>
-  gt::tab_style(
-    style = gt::cell_text(weight = "bold"),
-    locations = gt::cells_column_labels()
-  ) |>
-  gt::fmt_number(
-    columns = `% Exceeding reference`,
-    decimals = 1
-  )
-
-if (nrow(truncated_values) > 0) {
-  truncated_values |>
-    dplyr::mutate(
-      location = dplyr::case_when(
-        level == "County" ~ fylke_name,
-        level == "Region" ~ region_name,
-        level == "National" ~ "National",
-        TRUE ~ NA_character_
-      )
-    ) |>
-    dplyr::select(period, level, location, reference_value_pct, original_value_pct) |>
-    dplyr::rename(
-      Period = period,
-      Level = level,
-      Location = location,
-      `Reference (%)` = reference_value_pct,
-      `Original value (%)` = original_value_pct
-    ) |>
-    gt::gt() |>
-    gt::tab_style(
-      style = gt::cell_text(weight = "bold"),
-      locations = gt::cells_column_labels()
-    ) |>
-    gt::fmt_number(
-      columns = c(`Reference (%)`, `Original value (%)`),
-      decimals = 1
-    )
-} else {
-  cat("\nNo values exceeded X100 (100% intact water table area share) and required truncation.\n")
-}
+Truncation is not applicable for this indicator: the non-scaled value is an area proportion bounded between 0 and 1 (0%–100% unditched), so scaled values can never exceed X100 = 1.
 
 ```
 
 The figure below (@fig-aivs-timeSeries) summarises regional and national indicator values by reporting period.
 
 ```{r fig-aivs-timeSeries}
-#| fig-cap: "Indicator values for share of area with intact water table by region and reporting period. Points show the MC median; error bars are 95% credible intervals from the Monte Carlo propagation. National values use filled circles and a thicker line."
+#| fig-cap: "Indicator values for share of area with intact water table by region and reporting period. Points show the MC median; error bars are 95% credible intervals from the Monte Carlo propagation. National values use filled circles and a thicker line. Note: the first reporting period (2015–2019) is based on data from 2016–2019 only, as the GROFTET variable is only available from 2016."
 #| code-summary: "Time series of indicator values by region and period"
 #| cache: false
 #| warning: false
@@ -950,7 +871,7 @@ All scaled values are on a 0–1 scale, where 0 corresponds to X0 (0% intact wat
 Use the search box and page controls in @tbl-aivs-county-results to browse county rows by reporting period.
 
 ```{r tbl-aivs-county-results}
-#| tbl-cap: 'County indicator values for share of area with intact water table by reporting period. Values are scaled to 0–1 using national X0 and X100. Uncertainty is derived from 1000 bootstrap draws. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
+#| tbl-cap: 'County indicator values for share of area with intact water table by reporting period. Values are scaled to 0–1 using national X0 and X100. Uncertainty is derived from 1000 bootstrap draws. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution. Note: the first reporting period (2015–2019) is based on data from 2016–2019 only, as the GROFTET variable is only available from 2016.'
 #| echo: false
 
 county_scaled_with_uncertainty |>
@@ -1007,7 +928,7 @@ county_scaled_with_uncertainty |>
 ### 10.2 Regional results (scaled with uncertainty)
 
 ```{r tbl-aivs-region-results}
-#| tbl-cap: 'Regional indicator values for share of area with intact water table by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws per region). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
+#| tbl-cap: 'Regional indicator values for share of area with intact water table by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws per region). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution. Note: the first reporting period (2015–2019) is based on data from 2016–2019 only, as the GROFTET variable is only available from 2016.'
 #| echo: false
 
 region_scaled_agg_with_uncertainty |>
@@ -1048,7 +969,7 @@ region_scaled_agg_with_uncertainty |>
 ### 10.3 National results (scaled with uncertainty)
 
 ```{r tbl-aivs-national-results}
-#| tbl-cap: 'National indicator values for share of area with intact water table by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
+#| tbl-cap: 'National indicator values for share of area with intact water table by reporting period. Scaled values and uncertainty are derived from Monte Carlo propagation (1000 draws). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution. Note: the first reporting period (2015–2019) is based on data from 2016–2019 only, as the GROFTET variable is only available from 2016.'
 #| echo: false
 
 national_scaled_agg_with_uncertainty |>
@@ -1106,21 +1027,15 @@ write.csv(
 <!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
 
 **CRediT statement**
-
-* Conceptualization: [ES, KOS]
-* Methodology: [ES, KOS]
+ 
+* Conceptualization: [UJA, KOS]
+* Methodology: [UJA, KOS, AHH]
 * Data curation: [OS]
 * Formal analysis: [AHH]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [AHH, OS]
-* Visualization: [AHH]
-* Resources: [Initials]
-* Writing – original draft: [Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+* Validation: [AHH, OS, KOS]
+* Visualization: [AHH] 
+* Writing – original draft: [AHH, UJA]
+* Writing – review & editing: [All] 
 
 
 **MeRIT attribution**
