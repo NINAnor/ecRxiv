@@ -18,6 +18,7 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+verbatimEcosystem: boreal/subalpin skog
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
@@ -26,6 +27,7 @@ VersionComment: First version on ecRxiv; indicator described in the Norwegian Na
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_WOLF_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Downscale (municipalities) - Aggregate (geographic region) - Aggregate (national level)
+Precision: Approximate 95% Monte Carlo interval (2.5th–97.5th percentile of 1000 resampled area-weighted means) as inferential uncertainty around the point estimate (median).
 format: 
   html:
     embed-resources: true
@@ -155,18 +157,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -194,7 +199,7 @@ In Norway, the species currently occurs in low numbers – which is largely due 
 The indicator is part of the Norwegian Nature Index and is described on [Naturindeksen](https://naturindeks.no/Indicators/ulv).
 
 2. **Methods**:
-The wolf population size is estimated from ....
+The wolf population size is estimated from annual winter monitoring of tracks and signs in the field, which allows Rovdata to document the number of territory-holding wolves with wholly Norwegian residency and wolves with residency on both sides of the Norwegian–Swedish border [@rovdata_ulv_status_2025].
 This value is then normalised based on a reference level, which is an expert-assessed population estimate based on known breeding density and the amount of suitable habitat.
 The indicator is developed in the work with the Norwegian Nature Index [@nater_naturindeks_2025]. The methods are are described in full on the [Nature index web site](https://www.naturindeks.no/Indicators/ulv). 
 
@@ -218,19 +223,25 @@ Som en toppredator påvirker ulven hjorteviltets atferd og utbredelse; ved å po
 I Norge forekommer arten i dag i lave antall – noe som i stor grad skyldes en streng soneforvaltning der det brukes lisensfelling og aktivt uttak for å hindre arten i å etablere seg utenfor ulvesonen – og finnes hovedsakelig i de sørøstlige delene av landet langs grensen mot Sverige.
 Indikatoren inngår i Naturindeksen og er beskrevet på [Naturindeksen](https://naturindeks.no/Indicators/ulv).
 
-2. **Metoder**: ...
+2. **Metoder**:
+Ulvebestandens størrelse estimeres fra årlig vinterovervåking av spor og tegn i felt, som gjør det mulig for Rovdata å dokumentere antall revirkravende ulver med helst norsk tilhørighet og ulver med tilhørighet på begge sider av den norsk-svenske grensen [@rovdata_ulv_status_2025].
 Denne verdien normaliseres deretter basert på en referanseverdi, som er et ekspertvurdert bestandsestimat basert på kjent hekketetthet og mengden egnet habitat. Indikatoren er utviklet i arbeidet med Naturindeksen [@nater_naturindeks_2025]. Metodene er beskrevet i detalj på [Naturindeksens nettsider](https://www.naturindeks.no/Indicators/ulv).
 
 3. **Tolkning**: En indikatorverdi på 1 betyr at ulvebestanden i rapporteringsenheten er minst like stor som forventet under referansetilstanden i Naturindeksen.
 Verdier som nærmer seg null, viser at bestandsindekset ligger lenger under referansen.
 
-4. **Resultater og utviklingsbehov**: Indikatoren brukes i Naturindeksen.
+4. **Resultater og utviklingsbehov**: For den nåværende rapporteringsperioden (2020–2024) er den nasjonale indikatoren 0,03, med høyest verdi for region Øst (0,16) og lavest verdi for region Midt (0,01), mens alle de øvrige regionene er 0,00.
+Den nasjonale indikatoren har økt litt fra 0,00 i 1990, med en topp i 2019 (0,04).
+For regionene Vest, Sør og Nord har verdiene ligget på minimum siden 1990.
+For Øst har verdiene økt jevnt siden 1990, og for Midt siden 2019.
+Det er ingen spesifikke utviklingsbehov, med mulig unntak for en gjennomgang av referanseverdier og skaleringsfunksjonen.
 
 
 ## 2. About the underlying data
 
-The data comes from ...
-
+The primary data source for this indicator is the national winter monitoring programme for wolves in Norway, coordinated by [Rovdata](https://rovdata.no/Ulv.aspx) under the large-carnivore monitoring framework and reported annually [@rovdata_ulv_status_2025].
+Monitoring is based on field registration of tracks and signs during winter, from which the number of territory-holding wolves with wholly Norwegian or transboundary (Norwegian–Swedish) residency is determined.
+Prepared indicator objects (population estimates or indices with uncertainty, plus reference values) are obtained from the Naturindeks database or equivalent exports.
 
 ### 2.1 Spatial and temporal resolution and extent
 
@@ -261,22 +272,18 @@ Methodological documentation for the indicator: [Naturindeksen – ulv](https://
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-B3 – Functional state characteristics.
+Large carnivores function as apex predators, regulating prey populations and potentially exerting cascading effects on vegetation composition and the recruitment of tree species. 
+Hence, this indicator is considered to fall under B3 Functional state characteristics. 
 
 
 ### 3.2 Ecosystem condition characteristic
 
-<!--# 
-
-Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
-For example, and indicator called 'Trenching in mires' could be made to represent an ecosystem characteristic 'Intact hydrology'. The term 'characteristic' is used similar to the term 'criteria' in Multiple Criteria Decision Making.  
-
--->
-
 
 ### 3.3 Collinearities with other indicators
 
-The indicator may covary with other large-carnivore indicators that use the same regional structure (brown bear, lynx, wolverine) where distributions overlap.
+The indicator for wolf may covary with other large-carnivore indicators (brown bear, lynx) where distributions overlap.
+In a natural system this would primarily reflect shared prey availability.
+In contemporary Norway, however, population levels of all large carnivores are primarily determined by management rather than ecological dynamics. 
 
 ### 3.4 Impact factors
 
@@ -806,9 +813,15 @@ write.csv(
 
 ## 12. Author contributions
 
-<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+**CRediT statement**
+ 
+* Conceptualization: [All]
+* Methodology: [AHH]
+* Formal analysis: [AHH]
+* Writing – original draft: [AHH]
+* Writing – review & editing: [All] 
 
-Not relevant, as this is the work of a single author. I would, however, like to acknowledge the work of those that created the indicator on _Naturindeks_ [@nater_naturindeks_2025].
+ We would, also, like to acknowledge the work of those that created the indicator on _Naturindeks_ [@nater_naturindeks_2025].
 
 ::: {.callout-tip collapse="true"}
 ## Session Info
