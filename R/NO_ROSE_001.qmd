@@ -218,11 +218,10 @@ An indicator value of 1 implies that the ROS volume is at least as high as expec
 Values decreasing toward zero reflect lower combined volume of rowan, aspen and goat willow relative to the reference.
 
 4. **Results and development needs**:
-For the current reporting period (2020-2024) the national indicator value is 0.xx, [noe om ev. større avvik mellom regioner].
+For the current reporting period (2020-2024) the national indicator value is 0.45 (95% CI: 0.41 - 0.49). The regional indicator values range from 0.34 - 0.67, with the East having the lowest value and the South having the highest value.
 The indicator values increase over time nationally and for all regions.
 There are no specific development needs for the indicator measure.
 However more thorough analyses and review of the assessment of reference values and the scaling function is needed. 
-
 
 
 ## 1.2 Native language summary - Norwegian
@@ -243,7 +242,7 @@ En indikatorverdi på 1 betyr at ROS-volumet er minst like høyt som forventet u
 Verdier som går mot null, viser lavere samlet volum av rogn, osp og selje sammenlignet med referansen.  
 
 4. **Resultater og utviklingsbehov**: 
-For nåværende rapporteringsperiode (2020-2024) er den nasjonale indikatorverdien 0.xx, [med noe om eventuelle større avvik mellom regioner].
+For nåværende rapporteringsperiode (2020-2024) er den nasjonale indikatorverdien 0.45 (95% CI: 0.41 - 0.49). Regionale indikatorverdier varierer mellom 0.34 - 0.67, med Øst som har lavest verdi og Sør som har høyest verdi.
 Indikatorverdien øker over tid både nasjonalt og for alle regioner.
 Det er ingen spesifikke utviklingsbehov, bortsett fra en mulig gjennomgang av referanseverdier og skaleringsfunksjonen.
 
@@ -570,9 +569,9 @@ rose_reference_values <- dplyr::tibble(
     "NoS", "NoN", "Tr", "Fi"
   ),
   x100_m3_ha = c(
-    10, 10, 5, 6, 5, 6, 5, 6, 10,
-    10, 6, 10, 10, 10, 10, 10, 10, 6, 6,
-    6, 6, 6, 3
+    9.0, 11.5, 7.0, 3.0, 6.0, 4.5, 7.0, 3.5, 15.0,
+    8.5, 4.5, 5.5, 7.5, 7.5, 7.5, 7.0, 9.0, 4.5, 5.0,
+    5.6, 4.0, 4.5, 2.0
   )
 ) |>
   dplyr::mutate(x100 = x100_m3_ha)
@@ -619,7 +618,7 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
 ```
 
 ```{r fig-rose-norm}
-#| fig-cap: "Linear normalisation of rowan-aspen-goat willow volume (m³ ha⁻¹) to indicator values (0–1), one panel per sub-county reference unit. Points are 100 sampled bootstrap draws per unit."
+#| fig-cap: "Linear normalisation of rowan-aspen-goat willow volume (m³ ha⁻¹) to indicator values (0–1). Each panel shows one sub-county accounting unit, with its own X100 reference value (upper right corner of the scaling line). The x-axis is free-scaled per panel to reflect the range of observed values in that sub-county. Points are a random sample of 100 bootstrap draws (out of 1000) pooled across all reporting periods, illustrating the spread of resampled area-weighted means around the direct estimate. The diagonal line shows the linear scaling function between X0 = 0 m³ ha⁻¹ (lower reference, worst condition) and the sub-county-specific X100 (upper reference, reference condition); values above X100 are truncated to 1."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
 #| fig-height: 8
