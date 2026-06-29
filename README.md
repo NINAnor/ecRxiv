@@ -19,6 +19,20 @@ To browse ecosystem condition indicators, please visit the [ecRxiv web app](http
 Or, to browse source files (raw data files or scripts), please switch to the [main branch](https://github.com/NINAnor/ecRxiv/tree/main/indicators).
 You can also look up the histories for published indicators, such as code reviews and comments, by going to the [issues tab](https://github.com/NINAnor/ecRxiv/issues) and in the _Labels_ filter, search and select for indicatorID's. 
 
+## License
+
+ecRxiv is open-source software released under the GPL-3.0 license. You are welcome to use, modify, and redistribute the templates and code in accordance with the terms of that license.
+Note that individual indicator workflow might be labeled with a different license, in which case this is the one that should take effect. 
+
+## Use of the ecRxiv name
+
+The name *ecRxiv* refers to the official publication platform operated by NINAnor.
+
+You are welcome to reuse the ecRxiv templates and software in your own projects. However, only indicators that have completed the official ecRxiv publication workflow may be described as being "published on ecRxiv" or "reviewed by ecRxiv".
+
+Forks or derivative works should not imply endorsement by, affiliation with, or publication on ecRxiv unless they have gone through the official workflow.
+
+
 ### How to submit indicator documentation to ecRxiv
 
 On this site (this GitHub repository) you can submit technical documentation and ecological justification for your ecosystem condition indicator(s) and have it published on an [online web application](https://ecRxiv.com) in a standardised format along side other indicators from anywhere in the world.
