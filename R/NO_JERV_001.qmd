@@ -36,7 +36,7 @@ format:
     toc-depth: 3
     smooth-scroll: true
 execute: 
-  cache: true
+  cache: false
 author:
   - name: Anders Kolstad
     email: anders.kolstad@nina.no
@@ -44,7 +44,7 @@ author:
       - id: myID
         name: The Norwegian Institute for Nature Research (NINA)
 AuthorList: Kolstad, A.
-date: May 16, 2026
+date: June 29, 2026
 data_availability: gold
 code_reproducibility: gold
 open_science_badge: gold
@@ -70,22 +70,15 @@ library(anybadger)
 library(yaml)
 library(tibble)
 library(conflicted)
-# weird workarounds for cache issues
-conflicts_prefer(dplyr::filter)
-conflicts_prefer(dplyr::lag)
-conflicts_prefer(dplyr::select)
-pull<-dplyr::pull
 library(NIcalc)
 knitr::opts_chunk$set(echo = TRUE)
-#install.packages('logrittr', repos = 'https://guillaumepressiat.r-universe.dev')
-library(logrittr)
 library(gt)
 library(ecTools)
 library(MetBrewer)
 # remotes::install_github("NINAnor/ecTools") #version 0.0.0.9002
 # This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
 # renv::restore()
-# logritt, NIcalc, and ecTools may need to be installed manually
+# NIcalc, and ecTools may need to be installed manually
 ```
 
 ```{r source}
@@ -149,22 +142,24 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
-
 :::
 
 ::: {.callout-tip collapse="true"}
@@ -208,7 +203,7 @@ Values decreasing toward zero indicates that the average population size is decr
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-The indicator value for Norway as a whole in 2024 is 0.06 [95% CI = 0.06-0.07]. This is extremely low and reflects the both the historical overexploitation and current management. The indicator value is highest in eastern Norway, and lowest in the south and western Norway, where it is more or less abscent. Development needs include a revision of the X~100~ values based on updated knowledge, and a more structured approach to expert elicitation (or other methods).     
+The indicator value for Norway as a whole in 2024 is 0.14 [95% CI = 0.13-0.14]. This is extremely low and reflects the both the historical overexploitation and current management. The indicator value is highest in eastern Norway, and lowest in the south and western Norway, where it is more or less abscent. Development needs include a revision of the X~100~ values based on updated knowledge, and a more structured approach to expert elicitation (or other methods).     
 
 ## 1.2 Native language summary - Norwegian
 
@@ -225,7 +220,7 @@ Referanseverdiene representerer det hypotetiske antallet jerv i norske alpine ø
 3. **Tolkning**: En indikatorverdi på 1 betyr at jervebestanden er like stor eller større enn det vi forventer under referansetilstanden. Verdier som nærmer seg null indikerer at den gjennomsnittlige bestandsstørrelsen på rovviltregionsnivå er avtagende og går mot null.
 
 4. **Resultater og utviklingsbehov**: 
-Indikatorverdien for Norge som helhet i 2024 er 0,06 [95 % KI = 0,06–0,07]. Dette er svært lavt og reflekterer både historisk jakt og dagens forvaltning. Indikatorverdien er høyest i Øst-Norge og lavest i Sør- og Vest-Norge, hvor jerv er mer eller mindre fraværende. Utviklingsbehov inkluderer en revisjon av X~100~-verdiene basert på oppdatert kunnskap, samt en mer strukturert tilnærming til ekspertvurderinger (eller andre metoder).
+Indikatorverdien for Norge som helhet i 2024 er 0,14 [95 % KI = 0,13–0,14]. Dette er svært lavt og reflekterer både historisk jakt og dagens forvaltning. Indikatorverdien er høyest i Øst-Norge og lavest i Sør- og Vest-Norge, hvor jerv er mer eller mindre fraværende. Utviklingsbehov inkluderer en revisjon av X~100~-verdiene basert på oppdatert kunnskap, samt en mer strukturert tilnærming til ekspertvurderinger (eller andre metoder).
 
 ## 2. About the underlying data
 
