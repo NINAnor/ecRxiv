@@ -18,6 +18,7 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+verbatimEcosystem: boreal/subalpin skog
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
@@ -26,6 +27,7 @@ VersionComment: First version on ecRxiv; indicator described in the Norwegian Na
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BAER_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (population model, large-carnivore management region) - [Scale - Truncate] - Downscale (municipalities) - Aggregate (geographic region) - Aggregate (national level)
+Precision: Approximate 95% Monte Carlo interval (2.5th–97.5th percentile of 1000 resampled area-weighted means) as inferential uncertainty around the point estimate (median).
 format: 
   html:
     embed-resources: true
@@ -155,18 +157,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -192,15 +197,15 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
  -->
 
 1. **Background and rationale**:
-The brown bear (*Ursus arctos*) is distributed across the forest and mountain regions of Eastern Norway, Trøndelag, and Northern Norway. 
-In its reference condition the bear fulfills a complex functional role as an omnivorous apex predator and dominant scavenger. 
+The brown bear (*Ursus arctos*) is distributed in the boreal forest regions of Eastern Norway, Trøndelag, and Northern Norway, primarily along the borders with Sweden and Finland.
+In its reference condition the bear fulfills a complex functional role as an omnivorous apex predator and dominant scavenger.
 It structures the ecosystem through predation on ungulates, kleptoparasitism from wolves and lynx, and by acting as an essential seed disperser [@swenson2026_bb].
-Population trends reflect habitat quality, connectivity, and anthropogenic pressures such as habitat loss, traffic mortality, in addition to policy-mandated population reduction by hunting. 
+Population trends reflect habitat quality, connectivity, and anthropogenic pressures such as habitat loss and traffic mortality, in addition to policy-mandated population reduction by hunting. 
 Norway has long-running, DNA-based monitoring of brown bears, which provides a relatively solid basis for using the species as an indicator of ecosystem condition in relevant ecosystems. 
 The indicator is part of the Norwegian Nature Index and is documented on [Naturindeksen](https://naturindeks.no/Indicators/brunbjoern).
 
 2. **Methods**:
-Estimated brown bear abundance (or an equivalent population index) is derived from the national DNA-monitoring programme and associated statistical models, not from harvest statistics.
+Estimated brown bear abundance (or an equivalent population index) is in the later years derived from the national DNA-monitoring programme and associated statistical models, not from harvest statistics.
 Non-lethal genetic sampling (scats, hair, and other material) is used to identify individuals; population size is estimated and reported for large-carnivore management regions (_forvaltningsregioner for rovvilt_, regions 5–8 in Norway).
 Values are normalised to a 0–1 indicator scale using reference levels (_X~100~_) defined for those management regions, with _X~0~_ representing the worst condition.
 Scaled values are aggregated to five geographic regions and to the national level using area weights.
@@ -265,14 +270,17 @@ These are translated into indicator variables (expected values with uncertainty 
 
 ### 2.4 Instructions for citing, using and accessing data
 
-Raw genetic monitoring results and annual reports should be cited from the NINA monitoring publications (e.g. [@broseth2024_bb]).
+Raw genetic monitoring data is accessible in @dupont2024_brownbear and at [Rovbase](rovbase.no).
+Results and annual reports should be cited from the NINA monitoring publications (e.g. [@broseth2024_bb]).
 Methodological documentation for this species is linked from [Naturindeksen – brunbjørn](https://naturindeks.no/Indicators/brunbjoern).
 
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-B3 – Functional state characteristics. Brown bear is assigned to the functional composition class because its population status reflects the presence and role of a large carnivore in the ecosystem (trophic regulation, carcass subsidy, and related ecological processes), not only the occurrence of a single species name in a species list.
+The brown bear functions as an omnivorous apex predator and dominant scavenger, regulating ungulate populations, exerting competitive pressure on other large carnivores through kleptoparasitism, and contributing to seed dispersal and nutrient cycling.
+Through these interacting functional roles, it has the potential to exert cascading effects on vegetation composition and ecosystem structure.
+Hence, this indicator is considered to fall under B3 - Functional state characteristics.
 
 
 ### 3.2 Ecosystem condition characteristic
@@ -281,8 +289,9 @@ The ecosystem characteristic represented is a functionally intact large-carnivor
 
 ### 3.3 Collinearities with other indicators
 
-The indicator may covary with other large carnivore or mammal indicators in the same regions (e.g. wolf, wolverine, lynx) and with indicators linked to similar forest and mountain habitats.
-Including several tightly correlated predator indicators in the same composite index without accounting for dependence could overweight the predator guild signal.
+The indicator for brown bear may covary with other large-carnivore indicators (wolf, lynx) where distributions overlap.
+In a natural system this would primarily reflect shared prey availability, but for brown bear the link is weak given its largely omnivorous diet – though carrion from wolf-killed cervids can be a relevant exception.
+In contemporary Norway, however, population levels of all large carnivores are primarily determined by management rather than ecological dynamics.  
 
 ### 3.4 Impact factors
 
@@ -301,7 +310,11 @@ Because large-carnivore management regions and the five geographic reporting reg
 
 ### 4.1 Reference condition
 
-The reference condition for brown bear represents the natural population state occurring in the absence of significant human influence, where population size, structure, and dynamics are regulated primarily by natural processes – including food availability (acting as the ultimate regulating factor), habitat carrying capacity, and complex social interactions and natural mortality. The population fulfills its natural functional role as an omnivorous apex predator and dominant scavenger in forest ecosystems, influencing the ecosystem through predation on ungulates (particularly moose calves) and acting as a vital seed disperser for various berry-producing shrubs and trees through endozoochory (the dispersal of seeds via ingestion and subsequent excretion), which stimulates seed germination and shapes vegetation composition. By exercising kleptoparasitism (the seizing of kills) on other carnivores such as wolves and lynx, it further influences predation rates and nutrient availability for other species, thereby structuring interactions at the community level. Population size naturally varies within dynamic ranges in response to climatic variation (affecting food phenology and denning chronology), natural disturbance regimes, and ecological interactions with both prey and competing apex predators. This condition corresponds to maximum ecological integrity of the forest ecosystem. 
+The reference condition for brown bear represents the natural population state occurring in the absence of significant human influence, where population size, structure, and dynamics are regulated primarily by natural processes – including food availability (acting as the ultimate regulating factor), habitat carrying capacity, and complex social interactions and natural mortality.
+The population fulfills its natural functional role as an omnivorous apex predator and dominant scavenger in forest ecosystems, influencing the ecosystem through predation on ungulates (particularly moose calves) and acting as a vital seed disperser for various berry-producing shrubs and trees through endozoochory (the dispersal of seeds via ingestion and subsequent excretion), which stimulates seed germination and shapes vegetation composition.
+By exercising kleptoparasitism (the seizing of kills) on other carnivores such as wolves and lynx, it further influences predation rates and nutrient availability for other species, thereby structuring interactions at the community level.
+Population size naturally varies within dynamic ranges in response to climatic variation (affecting food phenology and denning chronology), natural disturbance regimes, and ecological interactions with both prey and competing apex predators.
+This condition corresponds to maximum ecological integrity of the forest ecosystem. 
 
 ### 4.2 Reference levels
 
@@ -801,7 +814,15 @@ write.csv(
 
 ## 12. Author contributions
 
-Not relevant, as this is the work of a single author. I would, however, like to acknowledge the work of those that created the indicator on _Naturindeks_ [@nater_naturindeks_2025].
+**CRediT statement**
+ 
+* Conceptualization: [All]
+* Methodology: [AHH]
+* Formal analysis: [AHH]
+* Writing – original draft: [AHH]
+* Writing – review & editing: [All] 
+
+ We would, also, like to acknowledge the work of those that created the indicator on _Naturindeks_ [@nater_naturindeks_2025].
 
 ::: {.callout-tip collapse="true"}
 ## Session Info
