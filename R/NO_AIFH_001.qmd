@@ -1,13 +1,13 @@
 ---
-title: "Share of forest area without clear-cutting"
+title: "Clear-cutting"
 subtitle: |
   NO_AIFH_001
 indicatorID: 
   - NO_AIFH_001
 indicatorName: 
-  - Share of forest area without clear-cutting
+  - Clear-cutting
 verbatimName: 
-  - Arealandel ikke flatehogd skog
+  - Flatehogst
 folderName: NO_AIFH_001
 country: Norway
 continent: Europe
@@ -18,15 +18,17 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
-yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
+  - T2.2 Deciduous temperate forests
+yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
 Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: ecTools workflow; national refs X0 = 100% clear-cut area share, X100 = 0% clear-cut area share
+VersionComment: ecTools workflow; national refs X0 = 100% clear-cutting, X100 = 0% clear-cutting
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_AIFH_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes
-SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale] - Aggregate (geographic region) - Aggregate (national level)
+Precision: Approximate 95% bootstrap interval (2.5th–97.5th percentile of 1000 bootstrap draws) as inferential uncertainty around the point estimate (median). At county level, bootstrapping is applied directly to NFI plot data; at regional and national level, uncertainty is propagated via Monte Carlo resampling of county draws.
 format: 
   html:
     embed-resources: true
@@ -40,20 +42,22 @@ format:
 execute: 
   cache: true
 author:
-  - name: Erik Framstad
-    email: erik.framstad@nina.no
-    affiliations:
-      - name: Norwegian Institute for Nature Research
-  - name: Ken Olav Storaunet
-    affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
-  - name: Oliver Snoksrud
-    affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
   - name: Aud Helen Halbritter
     affiliations:
       - name: University of Bergen
-AuthorList: Framstad, E., Storaunet, K. O., Snoksrud, O. and Halbritter, A. H.
+  - name: Ken Olav Storaunet
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Mari Jönsson
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Oliver Snoksrud
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Ulrika Jansson Asplund
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+AuthorList: Halbritter, A. H., Storaunet, K. O., Jönsson, M., Snoksrud, O., and Jansson Asplund, U.
 date: June 9, 2026
 data_availability: bronze
 code_reproducibility: gold
@@ -169,18 +173,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -203,65 +210,70 @@ meta |>
 
 1. **Background and rationale**:
 
-<!-- To be added. -->
+The widespread adoption of clear-cut forestry has altered the structure and dynamics of Norwegian forests. Clear-cut harvesting resets stand development and interrupts the continuity of canopy cover, reducing the occurrence of late-successional structural features such as old trees, large trees, dead wood, and vertically complex forest stands.
+As a result, forests that have not been clear-cut are more likely to retain some components of structural complexity and continuity than forests managed under clear-cut regimes.   
+
+These structural attributes are important for many forest species, particularly those associated with mature and old forests, stable microclimates, and continuous tree cover.
+The indicator therefore reflects the proportion of forest that has not been clear-cut, providing a measure of the extent to which these ecological characteristics have been maintained.  
 
 2. **Methods**:
 
-Data come from the National Forest Inventory (NFI) LSK extract.
-At plot level, clear-cutting is recorded in the NFI variable `FLATEHOGD`.
-This variable is only available from 2020 onward, so the indicator is calculated for one reporting period: 2020–2024.
-Non-scaled values are estimated by bootstrapping counties, and the resulting draws are scaled and aggregated to regional and national levels.
+Data comes from the National Forest Inventory (NFI) LSK extract.
+At the plot level, clear-cutting status is recorded as a categorial varaible where 1 identifies clear-cut plots,  2 identifies plots without clear-cutting, and 3 indicates undetermined status in the NFI variable FLATEHOGD.
+This variable is available from 2018 onwards, so the indicator is estimated for one reporting period only: 2020–2024.
+Non-scaled indicator values are estimated by bootstrapping county-level data, and the resulting draws are scaled and aggregated to regional and national levels. 
 
 3. **Interpretation**:
 
-An indicator value of 1 means that 0% of the forest area is clear-cut (best condition, X100).
-An indicator value of 0 means that 100% of the forest area is clear-cut (worst condition, X0).
+Current proportion of clear-cut forest is compared to a reference value with no clear-cut harvesting.
+An indicator value of 1 means that 0% of the forest area has been clear-cut (_X~100~_).
+An indicator value of 0 means that 100% of the forest area has been clear-cut (_X~0~_). 
 
 4. **Results and development needs**:
 
-<!-- To be added. -->
+The national indicator value for the current reporting period (2020–2024) is 0.7.
+The value varies between the regions, with the highest value in Nord (0.93) and the lowest value in Øst (0.51).
+
 
 ### 1.2 Native language summary - Norwegian
 
-1. **Bakgrunn og begrunnelse**:
+1. **Bakgrunn og begrunnelse**: Åpne hogstformer (flatehogst, frøstillingshogst) har endret stukturen og dynamikken i norske skoger. Flatehogst bryter kontinuiteten i både strukturell variasjon som kjennetegner seine suksesjonsstadier (som gamle trær, død ved og flersjiktede bestand) og i krondekke.
+Disse strukturelle egenskapene er viktige for mange skoglevende arter, særlig arter knyttet til eldre skog, stabile mikroklimatiske forhold og kontinuerlig tresjikt.
+Indikatoren viser derfor andelen skog som ikke har vært flatehogd, og gir dermed, sammen med andre indikatorer, et mål på i hvilken grad disse økologiske egenskapene og den strukturelle kontinuiteten er opprettholdt.   
 
-<!-- To be added. -->
+2. **Metoder**: Dataene kommer fra Landsskogtakseringens LSK-uttrekk.
+På flate-nivå registreres flatehogst i variabelen FLATEHOGD.
+Variabelen finnes fra og med 2018, så indikatoren estimeres for én rapporteringsperiode: 2020–2024.
+Ikke-skalerte verdier estimeres ved bootstrap på fylkesnivå, og trekningene skaleres og aggregeres til region- og riksnivå. 
 
-2. **Metoder**:
+3. **Tolkning**: Dagens andel av ikke flatehogd skog sammenlignes referansetilstanden hvor ingen skog er avvirket med flatehogst.
+En indikatorverdi på 1 tilsvarer 0 % arealandel med flatehogst (_X~100~_).
+En indikatorverdi på 0 tilsvarer 100 % arealandel med flatehogst (_X~0~_).
 
-Dataene kommer fra Landsskogtakseringens LSK-uttrekk.
-På flate-nivå registreres flatehogst i variabelen `FLATEHOGD`.
-Variabelen finnes bare fra og med 2020, så indikatoren beregnes for én rapporteringsperiode: 2020–2024.
-Ikke-skalerte verdier estimeres ved bootstrap på fylkesnivå, og trekningene skaleres og aggregeres til region- og riksnivå.
-
-3. **Tolkning**:
-
-En indikatorverdi på 1 tilsvarer 0 % arealandel med flatehogst (beste tilstand, X100).
-En indikatorverdi på 0 tilsvarer 100 % arealandel med flatehogst (verste tilstand, X0).
-
-4. **Resultater og utviklingsbehov**:
-
-<!-- To be added. -->
+4. **Resultater og utviklingsbehov**: Den nasjonale indikatoren for den nåværende rapporteringsperioden (2020–2024) er 0.7.
+Verdien varierer mellom regionene, med høyest verdi i Nord (0.93) og lavest verdi i Øst (0.51).
 
 ## 2. About the underlying data
 
-<!-- To be added. -->
-
 ### 2.1 Spatial and temporal extent, resolution, and representativity
 
-The underlying variable is only available from 2020.
+The indicator is based on plot-level data from the Norwegian National Forest Inventory (NFI), covering Norwegian forest land.
+The underlying data is available from 2018 onwards.
 The indicator is therefore reported for a single five-year period, 2020–2024.
-Earlier periods may be added if `FLATEHOGD` becomes available for those years.
+Earlier periods might be added if FLATEHOGD becomes available for previous years. 
 
 ### 2.2 Sampling design
 
-<!-- To be added. -->
+Estimates of clear-cut forest area were based on permanent sample plots from the Norwegian National Forest Inventory (NFI).
+For all plots measured during the 2018–2022 inventory cycle, previous field records and historical aerial photographs were interpreted to determine whether the forest had been subject to clear-cutting or not, back to ca. 1940.
+Each plot was classified as either clear-cut, not clear-cut or not possible to determine [@viken2026_flatehogst].
+8% of the investigated plots could not be determined because of insufficient historical aerial-photo coverage [@viken2026_flatehogst].  
 
 ### 2.3 Original units
 
-At plot level, the NFI variable `FLATEHOGD` uses code 1 for clear-cut plots, code 2 for no clear-cutting, and code 3 for undetermined status.
+At the plot level, the NFI variable `FLATEHOGD` uses code 1 for clear-cut plots, code 2 for no clear-cutting, and code 3 for undetermined status.
 Plots with codes 1, 2, or 3 are retained; only missing values are excluded.
-Aggregated values are the area-weighted mean proportion of forest area that is clear-cut.
+Aggregated values are the area-weighted mean proportion of forest area that has not been clear-cut. 
 
 ### 2.4 Instructions for citing, using and accessing data
 
@@ -276,19 +288,22 @@ C1 Landscape and Seascape Characteristics
 
 ### 3.2 Ecosystem condition characteristic
 
-<!-- To be added. -->
+The indicator represents the proportion of not clear-cut forest of the total forest landscape, since such harvesting practices became dominant in Norway after the 1940s.
+Not clear-cut forests may occur as small and scattered patches in regions with intensive forest management, and as more continuous areas in regions with less intensive forest management.
+The indicator is assessed as a landscape characteristic (C1) in the ecosystem condition typology.  
 
 ### 3.3 Collinearities with other indicators
 
-<!-- To be added. -->
+Correlation with other indicators of old forest is expected.
+Some correlation with habitat indicators (e.g. dead wood, old/large trees) might also be expected. 
 
 ### 3.4 Impact factors
 
-<!-- To be added. -->
+Clear-cut harvesting is the impact factor for this indicator. 
 
 ### 3.5 Spatial aggregation
 
-The spatial aggregation pathway is: aggregate (NFI plots to county) – [scale – truncate] – aggregate (geographic region) – aggregate (national level).
+The spatial aggregation pathway is: aggregate (NFI plots to county) – [scale] – aggregate (geographic region) – aggregate (national level).
 Non-scaled values are area-weighted means of the plot-level `FLATEHOGD` variable.
 Scaling uses national reference levels X0 = 100% clear-cut area share and X100 = 0% clear-cut area share (proportions 1 and 0 on the original scale).
 
@@ -296,27 +311,31 @@ Scaling uses national reference levels X0 = 100% clear-cut area share and X100 =
 
 ### 4.1 Reference condition
 
-<!-- To be added. -->
+The reference condition is considered to be intact forest ecosystems where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances.
 
 ### 4.2 Reference levels
 
 X0 is set to 100% clear-cut area share (worst condition) and X100 to 0% clear-cut area share (best condition).
-Values are scaled linearly between X0 and X100, with truncation where values fall outside the reference range (@sec-aifh-reference-values).
+Values are scaled linearly between X0 and X100 (@sec-aifh-reference-values).
+Because the non-scaled indicator is an area proportion bounded between 0 and 1 (0%–100% clear-cut), values can not fall outside the reference range and no truncation is needed.
 
 #### 4.2.1 Spatial resolution and validity
 
-National reference levels are applied when scaling each county before regional and national aggregation.
+Reference levels are defined as one national value for the share of the assessed forest area with no clear-cutting.
+Although indicator values from NFI plots technically may be aggregated at finer spatial units than counties, scaling at such finer levels may result in biases. 
 
 ## 5. Uncertainties
 
 ### 5.1 General uncertainties
 
-<!-- To be added. -->
+For 8 % of the NFI plots it was not possible to determine if the area had been subjected to clear-cut harvesting or not. These plots were classified as not clear-cut, resulting in a somewhat conservative estimate of the extent of clear-cut forest.
+Regional and national values are area-weighted summaries of county estimates, and therefore inherit both model uncertainty at county level and any mismatch between county boundaries and ecological variation within regions.
+The indicator does not account for the intensity and timing of clear-cutting, nor for the size and fragmentation of forests that have not been clear-cut. 
 
 ### 5.2 Reported uncertainties
 
 County non-scaled values are bootstrapped with 1000 draws per county per period.
-County draws are scaled using the national X0 and X100.
+County draws are scaled using the national _X~0~_ and _X~100~_.
 Uncertainty is propagated when aggregating to regional and national levels.
 
 ## 6. References
@@ -334,7 +353,6 @@ Plots with codes 1, 2, or 3 are retained; only missing values are excluded.
 Codes 2 and 3 are both treated as no clear-cutting in the indicator calculation.
 `flatehogd` is available from 2020 onward, and analyses use the reporting period 2020–2024.
 Both productive and unproductive forest plots (`arealtype` 1 and 12) are included.
-
 
 ```{r load-data}
 #| code-summary: "Load data"
@@ -483,35 +501,38 @@ county_draws_long <- purrr::imap_dfr(aifh_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-aifh-county-nonscaled) summarises non-scaled bootstrap draws for the reporting period 2020–2024.
-It shows the median area-weighted share of clear-cut forest area per county.
+The table below (@tbl-aifh-county-nonscaled) shows the direct area-weighted mean share of clear-cut forest area per county, with approximate 95% bootstrap confidence intervals (2.5th–97.5th percentile of 1000 draws).
 
 ```{r tbl-aifh-county-nonscaled}
-#| tbl-cap: "Non-scaled share of clear-cut forest area by county for the reporting period 2020–2024 (median of 1000 bootstrap draws)."
+#| tbl-cap: "Non-scaled share of clear-cut forest area (%) by county. Point estimate is the direct area-weighted mean; 95% CI is derived from 1000 bootstrap draws."
 #| echo: false
 
 county_draws_long |>
   dplyr::group_by(period, fylke_name, region_code, total_area) |>
   dplyr::summarise(
-    non_scaled_median = median(non_scaled_value),
+    ci_low  = quantile(non_scaled_value, 0.025) * 100,
+    ci_high = quantile(non_scaled_value, 0.975) * 100,
     .groups = "drop"
   ) |>
   dplyr::left_join(
     aifh_results_county_all_periods |>
-      dplyr::select(period, fylke_name, n_plots),
+      dplyr::select(period, fylke_name, n_plots, indicator_value),
     by = c("period", "fylke_name")
   ) |>
   dplyr::mutate(
     region_name = assign_region_name(region_code),
-    non_scaled_median_pct = non_scaled_median * 100
+    mean_pct = round(indicator_value * 100, 1),
+    ci_low   = round(ci_low, 1),
+    ci_high  = round(ci_high, 1),
+    `95% CI` = paste0(ci_low, " – ", ci_high)
   ) |>
   dplyr::arrange(period, region_code, fylke_name) |>
   dplyr::select(
     Period = period,
     County = fylke_name,
     Region = region_name,
-    `Non-scaled value (proportion)` = non_scaled_median,
-    `Non-scaled value (%)` = non_scaled_median_pct,
+    `Clear-cut area (%)` = mean_pct,
+    `95% CI`,
     `Total area (ha)` = total_area,
     `Number of plots` = n_plots
   ) |>
@@ -521,12 +542,8 @@ county_draws_long |>
     locations = gt::cells_column_labels()
   ) |>
   gt::fmt_number(
-    columns = `Non-scaled value (proportion)`,
-    decimals = 4
-  ) |>
-  gt::fmt_number(
-    columns = `Non-scaled value (%)`,
-    decimals = 2
+    columns = `Clear-cut area (%)`,
+    decimals = 1
   ) |>
   gt::fmt_number(
     columns = c(`Total area (ha)`, `Number of plots`),
@@ -544,7 +561,7 @@ county_draws_long |>
 
 ### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-aifh-reference-values}
 
-National reference levels are X0 = 100% clear-cut area share and X100 = 0% clear-cut area share (proportions 1 and 0 on the original scale).
+National reference levels are _X~0~_ = 100% clear-cut area share, and _X~100~_ = 0% clear-cut area share (proportions 1 and 0 on the original scale).
 
 ```{r aifh-reference-values}
 #| code-summary: "National reference levels"
@@ -555,7 +572,8 @@ x100 <- 0
 
 ```
 
-Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 1, X100 = 0; truncation at scaling).
+Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 1, X100 = 0).
+Because the non-scaled indicator is an area proportion bounded between 0 and 1 (0%–100% clear-cut), values can not fall outside the reference range and no truncation is needed.
 @fig-aifh-norm shows the mapping.
 
 ```{r county-draws-scaled}
@@ -742,128 +760,6 @@ national_scaled_agg_with_uncertainty <- aifh_mc_national |>
     aifh_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
     by = "period"
   )
-
-truncation_summary <- dplyr::bind_rows(
-  aifh_results_county_all_periods |>
-    dplyr::mutate(
-      level = "County",
-      exceeds_threshold = indicator_value < x100,
-      original_value_pct = round(indicator_value * 100, 2),
-      reference_value_pct = 0,
-      region_code = NA_character_,
-      region_name = NA_character_
-    ) |>
-    dplyr::select(
-      period, level, region_code, region_name, fylke_name,
-      reference_value_pct, exceeds_threshold, original_value_pct
-    ),
-  region_scaled_agg_all_periods |>
-    dplyr::left_join(
-      aifh_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
-      by = c("period", "region_code")
-    ) |>
-    dplyr::mutate(
-      level = "Region",
-      exceeds_threshold = scaled_value >= 1,
-      original_value_pct = round(indicator_value * 100, 2),
-      reference_value_pct = NA_real_,
-      fylke_name = NA_character_
-    ) |>
-    dplyr::select(
-      period, level, region_code, region_name, fylke_name,
-      reference_value_pct, exceeds_threshold, original_value_pct
-    ),
-  national_scaled_agg_all_periods |>
-    dplyr::left_join(
-      aifh_results_national_all_periods |> dplyr::select(period, indicator_value),
-      by = "period"
-    ) |>
-    dplyr::mutate(
-      level = "National",
-      exceeds_threshold = scaled_value >= 1,
-      original_value_pct = round(indicator_value * 100, 2),
-      reference_value_pct = NA_real_,
-      region_code = NA_character_,
-      region_name = "National",
-      fylke_name = NA_character_
-    ) |>
-    dplyr::select(
-      period, level, region_code, region_name, fylke_name,
-      reference_value_pct, exceeds_threshold, original_value_pct
-    )
-)
-
-truncation_counts <- truncation_summary |>
-  dplyr::group_by(period, level) |>
-  dplyr::summarise(
-    n_total = dplyr::n(),
-    n_exceeding_reference = sum(exceeds_threshold, na.rm = TRUE),
-    pct_exceeding_reference = round(100 * n_exceeding_reference / n_total, 1),
-    .groups = "drop"
-  )
-
-truncated_values <- truncation_summary |>
-  dplyr::filter(exceeds_threshold) |>
-  dplyr::arrange(period, level, dplyr::desc(original_value_pct))
-
-```
-
-At county level, truncation is evaluated by comparing the non-scaled point estimate to X100 (0% clear-cut area share).
-At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
-The following tables summarise how often truncation occurred in each period and list the affected units.
-
-```{r aifh-report-truncation}
-#| code-summary: "Report truncation"
-#| echo: false
-
-truncation_counts |>
-  dplyr::rename(
-    Period = period,
-    Level = level,
-    `Total` = n_total,
-    `Exceeding reference` = n_exceeding_reference,
-    `% Exceeding reference` = pct_exceeding_reference
-  ) |>
-  gt::gt() |>
-  gt::tab_style(
-    style = gt::cell_text(weight = "bold"),
-    locations = gt::cells_column_labels()
-  ) |>
-  gt::fmt_number(
-    columns = `% Exceeding reference`,
-    decimals = 1
-  )
-
-if (nrow(truncated_values) > 0) {
-  truncated_values |>
-    dplyr::mutate(
-      location = dplyr::case_when(
-        level == "County" ~ fylke_name,
-        level == "Region" ~ region_name,
-        level == "National" ~ "National",
-        TRUE ~ NA_character_
-      )
-    ) |>
-    dplyr::select(period, level, location, reference_value_pct, original_value_pct) |>
-    dplyr::rename(
-      Period = period,
-      Level = level,
-      Location = location,
-      `Reference (%)` = reference_value_pct,
-      `Original value (%)` = original_value_pct
-    ) |>
-    gt::gt() |>
-    gt::tab_style(
-      style = gt::cell_text(weight = "bold"),
-      locations = gt::cells_column_labels()
-    ) |>
-    gt::fmt_number(
-      columns = c(`Reference (%)`, `Original value (%)`),
-      decimals = 1
-    )
-} else {
-  cat("\nNo values fell below X100 (0% clear-cut area share) and required truncation.\n")
-}
 
 ```
 
@@ -1104,20 +1000,14 @@ write.csv(
 
 **CRediT statement**
 
-* Conceptualization: [ES, KOS]
-* Methodology: [ES, KOS]
+* Conceptualization: [UJA, KOS]
+* Methodology: [UJA, KOS, AHH]
 * Data curation: [OS]
 * Formal analysis: [AHH]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [AHH, OS]
+* Validation: [AHH, OS, KOS]
 * Visualization: [AHH]
-* Resources: [Initials]
-* Writing – original draft: [Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+* Writing – original draft: [AHH, UJA]
+* Writing – review & editing: [All]
 
 
 **MeRIT attribution**
