@@ -18,6 +18,8 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests
+verbatimEcosystem: T2.1 Boreal/subalpin skog; T2.2 Temperert edellauvskog
 yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
@@ -27,6 +29,7 @@ url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DLTA_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (NFI plots to county/sub-county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+Precision: Approximate 95% bootstrap interval (2.5th–97.5th percentile of 1000 bootstrap draws) as inferential uncertainty around the point estimate (median). At county or sub-county level, bootstrapping is applied directly to NFI plot data; at regional and national level, uncertainty is propagated from scaled county bootstrap draws.
 format: 
   html:
     embed-resources: true
@@ -175,18 +178,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
