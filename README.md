@@ -22,7 +22,7 @@ You can also look up the histories for published indicators, such as code review
 ## License
 
 ecRxiv is open-source software released under the GPL-3.0 license. You are welcome to use, modify, and redistribute the templates and code in accordance with the terms of that license.
-Note that individual indicator workflow might be labeled with a different license, in which case this is the one that should take effect. 
+Note that individual indicator workflows might be labeled with a different license, in which case this is the one that should take effect. 
 
 ## Use of the ecRxiv name
 
