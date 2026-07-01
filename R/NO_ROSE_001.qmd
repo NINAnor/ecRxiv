@@ -18,6 +18,10 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests
+verbatimEcosystem: 
+  - T2.1.2 Boreal/subalpin skog
+  - T2.2.2 Temperert edellauvskog
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
@@ -26,6 +30,7 @@ VersionComment: Initial version # Describe briefly how this version differs from
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ROSE_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (NFI plots to county/sub-county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+Precision: Approximate 95% bootstrap interval (2.5th–97.5th percentile of 1000 bootstrap draws) as inferential uncertainty around the point estimate (median). At county or sub-county level, bootstrapping is applied directly to NFI plot data; at regional and national level, uncertainty is propagated from scaled county bootstrap draws.
 format: 
   html:
     embed-resources: true
@@ -37,9 +42,9 @@ format:
 execute: 
   cache: true
 author:
-  - name: Ken Olaf Storaunet
+  - name: Aud Helen Halbritter
     affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
+      - name: University of Bergen
   - name: Ulrika Jansson Asplund
     affiliations:
       - name: Norwegian Institute for Nature Research
@@ -50,10 +55,10 @@ author:
   - name: Oliver Snoksrud
     affiliations:
       - name: Norwegian Institute of Bioeconomy Research
-  - name: Aud Helen Halbritter
+  - name: Ken Olaf Storaunet
     affiliations:
-      - name: University of Bergen
-AuthorList: Storaunet, K. O., Jansson Asplund, U., Framstad, E., Snoksrud, O., and Halbritter, A. H.
+      - name: Norwegian Institute of Bioeconomy Research
+AuthorList: Halbritter, A. H., Jansson Asplund, U., Framstad, E., Snoksrud, O., and Storaunet, K. O.
 date: May 7, 2026
 data_availability: bronze
 code_reproducibility: gold
@@ -170,18 +175,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -304,7 +312,7 @@ The spatial aggregation pathway is Aggregate (NFI plots to county/sub-county) �
 For each NFI plot we create `indicator_continuous_weighted = ros_10_prha * au_areal`.
 Non-scaled indicator values for each reporting period are calculated separately for each geographic unit as area-weighted arithmetic means of all NFI plots within that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
 This is done for counties or sub-counties, regions, and at national level.
-Scaling and truncation are applied only after the non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level X0 (0 m³ ha⁻¹) and upper reference level X100 using a linear scaling function, and values above 1 are truncated to 1 at that step.
+Scaling and truncation are applied only after the non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level _X~0~_ (0 m³ ha⁻¹) and upper reference level _X~100~_ using a linear scaling function, and values above 1 are truncated to 1 at that step.
 Regional and national scaled point estimates are area-weighted means of the already scaled county or sub-county values, using each county or sub-county's represented area as weight.
 Non-scaled regional and national point estimates are still calculated directly from all plots within each region or the whole country.
 
@@ -316,11 +324,11 @@ The reference condition is considered to be intact forest ecosystems where effec
 
 ### 4.2 Reference levels
 
-The lower reference level X0 is set to 0 m³ ha⁻¹ and the upper reference level X100 is set separately for each county or sub-county.
+The lower reference level _X~0~_ is set to 0 m³ ha⁻¹ and the upper reference level _X~100~_ is set separately for each county or sub-county.
 X0 denotes the worst possible condition and X100 denotes the best possible condition on the original volume scale.
-Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
+Between _X~0~_ and _X~100~_, indicator values are scaled linearly to a 0-1 indicator scale.
 Scaled values above 1 are truncated to 1 when volume exceeds the county-specific X100.
-The county and sub-county X100 values used in the analyses are listed in @sec-rose-reference-values.
+The county and sub-county _X~100~_ values used in the analyses are listed in @tbl-rose-reference-values. _X~0~_ is 0 m³ ha⁻¹ for all units.
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -340,7 +348,7 @@ The uncertainties reported in @sec-results are inferential and refer to uncertai
 For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within the relevant geographic unit and recalculating the area-weighted mean.
 This is done separately for counties or sub-county units, regions, and the national level.
 For scaled county or sub-county values, the bootstrap mean, median, standard error, confidence interval, and quartiles from the non-scaled bootstrap are transformed with the same sub-county-specific linear scaling function used for the point estimate.
-For scaled regional and national values, uncertainty is propagated with `ecTools::ec_upscale()` from the scaled county or sub-county bootstrap draws (section 9.4).
+For scaled regional and national values, uncertainty is propagated from the scaled county or sub-county bootstrap draws (section 9.4).
 The resulting Monte Carlo distributions are summarised with median and quantiles for the results tables in section 10.
 
 ## 6. References
@@ -504,64 +512,72 @@ county_draws_long <- purrr::imap_dfr(rose_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-rose-county-nonscaled-latest) summarises indicator values for the latest reporting period (`2020-2024`): the area-weighted mean rowan-aspen-goat willow volume per county or sub-county, with approximate 95% and interquartile intervals from 1000 bootstrap draws.
+The table below (@tbl-rose-county-nonscaled) shows the direct area-weighted mean rowan-aspen-goat willow volume per county or sub-county for all reporting periods, with approximate 95% bootstrap confidence intervals (2.5th–97.5th percentile of 1000 draws). Use the search box and page controls to browse rows.
 
-```{r tbl-rose-county-nonscaled-latest}
-#| tbl-cap: "Non-scaled, area-weighted rowan-aspen-goat willow volume by county or sub-county for reporting period 2020–2024 (point estimate, with approximate 95% and interquartile intervals from 1000 bootstrap draws)."
+```{r tbl-rose-county-nonscaled}
+#| tbl-cap: "Non-scaled rowan-aspen-goat willow volume (m³ ha⁻¹) by county or sub-county for all reporting periods. Point estimate is the direct area-weighted mean from section 9.2; 95% CI is derived from 1000 bootstrap draws."
 #| echo: false
 
-rose_latest_period <- tail(names(reporting_periods), 1)
-
 county_draws_long |>
-  dplyr::filter(period == rose_latest_period) |>
   dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
   dplyr::summarise(
-    p_025 = as.numeric(quantile(non_scaled_value, 0.025)),
-    p_25  = as.numeric(quantile(non_scaled_value, 0.25)),
-    p_75  = as.numeric(quantile(non_scaled_value, 0.75)),
-    p_975 = as.numeric(quantile(non_scaled_value, 0.975)),
+    ci_low  = round(quantile(non_scaled_value, 0.025), 2),
+    ci_high = round(quantile(non_scaled_value, 0.975), 2),
     .groups = "drop"
   ) |>
   dplyr::left_join(
     rose_results_county_all_periods |>
-      dplyr::filter(period == rose_latest_period) |>
-      dplyr::select(period, fylke_name, indicator_value, n_plots),
+      dplyr::select(period, fylke_name, n_plots, indicator_value),
     by = c("period", "fylke_name")
   ) |>
   dplyr::mutate(
     region_name = assign_region_name(region_code),
-    indicator_value = round(indicator_value, 2),
-    p_025 = round(p_025, 2),
-    p_25  = round(p_25, 2),
-    p_75  = round(p_75, 2),
-    p_975 = round(p_975, 2)
+    mean_m3_ha = round(indicator_value, 2),
+    `95% CI` = paste0(ci_low, " – ", ci_high)
   ) |>
-  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
-  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
-  dplyr::arrange(region_code, fylke_name) |>
-  dplyr::transmute(
+  dplyr::arrange(period, region_code, fylke_name) |>
+  dplyr::select(
     Period = period,
     County = fylke_name,
     `Sub-county` = county_part,
     Region = region_name,
-    `Non-scaled value (m³ ha⁻¹)` = indicator_value,
-    `95% CI` = CI_95,
-    `50% CI` = IQR,
-    `Total area (ha)` = round(total_area, 0),
+    `Mean (m³ ha⁻¹)` = mean_m3_ha,
+    `95% CI`,
+    `Total area (ha)` = total_area,
     `Number of plots` = n_plots
   ) |>
-  knitr::kable() |>
-  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Mean (m³ ha⁻¹)`,
+    decimals = 2
+  ) |>
+  gt::fmt_number(
+    columns = c(`Total area (ha)`, `Number of plots`),
+    decimals = 0,
+    use_seps = TRUE
+  ) |>
+  gt::opt_interactive(
+    use_search = TRUE,
+    use_pagination = TRUE,
+    use_page_size_select = TRUE,
+    page_size_default = 12,
+    page_size_values = c(12, 24, 66)
+  )
 ```
 
 ### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-rose-reference-values}
 
-County or sub-county reference values are listed below.
+County or sub-county reference levels are listed in @tbl-rose-reference-values.
+_X~0~_ is 0 m³ ha⁻¹ for all units; _X~100~_ is the rowan-aspen-goat willow volume at best condition for each county or sub-county accounting unit.
 
 ```{r rose-reference-values}
+#| echo: false
 #| code-summary: "Reference values by county or sub-county"
 
-# X100 reference values (m³ ha⁻¹)
 rose_reference_values <- dplyr::tibble(
   county_part = c(
     "Øs", "OA", "HeS", "HeN", "OpS", "OpN", "BuS", "BuV", "Ve",
@@ -579,6 +595,33 @@ rose_reference_values <- dplyr::tibble(
 x0 <- 0
 county_reference <- rose_reference_values |>
   dplyr::select(county_part, x100)
+
+```
+
+```{r tbl-rose-reference-values}
+#| echo: false
+#| tbl-cap: "County or sub-county reference values for scaling. _X~0~_ is 0 m³ ha⁻¹ for all units."
+
+rose_reference_values |>
+  dplyr::select(`Sub-county` = county_part, x100_m3_ha) |>
+  gt::gt() |>
+  gt::cols_label(
+    x100_m3_ha = gt::html("<i>X</i><sub>100</sub> (m³ ha⁻¹)")
+  ) |>
+  gt::cols_align(align = "left", columns = `Sub-county`) |>
+  gt::cols_align(align = "right", columns = x100_m3_ha) |>
+  gt::fmt_number(
+    columns = x100_m3_ha,
+    decimals = 1
+  ) |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::tab_options(
+    table.align = "left",
+    table.width = gt::px(260)
+  )
 
 ```
 
@@ -618,7 +661,7 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
 ```
 
 ```{r fig-rose-norm}
-#| fig-cap: "Linear normalisation of rowan-aspen-goat willow volume (m³ ha⁻¹) to indicator values (0–1). Each panel shows one sub-county accounting unit, with its own X100 reference value (upper right corner of the scaling line). The x-axis is free-scaled per panel to reflect the range of observed values in that sub-county. Points are a random sample of 100 bootstrap draws (out of 1000) pooled across all reporting periods, illustrating the spread of resampled area-weighted means around the direct estimate. The diagonal line shows the linear scaling function between X0 = 0 m³ ha⁻¹ (lower reference, worst condition) and the sub-county-specific X100 (upper reference, reference condition); values above X100 are truncated to 1."
+#| fig-cap: "Linear normalisation of rowan-aspen-goat willow volume (m³ ha⁻¹) to indicator values (0–1). Each panel shows one sub-county accounting unit, with its own X100 reference value (upper right corner of the scaling line). The x-axis is free-scaled per panel to reflect the range of observed values in that sub-county. Points are a random sample of 100 bootstrap draws (out of 1000) pooled across all reporting periods, illustrating the spread of resampled area-weighted means around the direct area-weighted mean from section 9.2. The diagonal line shows the linear scaling function between X0 = 0 m³ ha⁻¹ (lower reference, worst condition) and the sub-county-specific X100 (upper reference, reference condition); values above X100 are truncated to 1."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
 #| fig-height: 8
@@ -1002,8 +1045,23 @@ county_scaled_with_uncertainty |>
     `50% CI` = .data$IQR,
     `Number of plots` = .data$n_plots
   ) |>
-  knitr::kable() |>
-  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  ) |>
+  gt::opt_interactive(
+    use_search = TRUE,
+    use_pagination = TRUE,
+    use_page_size_select = TRUE,
+    page_size_default = 12,
+    page_size_values = c(12, 24, 66)
+  )
 ```
 
 ### 10.2 Regional results (scaled with uncertainty)
@@ -1094,20 +1152,14 @@ write.csv(
 
 **CRediT statement**
 
-* Conceptualization: [ES, KOS]
-* Methodology: [ES, KOS]
+* Conceptualization: [EF, KOS, UJA]
+* Methodology: [EF, KOS, UJA]
 * Data curation: [OS]
 * Formal analysis: [AHH]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [AHH, OS]
+* Validation: [AHH, KOS]
 * Visualization: [AHH]
-* Resources: [Initials]
-* Writing – original draft: [Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+* Writing – original draft: [All]
+* Writing – review & editing: [All]
 
 
 **MeRIT attribution**
