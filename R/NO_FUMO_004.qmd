@@ -26,13 +26,13 @@ verbatimEcosystem:
   - Skog
 yearAdded: 2026
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
+status: complete # options are complete, incomplete, or deprecated
 Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: This indicator has been calculated before under different names and codes. Most rencently NO_FUNC_004 version 000.001 on ecRxiv 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_FUMO_004
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
 SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) 
-Precision: 95% confidence intervals for the indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
+Precision: 95% confidence intervals for the true value of the spatially aggregated indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
 format: 
   html:
     embed-resources: true
@@ -42,7 +42,7 @@ format:
     toc-depth: 3
     smooth-scroll: true
 execute: 
-  cache: true
+  cache: false
 author:
   - name: Joachim Töpper              # Enter name
     email: joachim.topper@nina.no  # Enter email
@@ -97,6 +97,7 @@ conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
 library(arrow)
+library(gt)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -236,7 +237,7 @@ To improve this indicator in the future, the perhaps most pressing issue it to r
 
 
 
-## 2. About the underlying data
+## 2. About the underlying data {#sec-about}
 We use three types of data for building functional plant community indicators for ecological condition:
 
 - as observation data  we use plant community data from the ANO monitoring scheme (cf. Tingstad et al. 2019)
@@ -257,7 +258,7 @@ Abundance data for vascular plants in ANO is given as % cover within a 1 m2 samp
 
 
 ### 2.4 Instructions for citing, using and accessing data
-The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054
+The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054. See @sec-about for detail on the other datasets.  
 
 ### 2.5 Additional comments about the dataset
 The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
@@ -301,6 +302,7 @@ Spatial variability as a source of uncertainty can be quantified. For every mean
 There is some uncertainty related to the ecosystem categorization at the field sites (see Ullerud et al. 2018 and Naas et al. 2023), but since ANO monitoring does not include spatial delineation of ecosystem polygons this problem is considered smaller than in spatial ecosystem mapping which these references mainly relate to.
 Other uncertainties connected to the indicator arise from community weighted means calculated from plant communities of different species richness in the observation data; since no uncertainty measure for these community-weighted means is calculated and propagated, the actual uncertainty of functional community signals for the single community observations is unknown.
 
+There is some uncertainty about the appropriateness of using (Halvorsen et al. 2020) as a reference dataset and a reference plant community for different nature types, and especially for different geographical and environenmetal regions of Norway. The dataset has a known bias towards south and eastern Norway, and may not reflect the natural plant communities equally well i the western and northern parts. 
 
 ### 5.2 Reported uncertainties
 For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
@@ -339,7 +341,7 @@ Ullerud HA, Bryn A, Halvorsen R, Hemsing LØ. Consistency in land-cover mapping:
 
 ### 7.1 Dataset A
 Import ANO testing data:
-First, download from  Miljødirektoratet...
+First, download from  Miljødirektoratet (downloaded spring 2026)...
 ```{r, eval = F, echo = F}
 # download 
 url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
@@ -1216,7 +1218,7 @@ for (i in 1:nrow(ANO.forest) ) {
   tryCatch({
     #print(i)
     #print(paste(ANO.forest$ano_flate_id[i]))
-    print(paste(ANO.forest$ano_punkt_id[i]))
+    #print(paste(ANO.forest$ano_punkt_id[i]))
     #    ANO.forest$Hovedoekosystem_sirkel[i]
     #    ANO.forest$Hovedoekosystem_rute[i]
     
@@ -1277,6 +1279,49 @@ ANO.forest <- ANO.forest %>%
 head(ANO.forest) %>%
       kable("html", caption = "ANO plots for ecosystems with scaled indicator values in the far-right columns.") %>% 
   kable_styling("striped") %>% scroll_box(width = "100%")
+```
+
+
+We can visualise the normalisation with a generic figure (@fig-norm).
+
+```{r fig-norm}
+#| fig-cap: 'A figure illustrating the normalisation process.The placement of the x60 values are arbitrary in this figure and does not give a representative picture of the relationship between the variable and indicator values.'
+
+var <- seq(0, 100, by = 0.5)
+var2 <- seq(101, 200, by = 0.5)
+
+ind <- ec_normalise(var, x0 = 0, x100 = 100, x60 = 50)
+ind2 <- ec_normalise(var2, x100 = 101, x0 = 200, x60 = 150)
+
+ec_norm_plot(
+  variable = c(var, var2),
+  indicator = c(ind, ind2)
+) +
+  scale_x_continuous(
+    breaks = c(0, 50, 100, 150, 200),
+    labels = c("lowest possible\nvalue", "2.5%", "50%", "97.5%", "highest possible\nvalue"),
+    expand = expansion(add = 30)
+  ) +
+    labs(x = "Variable values as percentiles of \nbootstrapped reference values")
+```
+
+```{r}
+#| eval: false
+#| include: false
+
+ec_norm_plot(
+  variable = c(var, var2),
+  indicator = c(ind, ind2)
+) +
+  scale_x_continuous(
+    breaks = c(0, 50, 100, 150, 200),
+    labels = c("lowest possible\nvalue", "2.5%", "50%", "97.5%", "highest possible\nvalue"),
+    expand = expansion(add = 30)
+  ) +
+    labs(x = "Variabelverdier som persentiler ift. \nbootstrappede referanse verdier",
+    y = "Indikatorverdi")
+
+ggsave(here::here("img/norm_plot.png"))
 ```
 
 #### Calculating national and regional indices
@@ -1397,7 +1442,7 @@ NO_FUMO_004_table <- tibble(
 NO_FUMO_004_table
 ```
 
-To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error as well as the dispersion parameter.
+To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error.
 ```{r}
 
 ## Norway
@@ -1444,6 +1489,19 @@ mu <- mu_draws_reg |>
 ```
 
 
+```{r tbl-results}
+#| tbl-cap: 'Indicator values and 95% confidence intervals fro NO_FUMO_004, calculated for Norwegian alpine ecosystems.'
+mu |>
+  group_by(part) |>
+  summarise(
+    indicator = mean(value),
+    low = round(quantile(value, probs = 0.025), 2),
+    high = round(quantile(value, probs = .975), 2)
+  ) |>
+    unite(col = "95% CI", c(low, high), sep = " - ") |>
+    gt::gt()
+```
+
 ## 11. Export file
 
 <!--# 
@@ -1460,7 +1518,7 @@ arrow::write_parquet(mu,"data/results_NO_FUMO_004.parquet")
 Demonstrating how to read back the data:
 
 ```{r readingBack}
-arrow::read_parquet("data/results_NO_FUMO_004.parquet")
+arrow::read_parquet(here::here("data/results_NO_FUMO_004.parquet"))
 ```
 
 ## 12. Author contributions
@@ -1484,7 +1542,6 @@ This part supplements the CRediT statement with more granularity for method sect
 
 **Study design**
 The study was designed by [JT].
-y [GH]. Sequencing was conducted by [IJ].
 
 **Data processing**
 Raw data were curated and cleaned by [JT and AK].
