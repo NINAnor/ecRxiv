@@ -96,7 +96,7 @@ conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
 pull<-dplyr::pull
-
+library(arrow)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -1207,12 +1207,16 @@ ANO.forest <- ANO.forest %>%
   ) %>%
   st_drop_geometry()
 
+ANO.forest <- ANO.forest |>
+  mutate(
+    kartleggingsenhet_1m2 = stringr::str_remove(kartleggingsenhet_1m2, "\\s.*$")
+  )
 
 for (i in 1:nrow(ANO.forest) ) {  
   tryCatch({
     #print(i)
     #print(paste(ANO.forest$ano_flate_id[i]))
-    #print(paste(ANO.forest$ano_punkt_id[i]))
+    print(paste(ANO.forest$ano_punkt_id[i]))
     #    ANO.forest$Hovedoekosystem_sirkel[i]
     #    ANO.forest$Hovedoekosystem_rute[i]
     
@@ -1341,14 +1345,54 @@ The model estimates and standard errors are on a logit scale, but we can calcula
 ```{r}
 
 NO_FUMO_004_table <- tibble(
-  Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
-  indicator_value = c(plogis(summary(Moisture.no)$coef$cond[,1]), plogis(summary(Moisture.re)$coef$cond[,1])),
-  CI_upper = c(plogis(summary(Moisture.no)$coef$cond[,1]+1.96*summary(Moisture.no)$coef$cond[,2]), plogis(summary(Moisture.re)$coef$cond[,1]+1.96*summary(Moisture.re)$coef$cond[,2])),
-  CI_lower = as.numeric(plogis(summary(Moisture.no)$coef$cond[,1]-1.96*summary(Moisture.no)$coef$cond[,2]), plogis(summary(Moisture.re)$coef$cond[,1]-1.96*summary(Moisture.re)$coef$cond[,2])),
-  upper_indicator_value = c(plogis(summary(Moisture2.no)$coef$cond[,1]), plogis(summary(Moisture2.re)$coef$cond[,1])),
-  n_upper_indicator_value = c(summary(Moisture2.no)$nobs,as.vector(table(Moisture2.re$frame$region))),
-  lower_indicator_value = c(plogis(summary(Moisture1.no)$coef$cond[,1]), plogis(summary(Moisture1.re)$coef$cond[,1])),
-  n_lower_indicator_value = c(summary(Moisture1.no)$nobs,as.vector(table(Moisture1.re$frame$region)))
+  Region = c(
+    "Norway",
+    "Central Norway",
+    "Eastern Norway",
+    "Northern Norway",
+    "Southern Norway",
+    "Western Norway"
+  ),
+  indicator_value = c(
+    plogis(summary(Moisture.no)$coef$cond[, 1]),
+    plogis(summary(Moisture.re)$coef$cond[, 1])
+  ),
+  CI_upper = c(
+    plogis(
+      summary(Moisture.no)$coef$cond[, 1] +
+        1.96 * summary(Moisture.no)$coef$cond[, 2]
+    ),
+    plogis(
+      summary(Moisture.re)$coef$cond[, 1] +
+        1.96 * summary(Moisture.re)$coef$cond[, 2]
+    )
+  ),
+  CI_lower = as.numeric(
+    plogis(
+      summary(Moisture.no)$coef$cond[, 1] -
+        1.96 * summary(Moisture.no)$coef$cond[, 2]
+    ),
+    plogis(
+      summary(Moisture.re)$coef$cond[, 1] -
+        1.96 * summary(Moisture.re)$coef$cond[, 2]
+    )
+  ),
+  upper_indicator_value = c(
+    plogis(summary(Moisture2.no)$coef$cond[, 1]),
+    plogis(summary(Moisture2.re)$coef$cond[, 1])
+  ),
+  n_upper_indicator_value = c(
+    summary(Moisture2.no)$nobs,
+    as.vector(table(Moisture2.re$frame$region))
+  ),
+  lower_indicator_value = c(
+    plogis(summary(Moisture1.no)$coef$cond[, 1]),
+    plogis(summary(Moisture1.re)$coef$cond[, 1])
+  ),
+  n_lower_indicator_value = c(
+    summary(Moisture1.no)$nobs,
+    as.vector(table(Moisture1.re$frame$region))
+  )
 )
 NO_FUMO_004_table
 ```
@@ -1363,16 +1407,10 @@ se_b0 <- sqrt(vcov(Moisture.no)$cond["(Intercept)", "(Intercept)"])
 # Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
 phi <- sigma(Moisture.no)
 
+
 # draw estimates and backtransform from logit-scale
 eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
 mu_draws  <- plogis(eta_draws)
-
-# draw from beta distribution to consider the dispersion parameter 
-Moisture.no_sim <- rbeta(
-  n = 1000,
-  shape1 = mu_draws * phi,
-  shape2 = (1 - mu_draws) * phi
-)
 
 
 ## regions
@@ -1380,45 +1418,29 @@ b_re <- fixef(Moisture.re)$cond
 vc_re <- vcov(Moisture.re)$cond
 phi <- sigma(Moisture.re)
 
-eta_draws <- MASS::mvrnorm(
+eta_draws_reg <- MASS::mvrnorm(
   n = 1000,
   mu = b_re,
   Sigma = vc_re
 )
 
-mu_draws <- plogis(eta_draws)
+mu_draws_reg <- plogis(eta_draws_reg)
 
-Moisture_re_sim <- do.call(
-  rbind,
-  lapply(seq_along(b_re), function(i) {
-    
-    region <- names(b_re)[i]
-    mu_i <- mu_draws[, i]
-    
-    sim <- rbeta(
-      n = 1000,
-      shape1 = mu_i * phi,
-      shape2 = (1 - mu_i) * phi
-    )
-    
-    data.frame(
-      region = region,
-#      draw = 1:10,
-#      eta = eta_draws[, i],
-#      mu = mu_i,
-#      dispersion = phi,
-      sim = sim
-    )
-  })
-)
-
-Moisture_re_sim$region <- sub("^region", "", Moisture_re_sim$region)
-
-Moisture_re_sim
 
 # combining Moisture_no_sim and Moisture_re_sim
-NO_FUMO_004_sim <- rbind(data.frame(region = 'Norway', sim = Moisture.no_sim), Moisture_re_sim)
-
+mu <- mu_draws_reg |>
+  as_tibble() |>
+  add_column(Norway = mu_draws) |>
+  pivot_longer(everything(), names_to = "part") |>
+  mutate(part = case_when(
+    part == "regionCentral.Norway" ~ "C",
+    part == "regionEastern.Norway" ~ "E",
+    part == "regionNorthern.Norway" ~ "N",
+    part == "regionWestern.Norway" ~ "W",
+    part == "regionSouthern.Norway" ~ "S",
+    .default = part
+  )) |>
+    add_column(year = "2024")
 ```
 
 
@@ -1432,29 +1454,28 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 
 ```{r export}
 #| eval: false
+arrow::write_parquet(mu,"data/results_NO_FUMO_004.parquet")
 ```
 
+Demonstrating how to read back the data:
+
+```{r readingBack}
+arrow::read_parquet("data/results_NO_FUMO_004.parquet")
+```
 
 ## 12. Author contributions
 
-<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+
 
 **CRediT statement**
 
 * Conceptualization: [JT]
 * Methodology: [JT]
-* Data curation: [JT]
+* Data curation: [JT, ALK]
 * Formal analysis: [JT]
 * Investigation: [JT]
-* Software: [Initials]
-* Validation: [Initials]
-* Visualization: [Initials]
-* Resources: [Initials]
-* Writing – original draft: [JT]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+
+
 
 
 **MeRIT attribution**
@@ -1462,25 +1483,20 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 This part supplements the CRediT statement with more granularity for method section.
 
 **Study design**
-The study was designed by [AB, CD].
-
-**Data collection / fieldwork**
-Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
-
-**Laboratory procedures**
-DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
+The study was designed by [JT].
+y [GH]. Sequencing was conducted by [IJ].
 
 **Data processing**
-Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
+Raw data were curated and cleaned by [JT and AK].
 
 **Statistical analysis**
-All analyses were conducted by [CD] using [software], with verification by [AB].
+All analyses were conducted by [JT] , with verification and minor edits by [AK].
 
 **Visualization**
-Figures were produced by [KL], with input from [CD].
+Figures were produced by [AK].
 
 **Reproducibility**
-All code was reviewed and validated by [AB, CD].
+All code was reviewed and validated by [AK].
 
 
 
@@ -1488,12 +1504,6 @@ All code was reviewed and validated by [AB, CD].
 ## Session Info
 <!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
 
-This information is mainly aimed at developers that need to recreate the R environment that produced the html.
-Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
-
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
-```
+This workflow uses renv. Run `renv::restore()` to get started.
 
 :::
