@@ -44,7 +44,7 @@ VersionComment: separate code for mountain ecosystem. Revised reference values. 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ALIE_002
 # To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+SpatialAggregationPathway: Scale/Truncate - Aggregate (ordered beta-regression) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
 Precision: 95% confidence intervals for the indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
 format: 
   html:
@@ -303,7 +303,7 @@ Uncertainties relate partly to sampling and observer variability (and possible o
 Spatial variability as a source of descriptive uncertainty can be quantified.
 
 ### 5.2 Reported uncertainties
-For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
+For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (ordered beta-regression).
 
 ## 6. References
 Artsdatabanken (2023, 11. august). Fremmede arter i Norge - med økologisk risiko 2023. http://www.artsdatabanken.no/lister/fremmedartslista/2023.
@@ -433,7 +433,7 @@ summary(ANO.mount$alien_res)
 
 #### Calculating national and regional indices
 
-We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
+We can calculate national and region-wise indicator values using a mixed-effects, ordered beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the ordered beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
 The uncertainty around the national and region indicator values is derived from the same statistical model.
 The national and regional estimates are computed separately.
 
@@ -533,7 +533,7 @@ alien_re_sim <- do.call(
 
 alien_re_sim$region <- sub("^region", "", alien_re_sim$region)
 
-alien_re_sim
+head(alien_re_sim)# shorter view
 
 # combining alien_no_sim and alien_re_sim
 NO_ALIE_002_sim <- rbind(data.frame(region = 'Norway', sim = alien.no_sim), alien_re_sim)
@@ -545,7 +545,7 @@ NO_ALIE_002_sim <- rbind(data.frame(region = 'Norway', sim = alien.no_sim), alie
 
 <!--# 
 
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large spatial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
 
 -->
 
@@ -553,7 +553,7 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 #| eval: false
 
 # write to parquet using arrow 
-write.parquet(NO_ALIE_002_sim,"data/ NO_ALIE_002_sim.parquet")
+arrow::write_parquet(NO_ALIE_002_sim,"data/NO_ALIE_002_sim.parquet")
 
 ```
 
