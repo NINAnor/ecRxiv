@@ -1,11 +1,13 @@
 ---
-title: "Alien coniferous tree species"
+title: "Alien conifers"
 subtitle: |
   NO_AATS_002
 indicatorID: 
   - NO_AATS_002
 indicatorName: 
-  - Alien coniferous tree species # add more by adding another line starting '-'
+  - Alien conifers # add more by adding another line starting '-'
+verbatimName: 
+  - Fremmede bartrær
 folderName: NO_AATS_002
 country: Norway
 continent: Europe
@@ -15,7 +17,11 @@ Realm:
 Biome: 
   - T2 Temperate-boreal forests and woodlands biome # e.g. F1 Rivers and streams biome
 Ecosystem: 
-  - T2.1 Boreal/montane forests # e.g. F1.3 Freeze-thaw streams
+  - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests
+verbatimEcosystem: 
+  - T2.1.2 Boreal/subalpin skog
+  - T2.2.2 Temperert edellauvskog
 yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
@@ -25,7 +31,8 @@ url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_AATS_002
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
 SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
-format: 
+Precision: Approximate 95% bootstrap interval (2.5th–97.5th percentile of 1000 bootstrap draws) as inferential uncertainty around the point estimate (median). At county or sub-county level, bootstrapping is applied directly to NFI plot data; at regional and national level, uncertainty is propagated from scaled county bootstrap draws.
+format:
   html:
     embed-resources: true
     code-fold: true
@@ -169,18 +176,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -193,7 +203,8 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - 26 Oct. 2025 - Original PR
 - 11 May. 2026 - Updated version to new template
-- 8 Jun. 2026 - Change indicator from absence to share of alien coniferous tree species; national refs X0 = 50%, X100 = 0%; ecTools workflow
+- 8 Jun. 2026 - Change indicator from absence to share of alien coniferous tree species; national refs _X~0~_ = 50%, _X~100~_ = 0%; ecTools workflow
+- 2 Jul. 2026 - Finalize text and references
 :::
 
 
@@ -209,31 +220,31 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 
 1. **Background and rationale**:
 
-Many non-native or alien tree species are considered to have a high or very high risk for native forest ecosystems.
-Intact ecosystems should not contain alien coniferous tree species of high ecological risk.
-This indicator is specified as the percentage share of alien coniferous tree species in the forest stand.
-Alien coniferous species represent the most abundant alien tree species considered to have a high ecological risk by @artsdatabanken2023-fremmedartslista.
-Data for this indicator come from the National Forest Inventory (NFI), where all trees larger than 5 cm at breast height (dbh) have been recorded within the 250 m² NFI plots since the mid-1980s (@viken2021-feltinstruks).
-The planting of alien tree species in forestry is the most important anthropogenic driver for this indicator.
+Many non-native or alien tree species are considered to have a high ecological risk for native forest ecosystems.
+Intact ecosystems should not contain non-native or alien coniferous tree species. 
+This indicator is specified as the percentage share of alien coniferous tree species in the forest, and represents the non-native tree species considered to have an ecological risk [@artsdatabanken2023-fremmedartslista].
+Data for this indicator come from the National Forest Inventory (NFI), where all trees larger than 5 cm at breast height (dbh) have been recorded within the 250 m² NFI plots since ca. 1990 (@viken2025-feltinstruks).
+The planting of non-native tree species in forestry is the most important anthropogenic driver for this indicator. 
 
 2. **Methods**:
 
 All trees larger than 5 cm at breast height (dbh) are recorded and identified to species for each 250 m² NFI inventory plot.
 There are about 12,000 NFI plots in forest ecosystems, distributed on a regular grid, sampled over a 5-year period with a representative sampling scheme every year.
-For each reporting period, the indicator is the area-weighted mean percentage of alien coniferous species across NFI plots in the selected geographic unit.
-The share is derived from NFI variables for introduced Norway spruce and Scots pine.
-Results are calculated for rolling 5-year periods (2010–2014, 2015–2019, 2020–2024) and scaled to 0–1 against national reference levels.
+For each reporting period, the indicator is the area-weighted mean percentage tree dominance of alien coniferous species across NFI plots in the selected geographic unit.
+The share is derived from NFI variables for non-native *Picea spp*. , *Abies spp.* and *Pinus spp.*.
+Within selected municipalities (along the coast) where Norway spruce (*Picea abies*) is considered non-native (following [@oyen-nygaard-2020-gran]), this species is also included in the share of non-native trees.
+Results are calculated for 5-year periods (2010–2014, 2015–2019, 2020–2024) and scaled to 0–1 against national reference levels.
 
 3. **Interpretation**:
 
-An indicator value of 1 corresponds to 0% alien coniferous species (best condition, X100).
-An indicator value of 0 corresponds to 50% or more alien coniferous species (worst condition, X0).
+An indicator value of 1 corresponds to 0% alien coniferous species (_X~100~_).
+An indicator value of 0 corresponds to 50% or more alien coniferous species (_X~0~_).
 Values between 0 and 1 reflect intermediate shares on a linear scale between the national reference levels.
-The relationship between indicator values and ecosystem condition is assumed to be linear at this stage.
+The relationship between indicator values and ecosystem condition is assumed to be linear. 
 
 4. **Results and development needs**:
 
-At national level, scaled indicator values are high and close to the upper reference in all three reporting periods (@sec-results, @tbl-aats-national-results).
+At national level, scaled indicator values are high and close to the upper reference in all three reporting periods.
 The national median is 0.97 in all three periods (approximate 95% interval 0.97–0.97).
 These values correspond to a low area-weighted mean share of alien coniferous species nationally (about 1.5–1.6%).
 The indicator is ready for use but should not be used at finer spatial resolution than counties.
@@ -242,22 +253,22 @@ Development needs include refinement of the relationship between indicator value
 ### 1.2 Native language summary - Norwegian
 
 **Bakgrunn og begrunnelse**:
-Fremmede treslag kan utgjøre en høy eller svært høy risiko for naturlige skogøkosystemer.
-Intakte økosystemer bør ikke inneholde fremmede bartrær med høy økologisk risiko.
-Indikatoren er angitt som andel (%) fremmede bartrær i bestanden, basert på innført gran og furu i NFI.
+Fremmede treslag kan utgjøre en risiko for naturlige skogøkosystemer.
+Intakte økosystemer inneholder ikke fremmede bartreslag.  
 
 **Metoder**:
-For hver rapporteringsperiode beregnes arealvektede gjennomsnitt for fylker, regioner og nasjonalt nivå med `au_areal`.
-Verdiene skaleres lineært mot nasjonale referansenivå.
+Indikatoren er angitt som andel (%) fremmede bartrær i Landsskogtakseringens prøveflater, der alle trær ≥5 cm er registrert siden ca. 1990., basert på LSKs variabler for innførte gran- og furu-treslag (`intro_gran_pr`og `intro_furu_pr`).
+I utvalgte kommuner langs kysten der vanlig gran er ansett som ikke naturlig forekommende (ihht. [@oyen-nygaard-2020-gran]) inngår også gran (*Picea abies*) i indikatoren.
+For hver rapporteringsperiode beregnes arealvektede gjennomsnitt for fylker, regioner og nasjonalt nivå med au_al. Verdiene skaleres lineært mot nasjonale referansenivå. 
 
 **Tolkning**:
-Indikatorverdi 1 tilsvarer 0 % fremmede bartrær (X100).
-Indikatorverdi 0 tilsvarer 50 % eller mer fremmede bartrær (X0).
+Indikatorverdi 1 tilsvarer 0 % fremmede bartrær (_X~100~_).
+Indikatorverdi 0 tilsvarer 50 % eller mer fremmede bartrær (_X~0~_). 
 
 **Resultater og utviklingsbehov**:
 På nasjonalt nivå er de skalerte indikatorverdiene høye og nær øvre referansenivå i alle tre rapporteringsperioder.
-Medianverdien er 0,97 i alle tre perioder (omtrentlig 95 %-intervall ca. 0,97–0,97).
-Dette tilsvarer en lav arealvektet andel fremmede bartrær nasjonalt (omtrent 1,5–1,6 %).
+Medianverdien er 0.97 i alle tre perioder (omtrentlig 95 %-intervall ca. 0.97–0.97).
+Dette tilsvarer en lav arealvektet andel fremmede bartrær nasjonalt (omtrent 1.5–1.6 %).
 Over tid er den nasjonale utviklingen i praksis stabil.
 Indikatoren er klar til bruk, men bør ikke brukes på finere oppløsning enn fylker.
 
@@ -265,22 +276,23 @@ Indikatoren er klar til bruk, men bør ikke brukes på finere oppløsning enn fy
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Data are available from 2000, when the underlying variables (`gran_pr`, `intro_gran_pr`, `intro_furu_pr`, `komm_m_nat_gran`) were first recorded.
+Data are available from 2010, when the NFI grid was extended to all forest land.
 Annual estimates are possible due to representative sampling every year.
-The analyses use rolling 5-year reporting periods from 2010 onward (2010-2014, 2015-2019, and 2020-2024).
+The analyses use 5-year reporting periods from 2010 onwards (2010-2014, 2015-2019, and 2020-2024).
 The data are representative for all forest land within the selected region.
-Spatial resolution should be limited to counties.
+Spatial resolution should be limited to counties. 
 
 ### 2.2 Sampling design
 
-All trees larger than 5 cm at breast height (dbh) are recorded and identified to species for each 250 m² NFI inventory plot (@viken2021-feltinstruks).
+All trees larger than 5 cm at breast height (dbh) are recorded and identified to species for each 250 m² NFI inventory plot (@viken2025-feltinstruks).
 There are about 12,000 NFI plots in forest ecosystems, distributed on a regular grid, with varying coverage for forest below/above the coniferous forest line and in Finnmark county.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
 
 ### 2.3 Original units
 
-The indicator is specified as the percentage share of alien coniferous species, derived from the percentage volume (cutting class 3–5) or crown cover (cutting class 2) of introduced Norway spruce and Scots pine (NFI variables `intro_gran_pr`, `intro_furu_pr`).
-At plot level this is a percentage (0–100); aggregated values are area-weighted means of that percentage.
+The indicator is specified as the percentage share of alien coniferous species, derived from the percentage of the volume (cutting class 3–5) or crown cover (cutting class 2) of introduced coniferous tree species (NFI variables `intro_gran_pr`, `intro_furu_pr`).
+Within selected municipalities (along the coast) where Norway spruce (*Picea abies*) is considered non-native (`komm_m_nat_gran`), this species is also included in the percentage.
+At plot level this is a percentage (0–100); aggregated values are area-weighted means of that percentage. 
 
 ### 2.4 Instructions for citing, using and accessing data
 
@@ -291,33 +303,27 @@ Further use of these data requires a separate data user agreement with NIBIO.
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-The share of alien coniferous tree species is considered ...
-Hence, this indicator represents a B2 Structural state characteristics.
+B2 Structural state characteristics.
 
 ### 3.2 Ecosystem condition characteristic
 
-The share of alien coniferous tree species is considered an aspect of the composition of biodiversity.
-The indicator represents a characteristic of Biodiversity.
-
 ### 3.3 Collinearities with other indicators
 
-There may be some positive correlation with indicators for alien plant species in the field layer, although those indicators use different data and spatial support.
+There may be some positive correlation with the indicator for alien plant species in the field layer, although this indicators use other data and sampling design. 
 
 ### 3.4 Impact factors
 
-Natural disturbances and long-term shifts in climate conditions may increase the opportunity for alien species to spread and get established in otherwise intact forest ecosystems.
-The planting of alien tree species in forestry is the most important anthropogenic driver for this indicator, although such planting has been reduced lately.
-Harvested alien tree species may to some extent be replaced by native species.
-Other planting of exotic trees in parks, gardens, as windbreaks etc will establish a source of such species that may spread into forest ecosystems.
-Disturbances associated with forestry and other land use will also facilitate the natural establishment of alien species.
-Human-induced climate change will also facilitate the spread and establishment of alien species.
+The planting of alien tree species in forestry is the most important anthropogenic driver for this indicator, although such planting has been reduced last decades.
+Harvested alien tree species may to some extent be replaced by native species. 
+Natural disturbances and long-term shifts in climate conditions may increase the possibility for alien species to spread and establish in other ecosystems.
+Planting of exotic trees in parks, gardens etc. will establish a source of such species that might spread into forest ecosystems.  
 
 ### 3.5 Spatial aggregation
 
 The spatial aggregation pathway is Aggregate (NFI plots to county) – [Scale – Truncate] – Aggregate (geographic region) – Aggregate (national level).
 For each reporting period, non-scaled values for county, region, and Norway are obtained by pooling all included forest plots in the unit: the area-weighted mean of the plot-level alien coniferous share (%).
 Where NFI county labels are split into parts, those labels are merged to a single county name before aggregation.
-Scaling and truncation are applied after non-scaled county aggregates have been calculated: each county is scaled against the national lower reference level X0 (50% alien conifers) and upper reference level X100 (0% alien conifers) using a linear scaling function, and values outside [0, 1] are truncated at that step.
+Scaling and truncation are applied after non-scaled county aggregates have been calculated: each county is scaled against the national lower reference level _X~0~_ (50% alien conifers) and upper reference level _X~100~_ (0% alien conifers) using a linear scaling function, and values outside [0, 1] are truncated at that step.
 Regional and national scaled point estimates are area-weighted means of the already scaled county values, using each county's represented area as weight.
 The indicator is likely to have a high frequency of NFI plots without any recorded alien coniferous species, so results should not be interpreted at finer resolution than counties.
 
@@ -329,16 +335,17 @@ The reference condition is considered to be intact forest ecosystems, where effe
 
 ### 4.2 Reference levels
 
-Intact forest ecosystems should not have alien coniferous tree species.
-The upper reference value (X~100~) is therefore 0% alien coniferous species (best condition).
-The lower reference value (X~0~) is set to 50% alien coniferous species (worst condition).
-The same X0 and X100 are applied when scaling each county before regional and national aggregation.
-For lack of better knowledge, a linear relationship is assumed between X0 and X100.
-Hence, indicator values are scaled between 0 and 1 based on a linear scaling function; scaled indicator values outside [0, 1] are truncated at scaling.
+Intact forest ecosystems do not have alien coniferous tree species.
+The upper reference value (_X~100~_) is therefore 0% alien coniferous species.
+The lower reference value (_X~0~_) is set to 50% alien coniferous species.
+The _X~0~_ value of 50% relates to the Natur-i-Norge definitions of the difference between [NA-TB01](https://artsdatabanken.no/naturtyper/natur-i-norge/NIN-3.0-T-C-PE-NA-MB-A-TB01) (Fastmarksskogsmark) and [NA-TI01](https://artsdatabanken.no/naturtyper/natur-i-norge/NIN-3.0-T-C-PE-NA-MB-A-TI01) (Klart endret skogsmark).
+The same _X~0~_ and _X~100~_ are applied when scaling each county before regional and national aggregation.
+For lack of better knowledge, a linear relationship is assumed between _X~0~_ and _X~100~_.
+Hence, indicator values are scaled between 0 and 1 based on a linear scaling function; scaled indicator values outside [0, 1] are truncated at scaling. 
 
 #### 4.2.1 Spatial resolution and validity
 
-Reference levels are defined as one national value for alien coniferous share (%).
+Reference levels are defined as one national value for alien coniferous share (0%).
 Although indicator values from NFI plots may technically be aggregated at finer spatial units than counties, scaling at such finer levels may result in biases.
 
 
@@ -353,7 +360,7 @@ These uncertainties are not quantified.
 
 The uncertainties reported in @sec-results are inferential and refer to uncertainty around the point estimates, not to the full spatial variation among NFI plots.
 For each reporting period, non-scaled indicator values are bootstrapped by resampling NFI plots with replacement within each county and recalculating the area-weighted mean alien coniferous share.
-For scaled county values, bootstrap draws are transformed using the same national reference levels X0 and X100 as the point estimates (truncation at scaling).
+For scaled county values, bootstrap draws are transformed using the same national reference levels _X~0~_ and _X~100~_ as the point estimates (truncation at scaling).
 For scaled regional and national values, uncertainty is propagated from the scaled county bootstrap draws.
 The resulting distributions are summarised with median and quantile intervals.
 
@@ -367,7 +374,7 @@ The resulting distributions are summarised with median and quantile intervals.
 
 ### 7.1 Alien coniferous tree species
 
-All trees larger than 5 cm dbh are recorded and identified for each 250 m² NFI plot according to methods described in (@viken2021-feltinstruks).
+All trees larger than 5 cm dbh are recorded and identified for each 250 m² NFI plot according to methods described in (@viken2025-feltinstruks).
 For this indicator, data for the NFI variables `gran_pr`, `intro_gran_pr`, `intro_furu_pr`, and `komm_m_nat_gran` are used for the reporting periods defined in section 9.1.
 Plots with missing species-percentage values are included in aggregated estimates with 0% share and full plot area weight.
 Aggregated area-weighted data must be used for appropriate spatial units such as counties, regions or the whole country.
@@ -536,30 +543,36 @@ county_draws_long <- purrr::imap_dfr(aats_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-aats-county-nonscaled) summarises non-scaled bootstrap draws for all reporting periods: the median area-weighted alien coniferous share per county.
+The table below (@tbl-aats-county-nonscaled) shows the direct area-weighted mean alien coniferous share per county for all reporting periods, with approximate 95% bootstrap confidence intervals (2.5th–97.5th percentile of 1000 draws). Use the search box and page controls to browse rows.
 
 ```{r tbl-aats-county-nonscaled}
-#| tbl-cap: "Non-scaled alien coniferous tree species share (%) by county for all reporting periods (median of 1000 bootstrap draws)."
+#| tbl-cap: "Non-scaled alien coniferous tree species share (%) by county for all reporting periods. Point estimate is the direct area-weighted mean from section 9.2; 95% CI is derived from 1000 bootstrap draws."
 #| echo: false
 
 county_draws_long |>
   dplyr::group_by(period, fylke_name, region_code, total_area) |>
   dplyr::summarise(
-    non_scaled_median = median(non_scaled_value),
+    ci_low  = round(quantile(non_scaled_value, 0.025), 2),
+    ci_high = round(quantile(non_scaled_value, 0.975), 2),
     .groups = "drop"
   ) |>
   dplyr::left_join(
     aats_results_county_all_periods |>
-      dplyr::select(period, fylke_name, n_plots),
+      dplyr::select(period, fylke_name, n_plots, indicator_value),
     by = c("period", "fylke_name")
   ) |>
-  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+  dplyr::mutate(
+    region_name = assign_region_name(region_code),
+    mean_pct = round(indicator_value, 2),
+    `95% CI` = paste0(ci_low, " – ", ci_high)
+  ) |>
   dplyr::arrange(period, region_code, fylke_name) |>
   dplyr::select(
     Period = period,
     County = fylke_name,
     Region = region_name,
-    `Non-scaled value (%)` = non_scaled_median,
+    `Mean (%)` = mean_pct,
+    `95% CI`,
     `Total area (ha)` = total_area,
     `Number of plots` = n_plots
   ) |>
@@ -569,7 +582,7 @@ county_draws_long |>
     locations = gt::cells_column_labels()
   ) |>
   gt::fmt_number(
-    columns = `Non-scaled value (%)`,
+    columns = `Mean (%)`,
     decimals = 2
   ) |>
   gt::fmt_number(
@@ -588,7 +601,7 @@ county_draws_long |>
 
 ### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-aats-reference-values}
 
-National reference levels are X0 = 50% alien coniferous species (worst condition) and X100 = 0% alien coniferous species (best condition).
+National reference levels are _X~0~_ = 50% alien coniferous species (worst condition) and _X~100~_ = 0% alien coniferous species (best condition).
 
 ```{r aats-reference-values}
 #| code-summary: "National reference levels"
@@ -598,7 +611,7 @@ x100 <- 0
 
 ```
 
-Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, X0 = 50%, X100 = 0%; truncation at scaling).
+Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, _X~0~_ = 50%, _X~100~_ = 0%; truncation at scaling).
 @fig-aats-norm shows the mapping.
 
 ```{r aats-county-draws-scaled}
@@ -635,7 +648,7 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
 ```
 
 ```{r fig-aats-norm}
-#| fig-cap: "Linear normalisation of alien coniferous tree species share (%) to indicator values (0–1), using national reference levels X0 = 50% and X100 = 0%. Points are 500 sampled bootstrap draws, pooled across all reporting periods."
+#| fig-cap: "Linear normalisation of alien coniferous tree species share (%) to indicator values (0–1), using national reference levels _X~0~_ = 50% and _X~100~_ = 0%. Points are 500 sampled bootstrap draws, pooled across all reporting periods."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
 #| fig-height: 5
@@ -837,7 +850,7 @@ truncated_values <- truncation_summary |>
 
 ```
 
-At county level, truncation is evaluated by comparing the non-scaled point estimate to X0 (50%).
+At county level, truncation is evaluated by comparing the non-scaled point estimate to _X~0~_ (50%).
 At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
 
 ```{r aats-report-truncation}
@@ -890,7 +903,7 @@ if (nrow(truncated_values) > 0) {
       decimals = 1
     )
 } else {
-  cat("\nNo values exceeded X0 (50%) and required truncation.\n")
+  cat("\nNo values exceeded _X~0~_ (50%) and required truncation.\n")
 }
 
 ```
@@ -967,14 +980,14 @@ ggplot2::ggplot(
 
 The following tables present scaled indicator results at county, regional, and national scales for each reporting period.
 Tables report the median as the indicator value, with an approximate 95% interval (2.5% and 97.5% quantiles) and an approximate interquartile range (25% and 75% quantiles).
-All scaled values are on a 0–1 scale, where 0 corresponds to X0 (50% alien coniferous share) and 1 corresponds to X100 (0% alien coniferous share).
+All scaled values are on a 0–1 scale, where 0 corresponds to _X~0~_ (50% alien coniferous share) and 1 corresponds to _X~100~_ (0% alien coniferous share).
 
 ### 10.1 County-level results (scaled with uncertainty)
 
 Use the search box and page controls in @tbl-aats-county-results to browse county rows across all reporting periods.
 
 ```{r tbl-aats-county-results}
-#| tbl-cap: 'County indicator values for alien coniferous tree species by reporting period. Values are scaled to 0–1 using national X0 and X100. Uncertainty is derived from 1000 bootstrap draws. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
+#| tbl-cap: 'County indicator values for alien coniferous tree species by reporting period. Values are scaled to 0–1 using national _X~0~_ and _X~100~_. Uncertainty is derived from 1000 bootstrap draws. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
 #| echo: false
 
 county_scaled_with_uncertainty |>
@@ -1133,20 +1146,14 @@ write.csv(
 
 **CRediT statement**
 
-* Conceptualization: [EF, KOS]
+* Conceptualization: [EF, KOS, UJA]
 * Methodology: [EF, KOS]
 * Data curation: [OS]
 * Formal analysis: [AHH]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [AHH, OS]
-* Visualization: [Initials]
-* Resources: [Initials]
-* Writing – original draft: [Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+* Validation: [AHH, KOS]
+* Visualization: [AHH]
+* Writing – original draft: [All]
+* Writing – review & editing: [All]
 
 
 **MeRIT attribution**
