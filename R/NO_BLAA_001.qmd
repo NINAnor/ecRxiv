@@ -1,11 +1,13 @@
 ---
-title: "Bilberry cover by area"
+title: "Bilberry cover"
 subtitle: |
   NO_BLAA_001  
 indicatorID: 
   - NO_BLAA_001
 indicatorName: 
-  - NO_BLAA
+  - Bilberry cover
+verbatimName: 
+  - Blåbærdekning
 folderName: NO_BLAA
 country: Norway
 continent: Europe
@@ -16,6 +18,10 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests
+verbatimEcosystem: 
+  - T2.1.2 Boreal/subalpin skog
+  - T2.2.2 Temperert edellauvskog
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
@@ -24,6 +30,7 @@ VersionComment: Initial version # Describe briefly how this version differs from
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BLAA_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (NFI plots to county/sub-county) - Scale - Aggregate (geographic region) - Aggregate (national level) - Truncate
+Precision: Approximate 95% interval (2.5th–97.5th percentile of 1000 draws) as inferential uncertainty around the point estimate (median). At county or sub-county level, draws are obtained by bootstrapping NFI plots and linear scaling without truncation. At regional and national level, uncertainty is propagated from scaled county bootstrap draws; each Monte Carlo replicate is truncated to 0–1 after area-weighted aggregation before summarising the distribution.
 format: 
   html:
     embed-resources: true
@@ -35,20 +42,28 @@ format:
 execute: 
   cache: true
 author:
-  - name: Ken Olav Storaunet
+  - name: Aud Helen Halbritter
     affiliations:
-      - name: Norwegian Institute of Bioeconomy Research
+      - name: University of Bergen
+  - name: Ulrika Jansson Asplund
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Katrine Eldegard
+    affiliations:
+      - name: Norwegian University of Life Sciences
+  - name: Erik Framstad
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Mari Jönsson
+    affiliations:
+      - name: Norwegian Institute for Nature Research
   - name: Oliver Snoksrud
     affiliations:
       - name: Norwegian Institute of Bioeconomy Research
-  - name: Aud Helen Halbritter
+  - name: Ken Olaf Storaunet
     affiliations:
-      - name: University of Bergen 
-  - name: Erik Framstad
-    email: erik.framstad@nina.no
-    affiliations:
-      - name: Norwegian Institute for Nature Research
-AuthorList: Storaunet, K. O., Snoksrud, O., Halbritter, A. H., and Framstad, E. 
+      - name: Norwegian Institute of Bioeconomy Research
+AuthorList: Halbritter, A. H., Jansson Asplund, U., Eldegard, K., Framstad, E., Jönsson, M., Snoksrud, O., and Storaunet, K. O. 
 date: May 7, 2026
 data_availability: bronze
 code_reproducibility: gold
@@ -165,18 +180,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -188,6 +206,8 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 07 May. 2026 - Original PR
+- 20 May. 2026 - Change truncation and use ecTools
+- 02 July. 2026 - Updated text and references
 :::
 
 
@@ -202,61 +222,78 @@ Bilberry (*Vaccinium myrtillus*) is a widely distributed key component of boreal
 It provides structure to the field layer and important food resources for a wide range of invertebrates, birds and mammals.
 It is particularly associated with mature, moderately moist forests with intermediate crown cover, which is typical for much of intact forests under natural dynamics.
 Hence, the cover (%) of bilberry plants is positively associated with ecosystem condition. 
+Data for this indicator come from the National Forest Inventory (NFI), where bilberry cover has been recorded (with current methods) for each NFI plot since 2008.
+The recorded mean cover of bilberries is compared to reference values for NFI regions, based on expert assessments.
+Higher indicator values indicate that bilberry cover is closer to the expected reference condition. 
 
 2. **Methods**:
-Data for this indicator come from the National Forest Inventory (NFI), where bilberry cover has been recorded (with current methods) for each NFI plot since 2008.
-Data are combined for each full inventory cycle of 5 years, starting with 2010, with the last available period covering data from 2020-2024.
-The recorded mean cover of bilberries is compared to reference values for regions, based on expert assessments supported by data on bilberry cover from NFI plots with near-intact conditions, regional distribution of dominating tree species, and general assessments of natural forest dynamics.
-The indicator is equivalent to the same indicator used in the Norwegian Nature Index.
-The indicator is ready for use.
-The indicator should not be used at finer spatial resolution than applied to reference values (regions).
+For each NFI plot, the value for the cover of bilberries is taken from the NFI variable `blaabaer_gjsn` (%).
+Results are calculated for sequential 5-year periods from 2010 and aggregated with area weights to county or sub-county, regional and national units.
+The indicator value for each county or sub-county is scaled against its specific reference level before regional and national values are calculated as area-weighted means of scaled county values.
 
 3. **Interpretation**:
 An indicator value of 1 signifies that the bilberry cover is at least as extensive as expected in the reference condition.
-Values decreasing towards zero reflect a deteriorating condition towards complete lack of bilberry plants.
+Values decreasing towards zero reflect a deteriorating condition towards complete lack of bilberry plants. 
 
 4. **Results and development needs**:
-For the current reporting period (2020-2024) the indicator value is 0.88, with a somewhat lower values for region West (0.76).
-The indicator value increases over time nationally and for all regions, except for a low decline (from a high value) in region South since the previous period.
-There are no specific development needs, except for a possible review of reference values and the scaling function.
+For the current reporting period (2020-2024) the national indicator value is 0.88, with somewhat lower value for region West (0.76).
+The indicator values increase over time nationally and for all regions, except for a low decline (from a high value) in region South since the previous period.
+There are no specific development needs for the indicator measure.
+However more thorough analyses and review of the assessment of reference values and the scaling function is needed. 
+
 
 ## 1.2 Native language summary - Norwegian
 
-1. **Bakgrunn og begrunnelse**: 
+1. **Bakgrunn og begrunnelse**: Blåbær (*Vaccinium myrtillus*) er en vidt utbredt lyngplante i boreal skog.
+Den bidrar til struktur i feltsjiktet og er en viktig næringsplante for en rekke invertebrater, fugler og pattedyr.
+Blåbær er særlig knyttet til eldre, middels fuktig skog med åpninger i trekronedekket, noe som er typisk for intakt skog formet av naturlige prosesser.
+Dekningen (%) av blåbærplanter har dermed en positiv sammenheng med økosystemtilstanden.  
 
-2. **Metoder**: 
+2. **Metoder**: Data for denne indikatoren kommer fra Landsskogtakseringen (LSK) der blåbærplanters dekning har vært registrert (med dagens metoder) for hver LSK-prøveflate siden 2008.
+Data er beregnet for hvert 5-års takseringsomløp, med start i 2010 og med siste tilgjengelige data for perioden 2020-2024.
+Den registrerte gjennomsnittsdekningen for blåbær er sammenlignet med referanseverdier for de enkelte LSK-regionene.
+Referanseverdiene er basert på ekspertvurderinger støttet av data for blåbærdekning i LSK-flater i nær intakt tilstand, den regionale fordelingen av dominerende treslag, og generelle vurderinger av skogens naturlige dynamikk.
+Indikatoren tilsvarer samme indikator brukt i Naturindeksen for Norge, men referanseverdiene er endret etter nye vurderinger.
+Indikatoren er klar til bruk.
+Indikatoren bør ikke brukes på en finere geografisk skala enn den som gjelder for referanseverdiene (dvs. regioner). 
 
-3. **Tolkning**:
+3. **Tolkning**: Indikatorverdi 1 betyr at blåbærdekningen er minst like stor som forventet i referansetilstanden.
+En nedgang i verdier mot 0 innebærer en forringelse av økosystemtilstanden, mot fullstendig mangel på blåbærplanter.
 
-4. **Resultater og utviklingsbehov**: 
-
+4. **Resultater og utviklingsbehov**: For inneværende rapporteringsperiode (2020-2024) er indikatorverdien for hele landet 0.88, med en noe lavere verdi for region Vest (0.76). 
+Indikatorverdien har økt for hele landet og de fleste regionene, med unntak av en svak nedgang (fra høy verdi) i region Sør siden forrige periode.
+Det er ingen spesielle utviklingsbehov for selve indikatormålingen.
+Men mer grundige analyser, vurderinger og en revisjon av referanseverdier og skaleringsfunksjonen burde vært gjennomført.
 
 
 ## 2. About the underlying data
 
-This indicator uses data from the Norwegian National Forest Inventory (NFI, Landsskogtakseringen).
-The bilberry cover by area is recorded for each NFI inventory plot.
-There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
+This indicator uses data from the Norwegian National Forest Inventory (NFI, Landsskogtakseringen) [@viken2025-feltinstruks].
+The bilberry cover is recorded for each NFI inventory plot. There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
 The indicator value is an unbiased area-weighted estimate of the bilberry cover for NFI plots in any selected region.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
-For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
-The data are available upon request from NFI.
+For this indicator, data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024. 
+The data are available upon request from NFI. 
 
 ### 2.1 Spatial and temporal resolution and extent
 
-Data are available from 2010, when the bilberry cover by area was first recorded based on current methods.
+Data are available from 2008, when the bilberry cover was first recorded based on current methods.
 Annual estimates are possible due to representative sampling every year.
-For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. The data are representative for all forest land of Norway.
-Spatial resolution should be limited to the resolution applied to reference values, that is counties or sub-counties for scaling and regions for aggregated reporting.
+For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010.
+The data are representative for all forest land of Norway.
+Spatial resolution should be limited to the resolution applied to reference values, that is counties or sub-counties for scaling and regions for aggregated reporting. 
 
 ### 2.2 Sampling design
 
-<!-- How was the data sampled? Describe potential sampling biases -->
+The bilberry cover is recorded for each NFI inventory plot [@viken2025-feltinstruks].
+There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
+In each NFI plot, bilberry cover (%) is assessed on four 0.5 m x 0.5 m subplots, placed in the cardinal directions 5 m from the centre of the NFI plot.
+All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year. 
 
 ### 2.3 Original units
 
-The indicator is specified as the percentage (%) of the area covered by bilberry on the NFI plot.
-In the analyses, this value is converted to a proportion before area weighting, aggregation, and scaling.
+The indicator is specified as the percentage (%) of the area covered by bilberry in the NFI plots.
+In the analyses, this value is converted to a proportion before area weighting, aggregation, and scaling. 
 
 ### 2.4 Instructions for citing, using and accessing data
 
@@ -268,60 +305,70 @@ Further use of these data requires a separate data user agreement with NIBIO.
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-Bilberry plants are important food resources for a range of invertebrate and vertebrate species. Hence, the indicator is classified as a B3 Biotic functional characteristic.
+Bilberry plants are important food resources for a range of invertebrate and vertebrate species throughout the year.
+All parts of the plant contribute to this role: the shrub itself and its leaves support numerous invertebrate herbivores, including the larvae of many Lepidoptera species, while the berries are consumed by a wide diversity of birds and mammals.
+In turn, these invertebrates represent a critical protein source for many forest birds, including the chicks of ground-nesting grouse species.
+During winter, bilberry plants serve as a key forage resource for many boreal forest species.
+Hence, the indicator is classified as a B3 Biotic functional characteristic.  
 
 ### 3.2 Ecosystem condition characteristic
 
-Bilberry is a key component in boreal forest ecosystems and is characterised as Functionally important species and biophysical structures. 
 
 ### 3.3 Collinearities with other indicators
 
-Bilberry cover is related to tree cover density (crown cover), with the highest values at intermediate crown cover. Correlation with other indicators related to old forest is likely. 
+Bilberry cover is related to tree cover density (crown cover), with the highest values at intermediate crown cover.
+Correlation with other indicators related to old forest is likely.
 
 ### 3.4 Impact factors
 
 Natural disturbances from climate variability (drought, storms) and pathogens (fungi, insects) will affect bilberry cover.
 Human impacts with major negative effects on bilberry cover are various forestry activities, especially open harvest types such as clear-cutting, short rotation, dense planting, and whole-tree harvesting.
-Nitrogen fertilisation or pollution will reduce the health and viability of bilberry plants. 
+The most optimal light condition for bilberry plant is partial shading.
+Shade from the forest canopy depends on forest density, a forest attribute that can be manipulated by forest managers [@eldegard2019-stand-density].
+Nitrogen fertilisation or pollution will reduce the health and viability of bilberry plants.
 Human-induced climate change with warmer/drier summers or thawing/freezing episodes in winter/early spring is also likely to have negative effects on bilberry cover.
 
 ### 3.5 Spatial aggregation
 
 The spatial aggregation pathway is Aggregate (NFI plots to county/sub-county) – Scale – Aggregate (geographic region) – Aggregate (national level) - Truncate.
-For each NFI plot we first convert bilberry cover from percent to proportion and create `indicator_continuous_weighted = indicator_cover * au_areal`.
-Non-scaled indicator values for each reporting period are calculated separately for each geographic unit as area-weighted arithmetic means of all NFI plots within that unit: sum of `indicator_continuous_weighted` divided by sum of `au_areal`.
+For each NFI plot we first convert bilberry cover from percent to proportion and multiplied by the plot's represented forest area.
+Non-scaled indicator values for each reporting period and geographic unit are then calculated as the sum of these weighted contributions divided by the sum of represented plot areas within the unit.
 This is done for counties or sub-counties, regions, and at national level.
-Scaling is applied after these non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level X0 (0% cover) and upper reference level X100 using a linear scaling function without truncation.
-Regional and national scaled values are area-weighted means of these scaled county or sub-county values, using each county or sub-county's represented area as weight; mean values that are larger than the reference value are then truncated to 0–1 both at the regional and national level.
+Scaling is applied after these non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level _X~0~_ (0% cover) and upper reference level _X~100~_ using a linear scaling function without truncation.
+At regional level, scaled county or sub-county values are combined as area-weighted means using each unit's represented area as weight, and values exceeding 1 on the condition scale are truncated to 0–1.
+At national level, these regional scaled values are aggregated in a second step as area-weighted means using regional represented areas as weights, with truncation to 0–1 applied again after this aggregation.
 
 ## 4. Reference condition and levels
 
-The reference condition is considered to be intact forest ecosystems where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances.  
+The reference condition is considered to be intact forest ecosystems where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances.    
 
 ### 4.1 Reference condition
 
-<!--# Define the reference condition (or refer to where it is defined). Note the distinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
+The lower reference level _X~0~_ is set to 0% bilberry cover and the upper reference level _X~100~_ is set separately for each county or sub-county.
+_X~0~_ refers to a state with no billberry cover and _X~100~_ to the best possible condition on the original cover scale.
 
 ### 4.2 Reference levels
 
-The lower reference level X0 is set to 0% bilberry cover and the upper reference level X100 is set separately for each county or sub-county.
-X0 denotes the worst possible condition and X100 denotes the best possible condition on the original cover scale.
-Between X0 and X100, indicator values are scaled linearly to a 0-1 indicator scale.
-Scaled values may exceed 1 at county or sub-county level when bilberry cover exceeds the county-specific X100; truncation to 1 is applied only after area-weighted aggregation to regional and national level.
-The county and sub-county X100 values used in the analyses are listed in @sec-blaa-reference-values.
-X0 is 0 for all units.
+The lower reference level _X~0~_ is set to 0% bilberry cover and the upper reference level _X~100~_ is set separately for each county or sub-county.
+_X~0~_ denotes the worst possible condition and _X~100~_ denotes the best possible condition on the original cover scale.
+Between _X~0~_ and _X~100~_, indicator values are scaled linearly to a 0-1 indicator scale.
+Scaled values may exceed 1 at county or sub-county level when bilberry cover exceeds the county-specific _X~100~_; truncation to 1 is applied only after area-weighted aggregation to regional and national level.
+The county and sub-county _X~100~_ values used in the analyses are listed in @tbl-blaa-reference-values.
+_X~0~_ is 0 for all units.
 
 #### 4.2.1 Spatial resolution and validity
 
-Reference levels are defined at for regional groupings of counties or sub-counties, not as one national value.
+Reference levels are defined for regional groupings of counties or sub-counties, not as one national value.
 Scaling is therefore applied to area-weighted non-scaled indicator values that have first been aggregated to the matching county or sub-county unit.
-Regional and national reporting uses area-weighted aggregation of these scaled county or sub-county values rather than one common X100 for the aggregated non-scaled value.
-The indicator should not be interpreted at finer spatial resolution than the county or sub-county reference levels allow.
+Regional reporting uses area-weighted aggregation of these scaled county or sub-county values, rather than applying one common _X~100~_ to an aggregated non-scaled regional mean.
+National reporting applies a second area-weighted aggregation step to these regional scaled values, again without using one common _X~100~_ for the aggregated non-scaled national mean.
+The indicator should not be interpreted at finer spatial resolution than the county or sub-county reference levels allow. 
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
 
-Reference levels are held fixed in this workflow (their own uncertainties are not propagated). Regional and national values are area-weighted summaries of counties, so they inherit both model uncertainty at county level and any mismatch between county boundaries and ecological variation within regions. 
+Reference levels are held fixed in this workflow (their own uncertainties are not propagated).
+Regional and national values are area-weighted summaries of counties, so they inherit both model uncertainty at county level and any mismatch between county boundaries and ecological variation within regions. 
 
 ### 5.2 Reported uncertainties
 
@@ -346,23 +393,10 @@ For this indicator we use data from each full 5-year inventory cycle, starting i
 ```{r load-data}
 #| code-summary: "Load data"
 
-# Load main data file
-# This export wraps each physical line in an extra pair of double quotes, so a
-# single read_csv() sees one column spanning the whole file. Read once as one
-# character column per line (readr unwraps the outer quotes), then parse the
-# inner CSV text.
-lsk_inner_csv <- read_csv(
-  here("data/LSK_data_okologisk_tilstand_2026.csv"),
-  col_names = FALSE,
-  show_col_types = FALSE,
-  locale = locale(encoding = "UTF-8"),
-  col_types = cols(.default = col_character())
-) |>
-  pull(1) |>
-  paste(collapse = "\n")
+lsk_data_file <- here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")
 
 lsk_data_raw <- read_csv(
-  I(lsk_inner_csv),
+  lsk_data_file,
   show_col_types = FALSE,
   locale = locale(encoding = "UTF-8")
 ) |>
@@ -487,7 +521,7 @@ Each replicate computes the area-weighted mean non-scaled indicator value, givin
 ```{r county-draws-long}
 #| code-summary: "Bootstrap draws per county (1000 per county per period)"
 #| cache: true
-#| cache.extra: !expr file.mtime(here::here("R/functions.R"))
+#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(lsk_data_file))
 
 county_draws_long <- purrr::imap_dfr(blaa_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
@@ -510,26 +544,28 @@ county_draws_long <- purrr::imap_dfr(blaa_results, function(period_result, perio
 
 ```
 
-The table below (@tbl-blaa-county-nonscaled) summarises non-scaled bootstrap draws for all reporting periods: the median area-weighted bilberry cover per county or sub-county. Use the search box and page controls to browse rows.
+The table below (@tbl-blaa-county-nonscaled) shows the direct area-weighted mean bilberry cover per county or sub-county for all reporting periods, with approximate 95% bootstrap confidence intervals (2.5th–97.5th percentile of 1000 draws). Use the search box and page controls to browse rows.
 
 ```{r tbl-blaa-county-nonscaled}
-#| tbl-cap: "Non-scaled, area-weighted bilberry cover by county or sub-county for all reporting periods (median of 1000 bootstrap draws)."
+#| tbl-cap: "Non-scaled, area-weighted bilberry cover by county or sub-county for all reporting periods. Point estimate is the direct area-weighted mean from section 9.2; 95% CI is derived from 1000 bootstrap draws."
 #| echo: false
 
 county_draws_long |>
   dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
   dplyr::summarise(
-    non_scaled_median = median(non_scaled_value),
+    ci_low  = as.numeric(quantile(non_scaled_value, 0.025)),
+    ci_high = as.numeric(quantile(non_scaled_value, 0.975)),
     .groups = "drop"
   ) |>
   dplyr::left_join(
     blaa_results_county_all_periods |>
-      dplyr::select(period, fylke_name, n_plots),
+      dplyr::select(period, fylke_name, n_plots, indicator_value),
     by = c("period", "fylke_name")
   ) |>
   dplyr::mutate(
     region_name = assign_region_name(region_code),
-    non_scaled_median_pct = non_scaled_median * 100
+    mean_pct = round(indicator_value * 100, 2),
+    `95% CI` = paste0(round(ci_low * 100, 2), " – ", round(ci_high * 100, 2))
   ) |>
   dplyr::arrange(period, region_code, fylke_name) |>
   dplyr::select(
@@ -537,8 +573,8 @@ county_draws_long |>
     County = fylke_name,
     `Sub-county` = county_part,
     Region = region_name,
-    `Non-scaled value (proportion)` = non_scaled_median,
-    `Non-scaled value (%)` = non_scaled_median_pct,
+    `Bilberry cover by area (%)` = mean_pct,
+    `95% CI`,
     `Total area (ha)` = total_area,
     `Number of plots` = n_plots
   ) |>
@@ -548,11 +584,7 @@ county_draws_long |>
     locations = gt::cells_column_labels()
   ) |>
   gt::fmt_number(
-    columns = `Non-scaled value (proportion)`,
-    decimals = 4
-  ) |>
-  gt::fmt_number(
-    columns = `Non-scaled value (%)`,
+    columns = `Bilberry cover by area (%)`,
     decimals = 2
   ) |>
   gt::fmt_number(
@@ -576,9 +608,11 @@ county_draws_long |>
 
 ### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-blaa-reference-values}
 
-County or sub-county reference values are imported manually.
+County or sub-county reference levels are listed in @tbl-blaa-reference-values.
+_X~0~_ is 0% for all units; _X~100~_ is the bilberry cover by area at best condition for each county or sub-county accounting unit.
 
 ```{r blaa-reference-values}
+#| echo: false
 #| code-summary: "Reference values by county or sub-county"
 
 # X100 reference values (% bilberry cover by area)
@@ -589,9 +623,9 @@ blaa_reference_values <- dplyr::tibble(
     "NoS", "NoN", "Tr", "Fi"
   ),
   x100_pct = c(
-    12.5, 12.5, 12.5, 10, 12.5, 10, 12.5, 10, 12.5,
-    12.5, 10, 12.5, 12.5, 12.5, 12.5, 12.5, 12.5, 12.5, 12.5,
-    10, 5, 5, 2.5
+    15, 16, 16, 12, 16, 11.5, 15, 11.5, 14.5,
+    14, 12.5, 12, 11.5, 9.5, 10, 9.5, 10.5, 12, 13.5,
+    11, 8, 7.5, 7.5
   )
 ) |>
   dplyr::mutate(x100 = x100_pct / 100)
@@ -602,7 +636,34 @@ county_reference <- blaa_reference_values |>
 
 ```
 
-Each county's 1000 non-scaled draws from section 9.3 are linearly scaled with `ec_scale_linear()` (X0 = 0, county-specific X100) without truncation.
+```{r tbl-blaa-reference-values}
+#| echo: false
+#| tbl-cap: "County or sub-county reference values for scaling. _X~0~_ is 0% for all units."
+
+blaa_reference_values |>
+  dplyr::select(`Sub-county` = county_part, x100_pct) |>
+  gt::gt() |>
+  gt::cols_label(
+    x100_pct = gt::html("<i>X</i><sub>100</sub> (%)")
+  ) |>
+  gt::cols_align(align = "left", columns = `Sub-county`) |>
+  gt::cols_align(align = "right", columns = x100_pct) |>
+  gt::fmt_number(
+    columns = x100_pct,
+    decimals = 1
+  ) |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::tab_options(
+    table.align = "left",
+    table.width = gt::px(220)
+  )
+
+```
+
+Each county's 1000 non-scaled draws from section 9.3 are linearly scaled with `ec_scale_linear()` (_X~0~_ = 0, county-specific _X~100~_) without truncation.
 @fig-blaa-norm shows the mapping for each sub-county.
 
 ```{r county-draws-scaled}
@@ -638,7 +699,7 @@ county_scaled_with_uncertainty <- county_draws_scaled |>
 ```
 
 ```{r fig-blaa-norm}
-#| fig-cap: "Linear scaling of bilberry cover proportion to the indicator scale (without truncation), one panel per sub-county reference unit. Points are 100 sampled bootstrap draws per unit, pooled across all reporting periods; values may exceed 1 when cover exceeds X100."
+#| fig-cap: "Linear scaling of bilberry cover (proportion) to indicator values (0–1), without truncation at county or sub-county level. Each panel shows one sub-county accounting unit, with its own _X~100~_ reference value (upper right corner of the scaling line). The x-axis is free-scaled per panel to reflect the range of resampled non-scaled indicator values in that sub-county. Points are a random sample of 100 bootstrap draws (out of 1000) pooled across all reporting periods, illustrating the spread of resampled area-weighted means around the direct area-weighted mean from section 9.2. The diagonal line shows the linear scaling function between _X~0~_ = 0% (lower reference, worst condition) and the sub-county-specific _X~100~_ (upper reference, reference condition); scaled values may exceed 1 when cover exceeds _X~100~_."
 #| code-summary: "Normalisation diagnostic figure"
 #| cache: false
 #| fig-height: 8
@@ -673,9 +734,10 @@ Truncation to the 0–1 condition scale is applied to regional and national Mont
 
 ```{r blaa-ec-upscale-regional}
 #| code-summary: "ec_upscale: county to region (compute once, save RDS)"
+#| cache.extra: !expr list(file.mtime(lsk_data_file), file.mtime(here::here("R/functions.R")), file.mtime(here::here("R/NO_BLAA_001.qmd")))
 
 blaa_mc_cache_deps <- c(
-  here::here("data/LSK_data_okologisk_tilstand_2026.csv"),
+  lsk_data_file,
   here::here("R/functions.R"),
   here::here("R/NO_BLAA_001.qmd")
 )
@@ -709,6 +771,7 @@ blaa_mc_regional <- blaa_mc_regional_raw |>
 
 ```{r blaa-ec-upscale-national}
 #| code-summary: "ec_upscale: region to national (compute once, save RDS)"
+#| cache.extra: !expr list(file.mtime(here::here("data/blaa_mc_regional.rds")), file.mtime(lsk_data_file), file.mtime(here::here("R/functions.R")), file.mtime(here::here("R/NO_BLAA_001.qmd")))
 
 region_area_weights <- county_draws_scaled |>
   dplyr::distinct(period, fylke_name, total_area, region_code) |>
@@ -1000,7 +1063,7 @@ ggplot2::ggplot(blaa_plot_data,
 ### 10.1 County-level results (scaled with uncertainty)
 
 ```{r tbl-county-results-table}
-#| tbl-cap: 'County or sub-county indicator values for bilberry cover by area by reporting period. Values are linearly scaled with county-specific X0 and X100 without truncation. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
+#| tbl-cap: 'County or sub-county indicator values for bilberry cover by area by reporting period. Values are linearly scaled with county-specific _X~0~_ and _X~100~_ without truncation. The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
 #| echo: false
 
 county_scaled_with_uncertainty |>
@@ -1152,7 +1215,6 @@ national_scaled_agg_with_uncertainty |>
 ## 11. Export file
 
 Regional and national Monte Carlo draws are exported in one table (`blaa_mc_combined`: `year`, `region`, `sampled_mean`; `region` contains the five NI region codes and `"National"`).
-This mirrors the export format used in the MOOS indicator.
 
 ```{r export}
 #| eval: false
@@ -1172,20 +1234,14 @@ write.csv(
 
 **CRediT statement**
 
-* Conceptualization: [ES, KOS]
-* Methodology: [ES, KOS]
+* Conceptualization: [EF, KOS, UJA]
+* Methodology: [EF, KOS, UJA]
 * Data curation: [OS]
 * Formal analysis: [AHH]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [AHH, OS]
+* Validation: [AHH, KOS]
 * Visualization: [AHH]
-* Resources: [Initials]
-* Writing – original draft: [Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+* Writing – original draft: [All]
+* Writing – review & editing: [All]
 
 
 **MeRIT attribution**
