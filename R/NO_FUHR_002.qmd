@@ -2,26 +2,13 @@
 title: "Warming impact on vegetation"
 subtitle: |
   [NO_FUHR_002] (mountains) 
-# delete the line with the second indicatorID (line 5) 
-# if it's not relevant for you.
-# In the parentheses you can add a word to distinguish multiple indicators 
-# from each other, for example the ecosystem type that they cover
 indicatorID: 
   - [NO_FUHR_002]
-# If you are presenting multiple indicators, and have multiple 
-# indicator IDs, then add them as a list here, and make sure you add
-# the same number of list entries, 
-# and in the same order that corresponds to the indicator IDs,  
-# to the meta data fields where the indicators differ. 
-# For example, if the indicators cover different ecosystem types, 
-# add the ecosystems as a list under 'Ecosystems', but if they are in the
-# same realm, same country etc., then you only need to write the realm and
-# country once. 
 indicatorName: 
   - Warming impact on vegetation
 verbatimName: 
   - Varmepåvirkning på vegetasjon # the indicator name that us used in the native language
-folderName: XXX_YYY_ZZZ # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
+folderName: NO_FUHR_002 # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
 # If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
 # If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
 country: Norway
@@ -38,14 +25,13 @@ verbatimEcosystem:
   - Fjell
 yearAdded: 2026
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
+status: complete # options are complete, incomplete, or deprecated
 Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: Comment here # Describe briefly how this version differs from earlier versions 
-url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
-# To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+VersionComment: This indicator has been calculated before under different names and codes. 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_FUHR_002
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
-Uncertainties: 95% confidence intervals for the indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
+SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) 
+Precision: 95% confidence intervals for the true value of the spatially aggregated indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
 format: 
   html:
     embed-resources: true
@@ -55,27 +41,34 @@ format:
     toc-depth: 3
     smooth-scroll: true
 execute: 
-  cache: true
+  cache: false
 author:
   - name: Joachim Töpper              # Enter name
     email: joachim.topper@nina.no  # Enter email
-    affiliations: NINA
+    affiliations:
       - id: myID
         name: Norwegian institute for nature research # Enter affiliations
 AuthorList: Töpper, J.  
 date: June 6, 2026
-data_availability: Openly available and accessible at Miljøidirektoratets kartkatalog
-code_reproducibility: Fully documented on github and executable in R
-open_science_badge: Data Integrated, Documented and executable
+data_availability: silver
+code_reproducibility: gold
+open_science_badge: silver
 callout-icon: false
 lightbox: true
-css: ../../../style.css
 code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
-hide: TRUE # Change to FALSE
+hide: FALSE 
 bibliography: references.bib
+codeReviewers:
+  - name: Anders Kolstad
+    email: anders.kolstad@nina.no
+    affiliations:
+      - id: reviewerInst
+        name: Norwegian Institute for Nature Research (NINA)
+    reviewType: code review
+    github: anders-kolstad
 ---
 
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -97,6 +90,8 @@ library(sf)
 library(ecTools)
 library(glmmTMB)
 library(MASS)
+library(arrow)
+library(gt)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -111,6 +106,33 @@ knitr::opts_chunk$set(echo = TRUE)
 #| cache: false
 source(here::here("_common.R"))
 ```
+
+
+
+
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
+```
+
 
 
 
@@ -167,18 +189,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -189,7 +214,8 @@ meta |>
 ## Log
 
 <!--# Update this logg with short messages for each update -->
-- 01 Jan. 1901 - Original PR
+- pre 2026 - Indicator was presented under different names
+- July 2 2026 - Accepted
 :::
 
 
@@ -199,24 +225,22 @@ meta |>
 
 ## 1. Summary
 
-1. **Background and rationale**: This indicator represents plant community responses to warming. It quantifies the positive deviation of the cumulative abundance of heat requirement plant indicator values in monitored vegetation compared to a reference community. THus, this indicator is one-sided.
+1. **Background and rationale**: This indicator represents plant community responses to climate warming. It quantifies the positive deviation of the cumulative abundance of heat requirement plant indicator values in monitored vegetation compared to a reference community. Thus, this indicator is one-sided.
 
 2. **Methods**: The data comes from field sampled plant community data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019). We combine these community data with functional trait values on Heat requirement from Tyler et al. (2021). The indicator values are based on calculating cumulative abundance (see Framstad et al. 2022) of Heat requirement values for plant community data. Deviations in such an indicator beyond a certain range of indicator values indicate a directional shift in the plant community. As reference communities we use ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020).
 
 3. **Interpretation**:
-An indicator value of 1 indicates no discernible difference in the functional plant composition due to light impacts. 
+An indicator value of 1 indicates no discernible difference in the functional plant composition due to climate warming. 
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state, as a response to warming.
 
 4. **Results and development needs**:
-
-The functional plant community indicator for warming impact and its 95% CI are clearly below 0.6 indicating that the functional plant community composition deviates more than accepted under good ecological condition. The result is driven by an increase in abundance of species in the plant community with high Heat requirement values.
-
+The indicator value for Norway as a whole is 0.41 [95%CI: 0.39-0.43], indicating that the functional plant community composition deviates more than accepted under good ecological condition. The result is driven by an increase in abundance of species in the plant community with high heat requirement values.
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
 
 
 
-## 2. About the underlying data
+## 2. About the underlying data {#sec-about}
 We use three types of data for building functional plant community indicators for ecological condition:
 
 - as observation data  we use plant community data from the ANO monitoring scheme (cf. Tingstad et al. 2019)
@@ -237,7 +261,7 @@ Abundance data for vascular plants in ANO is given as % cover within a 1 m2 samp
 
 
 ### 2.4 Instructions for citing, using and accessing data
-The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054
+The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054. See @sec-about for detail on the other datasets.  
 
 ### 2.5 Additional comments about the dataset
 The ANO program is run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
@@ -248,23 +272,23 @@ The ANO program is run by the Norwegian Environment Agency. On their web sites y
 The functional plant community indicator for warming impact reflects the availability of warm temperatures and thus represents the ECT class 'A1 Physical characteristics'.
 
 ### 3.2 Ecosystem condition characteristic
-The functional plant community indicator for warming impact reflects the availability of warm temperatures and thus represents the characteristic 'Abiotic factors'.
+The indicator describes alpine ecosystems characterised by relatively cold-tolerant species, as would occur naturally under the reference climate (1961-1990).  
 
 ### 3.3 Collinearities with other indicators
 Different functional plant community indicators for different environmental variables (Nitrogen, Light, ...) might show a certain degree of co-linearity with one another as they are derived from the very same plant community data.
-Functional plant community indicators can potentially exhibit co-linearities with other vegetation-oriented indicators, such as NDVI, though this depends greatly on which functional plant community indicator ends up as the leading one (i.e. the one with the lowest scaled score).
+Functional plant community indicators can potentially exhibit co-linearities with other vegetation-oriented indicators, such as NDVI.
 
 
 ### 3.4 Impact factors
 The plant community composition in mountain ecosystems is subject to changes with climate warming and precipitation changes as well as pollution and disturbance from human infrastructure.
 
 ### 3.5 Spatial aggregation
-The variable is scaled at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points. There is no transformation, but indicator values are truncated at 1.
+The variable is scaled, transformed (piece-wise linear) and truncated at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points.
 
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
-In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. In terms of warming impact, the reference condition is defined by a reference community.
+In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). The reference climate is from 1961-1990. 
 
 ### 4.2 Reference levels
 Reference and limit values (scaling values) for functional plant community indicators are derived as the 0.025, 0.5, and 0.975 quantiles (lower limit values, reference value, upper limit value, respectively) from distributions of community weighted means of the respective plant indicators originating from bootstrapped generalized species lists.
@@ -281,6 +305,7 @@ Spatial variability as a source of uncertainty can be quantified. For every mean
 There is some uncertainty related to the ecosystem categorization at the field sites (see Ullerud et al. 2018 and Naas et al. 2023), but since ANO monitoring does not include spatial delineation of ecosystem polygons this problem is considered smaller than in spatial ecosystem mapping which these references mainly relate to.
 Other uncertainties connected to the indicator arise from community weighted means calculated from plant communities of different species richness in the observation data; since no uncertainty measure for these community-weighted means is calculated and propagated, the actual uncertainty of functional community signals for the single community observations is unknown.
 
+There is some uncertainty about the appropriateness of using (Halvorsen et al. 2020) as a reference dataset and a reference plant community for different nature types, and especially for different geographical and environenmetal regions of Norway. The dataset has a known bias towards south and eastern Norway, and may not reflect the natural plant communities equally well i the western and northern parts.
 
 ### 5.2 Reported uncertainties
 For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
@@ -329,7 +354,7 @@ unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport
 
 ...then upload from local storage
 The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and point data including alien plant species cover.
-```{r}
+```{r loadData}
 #Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
 ANO.sp<- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb",
                    layer="ANO_Art", quiet = T)
@@ -371,7 +396,7 @@ Import plant indicator values from Tyler et al. (2021):
 ind.Tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
 ```
 
-The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for Light and light as these are thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
+The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for heat requirement as these are thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
 
 
 ## 8. Spatial units
@@ -393,10 +418,9 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 #### Data handling
 - Checking for errors
 - Checking species nomenclature in the different species lists to make species and indicator data possible to merge
-- Merging indicator data with monitoring data and indicator data with reference data
-(not shown here, but documented in the code)
+- Merging indicator data with monitoring data and indicator data with reference data.
 
-```{r, include = T, results='hide', warning=F, message=F}
+```{r dataHandling, results='hide', warning=F, message=F}
 
 #### Plant indicator data
 names(ind.Tyler)
@@ -909,14 +933,22 @@ This leaves us with the monitoring data including plant indicators (ANO.sp.ind) 
 <!-- Print head of data set with horizontal scrolling -->
 ```{r ano-sp-tab, echo=F}
 head(ANO.sp.ind) %>%
-  kable("html",caption = "ANO species occurence data set with attached plant trait data.") %>% 
-  kable_styling("striped") %>% scroll_box(width = "100%")
+  kable(
+    "html",
+    caption = "ANO species occurrence data set with attached plant trait data."
+  ) %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%")
 ```
 
 ```{r wetland_mountain_mountain_seminatural-ref-data-tab, echo=FALSE}
-head(NiN.mountain.cov) %>% 
-  kable("html", caption = "Reference data set for wetland, mountain, mountain, and semi-natural ecosystems") %>% 
-  kable_styling("striped") %>% scroll_box(width = "100%")
+head(NiN.mountain.cov) %>%
+  kable(
+    "html",
+    caption = "Reference data set for wetland, mountain, mountain, and semi-natural ecosystems"
+  ) %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%")
 ```
 
 <br />
@@ -934,7 +966,7 @@ In order to get distributions of these metrics rather than one single value (for
 - with a given re-sampling ratio of the original species list (rat)
 - in every bootstrap iteration the abundance of the sampled species can be randomly changed by a limited amount if wished by introducing a re-sampling of abundance values from adjacent abundance steps with a certain probability (var.abun)
 
-```{r, echo = T}
+```{r bootstrapping}
 
 indBoot.freq <- function(sp,abun,ind,iter,obl,rat=2/3,var.abun=F) {
   
@@ -1075,7 +1107,7 @@ indBoot.HR <- function(sp,abun,ind, iter,obl,rat,var.abun=F) {
 ```
 
 Running the bootstraps:
-```{r, eval = F}
+```{r boot2, eval = F}
 
 mountain.ref.cov <- indBoot.freq(sp=NiN.mountain.cov[,1],abun=NiN.mountain.cov[,2:28],ind=NiN.mountain.cov[,30:31],
                           iter=1000,obl=0.8,rat=1/2,var.abun=T)
@@ -1101,12 +1133,17 @@ for (i in 1:length(mountain.ref.cov) ) {
 
 ```{r, include = F}
 # Data from cache
-mountain.ref.cov<-readRDS(paste0(here::here(), "/data/cache/mountain.ref.cov.RDS"))
+mountain.ref.cov<-readRDS(here::here("data/cache/mountain.ref.cov.RDS"))
 ```
 
 ```{r}
 head(mountain.ref.cov[[1]]) %>%
-    kable("html", caption = "Table showing the first 6 rows of the boostrapped data set.") %>% kable_styling("striped") %>% scroll_box(width = "100%")
+  kable(
+    "html",
+    caption = "Table showing the first 6 rows of the bootstrapped data set."
+  ) %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%")
 ```
 
 This results in an R-list for mountain ecosystem, with a data frame for every selected plant indicator and each data frame with as many columns as there are NiN species lists and as many rows as there were iterations in the bootstrap.
@@ -1119,7 +1156,7 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 
 
 
-```{r, attr.output='style="max-height: 300px;"', results='hide'}
+```{r scalingValues, attr.output='style="max-height: 300px;"', results='hide'}
 
 # every NiN-type is represented by one 'generalisert artsliste'
 # some NiN-types are represented by two such species lists
@@ -1252,7 +1289,9 @@ mountain.ref.cov.val %>%
 Once test data and the scaling values from the reference data are in place, we can calculate CWMs of the selected indicator for the ANO community data and scale them against the scaling values from the reference distribution. Note that we scale each ANO plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. An ANO plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
 
 For scaling ANO-data against the reference we use the normalisation function from package ecTools.
-```{r, echo = F, warning = F}
+```{r normalise}
+#| warning: false
+#| error: false
 
 #### calculating scaled and non-truncated values for the indicators based on the dataset ####
 # drop geometry
@@ -1263,12 +1302,17 @@ ANO.mountain <- ANO.mountain %>%
   ) %>%
   st_drop_geometry()
 
+ANO.mountain <- ANO.mountain |>
+  mutate(
+    kartleggingsenhet_1m2 = stringr::str_remove(kartleggingsenhet_1m2, "\\s.*$")
+  )
+
 
 for (i in 1:nrow(ANO.mountain) ) {  #
   tryCatch({
-    print(i)
-    print(paste(ANO.mountain$ano_flate_id[i]))
-    print(paste(ANO.mountain$ano_punkt_id[i]))
+    #print(i)
+    #print(paste(ANO.mountain$ano_flate_id[i]))
+    #print(paste(ANO.mountain$ano_punkt_id[i]))
     #    ANO.mountain$Hovedoekosystem_sirkel[i]
     #    ANO.mountain$Hovedoekosystem_rute[i]
     
@@ -1314,7 +1358,9 @@ for (i in 1:nrow(ANO.mountain) ) {  #
       
     }
     
-  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+  }, error = function(e) {
+    invisible(NULL)
+  })
 }
 
 
@@ -1332,12 +1378,12 @@ head(ANO.mountain) %>%
 
 #### Calculating national and regional indices
 
-<<<<<<< HEAD
 We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
 The uncertainty around the national and region indicator values is derived from the same statistical model.
 The national and regional estimates are computed separately.
 
-```{r, warning=F}
+```{r tmbs}
+#| warning: false
 ## Fit ordered beta regression null-model with a random effect
 # Norway
 
@@ -1368,80 +1414,106 @@ The model estimates and standard errors are on a logit scale, but we can calcula
 ```{r}
 
 NO_FUHR_002_table <- tibble(
-  Region = c("Norway", "Central Norway", "Eastern Norway", "Northern Norway", "Southern Norway", "Western Norway"),
-  indicator_value = c(plogis(summary(heat_requirement.no)$coef$cond[,1]), plogis(summary(heat_requirement.re)$coef$cond[,1])),
-  CI_upper = c(plogis(summary(heat_requirement.no)$coef$cond[,1]+1.96*summary(heat_requirement.no)$coef$cond[,2]), plogis(summary(heat_requirement.re)$coef$cond[,1]+1.96*summary(heat_requirement.re)$coef$cond[,2])),
-  CI_lower = as.numeric(plogis(summary(heat_requirement.no)$coef$cond[,1]-1.96*summary(heat_requirement.no)$coef$cond[,2]), plogis(summary(heat_requirement.re)$coef$cond[,1]-1.96*summary(heat_requirement.re)$coef$cond[,2]))
+  Region = c(
+    "Norway",
+    "Central Norway",
+    "Eastern Norway",
+    "Northern Norway",
+    "Southern Norway",
+    "Western Norway"
+  ),
+  indicator_value = c(
+    plogis(summary(heat_requirement.no)$coef$cond[, 1]),
+    plogis(summary(heat_requirement.re)$coef$cond[, 1])
+  ),
+  CI_upper = c(
+    plogis(
+      summary(heat_requirement.no)$coef$cond[, 1] +
+        1.96 * summary(heat_requirement.no)$coef$cond[, 2]
+    ),
+    plogis(
+      summary(heat_requirement.re)$coef$cond[, 1] +
+        1.96 * summary(heat_requirement.re)$coef$cond[, 2]
+    )
+  ),
+  CI_lower = as.numeric(
+    plogis(
+      summary(heat_requirement.no)$coef$cond[, 1] -
+        1.96 * summary(heat_requirement.no)$coef$cond[, 2]
+    ),
+    plogis(
+      summary(heat_requirement.re)$coef$cond[, 1] -
+        1.96 * summary(heat_requirement.re)$coef$cond[, 2]
+    )
   )
+)
 NO_FUHR_002_table
 ```
 
-To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error as well as the dispersion parameter.
+To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error.
 ```{r}
 
 ## Norway
 # Fixed-effect intercept and SE
 b0 <- fixef(heat_requirement.no)$cond["(Intercept)"]
 se_b0 <- sqrt(vcov(heat_requirement.no)$cond["(Intercept)", "(Intercept)"])
-# Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
-phi <- sigma(heat_requirement.no)
 
 # draw estimates and backtransform from logit-scale
 eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
 mu_draws  <- plogis(eta_draws)
 
-# draw from beta distribution to consider the dispersion parameter 
-heat_requirement.no_sim <- rbeta(
-  n = 1000,
-  shape1 = mu_draws * phi,
-  shape2 = (1 - mu_draws) * phi
-)
-
 
 ## regions
 b_re <- fixef(heat_requirement.re)$cond
 vc_re <- vcov(heat_requirement.re)$cond
-phi <- sigma(heat_requirement.re)
 
-eta_draws <- MASS::mvrnorm(
+eta_draws_reg <- MASS::mvrnorm(
   n = 1000,
   mu = b_re,
   Sigma = vc_re
 )
 
-mu_draws <- plogis(eta_draws)
+mu_draws_reg <- plogis(eta_draws_reg)
 
-heat_requirement_re_sim <- do.call(
-  rbind,
-  lapply(seq_along(b_re), function(i) {
-    
-    region <- names(b_re)[i]
-    mu_i <- mu_draws[, i]
-    
-    sim <- rbeta(
-      n = 1000,
-      shape1 = mu_i * phi,
-      shape2 = (1 - mu_i) * phi
-    )
-    
-    data.frame(
-      region = region,
-#      draw = 1:10,
-#      eta = eta_draws[, i],
-#      mu = mu_i,
-#      dispersion = phi,
-      sim = sim
-    )
-  })
-)
-
-heat_requirement_re_sim$region <- sub("^region", "", heat_requirement_re_sim$region)
-
-heat_requirement_re_sim
 
 # combining heat_requirement_no_sim and heat_requirement_re_sim
-NO_FUHR_002_sim <- rbind(data.frame(region = 'Norway', sim = heat_requirement.no_sim), heat_requirement_re_sim)
+mu <- mu_draws_reg |>
+  as_tibble() |>
+  add_column(Norway = mu_draws) |>
+  pivot_longer(everything(), names_to = "part") |>
+  mutate(part = case_when(
+    part == "regionCentral.Norway" ~ "C",
+    part == "regionEastern.Norway" ~ "E",
+    part == "regionNorthern.Norway" ~ "N",
+    part == "regionWestern.Norway" ~ "W",
+    part == "regionSouthern.Norway" ~ "S",
+    .default = part
+  )) |>
+    add_column(year = "2024")
+```
 
+```{r fig-hist}
+#| fig-cap: 'Histogram of indicator value distributions.'
+#| fig-height: 12
+#| message: false
+mu |>
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(.~part, ncol=1) +
+  theme_bw(base_size=16) 
+```
+
+```{r tbl-results}
+#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUHR_002, calculated for Norwegian mountain ecosystems.'
+mu |>
+  group_by(part) |>
+  summarise(
+    indicator = mean(value),
+    low = round(quantile(value, probs = 0.025), 2),
+    high = round(quantile(value, probs = .975), 2)
+  ) |>
+    unite(col = "95% CI", c(low, high), sep = " - ") |>
+    gt::gt()
 ```
 
 
@@ -1455,29 +1527,29 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 
 ```{r export}
 #| eval: false
+arrow::write_parquet(mu, "data/results_NO_FUHR_002.parquet")
+```
+
+Demonstrating how to read back the data:
+
+```{r readingBack}
+arrow::read_parquet(here::here("data/results_NO_FUHR_002.parquet"))
 ```
 
 
 ## 12. Author contributions
 
-<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+<!-- Fill in CReDIT and MeRIT statements to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structure below, and just delete the rows you dont use.  -->
 
 **CRediT statement**
 
 * Conceptualization: [JT]
 * Methodology: [JT]
-* Data curation: [JT]
+* Data curation: [JT, ALK]
 * Formal analysis: [JT]
 * Investigation: [JT]
-* Software: [Initials]
-* Validation: [Initials]
-* Visualization: [Initials]
-* Resources: [Initials]
-* Writing – original draft: [JT]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+
+
 
 
 **MeRIT attribution**
@@ -1485,25 +1557,19 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 This part supplements the CRediT statement with more granularity for method section.
 
 **Study design**
-The study was designed by [AB, CD].
-
-**Data collection / fieldwork**
-Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
-
-**Laboratory procedures**
-DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
+The study was designed by [JT].
 
 **Data processing**
-Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
+Raw data were curated and cleaned by [JT and AK].
 
 **Statistical analysis**
-All analyses were conducted by [CD] using [software], with verification by [AB].
+All analyses were conducted by [JT] , with verification and minor edits by [AK].
 
 **Visualization**
-Figures were produced by [KL], with input from [CD].
+Figures were produced by [AK].
 
 **Reproducibility**
-All code was reviewed and validated by [AB, CD].
+All code was reviewed and validated by [AK].
 
 
 
@@ -1511,12 +1577,5 @@ All code was reviewed and validated by [AB, CD].
 ## Session Info
 <!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
 
-This information is mainly aimed at developers that need to recreate the R environment that produced the html.
-Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
-
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
-```
-
+This workflow uses renv. Run `renv::restore()` to get started.
 :::
