@@ -44,8 +44,8 @@ VersionComment: separate code for mountain ecosystem. Revised reference values. 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ALIE_002
 # To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Scale/Truncate - Aggregate (ordered beta-regression) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
-Precision: 95% confidence intervals for the indicator values derived from the beta-regression standard errors. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
+SpatialAggregationPathway: Scale/Truncate - Aggregate (site-level arithmetic mean; cluster bootstrap) # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Precision: 95% confidence intervals estimated using a stratified cluster bootstrap of ANO sites. # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
 format: 
   html:
     embed-resources: true
@@ -281,7 +281,7 @@ None.
 The main impact factor for this indicator is the introduction of alien species. In addition, the spreading of introduced alien species can be enforced by climate change if it relaxes climatic limitation on them.
 
 ### 3.5 Spatial aggregation
-The variable is scaled at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1.
+The variable is scaled at the ANO-point level and aggregated by calculating the arithmetic mean across monitoring points. Confidence intervals are estimated using a stratified cluster bootstrap at the ANO-site level to account for the clustered sampling design.
 
 ## 4. Reference condition and levels
 
@@ -303,7 +303,7 @@ Uncertainties relate partly to sampling and observer variability (and possible o
 Spatial variability as a source of descriptive uncertainty can be quantified.
 
 ### 5.2 Reported uncertainties
-For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (ordered beta-regression).
+For this indicator, we report 95% confidence intervals estimated using a stratified cluster bootstrap of ANO sites. Sites are resampled with replacement within each region while retaining all monitoring points belonging to each selected site. This accounts for the clustered sampling design of the ANO programme without making assumptions about the distribution of indicator values.
 
 ## 6. References
 Artsdatabanken (2023, 11. august). Fremmede arter i Norge - med økologisk risiko 2023. http://www.artsdatabanken.no/lister/fremmedartslista/2023.
@@ -431,88 +431,71 @@ summary(ANO.mount$alien_res)
 
 #### Calculating national and regional indices
 
-We can calculate national and region-wise indicator values using a mixed-effects, ordered beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don't follow a Gaussian distribution, hence the ordered beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
-The uncertainty around the national and region indicator values is derived from the same statistical model.
-The national and regional estimates are computed separately.
+Indicator values are calculated as the arithmetic mean of the normalised indicator values across ANO monitoring points. Because multiple monitoring points are sampled within each ANO site, observations within a site are not independent. To account for this clustered sampling design, uncertainty is estimated using a stratified cluster bootstrap. For each bootstrap replicate, ANO sites are sampled with replacement independently within each region while retaining all monitoring points belonging to each selected site. Regional indicator values are recalculated for each replicate, and the national value is calculated from the combined bootstrap sample. The distribution of bootstrap estimates is used to derive 95% confidence intervals.
 
-```{r, warning=F}
-## Fit ordered beta regression null-model with a random effect
-# Norway
-alien.no <- glmmTMB(
-  alien_res ~ 1 + (1|ano_flate_id),
-  data = ANO.mount,
-  family = ordbeta
-)
-
-summary(alien.no)
-
-# regions
-alien.re <- glmmTMB(
-  alien_res ~ 0 + region + (1|ano_flate_id),
-  data = ANO.mount,
-  family = ordbeta
-)
-
-summary(alien.re)
-```
 
 ## 10. Results
 
-The ordered beta-regression model estimates parameters on the logit scale rather than directly on the 0–1 indicator scale. To quantify uncertainty in the estimated indicator values, we simulate 1,000 draws from the estimated sampling distribution of the model coefficients and back-transform these to the original scale using the inverse logit function. The resulting distribution of simulated indicator values is used to calculate the mean indicator value and its 95% confidence interval.
+Indicator values are calculated as arithmetic means of the normalised indicator values. To quantify uncertainty, we perform a stratified cluster bootstrap with 1,000 replicates. Within each replicate, ANO sites are resampled with replacement within each region while retaining all monitoring points from each selected site. The distribution of bootstrap estimates is used to calculate the mean indicator value and the associated 95% confidence interval.
 
 ```{r}
 
 set.seed(123)
 
-## Norway
-b0 <- fixef(alien.no)$cond["(Intercept)"]
-se_b0 <- sqrt(vcov(alien.no)$cond["(Intercept)", "(Intercept)"])
+B <- 1000
 
-eta_draws_no <- rnorm(
-  n = 1000,
-  mean = b0,
-  sd = se_b0
-)
+dat <- ANO.mount |>
+  st_drop_geometry() |>
+  filter(!is.na(alien_res), !is.na(region))
 
-mu_draws_no <- plogis(eta_draws_no)
-
-
-## Regions
-b_re <- fixef(alien.re)$cond
-vc_re <- vcov(alien.re)$cond
-
-eta_draws_re <- MASS::mvrnorm(
-  n = 1000,
-  mu = b_re,
-  Sigma = vc_re
-)
-
-mu_draws_re <- plogis(eta_draws_re)
-
-
-NO_ALIE_002_sim <- mu_draws_re |>
-  as_tibble() |>
-  add_column(Norway = mu_draws_no) |>
-  pivot_longer(
-    everything(),
-    names_to = "Region",
-    values_to = "sim"
-  ) |>
-  mutate(
-    Region = gsub("^region", "", Region),
-    year = "2024"
+boot_results <- map_dfr(1:B, function(i) {
+  
+  boot_dat <- dat |>
+    group_by(region) |>
+    group_modify(~ {
+      
+      sites <- unique(.x$ano_flate_id)
+      
+      sampled_sites <- sample(
+        sites,
+        size = length(sites),
+        replace = TRUE
+      )
+      
+      bind_rows(
+        lapply(sampled_sites, function(s) {
+          filter(.x, ano_flate_id == s)
+        })
+      )
+    }) |>
+    ungroup()
+  
+  regional <- boot_dat |>
+    group_by(region) |>
+    summarise(
+      sim = mean(alien_res, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    rename(Region = region)
+  
+  national <- tibble(
+    Region = "Norway",
+    sim = mean(boot_dat$alien_res, na.rm = TRUE)
   )
+  
+  bind_rows(national, regional) |>
+    mutate(draw = i)
+})
 
-NO_ALIE_002_table <- NO_ALIE_002_sim |>
+NO_ALIE_002_table <- boot_results |>
   group_by(Region) |>
-  rename("Part"=Region) |> 
   summarise(
     indicator_value = mean(sim, na.rm = TRUE),
     CI_lower = quantile(sim, 0.025, na.rm = TRUE),
     CI_upper = quantile(sim, 0.975, na.rm = TRUE),
     .groups = "drop"
-  ) |> 
-  mutate("Year"=2024) 
+  ) |>
+  mutate(Year = 2024)
 
 NO_ALIE_002_table
 ```
@@ -530,9 +513,12 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 #| eval: false
 
 # write to parquet using arrow 
+NO_ALIE_002_sim <- boot_results |>
+  mutate(year = 2024)
+
 arrow::write_parquet(
   NO_ALIE_002_sim,
-  "data/results_NO_ALIE_002_sim.parquet"
+  "data/NO_ALIE_002_sim.parquet"
 )
 
 ```

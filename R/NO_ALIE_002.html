@@ -2566,7 +2566,7 @@ Table 1: Indicator metadata
 </section>
 <section id="spatial-aggregation" class="level3">
 <h3 class="anchored" data-anchor-id="spatial-aggregation">3.5 Spatial aggregation</h3>
-<p>The variable is scaled at the initial ANO-point level and the indicator estimate is an arithmetic mean of all ANO-points. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1.</p>
+<p>The variable is scaled at the ANO-point level and aggregated by calculating the arithmetic mean across monitoring points. Confidence intervals are estimated using a stratified cluster bootstrap at the ANO-site level to account for the clustered sampling design.</p>
 </section>
 </section>
 <section id="reference-condition-and-levels" class="level2">
@@ -2593,7 +2593,7 @@ Table 1: Indicator metadata
 </section>
 <section id="reported-uncertainties" class="level3">
 <h3 class="anchored" data-anchor-id="reported-uncertainties">5.2 Reported uncertainties</h3>
-<p>For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (ordered beta-regression).</p>
+<p>For this indicator, we report 95% confidence intervals estimated using a stratified cluster bootstrap of ANO sites. Sites are resampled with replacement within each region while retaining all monitoring points belonging to each selected site. This accounts for the clustered sampling design of the ANO programme without making assumptions about the distribution of indicator values.</p>
 </section>
 </section>
 <section id="references" class="level2">
@@ -2735,154 +2735,84 @@ Figure 1: Normalisation function (piecewise linear)
 </section>
 <section id="calculating-national-and-regional-indices" class="level4">
 <h4 class="anchored" data-anchor-id="calculating-national-and-regional-indices">Calculating national and regional indices</h4>
-<p>We can calculate national and region-wise indicator values using a mixed-effects, ordered beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition don’t follow a Gaussian distribution, hence the ordered beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model. The uncertainty around the national and region indicator values is derived from the same statistical model. The national and regional estimates are computed separately.</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Fit ordered beta regression null-model with a random effect</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Norway</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>alien.no <span class="ot">&lt;-</span> <span class="fu">glmmTMB</span>(</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  alien_res <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>ano_flate_id),</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> ANO.mount,</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> ordbeta</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(alien.no)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code> Family: ordbeta  ( logit )
-Formula:          alien_res ~ 1 + (1 | ano_flate_id)
-Data: ANO.mount
-
-      AIC       BIC    logLik -2*log(L)  df.resid 
-    134.0     167.5     -62.0     124.0      6039 
-
-Random effects:
-
-Conditional model:
- Groups       Name        Variance Std.Dev.
- ano_flate_id (Intercept) 52.4     7.239   
-Number of obs: 6044, groups:  ano_flate_id, 507
-
-Dispersion parameter for ordbeta family (): 5.65 
-
-Conditional model:
-            Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)   10.798      1.434   7.529 5.12e-14 ***
----
-Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-</div>
-<details class="code-fold">
-<summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># regions</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>alien.re <span class="ot">&lt;-</span> <span class="fu">glmmTMB</span>(</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  alien_res <span class="sc">~</span> <span class="dv">0</span> <span class="sc">+</span> region <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>ano_flate_id),</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> ANO.mount,</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> ordbeta</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(alien.re)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code> Family: ordbeta  ( logit )
-Formula:          alien_res ~ 0 + region + (1 | ano_flate_id)
-Data: ANO.mount
-
-      AIC       BIC    logLik -2*log(L)  df.resid 
-    154.9     215.3     -68.5     136.9      6035 
-
-Random effects:
-
-Conditional model:
- Groups       Name        Variance  Std.Dev. 
- ano_flate_id (Intercept) 2.885e-09 5.371e-05
-Number of obs: 6044, groups:  ano_flate_id, 507
-
-Dispersion parameter for ordbeta family (): 4.11 
-
-Conditional model:
-                       Estimate Std. Error z value Pr(&gt;|z|)    
-regionCentral.Norway  2.608e+00  8.232e-01   3.168 0.001534 ** 
-regionEastern.Norway  1.963e+00  5.561e-01   3.530 0.000416 ***
-regionNorthern.Norway 2.307e+00  4.945e-01   4.665 3.09e-06 ***
-regionSouthern.Norway 2.413e+01  7.448e+04   0.000 0.999742    
-regionWestern.Norway  2.900e+00  8.338e-01   3.478 0.000505 ***
----
-Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-</div>
-</div>
+<p>Indicator values are calculated as the arithmetic mean of the normalised indicator values across ANO monitoring points. Because multiple monitoring points are sampled within each ANO site, observations within a site are not independent. To account for this clustered sampling design, uncertainty is estimated using a stratified cluster bootstrap. For each bootstrap replicate, ANO sites are sampled with replacement independently within each region while retaining all monitoring points belonging to each selected site. Regional indicator values are recalculated for each replicate, and the national value is calculated from the combined bootstrap sample. The distribution of bootstrap estimates is used to derive 95% confidence intervals.</p>
 </section>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">10. Results</h2>
-<p>The ordered beta-regression model estimates parameters on the logit scale rather than directly on the 0–1 indicator scale. To quantify uncertainty in the estimated indicator values, we simulate 1,000 draws from the estimated sampling distribution of the model coefficients and back-transform these to the original scale using the inverse logit function. The resulting distribution of simulated indicator values is used to calculate the mean indicator value and its 95% confidence interval.</p>
+<p>Indicator values are calculated as arithmetic means of the normalised indicator values. To quantify uncertainty, we perform a stratified cluster bootstrap with 1,000 replicates. Within each replicate, ANO sites are resampled with replacement within each region while retaining all monitoring points from each selected site. The distribution of bootstrap estimates is used to calculate the mean indicator value and the associated 95% confidence interval.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="do">## Norway</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>b0 <span class="ot">&lt;-</span> <span class="fu">fixef</span>(alien.no)<span class="sc">$</span>cond[<span class="st">&quot;(Intercept)&quot;</span>]</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>se_b0 <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">vcov</span>(alien.no)<span class="sc">$</span>cond[<span class="st">&quot;(Intercept)&quot;</span>, <span class="st">&quot;(Intercept)&quot;</span>])</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>eta_draws_no <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">1000</span>,</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">mean =</span> b0,</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">sd =</span> se_b0</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>mu_draws_no <span class="ot">&lt;-</span> <span class="fu">plogis</span>(eta_draws_no)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="do">## Regions</span></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>b_re <span class="ot">&lt;-</span> <span class="fu">fixef</span>(alien.re)<span class="sc">$</span>cond</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>vc_re <span class="ot">&lt;-</span> <span class="fu">vcov</span>(alien.re)<span class="sc">$</span>cond</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>eta_draws_re <span class="ot">&lt;-</span> MASS<span class="sc">::</span><span class="fu">mvrnorm</span>(</span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">1000</span>,</span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">mu =</span> b_re,</span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">Sigma =</span> vc_re</span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>mu_draws_re <span class="ot">&lt;-</span> <span class="fu">plogis</span>(eta_draws_re)</span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>NO_ALIE_002_sim <span class="ot">&lt;-</span> mu_draws_re <span class="sc">|&gt;</span></span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_column</span>(<span class="at">Norway =</span> mu_draws_no) <span class="sc">|&gt;</span></span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
-<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">everything</span>(),</span>
-<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">&quot;Region&quot;</span>,</span>
-<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">&quot;sim&quot;</span></span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">Region =</span> <span class="fu">gsub</span>(<span class="st">&quot;^region&quot;</span>, <span class="st">&quot;&quot;</span>, Region),</span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="st">&quot;2024&quot;</span></span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>NO_ALIE_002_table <span class="ot">&lt;-</span> NO_ALIE_002_sim <span class="sc">|&gt;</span></span>
-<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Region) <span class="sc">|&gt;</span></span>
-<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">&quot;Part&quot;</span><span class="ot">=</span>Region) <span class="sc">|&gt;</span> </span>
-<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">indicator_value =</span> <span class="fu">mean</span>(sim, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">CI_lower =</span> <span class="fu">quantile</span>(sim, <span class="fl">0.025</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">CI_upper =</span> <span class="fu">quantile</span>(sim, <span class="fl">0.975</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
-<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">&quot;Year&quot;</span><span class="ot">=</span><span class="dv">2024</span>) </span>
-<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>NO_ALIE_002_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>B <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> ANO.mount <span class="sc">|&gt;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>() <span class="sc">|&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(alien_res), <span class="sc">!</span><span class="fu">is.na</span>(region))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>boot_results <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(<span class="dv">1</span><span class="sc">:</span>B, <span class="cf">function</span>(i) {</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  boot_dat <span class="ot">&lt;-</span> dat <span class="sc">|&gt;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(region) <span class="sc">|&gt;</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_modify</span>(<span class="sc">~</span> {</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>      sites <span class="ot">&lt;-</span> <span class="fu">unique</span>(.x<span class="sc">$</span>ano_flate_id)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>      sampled_sites <span class="ot">&lt;-</span> <span class="fu">sample</span>(</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        sites,</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">size =</span> <span class="fu">length</span>(sites),</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">replace =</span> <span class="cn">TRUE</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">bind_rows</span>(</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">lapply</span>(sampled_sites, <span class="cf">function</span>(s) {</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>          <span class="fu">filter</span>(.x, ano_flate_id <span class="sc">==</span> s)</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>        })</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>    }) <span class="sc">|&gt;</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>()</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>  regional <span class="ot">&lt;-</span> boot_dat <span class="sc">|&gt;</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(region) <span class="sc">|&gt;</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">sim =</span> <span class="fu">mean</span>(alien_res, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rename</span>(<span class="at">Region =</span> region)</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>  national <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">Region =</span> <span class="st">&quot;Norway&quot;</span>,</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">sim =</span> <span class="fu">mean</span>(boot_dat<span class="sc">$</span>alien_res, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(national, regional) <span class="sc">|&gt;</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">draw =</span> i)</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>NO_ALIE_002_table <span class="ot">&lt;-</span> boot_results <span class="sc">|&gt;</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Region) <span class="sc">|&gt;</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">indicator_value =</span> <span class="fu">mean</span>(sim, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">CI_lower =</span> <span class="fu">quantile</span>(sim, <span class="fl">0.025</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">CI_upper =</span> <span class="fu">quantile</span>(sim, <span class="fl">0.975</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Year =</span> <span class="dv">2024</span>)</span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>NO_ALIE_002_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 6 × 5
-  Part            indicator_value CI_lower CI_upper  Year
+  Region          indicator_value CI_lower CI_upper  Year
   &lt;chr&gt;                     &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;
-1 Central.Norway            0.914    0.748    0.985  2024
-2 Eastern.Norway            0.867    0.716    0.954  2024
-3 Northern.Norway           0.903    0.800    0.963  2024
-4 Norway                    1.000    1.000    1.000  2024
-5 Southern.Norway           0.511    0        1      2024
-6 Western.Norway            0.932    0.766    0.990  2024</code></pre>
+1 Central.Norway            1.000    1.000    1      2024
+2 Eastern.Norway            0.999    0.998    1      2024
+3 Northern.Norway           1.000    0.999    1.000  2024
+4 Norway                    1.000    0.999    1.000  2024
+5 Southern.Norway           1        1        1      2024
+6 Western.Norway            1.000    1.000    1      2024</code></pre>
 </div>
 </div>
 </section>
@@ -2896,11 +2826,14 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># write to parquet using arrow </span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>arrow<span class="sc">::</span><span class="fu">write_parquet</span>(</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  NO_ALIE_002_sim,</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;data/results_NO_ALIE_002_sim.parquet&quot;</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># write to parquet using arrow </span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>NO_ALIE_002_sim <span class="ot">&lt;-</span> boot_results <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="dv">2024</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>arrow<span class="sc">::</span><span class="fu">write_parquet</span>(</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  NO_ALIE_002_sim,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;NO_ALIE_002_sim.parquet&quot;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
