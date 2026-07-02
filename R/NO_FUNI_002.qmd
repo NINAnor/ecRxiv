@@ -1048,7 +1048,7 @@ for (i in 1:length(mountain.ref.cov) ) {
 
 ```{r, include = F}
 # Data from cache
-mountain.ref.cov<-readRDS(paste0(here::here(), "/data/cache/mountain.ref.cov.RDS"))
+mountain.ref.cov<-readRDS(here::here("data/cache/mountain.ref.cov.RDS"))
 ```
 
 ```{r}
@@ -1447,6 +1447,14 @@ mu <- mu_draws_reg |>
     add_column(year = "2024")
 ```
 
+```{r fig-hist}
+#| fig-cap: 'Histogram of indicator value distributions.'
+mu |>
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(.~part, ncol=1) +
+  theme_bw(base_size=16) 
+```
 
 ```{r tbl-results}
 #| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUNI_002, calculated for Norwegian mountain ecosystems.'
