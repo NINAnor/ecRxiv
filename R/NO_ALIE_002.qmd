@@ -412,10 +412,8 @@ temp <- temp %>% mutate(indicator = ec_normalise(variable = variable,
                           fun = "linear")
 )
 
-temp |>
-  ggplot() +
-  geom_line(aes(x = variable,
-                 y = indicator))
+ec_norm_plot(variable = temp$variable, indicator = temp$indicator)
+
 ```
 
 
@@ -507,12 +505,14 @@ NO_ALIE_002_sim <- mu_draws_re |>
 
 NO_ALIE_002_table <- NO_ALIE_002_sim |>
   group_by(Region) |>
+  rename("Part"=Region) |> 
   summarise(
     indicator_value = mean(sim, na.rm = TRUE),
     CI_lower = quantile(sim, 0.025, na.rm = TRUE),
     CI_upper = quantile(sim, 0.975, na.rm = TRUE),
     .groups = "drop"
-  )
+  ) |> 
+  mutate("Year"=2024) 
 
 NO_ALIE_002_table
 ```
