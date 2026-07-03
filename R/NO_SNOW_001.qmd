@@ -16,6 +16,9 @@ Biome:
   - T6 Polar-alpine (cryogenic) biome
 Ecosystem: 
   - T6.1 Permanent snow
+  - T6.2 Polar/alpine rock
+  - T6.3 Polar tundra
+  - T6.4 Temp alpine grasslands
 yearAdded: 2026
 yearLastUpdate: 2026
 status: complete
@@ -103,6 +106,29 @@ knitr::opts_chunk$set(echo = TRUE)
 source(here::here("_common.R"))
 ```
 
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
+```
+
 ::: {layout-ncol="6"}
 
 ```{r statusBadge}
@@ -149,18 +175,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 ```
 :::
@@ -329,17 +358,23 @@ This section imports the spatial layers and retrieves daily snow depth data from
 # 1. LOAD SPATIAL DATA
 # -------------------------------
 
+# Mountain area polygons. These are used to mask the snow-depth raster so that
+# only mountain areas contribute to the indicator.
 fjell <- st_read(here::here(
   "data/Fjell_norge_publisering.gdb"),
   layer = "Modellert_fjell_50"
 )
 
+# Regional helper file. This deliminates the firev geographic regions used
+# when aggregating mean snow depth to regions.
 reg_helperfile <- readRDS(here::here(
   "data/reg_helperfile.rds"
 ))
 
 reg_helperfile <- st_transform(reg_helperfile, st_crs(fjell))
 
+# Use the mountain-area bounding box to crop the NetCDF data spatially before
+# converting it to rasters. This avoids reading the full national grid.
 bbox <- st_bbox(fjell)
 
 # -------------------------------
@@ -366,7 +401,8 @@ for (yr in years) {
   cat("Processing winter year:", yr, "\n")
 
   tryCatch({
-
+    # seNorge snow-depth NetCDF files are organised by calendar year.
+    # For winter year yr, we need December from yr - 1 and January-May from yr.
     url_prev <- paste0(
       "https://thredds.met.no/thredds/dodsC/senorge/seNorge_snow/sd/sd_",
       yr - 1,
@@ -379,7 +415,9 @@ for (yr in years) {
       ".nc"
     )
 
-    # Current year: January-May
+# -------------------------------
+# 3a. Read January-May from current calendar year
+# -------------------------------
     nc_curr <- nc_open(url_curr)
 
     time_curr <- ncvar_get(nc_curr, "time")
@@ -395,6 +433,7 @@ for (yr in years) {
     x_vals <- nc_curr$dim$x$vals
     y_vals <- nc_curr$dim$y$vals
 
+    # Identify the grid cells overlapping the mountain-area bounding box.
     x_idx <- which(
       x_vals >= bbox["xmin"] &
         x_vals <= bbox["xmax"]
@@ -404,7 +443,8 @@ for (yr in years) {
       y_vals >= bbox["ymin"] &
         y_vals <= bbox["ymax"]
     )
-
+    
+    # Read snow depth only for the selected spatial extent and months.
     sd_jan_may <- ncvar_get(
       nc_curr,
       "snow_depth",
@@ -414,7 +454,9 @@ for (yr in years) {
 
     nc_close(nc_curr)
 
-    # Previous year: December
+# -------------------------------
+# 3b. Read December from previous calendar year
+# -------------------------------
     nc_prev <- nc_open(url_prev)
 
     time_prev <- ncvar_get(nc_prev, "time")
@@ -436,6 +478,10 @@ for (yr in years) {
 
     nc_close(nc_prev)
 
+# -------------------------------
+# 3c. Create winter-season raster stack
+# -------------------------------
+
     # Combine December and January-May
     snow_array <- abind(sd_dec, sd_jan_may, along = 3)
 
@@ -456,16 +502,21 @@ for (yr in years) {
     # Mean snow depth over the full December-May period
     r_mean <- mean(r, na.rm = TRUE)
 
-    # Mask to mountain areas
+# -------------------------------
+# 3d. Mask to mountain areas
+# -------------------------------
+    # Rasterize the mountain polygon layer to the snow-depth raster grid.
     fjell_rast <- rasterize(
       vect(fjell),
       r_mean,
       field = 1
     )
-
+    # Keep only raster cells inside modelled mountain areas.
     r_masked <- mask(r_mean, fjell_rast)
 
-    # Calculate mean snow depth by mountain region
+# -------------------------------
+# 3e. Aggregate mean snow depth to regions
+# -------------------------------
     region_vals <- terra::extract(
       r_masked,
       vect(reg_helperfile),
@@ -484,13 +535,15 @@ for (yr in years) {
       results,
       region_results[, c("year", "id", "region", "arealFjell", "mean_snow")]
     )
-
+   
+    # Save after every year so progress is not lost if the loop fails later
     write.csv(
       results,
       "snow_indicator_fjell_by_region_winter_year.csv",
       row.names = FALSE
     )
 
+    # Remove large temporary objects before processing the next year.
     rm(
       sd_dec, sd_jan_may, snow_array,
       r, r_mean, r_masked, fjell_rast,
@@ -555,7 +608,7 @@ ggplot(results, aes(year, mean_snow)) +
     title = "Mean winter snow depth in Norwegian mountain regions",
     subtitle = "Winter year is defined as December of the previous year plus January-May of the current year"
   ) +
-  theme_minimal()
+  theme_bw()
 ```
 
 ```{r reference-values}
@@ -563,23 +616,40 @@ ggplot(results, aes(year, mean_snow)) +
 
 reference_years <- 1961:1990
 
+accounting_period_1 <- 2020:2024
+accounting_period_2 <- 2015:2019
+
+
 # Calculate regional reference values
 reference_values <- results |>
-  filter(year %in% reference_years) |>
+  dplyr::filter(year %in% reference_years) |>
   group_by(id, region) |>
   summarise(
     reference_snow = median(mean_snow, na.rm = TRUE),
     reference_mean_snow = mean(mean_snow, na.rm = TRUE),
     n_reference_years = sum(!is.na(mean_snow)),
+    sd = sd(mean_snow),
     .groups = "drop"
+  ) |>
+  # calculating reference values with x60 equal to a value that 
+  # is more extreme than 2 sd units during the reference period
+  mutate(
+    x100 = reference_snow,
+    x0 = 0,
+    x60 = reference_snow - (sd * 2)
   )
+
 
 # Join reference values back to the full results table
 results_normalised <- results |>
   left_join(reference_values, by = c("id", "region")) |>
   mutate(
-    relative_snow = mean_snow / reference_snow,
-    condition_score = pmin(relative_snow, 1)
+    condition_score = ecTools::ec_normalise(
+      mean_snow,
+      x0 = x0,
+      x60 = x60,
+      x100 = x100
+    )
   )
 
 # Inspect reference values
@@ -589,11 +659,96 @@ reference_values |>
     digits = 2,
     caption = "Regional snow-depth reference values for the 1961–1990 reference period"
   )
-  
-
 ```
 
 ## 10. Results
+
+
+
+
+We can now plot the anomalies in alipne snow depth relative to the reference period (@fig-time)
+```{r fig-time}
+#| fig-cap: 'Alpine snow depth relative to the perdion 1961-1990 indicator by the black horisonal bar.'
+#| 
+regOrder = c("Østlandet","Sørlandet","Vestlandet","Midt-Norge","Nord-Norge")
+
+results_normalised %>%
+  mutate(
+    diff = mean_snow - x100,
+    x60_centered = x60 - x100,
+    col = if_else(mean_snow>= x100, "1", "2")) %>%
+  ggplot(aes(x = as.numeric(year), 
+           y = diff, fill = col))+
+  geom_bar(stat="identity")+
+  geom_hline(aes(yintercept = x60_centered),
+        linetype=2)+
+  geom_segment(x = 1961, xend=1990,
+               y = 0, yend = 0,
+               linewidth=2)+
+  scale_fill_hue(l=70, c=60)+
+  theme_bw(base_size = 12)+
+  ylab("Snow depth \n(reletaive to 1961-1990)")+
+  #ylab("Snødybde\n(avvik fra 1961-1990)")+
+  xlab("")+
+  guides(fill="none")+
+  facet_wrap( .~ factor(region, levels = regOrder),
+              ncol=3,
+              scales = "free_y")
+```
+
+We combine the indicator values over 5 years to average out some interannual variation. Therefore the indicator value for 2024 uses data from 2020 to 2024. We use the temporal variation across these five years as the indicator uncertainty.
+
+```{r}
+results_period <- results_normalised |>
+  mutate(
+    closing_year = case_when(
+      #year %in% reference_years ~ "reference",
+      year %in% accounting_period_1 ~ "2024",
+      year %in% accounting_period_2 ~ "2019",
+      .default = "drop"
+    )
+  ) |>
+  dplyr::filter(closing_year != "drop") |>
+  group_by(id, region, arealFjell, closing_year) |>
+  summarise(
+    indicator = mean(condition_score),
+    sd = sd(condition_score)
+  )
+
+results_distr <- results_period |>
+  mutate(
+    eta = qlogis(indicator),
+    sd_eta = sd/(indicator*(1-indicator)),
+    indicator = list(plogis(rnorm(1000, eta, sd_eta)))) |>
+  unnest(indicator) |>
+  ungroup() |>
+  select(part = region, year = closing_year, indicator)
+
+```
+
+```{r}
+results_distr |>
+  ggplot(aes(x = indicator)) +
+  geom_histogram() +
+  facet_grid(cols = vars(year), rows = vars(part)) +
+  theme_bw()
+```
+
+  out_data |>
+  kable(
+    digits = 2,
+    caption = paste(
+      "Mean winter snow depth and normalised condition score by mountain region in",
+      latest_year
+    )
+  )
+
+Then we propagate these uncertainty and get a national estimate as well.
+
+```{r}
+results_distr |>
+  
+```
 
 The table below gives the most recent available condition score for each mountain region. Scores are expressed relative to the median winter snow depth observed during the 1961–1990 reference period. Values of 1 indicate snow depth equal to or greater than the historical reference condition, whereas lower values indicate reduced snow depth relative to the reference period.
 
@@ -601,7 +756,7 @@ The table below gives the most recent available condition score for each mountai
 latest_year <- max(results_normalised$year, na.rm = TRUE)
 
 final_table <- results_normalised |>
-  filter(year == latest_year) |>
+  dplyr::filter(year == latest_year) |>
   arrange(id)
 
 final_table |>
@@ -635,7 +790,7 @@ ggplot(results_normalised, aes(year, condition_score)) +
     title = "Normalised winter snow-depth condition score in Norwegian mountain regions",
     subtitle = "Scores are relative to the regional median snow depth during 1961–1990 and capped at 1"
   ) +
-  theme_minimal()
+  theme_bw()
 ```
 
 ```{r write-results}
