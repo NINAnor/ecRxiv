@@ -238,9 +238,9 @@ meta |>
 ## 1. Summary
 
 1. **Background and rationale**: Alien plant species have a profound impact on native species and ecosystem dynamics and thus affect ecosystem condition significantly. This indicator describes how abundant alien plant species are in an ecosystem. The main anthropogenic factors behind increasing alien plant species abundance are i) introduction of alien plant species, and ii) climate change. See Framstad et al. (2022) for previous implementations of this indicator.
-2. **Methods**: The indicator uses ANO monitoring data on alien plant species cover. The reference values for scaling the original cover values to a condition index are as follows:
-- x100 (best possible condition) is set to 0% alien plant species cover and scales to an indicator value of 1
-- x0 (lowest possible condition) is set to 50% and higher alien species cover and scales to an indicator value of 0
+2. **Methods**: The indicator uses ANO monitoring data on alien plant species cover, originally recorded on a scale from 0-100% cover. The definition of an alien plant species are species introduced by humans and which we not established in Norway before year 1800. The reference values for scaling the original cover values to a condition index are as follows:
+ ~x~100 (best possible condition) is set to 0% alien plant species cover and scales to an indicator value of 1, and; 
+ ~x~0 (lowest possible condition) is set to 50% and higher alien species cover and scales to an indicator value of 0.
 These reference values are expert-judgement based. The x0-values of >=50% follows the rationale in NiN for a natural ecosystem turning into a 'clearly altered system' when alien plant species dominate the vegetation.
 We do not specify a x60 due to lack of empirical evidence at which cover x60 should lie. In practice, this though means that a cover of 20% scales to 0.6 and thus represents x60.
 3. **Interpretation**: An indicator value of 1 represents perfect condition as it signifies abscence of alien plant species. An indicator value of 0.6 represents the lowest indicator values still interpretable as 'good condition'. Values decreasing from 0.6 toward zero represent increasing degrees of condition degradation. A value of 0 signifies that the ecosystem has changed into another altered system due to dominance of alien plant species.
@@ -272,7 +272,7 @@ The ANO program is run by the Norwegian Environment Agency. On their [web site](
 The 'Alien plant species' indicator reflects the plant species composition and thus represents ECT class 'B1 Biotic compositional characteristics'.
 
 ### 3.2 Ecosystem condition characteristic
-The 'Alien plant species' indicator addresses both the ecosystem characteristic 'functionally important species and biophysical structures' and 'biological diversity' in the Norwegian framework for ecological condition. The indicator has been linked solely to the former in the previous assessments of ecological condition in forest and mountain ecosystems.
+Intact native vegetation
 
 ### 3.3 Collinearities with other indicators
 None.
@@ -399,7 +399,7 @@ ggplot(ANO.mount, aes(x = region, y = fremmedarter_total_dekning)) +
 We use a normalisation function scaling linearly between the reference values. The function is demonstrated in the code below, and in @fig-demo.
 
 ```{r fig-demo}
-#| fig-cap: 'Normalisation function (piecewise linear)'
+#| fig-cap: 'Normalisation function'
 
 temp <- tibble(
   variable = 0:100
@@ -471,9 +471,11 @@ boot_results <- map_dfr(1:B, function(i) {
     ungroup()
   
   regional <- boot_dat |>
+    group_by(ano_flate_id) |>
+    summarise(alien_XXX = mean(alien_res), .group = "drop") |>
     group_by(region) |>
     summarise(
-      sim = mean(alien_res, na.rm = TRUE),
+      sim = mean(alien_XXX, na.rm = TRUE),
       .groups = "drop"
     ) |>
     rename(Region = region)
@@ -531,24 +533,16 @@ arrow::write_parquet(
 **CRediT statement**
 
 * Conceptualization: [JT]
-* Methodology: [JT]
-* Data curation: [JT]
-* Formal analysis: [JT]
+* Methodology: [JT, MG]
+* Data curation: [JT, MG]
+* Formal analysis: [JT, MG]
 * Visualization: [JT]
-* Reproducibility: [JT]
+* Reproducibility: [JT, MG]
 
 
 
 ::: {.callout-tip collapse="true"}
 ## Session Info
-<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
-
-This information is mainly aimed at developers that need to recreate the R environment that produced the html.
-Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
-
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
-```
+This workflow uses `renv`. Run `renv::restore()` to get started.
 
 :::
