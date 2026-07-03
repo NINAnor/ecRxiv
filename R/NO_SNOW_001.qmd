@@ -89,7 +89,7 @@ library(terra)
 library(ncdf4)
 library(lubridate)
 library(abind)
-
+library(arrow)
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
@@ -299,20 +299,17 @@ For each region, the reference level is calculated as the median winter mean sno
 
 Annual values are then expressed relative to the regional reference level:
 
-
 ```{r}
 #| echo: true
 #| eval: false
-
 normalised_snow = mean_snow / reference_snow
 ```
 
-Values are capped at 1 so that years with snow depth equal to or greater than the reference period receive the maximum condition score:
+Values are capped at 1 so that years with snow depth equal to or greater than the reference period receive the maximum condition score.
 
 ```{r}
 #| echo: true
 #| eval: false
-
 condition_score = pmin(normalised_snow, 1)
 ```
 
@@ -722,7 +719,7 @@ results_distr <- results_period |>
     indicator = list(plogis(rnorm(1000, eta, sd_eta)))) |>
   unnest(indicator) |>
   ungroup() |>
-  select(part = region, year = closing_year, indicator)
+  select(part = region, year = closing_year, indicator, arealFjell )
 
 ```
 
@@ -734,70 +731,51 @@ results_distr |>
   theme_bw()
 ```
 
-  out_data |>
-  kable(
-    digits = 2,
-    caption = paste(
-      "Mean winter snow depth and normalised condition score by mountain region in",
-      latest_year
-    )
-  )
-
-Then we propagate these uncertainty and get a national estimate as well.
+Then we propagate these uncertainty and get a national estimate.
 
 ```{r}
-results_distr |>
-  
+results_distr_norway <- results_distr |>
+  add_column(end = "Norway") |>
+  ecTools::ec_upscale(
+    variable = indicator,
+    weight = arealFjell,
+    start_units = part,
+    end_units = end,
+    year = year,
+    end_units_name = "part",
+    n = 1000
+  ) 
+
+# Append to dataset
+out_data <- results_distr |>
+  select(part, year, sampled_mean = indicator) |>
+  bind_rows(results_distr_norway)
+
 ```
 
-The table below gives the most recent available condition score for each mountain region. Scores are expressed relative to the median winter snow depth observed during the 1961–1990 reference period. Values of 1 indicate snow depth equal to or greater than the historical reference condition, whereas lower values indicate reduced snow depth relative to the reference period.
 
 ```{r results-normalised}
-latest_year <- max(results_normalised$year, na.rm = TRUE)
-
-final_table <- results_normalised |>
-  dplyr::filter(year == latest_year) |>
-  arrange(id)
-
-final_table |>
-  select(
-    year,
-    region,
-    mean_snow,
-    reference_snow,
-    relative_snow,
-    condition_score
-  ) |>
+out_data |>
+  group_by(part, year) |>
+  summarise(indicator = median(sampled_mean),
+   lower = round(quantile(sampled_mean, probs = 0.025), 2),
+   upper = round(quantile(sampled_mean, probs = 0.975), 2)) |>
+    unite("95% CI", c("lower", "upper"), sep = " - ") |>
+    select(part, year, indicator, '95% CI') |>
   kable(
     digits = 2,
     caption = paste(
-      "Mean winter snow depth and normalised condition score by mountain region in",
-      latest_year
+      "Indicator values for NO_SNOW_001 (snow depth in alpine ecosystems)"
     )
   )
-
 ```
 
-
-```{r plot-results-normalised}
-ggplot(results_normalised, aes(year, condition_score)) +
-  geom_line() +
-  geom_hline(aes(yintercept=0.6),lty=2)+
-  facet_wrap(~ region) +
-  labs(
-    x = "Winter year",
-    y = "Condition score",
-    title = "Normalised winter snow-depth condition score in Norwegian mountain regions",
-    subtitle = "Scores are relative to the regional median snow depth during 1961–1990 and capped at 1"
-  ) +
-  theme_bw()
-```
 
 ```{r write-results}
-write.csv(
-  results_normalised,
-  "snow_indicator_fjell_by_region_winter_year_normalised.csv",
-  row.names = FALSE
+#| eval: false
+arrow::write_parquet(
+  out_data,
+  "snow_indicator_fjell_by_region_winter_year_normalised.csv"
 )
 
 ```
