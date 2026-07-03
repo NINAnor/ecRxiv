@@ -1,0 +1,812 @@
+---
+title: "Glaciers"
+subtitle: "[NO_GLAC_001]"
+indicatorID: 
+  - NO_GLAC_001
+indicatorName: 
+  - Glaciers
+verbatimName: Isbreer
+folderName: NO_GLAC_001
+country: Norway
+continent: Europe
+ECT: C1 - Landscape and Seascape Characteristics
+Realm: 
+  - Terrestrial
+Biome: 
+  - T6 Polar-alpine (cryogenic) biome
+Ecosystem: 
+  - T6.1 Permanent snow
+verbatimEcosystem: Fjell
+yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2026
+status: complete # options are complete, incomplete, or deprecated
+Version: "1.0.0." # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: Last version was 000.003. This update has removed redundtant sensitivity analyses and simplified the workflow.
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001
+Normalised: Yes
+SpatialAggregationPathway: 'sp. agg (polygons to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway, weighted by initial glacier area)'
+Precision: Inferential uncertainties (probability distributions and credible intervals) for the true value of the indicator mean.
+AuthorList: Kolstad, A.
+data_availability: gold
+code_reproducibility: gold
+open_science_badge: gold
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: false
+author:
+  - name: Anders L. Kolstad
+    email: anders.kolstad@nina.no
+    affiliations:
+      - id: myID
+        name: Norwegian Institute for Nature Research 
+date: July 3, 2026
+callout-icon: false
+lightbox: true
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+bibliography: references.bib
+editor: 
+  markdown: 
+    wrap: 72
+hide: FALSE
+codeReviewers:
+  - name: none #Jane Smith
+    email: #jane.smith@example.no
+    affiliations:
+      - id: reviewerInst
+        name: Example Institute
+    reviewType: code review
+    github: janesmith
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(sf)
+library(ecTools)
+library(purrr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+source(here::here("_common.R"))
+```
+
+
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
+```
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+# The following inserts a badge specifying the GPL GNU version 3 license. ecRxiv recommends using this license, but you can decide to use another. Contact ecRxiv for help in insert a badge for a different license
+license_badge()
+```
+
+
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "verbatimName",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "verbatimEcosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway",
+    "Precision")) |>   
+  kable()
+
+```
+:::
+
+::: {.callout-tip collapse="true"}
+
+## Log
+
+<!--# Update this logg with short messages for each update -->
+-   March 26, 2025 - Original PR
+-   April 25, 2025 - New reference levels
+-   May 15, 2025 - revision following code review
+-   November 25, 2025 - restructure (moving metadata into top yaml) and add open science badges (ALK)
+-   June 5, 2026 - New version
+:::
+
+
+<hr />
+
+
+```{r fig-picture}
+#| fig-cap: 'Nigardsbreen. A melting glacier in Norway. Photo: A. Kolstad. CC BY 4.0.'
+knitr::include_graphics(here::here("img/nigardsbreen - kolstad.png"))
+```
+
+<!--# Document you work below.  -->
+
+## 1. Summary
+
+1. **Background and rationale**:
+<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
+What are the main anthropogenic impact factors? -->
+Glaciers represents important structural elements in alpine ecosystems,
+providing melt water and local climate control. It is also a unique
+nature type and habitat in itself, with few, but very specialised, species living on
+or in association with the ice. Glaciers are permanently ice covered
+areas and they are sensitive to climate change, especially climate
+warming, which melts the ice. 
+2. **Methods**:
+<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+In Norway we have a rather detailed and
+precise map of the glacier cover or extent from the period 1947-1985. Here I use
+this data as a representation of the climatic reference condition (pre
+climate warming), and compare this with an updated glacier cover map
+from 2018-2019 to create a normalised ecosystem condition indicator. 
+Glacier area and glacier area change is calculated for each of the five geographical regions in Norway, and for Norway as a whole. The aggregation from the regional to the national estimate is based on a weighted average using the initial glacier area as weights. 
+Indicator uncertainty originates from two sources: a 3% measurement error, 
+based on the reported uncertainties
+in the mapping method, and the spatial variation across strata.
+
+
+3. **Interpretation**:
+<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
+The indicator value represents the negative ecological effect of melting glacier ice. 
+Most glaciers are found in western and northern Norway, and due to the way the regions are weighted by their initial glacer extent, the national estimate is determined mainly by the changes in glacer area in these regions. 
+The indicator does NOT directly represent the area of remaining glacier ice.
+An indicator value of 1 signifies that the glacier extent is equal to, or greater then it was in the reference condition, defined by the climatic period between 1947 and 1985. 
+Values decreasing toward zero reflect a reduction an the positive impacts of glacier and melt water, driven by the reduction in glacer area and volume.
+
+4. **Results and development needs**:
+<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
+The indicator value for Norway as a whole in 2024 (using data from 2018-2019) is 0.49 [95% CI = 0.48-0.50], which indicates that glacier area and volume have been reduced considerably, to the point where this change is having a negatative effect the integrity of mountain ecosystems. 
+The unceratinty for the national point estime for this indicator is very small, which is expected due to the high level of spatial replication.  
+Future updates will require new maps of glacier cover in Norway, which is highly possible to produce from satellite imagery.
+
+## 1.2 Native language summary - Norwegian
+
+1. **Bakgrunn og begrunnelse**: 
+Isbreer utgjør viktige strukturelle elementer i alpine økosystemer ved å tilføre smeltevann og bidra til lokal klimaregulering. De representerer også en unik naturtype og et eget habitat, med få, men høyt spesialiserte arter som lever på eller i tilknytning til isen. Isbreer er permanent isdekte områder og er svært følsomme for klimaendringer, særlig klimaoppvarming, som fører til smelting av isen.
+
+
+2. **Metoder**: 
+I Norge har vi relativt detaljerte og presise kart over bredekning fra perioden 1947–1985. Disse dataene brukes her som en representasjon av den klimatiske referansetilstanden (før den markerte klimaoppvarmingen), og sammenlignes med oppdaterte kart over bredekning fra 2018–2019 for å beregne en normalisert indikator for økosystemtilstand.
+Breareal og endringer i breareal beregnes for hver av de fem geografiske regionene i Norge, samt for landet som helhet. Aggregeringen fra regionale til nasjonale estimater er basert på et vektet gjennomsnitt, der det opprinnelige brearealet brukes som vekter.
+Usikkerheten i indikatoren har to hovedkilder: en målefeil på 3 %, basert på rapporterte usikkerheter i kartleggingsmetodene, og den romlige variasjonen mellom regionene.
+
+3. **Tolkning**: 
+Indikatorverdien representerer de negative økologiske effektene av smeltende breis. De fleste isbreene finnes i Vest-Norge og Nord-Norge, og fordi regionene vektes etter sitt opprinnelige breareal, er det de observerte endringene i disse regionene som i størst grad bestemmer den nasjonale indikatorverdien.
+En indikatorverdi på 1 betyr at breutbredelsen er lik eller større enn den var under referansetilstanden, definert som den klimatiske perioden mellom 1947 og 1985. Verdier som nærmer seg null reflekterer en reduksjon i de positive økologiske effektene av breer og smeltevann, drevet av nedgang i breareal og brevolum.
+Indikatoren representerer ikke direkte hvor stort areal som fortsatt er dekket av breis.
+
+4. **Resultater og utviklingsbehov**: 
+Indikatorverdien for hele Norge i 2024 (basert på data fra 2018–2019) er 0,49 [95 % KI = 0,48–0,50]. Dette indikerer at breareal og brevolum er betydelig redusert, til et nivå der endringene påvirker integriteten til fjelløkosystemene negativt.
+Usikkerheten rundt the nasjonale estimatet på indikatorverdien er svært lav, noe som er forventet grunnet den store utvalgsstørreslen.
+Fremtidige oppdateringer av indikatoren vil kreve nye kart over bredekningen i Norge. Slike kart kan med trolig produseres ved hjelp av satellittdata.
+
+
+## 2. About the underlying data
+
+<!--# Describe the data you have used in more detail, it's origin, biases, availabilit ect.-->
+
+I mainly make use of two datasets on glacier extent in Norway. One
+covering the years 1947 to 1985 [@winsvold2014], and one covering
+2018-2019 [@andreassen2022]. The first dataset is made to represent the
+climatic reference condition (pre-climate change). It as a digitalised
+version of the N50 map, made based on the interpretation of aerial
+photos. The newer map is a classification based on Sentinel imagery. The
+uncertainties in both maps is said to be 3% (interpreted here as sd =
+mean × 0.03), but these are several generalisations embedded in this
+single number.
+
+### 2.1 Spatial and temporal resolution and extent
+
+<!--# Describe the temporal and spatial resolution and extent of the data used -->
+
+The data covers all of mainland Norway (defined here as the ecosystem
+accounting area, EAA), and two time steps (see above).
+
+### 2.2 Sampling design
+
+The sampling design is a complete sampling (wall-to-wall).
+
+### 2.3 Original units
+
+<!--# What are the original units for the most relevant  variables in the data-->
+
+The original data is a map with presence or absence of glaciers. 
+Early in the workflow, I summarise these as summed area (m^2^) per strata.
+
+### 2.4 Instructions for citing, using and accessing data
+The glacier cover maps are distributed under CC-BY 4.0. We have made a
+simplified (less columns) version of the dataset available on github in
+order to make the workflow more reproducible.
+
+### 2.5 Additional comments about the dataset
+
+<!--# Text here -->
+
+I know of no concrete plans to update the glacier cover map, but with
+of remote sensing, this is indeed possible to to, and quite
+easy as well probably.
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+Area of glaciers is categorised as describing a *A1 - Physical state characteristic*. on the importance of melt water, and hence glacer volume.
+The indicator has previous been under C1 - Landscape characteristics, with a stronger emphasis on glaciers as landscape elements and a habitat.
+
+
+### 3.2 Ecosystem condition characteristic
+
+The indicator is meant to represent a characteristic of ecosystems in good condition where the climate is as it was under the normal climate period 1961-1990, and where the extent, volume, and hence ecological importance of glaciers is in equilibrium with this climate.
+
+### 3.3 Collinearities with other indicators
+
+The indicator is in many ways unique, but will likely be collinear with
+other indicators that are similarly affected by climate warming, suce as snow depth.
+
+### 3.4 Impact factors
+
+Glaciers are mainly affected by climate change, especially climate
+warming [@zemp2025].
+
+### 3.5 Spatial aggregation
+The map data is prepared (clipped) to the spatial scale of five geographic regions in Norway. Then the variable is normalised before being aggregated to a national estimate.
+$$
+sp. agg (polgons to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway)
+$$
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+The reference condition of mountain ecosystems are defined, in general
+terms, as one with minimal human impact. For the climate, the definition
+is more precisely defined as the time period 1961-1990, which is the
+last 30 year normal period before climate change became really
+prominent.
+
+### 4.2 Reference levels
+
+The reference level X~100~ is defined for each strata uniquely based on the glacier
+extent in 1947-1985. X~0~ equates to an absence of glaciers.
+X~60~ is defined as 30% loss of glaciers (70% remaining). 
+This value was chosen after a discussion between several aline ecologist, and is documented [here](https://github.com/NINAnor/ECA_2026/issues/43).
+The indicator is designed to reflect the effects of a reduced supply of melt water.
+The supply of melt water from glaciers is more dependent on the glacer volume than the glacers extent or cover.
+Glacer area scale non-linearely with glacier volume such that $V = A^1\.36$ [@bahr1997physical].
+This means that a 30% reduction in glacier areas equates to approx. a 38% reduction in volume. 
+A 60% reduction in area would imply an approx. 71% less volume.
+
+```{r}
+#| results: false
+v1 <- 100^1.36
+v2 <- 70^1.36
+v3 <- 40^1.36
+(v1-v2) / v1 # 0.3843508
+(v1-v3) / v1 # 0.7123916
+
+```
+
+The X~60~ value therefore ensures that the indicator puts more weight on the ecological effect of a reduced supply of melt water from glacers then if there was no X~60~ value defined.  
+
+#### 4.2.1 Spatial resolution and validity
+
+The reference levels are defined for each region, and can therefore only be
+used to normalise variables at that scale. However, reference levels can
+easily be recalculated for any spatial scale.
+
+## 5. Uncertainties
+### 5.1 General uncertainties
+
+The reference condition, using the climate in 1961-1990, introduces some uncertainty, or at least some arbitrariness, when we consider that most glaciers in Norway were melted away in the 
+warm period between 7500 and 6000 year before present.
+
+### 5.2 Reported uncertainties
+The reported uncertainties reflect the uncertainties around the true parameter means, i.e. they are inferrential uncertainties for the true value of the indicator for the given area and time combination. These uncertainties originates from the spatial variation and the 3% measurement error in the dataset [@andreassen2022]. 
+
+
+## 6. References
+
+::: {#refs}
+:::
+
+## 7. Import and prepare datasets
+
+### 7.1 Dataset A - Glacier cover 1947-1985
+
+This data is based on a combination of landsat imagery and digitized
+topographic maps [@winsvold2014]. We use this map as our reference
+condition and assume this glacier cover represents the climatic period
+1961-1990.
+
+The dataset is manually downloaded.
+
+URL: <https://nve.brage.unit.no/nve-xmlui/handle/11250/2831053>
+
+```{r readCache1}
+#| code-summary: "Read data"
+dat_old <- readRDS(here::here("data/glacial_extent_old.rds"))
+```
+
+
+### 7.2 Dataset B - Glacier cover 2018-2019
+
+This is the map of glacier cover measured in the period 2018-2019
+[@andreassen2022].
+
+URL: <https://nve.brage.unit.no/nve-xmlui/handle/11250/2836926>
+
+```{r readCache2}
+#| code-summary: "Read data"
+dat_new <- readRDS(here::here("data/glacial_extent_new.rds"))
+```
+
+### 7.3 Dataset C - Geographical regions
+
+I import a delineation of five geographical regions in Norway that I
+will use as an intermediate aggregation level and for defining strata.
+
+```{r greg2}
+#| code-fold: true
+#| code-summary: "Importing geographical regions"
+
+greg <- readRDS(here::here("data/regions.rds")) |>
+  mutate(region = case_when(
+    id == 3 ~ "Oestlandet",
+    .default = region
+  ))
+
+```
+
+
+## 8. Spatial units
+
+The five geographic regions in Norway are defined as ecosystem assets.
+Mainland Norway is the ecosystem accounting area.
+The original polygons in the glacier maps are referred to basal units (BS units).
+
+
+## 9. Analyses
+
+
+The papers describing the glacier extent data report an estimated 3%
+uncertainty with their method [@andreassen2022]. I assume this to mean
+the standard deviation is 3% of the mean. I start by replacing the point
+estimates in each region with a probability
+distribution centered on the point estimate, and with sd = mean × 0.03.
+These distributions are uncertainty (inferential) distributions for the true value of the mean,
+and I can use Monte Carlo propagation to aggregate these into join distributions for regions later.
+
+```{r}
+#| warning: false
+#| code-fold: true
+#| code-summary: "Add measurement error"
+
+dat_new2 <- dat_new |>
+  # adding 3% uncertainty
+  rowwise() |>
+  mutate(
+    variable = list(rnorm(100, areal_km2, areal_km2*0.03))
+    )
+
+# In ecosystem accounting it is not common to allow uncertainty in the
+# reference levels, but here it is quite easy to implement, and I
+# therefore see no reason not to.
+dat_old2 <- dat_old |>
+  # adding 3% uncertainty
+  rowwise() |>
+  mutate(
+    variable = list(rnorm(100, areal_km2, areal_km2*0.03))
+    )
+```
+
+Then we need to intersect the map of the glaciers with a map of the five geographic regions. 
+
+```{r}
+#| eval: false
+dat_old3 <-  dat_old2 |>
+  st_intersection(greg |> select(region)) 
+
+saveRDS(dat_old3, here::here("data/cache_dat_old3.rds"))
+
+dat_new3 <-  dat_new2 |>
+  st_intersection(greg |> select(region)) 
+
+saveRDS(dat_new3, here::here("data/cache_dat_new3.rds"))
+```
+
+```{r}
+#| include: false
+dat_new3 <- readRDS(here::here("data/cache_dat_new3.rds"))
+dat_old3 <- readRDS(here::here("data/cache_dat_old3.rds"))
+```
+
+
+I can now have a look at the summed initial glacier area per region. I then see that western and northern Norway has the most glaciers to start with (@fig-initialArea), and these regions will count the most towards the national estimate.
+
+```{r fig-initialArea}
+#| fig-cap: 'Area of glaciers in in Norway (km2) in 1947-1985 (light brown) and in 2018-2019 (brown).'
+dat_old3 |>
+  as_tibble() |>
+  group_by(region) |>
+  summarise(Initial_glacier_area = sum(areal_km2)) |>
+  left_join(
+    dat_new3 |>
+      as_tibble() |>
+      group_by(region) |>
+      summarise(Current_glacier_area = sum(areal_km2))
+  ) |>
+  arrange(Initial_glacier_area) |>
+  mutate(
+    region = case_when(
+      region == "Oestlandet" ~ "Østlandet",
+      .default = region),
+    region = fct_reorder(region, Initial_glacier_area),
+      ) |>
+  ggplot() +
+  geom_col(
+    aes(x = region, y = Initial_glacier_area),
+    fill = "burlywood1",
+    alpha = .7,
+    width = .8
+  ) +
+  geom_col(
+    aes(x = region, y = Current_glacier_area),
+    fill = "brown",
+    colour = "black",
+    position = position_nudge(x = -0.1),
+    width = .8
+  ) +
+  theme_bw(base_size = 20) +
+  coord_flip() +
+  labs(x = "", y = expression("Glacier area (" * km^2 * ")"))
+
+# ggsave(here::here("img/barplot.png"))
+```
+
+```{r}
+#| include: false
+#| eval: false
+
+dat_old3 |>
+  as_tibble() |>
+  group_by(region) |>
+  summarise(Initial_glacier_area = sum(areal_km2)) |>
+  left_join(
+    dat_new3 |>
+      as_tibble() |>
+      group_by(region) |>
+      summarise(Current_glacier_area = sum(areal_km2))
+  ) |>
+  arrange(Initial_glacier_area) |>
+  mutate(
+    region = case_when(
+      region == "Oestlandet" ~ "Østlandet",
+      .default = region
+    ),
+    region = fct_reorder(region, Initial_glacier_area),
+  ) |>
+  ggplot() +
+  geom_col(
+    aes(x = region, y = Initial_glacier_area),
+    fill = "burlywood1",
+    alpha = .7,
+    width = .8
+  ) +
+  geom_col(
+    aes(x = region, y = Current_glacier_area),
+    fill = "brown",
+    colour = "black",
+    position = position_nudge(x = -0.1),
+    width = .8
+  ) +
+  theme_bw(base_size = 20) +
+  coord_flip() +
+  labs(x = "", y = expression("Breareal (" * km^2 * ")"))
+
+ggsave(here::here("img/barplot_no.png"))
+```
+
+Then we can aggregate from BS units to EA units (region) using MC propagation. 
+Now that we have the area per BS unit, and the corresponding EA names, 
+we can drop the geometry and work with tibbles.
+Then I normalise the variable using a piecewise linear transformation.
+
+```{r aggToReg}
+#| eval: false
+dat_old_region <- dat_old3 |>
+  st_drop_geometry() |>
+  rownames_to_column("BS") |>
+  add_column(
+    year = "old",
+    # we want to draw one sample from each polygon, with no weighting 
+    wgt = 1) |>
+  unnest_longer(variable) |>
+  ecTools::ec_upscale(
+    data = _,
+    variable = variable,
+    year = year,
+    weight = wgt,
+    start_units = BS,
+    end_units = region,
+    end_units_name = "part",
+    n = 1000
+  ) |>
+  # adding an ID column to make sure the left join that we do later is perfect
+  rownames_to_column("rowID") |>
+  unite("ID", c("rowID", "part"), remove = F) |>
+  rename(x100 = sampled_mean)
+
+saveRDS(dat_old_region, here::here("data/cache_dat_old_region.rds"))
+
+dat_new_region <- dat_new3 |>
+  st_drop_geometry() |>
+  rownames_to_column("BS") |>
+  add_column(year = "new", wgt = 1) |>
+  unnest_longer(variable) |>
+  ecTools::ec_upscale(
+    data = _,
+    variable = variable,
+    year = year,
+    weight = wgt,
+    start_units = BS,
+    end_units = region,
+    end_units_name = "part",
+    n = 1000
+  ) |>
+  rownames_to_column("rowID") |>
+  unite("ID", c("rowID", "part"), remove = F) |>
+  rename(variable = sampled_mean)
+
+saveRDS(dat_new_region, here::here("data/cache_dat_new_region.rds"))
+
+
+```
+
+```{r}
+#| include: false
+#| eval: false
+dat_new_region <- readRDS(here::here("data/cache_dat_new_region.rds"))
+dat_old_region <- readRDS(here::here("data/cache_dat_old_region.rds"))
+```
+
+```{r}
+#| eval: false
+dat_region <- dat_old_region |>
+  left_join(
+    dat_new_region |> select(ID, variable),
+    by = join_by(ID),
+    unmatched = "error"
+  ) |>
+  select(-ID, -rowID) |>
+  mutate(
+    year = "2024",
+    x60 = x100 * scalar,
+    indicator = ecTools::ec_normalise(
+      variable = variable,
+      x100 = x100,
+      x60 = x60
+    )
+  )
+```
+
+```{r fig-normplot}
+#| fig-cap: 'Figure showing the general scaling function used for this indicator.'
+
+var <- seq(0,100,.2)
+ind <- ecTools::ec_normalise(var, x100=100, x60=70)
+ec_norm_plot(var, ind) 
+```
+
+```{r exportPNG}
+#| include: false
+#| eval: false
+ec_norm_plot(var, ind, lan = "norsk") +
+  labs(x="Breareal som % av opprinnelig breareal", y = "Indikatorverdi") +
+  xlim(c(0,100))
+ggsave(here::here("img/skaleringsfunksjone.png"))
+```
+
+
+### Aggregate to Norway
+Then I propagate the uncertainties and a get an estimate for Norway as a whole.
+
+```{r}
+#| eval: false
+dat_norway <- dat_region |>
+  add_column(end = "Norway") |>
+  ecTools::ec_upscale(
+    data = _,
+    variable = indicator,
+    year = year,
+    weight = variable,
+    start_units = part,
+    end_units = end,
+    end_units_name = "part",
+    n = 1000
+  )
+saveRDS(dat_norway, here::here("data/cache_dat_norway.rds"))
+```
+
+```{r}
+#| include: false
+#| eval: false
+dat_norway <- readRDS(here::here("data/cache_dat_norway.rds"))
+```
+
+```{r}
+#| eval: false
+dat_comb <- dat_region |>
+  select(year, part, sampled_mean = indicator) |>
+  bind_rows(dat_norway) |>
+  mutate(
+    part = case_when(
+      part == "Midt-Norge" ~ "C",
+      part == "Nord-Norge" ~ "N",
+      part == "Oestlandet" ~ "E",
+      part == "Sørlandet" ~ "S",
+      part == "Vestlandet" ~ "W",
+      part == "Norway" ~ "Norway",
+      .unmatched = "error"
+    )
+  )
+```
+
+```{r exportCSV}
+#| eval: false
+#| code-summary: 'Export data'
+write.csv(dat_comb, here::here("data/results_NO_GLAC_001_v1.0.0.csv"), row.names = F)
+```
+
+```{r}
+#| include: false
+#| message: false
+dat_comb <- read_csv(here::here("data/results_NO_GLAC_001_v1.0.0.csv"))
+```
+
+
+## Results
+```{r summaryStats}
+#| warning: false
+#| message: false
+summary_out <- dat_comb |>
+  group_by(part, year) |>
+  summarise(
+    median = round(median(sampled_mean), 2),
+    p_025 = round(quantile(sampled_mean, probs = 0.025), 2),
+    p_25 = round(quantile(sampled_mean, probs = 0.25), 2),
+    p_75 = round(quantile(sampled_mean, probs = 0.75), 2),
+    p_975 = round(quantile(sampled_mean, probs = 0.975), 2),
+  ) |>
+  add_column(
+    ECT = "A1",
+    Indicator = "Glaciers",
+    Ecosystem = "Mountains",
+    ID = "NO_GLAC_001"
+  )
+```
+
+
+
+```{r tbl-results}
+#| warning: false
+#| message: false
+#| tbl-cap: 'Indicator values and uncertainty estimates for NO_GLAC_001.'
+
+summary_out |>
+  unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
+  unite(col = "IQR", c(p_25, p_75), sep = " - ") |>
+  select(
+    ECT,
+    Indicator,
+    ID,
+    "Accounting area" = part,
+    Ecosystem,
+    "Closing year" = year,
+    "Indicator value" = median,
+    "95% CI" = CI_95,
+    "50% CI" = IQR
+  ) |>
+  knitr::kable()
+```
+
+
+## 11. Export file
+
+The indicator values are exported and can be found under `data/results_NO_GLAC_001_v1.0.0.csv`.
+
+
+## 12. Author contributions
+
+This is the work of a single author, although I would like to acknowledge intellectual contributions from the ecosystem group that was part of the assessment of the Norwegian mountain ecosystems for 2024.
+
+
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+This workflow uses `renv`. Run `renv::restore()` to recreate the working environment. 
+ 
+:::
