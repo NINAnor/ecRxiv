@@ -46,7 +46,7 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research 
-date: May 15, 2025
+date: July 3, 2026
 callout-icon: false
 lightbox: true
 code-links:
@@ -58,6 +58,14 @@ editor:
   markdown: 
     wrap: 72
 hide: FALSE
+codeReviewers:
+  - name: none #Jane Smith
+    email: #jane.smith@example.no
+    affiliations:
+      - id: reviewerInst
+        name: Example Institute
+    reviewType: code review
+    github: janesmith
 ---
 
 ```{r setup}
@@ -68,6 +76,7 @@ library(kableExtra)
 library(here)
 library(sf)
 library(ecTools)
+library(purrr)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -78,6 +87,28 @@ source(here::here("_common.R"))
 ```
 
 
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
+```
 
 ::: {layout-ncol="6"}
 
@@ -476,18 +507,86 @@ dat_old3 <- readRDS(here::here("data/cache_dat_old3.rds"))
 I can now have a look at the summed initial glacier area per region. I then see that western and northern Norway has the most glaciers to start with (@fig-initialArea), and these regions will count the most towards the national estimate.
 
 ```{r fig-initialArea}
-#| fig-cap: 'Area of glaciers in in Norway (km2) in 1947-1985.'
+#| fig-cap: 'Area of glaciers in in Norway (km2) in 1947-1985 (light brown) and in 2018-2019 (brown).'
 dat_old3 |>
   as_tibble() |>
   group_by(region) |>
   summarise(Initial_glacier_area = sum(areal_km2)) |>
+  left_join(
+    dat_new3 |>
+      as_tibble() |>
+      group_by(region) |>
+      summarise(Current_glacier_area = sum(areal_km2))
+  ) |>
   arrange(Initial_glacier_area) |>
-  mutate(region = fct_reorder(region, Initial_glacier_area)) |>
+  mutate(
+    region = case_when(
+      region == "Oestlandet" ~ "Østlandet",
+      .default = region),
+    region = fct_reorder(region, Initial_glacier_area),
+      ) |>
   ggplot() +
-  geom_col(aes(x = region, y = Initial_glacier_area), fill = "brown") +
-  theme_bw(base_size=20) +
+  geom_col(
+    aes(x = region, y = Initial_glacier_area),
+    fill = "burlywood1",
+    alpha = .7,
+    width = .8
+  ) +
+  geom_col(
+    aes(x = region, y = Current_glacier_area),
+    fill = "brown",
+    colour = "black",
+    position = position_nudge(x = -0.1),
+    width = .8
+  ) +
+  theme_bw(base_size = 20) +
   coord_flip() +
-  labs(x = "", y = "Glacier area (1947-1985)")
+  labs(x = "", y = expression("Glacier area (" * km^2 * ")"))
+
+# ggsave(here::here("img/barplot.png"))
+```
+
+```{r}
+#| include: false
+#| eval: false
+
+dat_old3 |>
+  as_tibble() |>
+  group_by(region) |>
+  summarise(Initial_glacier_area = sum(areal_km2)) |>
+  left_join(
+    dat_new3 |>
+      as_tibble() |>
+      group_by(region) |>
+      summarise(Current_glacier_area = sum(areal_km2))
+  ) |>
+  arrange(Initial_glacier_area) |>
+  mutate(
+    region = case_when(
+      region == "Oestlandet" ~ "Østlandet",
+      .default = region
+    ),
+    region = fct_reorder(region, Initial_glacier_area),
+  ) |>
+  ggplot() +
+  geom_col(
+    aes(x = region, y = Initial_glacier_area),
+    fill = "burlywood1",
+    alpha = .7,
+    width = .8
+  ) +
+  geom_col(
+    aes(x = region, y = Current_glacier_area),
+    fill = "brown",
+    colour = "black",
+    position = position_nudge(x = -0.1),
+    width = .8
+  ) +
+  theme_bw(base_size = 20) +
+  coord_flip() +
+  labs(x = "", y = expression("Breareal (" * km^2 * ")"))
+
+ggsave(here::here("img/barplot_no.png"))
 ```
 
 Then we can aggregate from BS units to EA units (region) using MC propagation. 
