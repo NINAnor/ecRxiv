@@ -136,45 +136,46 @@ assign_bbca_county_part <- function(fylke_name) {
 
 # ---- AIVS (NO_AIVS_001): ditching indicator ----
 
-# Scale area-weighted ditched share to 0-1 using unit-specific X0 (drainable_share)
-# and X100 = 0% ditched. Returns NA when drainable_share is missing or zero.
-scale_aivs_value <- function(pct_ditched, drainable_share) {
-  if (!is.finite(drainable_share) || drainable_share <= 0) {
+# Scale area-weighted ditched share to 0-1 using unit-specific X0 (ditchable_share)
+# and X100 = 0% ditched. Returns NA when ditchable_share is missing or zero.
+scale_aivs_value <- function(ditched_share, ditchable_share) {
+  if (!is.finite(ditchable_share) || ditchable_share <= 0) {
     return(NA_real_)
   }
-  ecTools::ec_normalise(pct_ditched, x0 = drainable_share, x100 = 0, fun = "linear")
+  ecTools::ec_normalise(ditched_share, x0 = ditchable_share, x100 = 0, fun = "linear")
 }
 
-# Area-weighted point estimates for one geographic unit: ditched share (non-scaled),
-# drainable forest share (X0), scaled indicator value, total area, and plot count.
+# Area-weighted point estimates for one geographic unit: ditched_share and
+# ditchable_share (both as proportions of total assessed area), scaled indicator
+# value, total area, and plot count.
 summarise_aivs <- function(data) {
   total_area <- sum(data$au_areal, na.rm = TRUE)
-  pct_ditched <- if (total_area > 0) {
+  ditched_share <- if (total_area > 0) {
     sum(data$ditched_weighted, na.rm = TRUE) / total_area
   } else {
     NA_real_
   }
-  drainable_share <- if (total_area > 0) {
-    sum(data$drainable_area_weighted, na.rm = TRUE) / total_area
+  ditchable_share <- if (total_area > 0) {
+    sum(data$ditchable_area_weighted, na.rm = TRUE) / total_area
   } else {
     NA_real_
   }
   dplyr::tibble(
     total_area = total_area,
-    indicator_value = pct_ditched,
-    drainable_share = drainable_share,
-    scaled_value = scale_aivs_value(pct_ditched, drainable_share),
+    ditched_share = ditched_share,
+    ditchable_share = ditchable_share,
+    scaled_value = scale_aivs_value(ditched_share, ditchable_share),
     n_plots = nrow(data)
   )
 }
 
-# Bootstrap NFI plots with replacement; each replicate returns pct_ditched,
-# drainable_share, and the scaled value from that same resample (for ec_upscale).
+# Bootstrap NFI plots with replacement; each replicate returns ditched_share,
+# ditchable_share, and the scaled value from that same resample (for ec_upscale).
 bootstrap_aivs <- function(data, n_bootstrap = 1000) {
   na_summary <- list(
     draws = numeric(0),
     scaled_draws = numeric(0),
-    drainable_share_draws = numeric(0)
+    ditchable_share_draws = numeric(0)
   )
 
   n <- nrow(data)
@@ -184,31 +185,31 @@ bootstrap_aivs <- function(data, n_bootstrap = 1000) {
 
   non_scaled_draws <- numeric(n_bootstrap)
   scaled_draws <- numeric(n_bootstrap)
-  drainable_share_draws <- numeric(n_bootstrap)
+  ditchable_share_draws <- numeric(n_bootstrap)
 
   for (i in seq_len(n_bootstrap)) {
     boot_sample <- data |>
       dplyr::slice_sample(n = n, replace = TRUE)
     total_area <- sum(boot_sample$au_areal, na.rm = TRUE)
-    pct_ditched <- if (total_area > 0) {
+    ditched_share <- if (total_area > 0) {
       sum(boot_sample$ditched_weighted, na.rm = TRUE) / total_area
     } else {
       NA_real_
     }
-    drainable_share <- if (total_area > 0) {
-      sum(boot_sample$drainable_area_weighted, na.rm = TRUE) / total_area
+    ditchable_share <- if (total_area > 0) {
+      sum(boot_sample$ditchable_area_weighted, na.rm = TRUE) / total_area
     } else {
       NA_real_
     }
-    non_scaled_draws[i] <- pct_ditched
-    drainable_share_draws[i] <- drainable_share
-    scaled_draws[i] <- scale_aivs_value(pct_ditched, drainable_share)
+    non_scaled_draws[i] <- ditched_share
+    ditchable_share_draws[i] <- ditchable_share
+    scaled_draws[i] <- scale_aivs_value(ditched_share, ditchable_share)
   }
 
   list(
     draws = non_scaled_draws,
     scaled_draws = scaled_draws,
-    drainable_share_draws = drainable_share_draws
+    ditchable_share_draws = ditchable_share_draws
   )
 }
 
