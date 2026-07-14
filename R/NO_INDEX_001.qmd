@@ -1,0 +1,272 @@
+---
+title: "Calculation of ecological indicators index"
+subtitle: |
+  NO_INDEX_001 (forest and mountain)
+indicatorID:
+  - NO_INDEX_001
+indicatorName:
+  - Composite index
+folderName: NO_INDEX_001
+country: Norway
+continent: Europe
+ECT: Composite
+Realm:
+  - Terrestrial (T)
+Biome:
+  - T2 Temperate-boreal forests and woodlands biome
+  - T7 Polar/alpine biome
+Ecosystem:
+  - T2.1 Boreal/montane forests
+  - T7.1 Alpine grasslands and shrublands
+yearAdded: 2026
+yearLastUpdate: 2026
+status: incomplete
+Version: "1.0.0"
+VersionComment: Phase 1 equal-weight composite index from published indicator MC distributions
+url: https://github.com/NINAnor/ecRxiv
+Normalised: Yes
+SpatialAggregationPathway: Resample - Aggregate (equal-weight mean) - Summarise
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute:
+  cache: true
+author:
+  - name: Aud Helen Halbritter
+    affiliations:
+      - name: University of Bergen
+AuthorList: Halbritter, A. H.
+date: July 1, 2026
+data_availability: gold
+code_reproducibility: gold
+open_science_badge: gold
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+code-links:
+  - text: Add a review
+    icon: github
+    href: https://github.com/NINAnor/ecRxiv
+hide: FALSE
+bibliography: references.bib
+---
+
+```{r setup}
+#| include: false
+#| cache: false
+if (file.exists("renv/activate.R")) {
+  source("renv/activate.R")
+} else if (file.exists("../renv/activate.R")) {
+  source("../renv/activate.R")
+}
+
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(conflicted)
+
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+
+if (!requireNamespace("ecTools", quietly = TRUE)) {
+  remotes::install_github("NINAnor/ecTools", upgrade = "never")
+}
+library(ecTools)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+source(here::here("_common.R"))
+source(here("R/index_functions.R"))
+```
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+license_badge()
+```
+
+:::
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+## 1. Summary
+
+1. **Background and rationale**: NO_INDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for **forest** and **mountain** ecosystems, separately by region and for Norway and for ECT classes.
+
+2. **Methods**: For each reporting period and region we (i) load MC draws from indicator `results_*_v*.csv` files on ecRxiv main (with fallback to submission branches and the source manifest), (ii) keep the last three reporting years per indicator, (iii) resample one draw per indicator per simulation using `ecTools::ec_upscale()`, (iv) aggregate to ECT classes (equal weights), and (v) compute an overall index as the unweighted mean of available ECT values.
+
+3. **Interpretation**: Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
+
+4. **Results and development needs**: ...
+
+## 2. Datasets
+
+```{r refresh-sources}
+#| cache: false
+# Refresh manifest from local git (upstream main + submission-* branches)
+tryCatch(
+  scan_git_indicator_sources(git_remote = "upstream"),
+  error = function(e) invisible(NULL)
+)
+```
+
+```{r registry}
+#| cache: false
+n_sim <- 1000
+n_years <- 3
+
+registry_forest <- build_indicator_registry(
+  here("data/indicators_2026.csv"),
+  ecosystem = "forest",
+  write_path = here("data/indicators_registry_forest.csv")
+)
+
+registry_mountain <- build_indicator_registry(
+  here("data/indicators_mountain.csv"),
+  ecosystem = "mountain",
+  write_path = here("data/indicators_registry_mountain.csv")
+)
+
+registry_forest |>
+  select(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) |>
+  kable(caption = "Forest indicator registry")
+```
+
+```{r registry-mountain}
+registry_mountain |>
+  select(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) |>
+  kable(caption = "Mountain indicator registry (draft)")
+```
+
+## 3. Analyses
+
+```{r run-forest}
+forest_index <- calculate_index(
+  registry_forest |> filter(match_status == "matched"),
+  n_sim = n_sim,
+  n_years = n_years
+)
+
+forest_index$coverage |>
+  kable(caption = "Forest index — indicator coverage by year and region")
+```
+
+```{r run-mountain}
+mountain_index <- calculate_index(
+  registry_mountain |> filter(match_status == "matched"),
+  n_sim = n_sim,
+  n_years = n_years
+)
+
+mountain_index$coverage |>
+  kable(caption = "Mountain index — indicator coverage by year and region")
+```
+
+```{r validation}
+# Single-indicator test: index equals that indicator when only one is matched
+if (sum(registry_mountain$match_status == "matched") >= 1) {
+  one_id <- registry_mountain |> filter(match_status == "matched") |> slice(1)
+  one_reg <- one_id
+  one_out <- calculate_index(one_reg, n_sim = 200, n_years = 1)
+  val_one <- one_out$summaries |> filter(level == "Index", part == "Norway") |> slice(1)
+  src <- one_out$indicator_draws |>
+    filter(part == "Norway") |>
+    summarise(median = median(value), .groups = "drop")
+  stopifnot(abs(val_one$median - src$median) < 0.05)
+}
+```
+
+## 4. Results
+
+```{r forest-summary}
+forest_index$summaries |>
+  filter(part == "Norway", year == max(year)) |>
+  arrange(level, id) |>
+  kable(digits = 3, caption = "Forest index — Norway (latest year)")
+```
+
+```{r mountain-summary}
+mountain_index$summaries |>
+  filter(part == "Norway", year == max(year)) |>
+  arrange(level, id) |>
+  kable(digits = 3, caption = "Mountain index — Norway (latest year)")
+```
+
+```{r forest-plot}
+#| fig-height: 8
+plot_index_forest(
+  forest_index$summaries |> filter(part == "Norway"),
+  title = "NO_INDEX_001 — forest (Norway)"
+)
+```
+
+```{r mountain-plot}
+#| fig-height: 8
+plot_index_forest(
+  mountain_index$summaries |> filter(part == "Norway"),
+  title = "NO_INDEX_001 — mountain (Norway)"
+)
+```
+
+## 5. Export file
+
+```{r export}
+#| cache: false
+export_index_results(
+  forest_index$distributions,
+  here("data/results_NO_INDEX_001_forest_v1.0.0.csv")
+)
+
+export_index_results(
+  mountain_index$distributions,
+  here("data/results_NO_INDEX_001_mountain_v1.0.0.csv")
+)
+```
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
