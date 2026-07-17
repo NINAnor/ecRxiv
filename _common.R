@@ -7,7 +7,7 @@ check_anybadger <- function() {
       call. = FALSE
     )
   }
-
+  
   if (utils::packageVersion("anybadger") < "0.1.1") {
     stop(
       "This project requires anybadger >= 0.1.1.\n",
@@ -37,7 +37,7 @@ status_badge <- function(type) {
     deprecated = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_deprecated.svg",
     stop("Invalid `type`", call. = FALSE)
   )
-
+  
   image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#status-badge")
 }
 
@@ -45,9 +45,9 @@ status_badge <- function(type) {
 # Create and print version badge
 version_badge <- function(my_version_number) {
   version_badge_name <- paste0("badge_version_", my_version_number, ".svg")
-
+  
   version_badge_path <- here::here("img", version_badge_name)
-
+  
   dir_to_create <- dirname(version_badge_path)
   if (!dir.exists(dir_to_create)) {
     dir.create(dir_to_create, recursive = TRUE)
@@ -58,7 +58,7 @@ version_badge <- function(my_version_number) {
     value = as.character(my_version_number),
     color = "#add8e6"
   )
-
+  
   image_link(
     version_badge_path,
     "https://github.com/NINAnor/ecRxiv/wiki#naming-convention"
@@ -75,7 +75,7 @@ data_badge <- function(dataAvailability = none) {
     none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_none.svg",
     stop("Invalid `type`", call. = FALSE)
   )
-
+  
   image_link(
     image_path,
     "https://github.com/NINAnor/ecRxiv/wiki#data-availability"
@@ -91,7 +91,7 @@ code_badge <- function(codeReproducibility = none) {
     none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_none.svg",
     stop("Invalid `type`", call. = FALSE)
   )
-
+  
   image_link(
     image_path,
     "https://github.com/NINAnor/ecRxiv/wiki#code-reproducibility"
@@ -107,7 +107,7 @@ open_science_badge <- function(openScienceBadge = none) {
     none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_none.svg",
     stop("Invalid `type`", call. = FALSE)
   )
-
+  
   image_link(
     image_path,
     "https://github.com/NINAnor/ecRxiv/wiki#open-science-badges"
@@ -137,7 +137,7 @@ get_file_info <- function() {
       ))
     }
   }
-
+  
   # Interactive RStudio session
   if (
     requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()
@@ -152,7 +152,7 @@ get_file_info <- function() {
       ))
     }
   }
-
+  
   return(NULL)
 }
 
@@ -166,21 +166,21 @@ status <- function(type) {
     deprecated = "describing an indicator that is deprecated.",
     stop("Invalid `type`", call. = FALSE)
   )
-
+  
   class <- switch(
     type,
     complete = "note",
     incomplete = "warning",
     deprecated = "important"
   )
-
+  
   color <- switch(
     type,
     complete = "lightgreen",
     incomplete = "orange",
     deprecated = "salmon"
   )
-
+  
   cat(paste0(
     "\n",
     ':::  {.callout-',
