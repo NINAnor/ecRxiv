@@ -67,13 +67,21 @@ code_reproducibility: gold
 open_science_badge: silver
 callout-icon: false
 lightbox: true
-css: ../../../style.css
-bibliography: references.bib
+csl: ambio.csl
 code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
-hide: FALSE
+hide: FALSE # Change to FALSE
+bibliography: references.bib
+codeReviewers:
+  - name: Matthew Grainger
+    email: matthew.grainger@nina.no
+    affiliations:
+      - id: reviewerInst
+        name: Norwegian Institute for Nature Resaech (NINA)
+    reviewType: code review
+    github: DrMattG
 ---
 
 ```{r setup}
@@ -116,6 +124,29 @@ knitr::opts_chunk$set(echo = TRUE)
 source(here::here("_common.R"))
 if (file.exists(here::here("R/functions.R"))) {
   source(here::here("R/functions.R"))
+}
+```
+
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
 }
 ```
 
@@ -187,6 +218,7 @@ meta |>
 ::: {.callout-tip collapse="true"}
 ## Log
 - 12 Feb. 2026 - Initial qmd from ecRxiv template; ECT C1; county _X~100~_ table from NI; NI column name pending confirmation
+- 18 July 2026 - Accepted
 :::
 
 <hr />
@@ -1211,8 +1243,5 @@ All code was reviewed and validated by [AB, CD].
 
 ::: {.callout-tip collapse="true"}
 ## Session Info
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
-```
+This workflow uses `renv`. Run `renv::restore()` to recreate the working environment. 
 :::
