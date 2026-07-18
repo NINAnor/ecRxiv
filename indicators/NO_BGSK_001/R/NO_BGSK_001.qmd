@@ -1,0 +1,1247 @@
+---
+title: "Old forest"
+subtitle: |
+  NO_BGSK_001
+indicatorID: 
+  - NO_BGSK_001
+indicatorName: 
+  - Old forest
+verbatimName:  
+  - Gammel skog
+folderName: NO_BGSK_001
+country: Norway
+continent: Europe
+ECT: C1 - Landscape and Seascape Characteristics
+Realm: 
+  - Terrestrial (T)
+Biome: 
+  - T2 Temperate-boreal forests and woodlands biome
+Ecosystem: 
+  - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests
+verbatimEcosystem: 
+  - T2.1 Boreal/subalpin skog
+  - T2.2 Temperert edelauvskog
+yearAdded: 2026
+yearLastUpdate: 2026
+status: incomplete
+Version: "000.001"
+VersionComment: Initial version
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BGSK_001
+Normalised: Yes
+SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+Precision: Approximate 95% bootstrap interval (2.5th–97.5th percentile of 1000 bootstrap draws) as inferential uncertainty around the point estimate (median). At county or sub-county level, bootstrapping is applied directly to NFI plot data; at regional and national level, uncertainty is propagated from scaled county bootstrap draws.
+format:  
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: true
+author:
+  - name: Aud Helen Halbritter
+    affiliations:
+      - name: University of Bergen
+  - name: Ulrika Jansson Asplund
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Mari Jönsson
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Erik Framstad
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Oliver Snoksrud
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+  - name: Ken Olaf Storaunet
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
+AuthorList: Halbritter, A. H., Jansson Asplund, U., Jönsson, M., Framstad, E., Snoksrud, O., and Storaunet, K. O.
+date: February 12, 2026
+data_availability: bronze
+code_reproducibility: gold
+open_science_badge: silver
+callout-icon: false
+lightbox: true
+csl: ambio.csl
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+hide: FALSE # Change to FALSE
+bibliography: references.bib
+codeReviewers:
+  - name: Matthew Grainger
+    email: matthew.grainger@nina.no
+    affiliations:
+      - id: reviewerInst
+        name: Norwegian Institute for Nature Resaech (NINA)
+    reviewType: code review
+    github: DrMattG
+---
+
+```{r setup}
+#| include: false
+#| cache: false
+if (file.exists("renv/activate.R")) {
+  source("renv/activate.R")
+} else if (file.exists("../renv/activate.R")) {
+  source("../renv/activate.R")
+}
+
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+library(janitor)
+library(stringi)
+library(DT)
+library(gt)
+library(ecTools)
+library(MetBrewer)
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull <- dplyr::pull
+
+# This workflow uses `renv`. Please run `renv::restore()` in order to reproduce the working environment and run the analysis.
+# renv::restore()
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+source(here::here("_common.R"))
+if (file.exists(here::here("R/functions.R"))) {
+  source(here::here("R/functions.R"))
+}
+```
+
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
+```
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+license_badge()
+```
+
+:::
+
+> Recommended citation: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "verbatimName",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "verbatimEcosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway",
+    "Precision")) |>   
+  kable()
+```
+:::
+
+::: {.callout-tip collapse="true"}
+## Log
+- 12 Feb. 2026 - Initial qmd from ecRxiv template; ECT C1; county _X~100~_ table from NI; NI column name pending confirmation
+- 18 July 2026 - Accepted
+:::
+
+<hr />
+
+## 1. Summary
+
+1. **Background and rationale**:
+Biologically old forests (BGS) provides important habitat for a wide range of species associated with mature and long-continuous forest ecosystems.
+Under natural disturbance regimes in Fennoscandia, BGS typically constitutes more than 50% of the forest area (Pennanen 2002; Berglund & Kuuluvainen 2021).
+Consequently, a higher proportion/share of BGS is considered indicative of ecologically improved ecosystem condition. For this indicator BGS is defined by minimum age limits for forest stands, dependent on dominating tree species (spruce *Picea abies*, pine *Pinus sylvestris* or broadleaved deciduous species) and site productivity (low, medium, high).
+The limits are: Spruce forest >135 yrs, >120 yrs, and 105 yrs, for low, medium and high productivity sites; pine forest >155 yrs, >140 yrs, and > 105 yrs, for low, medium and high productivity sites; deciduous forest >120 yrs, >100 yrs, and > 80 yrs, for low, medium and high productivity sites.
+The stand age limits for poor productivity sites were also applied to unproductive forests. 
+BGS is considered to be important habitat for a range of species.
+BGS on more than 50% of the forest area is typical of boreal forests under various types of natural dynamics in Fennoscandia (Pennanen 2002, Berglund & Kuuluvainen 2021).
+The share of BGS is considered to be positively related to ecosystem condition. Data for this indicator come from the National Forest Inventory (NFI), where the relevant variables have been recorded by current methods for each NFI plot since the mid-1990s.
+The share of BGS of all forest is compared to reference values for regions, based on expert assessments.
+
+2. **Methods**:
+Each NFI plot is assessed against the criteria for BGS, with the result entered as 1 (for BGS) or 0 (for non-BGS) in the NFI variable `bgs`.
+The indicator value is calculated as the area-weighted proportion of NFI plots with BGS for the geographical unit of interest.
+Values for BGS for sequential 5-year periods from 2010 are first aggregated to county or sub-county level, then to regional and national levels.
+The value for each county or sub-county is scaled against its specific reference level before regional and national values are calculated as area-weighted means of scaled county values.
+
+3. **Interpretation**:
+An indicator value of 1 implies that the areal proportion of BGS is at least as high as expected in the reference condition.
+Values decreasing toward zero reflect lower proportions of BGS.
+
+4. **Results and development needs**:
+For the current reporting period (2020-2024) the national indicator value is 0.40, with slightly lower values for regions East, West, and North (0.34-0.37) and higher values in regions South and Central (0.48 and 0.55, respectively).
+The indicator values increase over time nationally and in all regions.
+The stand age limits defining BGS should be revised, since there are indications that the limits for deciduous forests at low productive sites might be erroneous. Such development should be done in coordination with NFI.
+A more thorough analyses and review of the assessment of reference values and the scaling function is also needed.
+
+
+### 1.2 Native language summary - Norwegian
+
+**Bakgrunn og begrunnelse**: Biologisk gammel skog (BGS) utgjør viktig habitat for en rekke arter knyttet til modne og langvarig kontinuerlige skogsøkosystemer.
+Under naturlige forstyrrelsesregimer i Fennoskandia utgjør BGS typisk mer enn 50 % av skogarealet [@pennanen2002_forest; @berglund2021_boreal].
+En høyere andel BGS anses derfor som en indikator på forbedret økologisk tilstand.
+For denne indikatoren defineres BGS av en minimumsalder for skogbestand, avhengig av dominerende treslag (gran *Picea abies*, furu *Pinus sylvestris* eller løvtrær) og produktivitet på stedet (lav, middels, høy): Granskog >135 år, >120 år og 105 år, for lav, middels og høy produktivitet; furuskog >155 år, >140 år og >105 år, for lav, middels og høy produktivitet; løvskog >120 år, >100 år og >80 år, for lav, middels og høy produktivitet. Kriteriene for lav produktivitet er også benyttet for uproduktiv skog. BGS anses å være spesielt viktig habitat for en rekke arter.
+BGS på mer enn 50 % av skogarealet er typisk for boreale skoger under ulike typer naturlig dynamikk i Fennoskandia [@pennanen2002_forest; @berglund2021_boreal].
+Andelen BGS anses å være positivt relatert til økosystemets tilstand. Data for denne indikatoren kommer fra Landsskogtakseringen (LSK), hvor de relevante variablene har blitt registrert med dagens metoder i hver LSK-prøveflate siden midten av 1990-tallet.
+Andelen BGS av all produktiv skog sammenlignes med referanseverdier for regioner, basert på ekspertvurderinger.
+
+**Metoder**: Hver LSK-prøveflate vurderes etter kriteriene for BGS, med resultatet angitt som 1 (for BGS) eller 0 (for ikke-BGS) i LSK-variabelen `bgs`.
+Indikatorverdien beregnes som den arealveide andelen av LSK-flater med angitt BGS for aktuelle geografiske enheter.
+Verdier for BGS for i 5-årsperioder fra 2010 blir først aggregert for fylker eller delfylker, deretter for regioner og nasjonalt.
+Verdien for hvert fylke/delfylke skaleres mot sin spesifikke referanseverdi før regionale og nasjonale verdier beregnes som arealveide gjennomsnitt av de skalerte fylkesverdiene.
+
+**Tolkning**: En indikatorverdi på 1 betyr at andelen BGS er minst så høy som forventet i referansetilstanden. Verdier som nærmer seg null, viser lavere andeler av BGS.
+
+**Resultater og utviklingsbehov**: For nåværende rapporteringsperiode (2020-2024) er den nasjonale indikatorverdien 0,40, med noe lavere verdier for regionene Øst, Vest og Nord (0,34-0,37) og høyere verdier i regionene Sør og Midt (henholdsvis 0,48 og 0,55).
+Indikatorverdiene øker over tid både nasjonalt og i alle regioner.
+Aldersgrensene som definerer BGS burde vært revidert, siden resultater indikerer at grensene for lavproduktiv lauvdominert skog kan være feilaktige.
+Slikt utviklingsarbeid bør evt. gjøres i samarbeid med LSK.
+Mer grundige analyser, vurderinger og revisjon av referanseverdier og skaleringsfunksjonen burde også vært gjennomført.
+
+
+## 2. About the underlying data
+
+Plots in the Norwegian National Forest Inventory (NFI, Landsskogtakseringen) are classified as biologically old forest (BGS), based on fixed age criteria and recorded values for forest stand age, dominating tree species, and site productivity [@viken2025-feltinstruks].
+The proportion of BGS is represented by the proportion of NFI plots classified as BGS within relevant geographical units such as counties or regions.
+There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
+The indicator value is an unbiased area-weighted estimate of the old forest share of area, for NFI plots in any selected region.
+All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates for each year.
+For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
+The data are available upon request from NFI. 
+
+### 2.1 Spatial and temporal resolution and extent
+
+Data are available from 2010, when the NFI had extended their grid to all forest land.
+Annual estimates are possible due to representative sampling every year.
+For this indicator all data from full inventory cycles of 5 years are used, starting in 2010.
+The data are representative for all forest land of Norway.
+Spatial resolution should be limited to the resolution applied to reference values, that is counties or sub-counties for scaling and regions for aggregated reporting. 
+
+### 2.2 Sampling design
+
+There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county [@viken2025-feltinstruks].
+In each NFI plot, several variables are recorded, including stand age, dominating tree species, and site productivity.
+Each NFI plot is classified as biologically old forest (BGS), based on fixed age criteria and recorded values for forest stand age, dominating tree species, and site productivity. 
+The proportion of BGS is represented by the area-weighted proportion of NFI plots classified as BGS within relevant geographical units such as counties or regions.
+All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year. 
+
+### 2.3 Original units
+
+Each forest inventory plot carries a binary presence variable `bgs` (0/1): whether biologically old forest occurs on that plot, and `au_areal` is the forest area that each plot represents (ha).
+At county (fylke), region, or national level, the non-scaled share of biologically old forest (BGS) is the ratio of BGS area on plots, divided by total forest area on all forest plots in the unit. 
+
+### 2.4 Instructions for citing, using and accessing data
+
+The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2026-05-29, between NIBIO and the specified users.
+Further use of these data requires a separate data user agreement with NIBIO.
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+Biologically old forest represents a proportion of forest area with specific ecological qualities and is classified as a C1 - Landscape and Seascape Characteristic. 
+
+
+### 3.2 Ecosystem condition characteristic
+
+### 3.3 Collinearities with other indicators
+
+Some correlation with other indicators for old or intact forest, such as dead wood and clearcut area, is expected. 
+
+### 3.4 Impact factors
+
+Natural disturbances such as fires, flood, or windthrows will reduce the local share of biologically old forest, although such natural disturbances are not expected to change the overall share of old forest expected of intact forests within regions.
+Forestry in the form of intensive harvesting of old trees by selective logging or clear-cutting will reduce the share of biologically old forest below that expected for intact forests. 
+
+### 3.5 Spatial aggregation
+
+The spatial aggregation pathway is Aggregate (NFI plots to county/sub-county) – [Scale – Truncate] – Aggregate (geographic region) – Aggregate (national level).
+For each reporting period, non-scaled values for county (fylke), region, and Norway are obtained by pooling all forest plots in the unit: the total forest area on plots where old forest is present, divided by the total forest area on all forest plots in that unit.
+This is done for counties or sub-counties, regions, and at national level.
+Scaling and truncation are applied only after these non-scaled county or sub-county aggregates have been calculated: each county or sub-county is scaled against its own lower reference level _X~0~_ (0% share) and upper reference level _X~100~_ using a linear scaling function, and values above 1 are truncated to 1 at that step.
+Regional and national scaled point estimates are area-weighted means of the already scaled county or sub-county values, using each county or sub-county’s represented area as weight.
+Non-scaled regional and national point estimates are calculated directly from all plots within each region or the whole country. 
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+The reference condition is considered to be intact forest ecosystems where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances. 
+
+### 4.2 Reference levels
+
+The lower reference level _X~0~_ is set to 0% for the share of biologically old forest and the upper reference level _X~100~_ is set separately for each county or sub-county.
+_X~0~_ denotes the worst possible condition and _X~100~_ denotes the best possible condition on the original share of area scale.
+Between _X~0~_ and _X~100~_, indicator values are scaled linearly to a 0-1 indicator scale. 
+Scaled values above 1 are truncated to 1 when old forest share of area exceeds the county-specific _X~100~_.
+The county and sub-county _X~100~_ values used in the analyses are listed in @sec-bgsk-reference-values _X~0~_ is 0 for all units. 
+
+#### 4.2.1 Spatial resolution and validity
+
+Reference levels are defined for regional groupings of counties or sub-counties.
+Scaling is therefore applied to area-weighted non-scaled indicator values that have first been aggregated to the matching county or sub-county unit.
+Regional and national reporting uses area-weighted aggregation of these scaled county or sub-county values rather than one common _X~100~_ for the aggregated non-scaled value.
+The indicator should not be interpreted at finer spatial resolution than the county or sub-county reference levels allow. 
+
+## 5. Uncertainties
+
+### 5.1 General uncertainties
+
+Reference levels are held fixed in this workflow (their own uncertainties are not propagated).
+Regional and national values are area-weighted summaries of counties, so they inherit both model uncertainty at county level and any mismatch between county boundaries and ecological variation within regions. 
+
+### 5.2 Reported uncertainties
+
+The uncertainties reported in @sec-results are inferential and refer to uncertainty around the point estimates.
+For each reporting period, non-scaled indicator values are bootstrapped by resampling forest plots with replacement within the relevant geographic unit and recomputing the forest-area share.
+This is done separately for counties or sub-counties, regions, and the national level.
+
+For scaled county or sub-county values, bootstrap draws are scaled with the same county-specific reference levels as the point estimates (truncation at scaling).
+For scaled regional and national values, uncertainty is propagated from the scaled county bootstrap draws.
+The resulting distributions are summarised with median and quantile intervals. 
+
+
+## 6. References
+
+::: {#refs}
+:::
+
+## 7. Import and prepare datasets
+
+The old forest area share is built from each forest inventory plot: binary presence `bgs` (biologically old forest, 0/1).
+For this indicator data from each full 5-year inventory cycle, starting in 2010, are used.
+
+```{r load-data}
+#| code-summary: "Load data"
+
+lsk_data_file <- here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")
+
+lsk_data_raw <- read_csv(
+  lsk_data_file,
+  show_col_types = FALSE,
+  locale = locale(encoding = "UTF-8")
+) |>
+  clean_names()
+
+```
+
+## 8. Spatial units
+
+Aggregated indicator values should not be applied for spatial units finer than those that allow reliable estimates, e.g., regions.
+
+## 9. Analyses
+
+### 9.1 Prepare data and create derived variables {#sec-bgsk-derived-vars}
+
+This section prepares the NFI plot data for calculating the indicator.
+
+First, we define the 5-year reporting periods that match the temporal structure of the indicator.
+
+
+```{r reporting-periods}
+#| code-summary: "Define reporting periods"
+
+reporting_periods <- list(
+  "2010-2014" = 2010:2014,
+  "2015-2019" = 2015:2019,
+  "2020-2024" = 2020:2024
+)
+
+```
+
+The analysis includes both productive and unproductive forest plots (`arealtype` 1 and 12).
+The NFI export contains the binary variable `bgs` (0/1) for biologically old forest on each forest plot.
+`bgs` is the plot-level indicator on forest area (`au_areal`, ha): 1 = old forest present on the plot, 0 = not.
+We store the per-plot numerator as `indicator_continuous_weighted = bgs * au_areal`; area-weighted aggregation to fylke, region, and national units is in @sec-bgsk-non-scaled.
+
+```{r bgsk-create-derived-variables}
+#| cache: false
+#| code-summary: "Create derived variables"
+
+lsk_data <- lsk_data_raw |>
+  dplyr::filter(arealtype %in% c(1, 12)) |>
+  dplyr::mutate(
+    fylke_name = region_fylke |>
+      stringr::str_remove("^\\d+-\\d+\\s+") |>
+      stringr::str_remove("^\\d+\\s*") |>
+      stringr::str_squish(),
+    county_part = assign_bbca_county_part(fylke_name),
+    fylke_name_clean = stringi::stri_trans_general(
+      stringr::str_squish(
+        tolower(
+          stringr::str_replace_all(
+            normalize_county_parts(fylke_name),
+            "[0-9.-]",
+            " "
+          )
+        )
+      ),
+      "Latin-ASCII"
+    ),
+    region_code = assign_region_code(fylke_name_clean),
+    region_name = assign_region_name(region_code),
+    bgs = as.numeric(bgs),
+    indicator_continuous_weighted = bgs * au_areal
+  )
+
+```
+
+Finally, we retain only the columns required for subsequent aggregation and reporting.
+
+```{r bgsk-select-downstream-fields}
+#| code-summary: "Select downstream fields"
+
+lsk_data <- lsk_data |>
+  dplyr::select(
+    sesong,
+    au_areal,
+    arealtype,
+    region_code,
+    region_name,
+    county_part,
+    fylke_name,
+    fylke_name_clean,
+    bgs,
+    indicator_continuous_weighted
+  )
+
+```
+
+
+### 9.2 Calculate non-scaled area-weighted indicator values {#sec-bgsk-non-scaled}
+
+For each reporting period, we calculate non-scaled indicator values separately for counties or sub-counties, regions, and the whole country.
+Within each geographic unit, the share of inventoried forest area on plots with old forest present is
+
+$$\frac{\sum_i (\mathrm{bgs}_i \cdot a_i)}{\sum_i a_i}$$
+
+where $a_i$ is plot forest area (`au_areal`, ha).
+
+
+```{r bgsk-calculate-all-periods}
+#| code-summary: "Calculate non-scaled values"
+
+bgsk_results <- purrr::imap(
+  reporting_periods,
+  ~ calculate_period_indicators(lsk_data, .y, .x)
+) |>
+  purrr::compact()
+
+bgsk_results_county_all_periods   <- purrr::map_dfr(bgsk_results, "county")
+bgsk_results_region_all_periods   <- purrr::map_dfr(bgsk_results, "region")
+bgsk_results_national_all_periods <- purrr::map_dfr(bgsk_results, "national")
+
+```
+
+### 9.3 Bootstrap draws per county
+
+For each county and period, NFI plots are resampled with replacement 1000 times.
+Each replicate computes the area-weighted non-scaled share of old forest, giving a distribution of 1000 draws per county.
+
+```{r bgsk-county-draws-long}
+#| code-summary: "Bootstrap draws per county (1000 per county per period)"
+#| cache: true
+#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")), file.mtime(here::here("R/NO_BGSK_001.qmd")))
+
+county_draws_long <- purrr::imap_dfr(bgsk_results, function(period_result, period_name) {
+  county_meta <- period_result$county |>
+    dplyr::select(fylke_name, county_part, total_area, region_code)
+
+  purrr::imap_dfr(
+    split(period_result$data, period_result$data$fylke_name),
+    function(county_data, county_name) {
+      boot <- bootstrap_indicator(county_data, n_bootstrap = 1000)
+      dplyr::tibble(
+        period           = period_name,
+        fylke_name       = county_name,
+        sim_id           = seq_along(boot$draws),
+        non_scaled_value = boot$draws
+      )
+    }
+  ) |>
+    dplyr::left_join(county_meta, by = "fylke_name")
+})
+
+```
+
+The table below (@tbl-bgsk-county-nonscaled) shows the direct area-weighted mean share of biologically old forest per county or sub-county for all reporting periods, with approximate 95% bootstrap confidence intervals (2.5th–97.5th percentile of 1000 draws). Use the search box and page controls to browse rows.
+
+```{r tbl-bgsk-county-nonscaled}
+#| tbl-cap: "Non-scaled share of biologically old forest (%) by county or sub-county for all reporting periods. Point estimate is the direct area-weighted mean; 95% CI is derived from 1000 bootstrap draws."
+#| echo: false
+
+county_draws_long |>
+  dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
+  dplyr::summarise(
+    ci_low  = round(quantile(non_scaled_value, 0.025) * 100, 1),
+    ci_high = round(quantile(non_scaled_value, 0.975) * 100, 1),
+    .groups = "drop"
+  ) |>
+  dplyr::left_join(
+    bgsk_results_county_all_periods |>
+      dplyr::select(period, fylke_name, n_plots, indicator_value),
+    by = c("period", "fylke_name")
+  ) |>
+  dplyr::mutate(
+    region_name = assign_region_name(region_code),
+    mean_pct = round(indicator_value * 100, 1),
+    `95% CI` = paste0(ci_low, " – ", ci_high)
+  ) |>
+  dplyr::arrange(period, region_code, fylke_name) |>
+  dplyr::select(
+    Period = period,
+    County = fylke_name,
+    `Sub-county` = county_part,
+    Region = region_name,
+    `Old forest area (%)` = mean_pct,
+    `95% CI`,
+    `Total area (ha)` = total_area,
+    `Number of plots` = n_plots
+  ) |>
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Old forest area (%)`,
+    decimals = 1
+  ) |>
+  gt::fmt_number(
+    columns = c(`Total area (ha)`, `Number of plots`),
+    decimals = 0,
+    use_seps = TRUE
+  ) |>
+  gt::opt_interactive(
+    use_search = TRUE,
+    use_pagination = TRUE,
+    use_page_size_select = TRUE,
+    page_size_default = 12,
+    page_size_values = c(12, 24, 66)
+  )
+```
+
+### 9.4 Scale indicator values and aggregate to regional and national levels {#sec-bgsk-reference-values}
+
+County or sub-county reference levels are listed below.
+
+```{r bgsk-reference-values}
+#| echo: false
+#| code-summary: "Reference values by county or sub-county"
+
+bgsk_reference_values <- dplyr::tibble(
+  county_part = c(
+    "Øs", "OA", "HeS", "HeN", "OpS", "OpN", "BuS", "BuV", "Ve",
+    "TeS", "TeN", "AA", "VA", "Ro", "Ho", "SF", "MR", "ST", "NT",
+    "NoS", "NoN", "Tr", "Fi"
+  ),
+  x100_pct = c(
+    70, 70, 70, 60, 65, 55, 70, 55, 70, 70, 65, 65, 65, 60, 60,
+    55, 60, 60, 65, 55, 45, 45, 40
+  )
+) |>
+  dplyr::mutate(x100 = x100_pct / 100)
+
+x0 <- 0
+county_reference <- bgsk_reference_values |>
+  dplyr::select(county_part, x100)
+
+```
+
+```{r bgsk-reference-values-table}
+#| echo: false
+
+bgsk_reference_values |>
+  dplyr::select(`Sub-county` = county_part, x100_pct) |>
+  gt::gt() |>
+  gt::cols_label(
+    x100_pct = gt::html("<i>X</i><sub>100</sub> (%)")
+  ) |>
+  gt::cols_align(align = "left", columns = `Sub-county`) |>
+  gt::cols_align(align = "right", columns = x100_pct) |>
+  gt::fmt_number(
+    columns = x100_pct,
+    decimals = 0
+  ) |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::tab_options(
+    table.align = "left",
+    table.width = gt::px(220)
+  )
+
+```
+
+Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, _X~0~_ = 0, county-specific _X~100~_; truncation at scaling).
+@fig-bgsk-norm shows the mapping for each sub-county.
+
+```{r bgsk-county-draws-scaled}
+#| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
+
+county_draws_scaled <- county_draws_long |>
+  dplyr::inner_join(county_reference, by = "county_part") |>
+  dplyr::mutate(
+    scaled_value = ec_normalise(
+      non_scaled_value,
+      x0 = x0,
+      x100 = x100,
+      fun = "linear"
+    ),
+    nation = "National"
+  )
+
+county_scaled_with_uncertainty <- county_draws_scaled |>
+  dplyr::group_by(period, fylke_name, county_part, total_area, region_code) |>
+  dplyr::summarise(
+    median = median(scaled_value),
+    p_025  = as.numeric(quantile(scaled_value, 0.025)),
+    p_25   = as.numeric(quantile(scaled_value, 0.25)),
+    p_75   = as.numeric(quantile(scaled_value, 0.75)),
+    p_975  = as.numeric(quantile(scaled_value, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::left_join(
+    bgsk_results_county_all_periods |> dplyr::select(period, fylke_name, n_plots),
+    by = c("period", "fylke_name")
+  )
+
+```
+
+```{r fig-bgsk-norm}
+#| fig-cap: "Linear normalisation of biologically old forest share (proportion of forest area) to indicator values (0–1). Each panel shows one sub-county accounting unit, with its own _X~100~_ reference value (upper right corner of the scaling line). The x-axis is free-scaled per panel to reflect the range of resampled non-scaled indicator values in that sub-county. Points are a random sample of 100 bootstrap draws (out of 1000) pooled across all reporting periods, illustrating the spread of resampled area-weighted means around the direct estimate. The diagonal line shows the linear scaling function between _X~0~_ = 0% (lower reference, worst condition) and the sub-county-specific _X~100~_ (upper reference, reference condition); values above _X~100~_ are truncated to 1."
+#| code-summary: "Normalisation diagnostic figure"
+#| cache: false
+#| fig-height: 8
+#| fig-width: 8
+
+norm_plot_data <- county_draws_scaled |>
+  dplyr::group_by(county_part) |>
+  dplyr::slice_sample(n = 100) |>
+  dplyr::ungroup()
+
+bgsk_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
+  ggplot2::facet_wrap(~ norm_plot_data$county_part, scales = "free_x") +
+  ggplot2::labs(
+    x = "Old forest share (proportion of forest area)",
+    y = "Scaled indicator value"
+  ) +
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
+bgsk_norm_plot$layers[[1]]$aes_params$size <- 3
+
+suppressMessages(
+  ggsave(
+    filename = here::here("img/bgsk_norm_plot.png"),
+    plot = bgsk_norm_plot,
+    scale = 1.5
+  )
+)
+
+bgsk_norm_plot
+```
+
+The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
+For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ecTools::ec_upscale()` call repeats this from regions to national level.
+
+```{r bgsk-ec-upscale-regional}
+#| code-summary: "ec_upscale: county to region (compute once, save RDS)"
+
+bgsk_mc_cache_deps <- c(
+  here::here("data/LSK_data_okologisk_tilstand_2026-06-03.csv"),
+  here::here("R/functions.R"),
+  here::here("R/NO_BGSK_001.qmd")
+)
+bgsk_mc_rds_regional <- here::here("data/bgsk_mc_regional.rds")
+
+if (
+  file.exists(bgsk_mc_rds_regional) &&
+  file.mtime(bgsk_mc_rds_regional) >= max(file.mtime(bgsk_mc_cache_deps), na.rm = TRUE)
+) {
+  bgsk_mc_regional <- readRDS(bgsk_mc_rds_regional)
+} else {
+  bgsk_mc_regional <- ecTools::ec_upscale(
+    data        = county_draws_scaled,
+    variable    = scaled_value,
+    weight      = total_area,
+    start_units = fylke_name,
+    end_units   = region_code,
+    year        = period,
+    end_units_name = "region_code",
+    n = 1000
+  )
+  saveRDS(bgsk_mc_regional, bgsk_mc_rds_regional)
+}
+```
+
+```{r bgsk-ec-upscale-national}
+#| code-summary: "ec_upscale: region to national (compute once, save RDS)"
+
+region_area_weights <- county_draws_scaled |>
+  dplyr::distinct(period, fylke_name, total_area, region_code) |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(region_area = sum(total_area), .groups = "drop")
+
+bgsk_mc_regional_for_national <- bgsk_mc_regional |>
+  dplyr::left_join(region_area_weights, by = c("period", "region_code")) |>
+  dplyr::mutate(nation = "National")
+
+bgsk_mc_rds_national <- here::here("data/bgsk_mc_national.rds")
+
+if (
+  file.exists(bgsk_mc_rds_national) &&
+  file.mtime(bgsk_mc_rds_national) >= max(
+    c(file.mtime(bgsk_mc_cache_deps), file.mtime(bgsk_mc_rds_regional)),
+    na.rm = TRUE
+  )
+) {
+  bgsk_mc_national <- readRDS(bgsk_mc_rds_national)
+} else {
+  bgsk_mc_national <- ecTools::ec_upscale(
+    data        = bgsk_mc_regional_for_national,
+    variable    = sampled_mean,
+    weight      = region_area,
+    start_units = region_code,
+    end_units   = nation,
+    year        = period,
+    end_units_name = "nation",
+    n = 1000
+  )
+  saveRDS(bgsk_mc_national, bgsk_mc_rds_national)
+}
+```
+
+```{r bgsk-mc-combined}
+#| code-summary: "Combine regional and national MC draws; build summary tables"
+
+bgsk_mc_combined <- dplyr::bind_rows(
+  bgsk_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
+  bgsk_mc_national |> dplyr::select(period, region = nation, sampled_mean)
+)
+
+county_scaled_all_periods <- bgsk_results_county_all_periods |>
+  dplyr::left_join(county_reference, by = "county_part") |>
+  dplyr::filter(!is.na(x100)) |>
+  dplyr::mutate(
+    scaled_value = ec_normalise(indicator_value, x0 = x0, x100 = x100, fun = "linear")
+  )
+
+region_scaled_agg_all_periods <- bgsk_mc_regional |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::mutate(region_name = assign_region_name(region_code))
+
+national_scaled_agg_all_periods <- bgsk_mc_national |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::mutate(region = "National")
+
+region_scaled_agg_with_uncertainty <- bgsk_mc_regional |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
+    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+  dplyr::left_join(
+    bgsk_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
+    by = c("period", "region_code")
+  )
+
+national_scaled_agg_with_uncertainty <- bgsk_mc_national |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
+    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region = "National") |>
+  dplyr::left_join(
+    bgsk_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
+    by = "period"
+  )
+
+truncation_summary <- dplyr::bind_rows(
+  county_scaled_all_periods |>
+    dplyr::left_join(
+      bgsk_reference_values |> dplyr::select(county_part, reference_value_pct = x100_pct),
+      by = "county_part"
+    ) |>
+    dplyr::mutate(
+      level = "County",
+      exceeds_threshold = indicator_value > x100,
+      original_value_pct = round(indicator_value * 100, 2),
+      region_code = NA_character_,
+      region_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    ),
+  region_scaled_agg_all_periods |>
+    dplyr::left_join(
+      bgsk_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
+      by = c("period", "region_code")
+    ) |>
+    dplyr::mutate(
+      level = "Region",
+      exceeds_threshold = scaled_value >= 1,
+      original_value_pct = round(indicator_value * 100, 2),
+      reference_value_pct = NA_real_,
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    ),
+  national_scaled_agg_all_periods |>
+    dplyr::left_join(
+      bgsk_results_national_all_periods |> dplyr::select(period, indicator_value),
+      by = "period"
+    ) |>
+    dplyr::mutate(
+      level = "National",
+      exceeds_threshold = scaled_value >= 1,
+      original_value_pct = round(indicator_value * 100, 2),
+      reference_value_pct = NA_real_,
+      region_code = NA_character_,
+      region_name = "National",
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    )
+)
+
+truncation_counts <- truncation_summary |>
+  dplyr::group_by(period, level) |>
+  dplyr::summarise(
+    n_total = dplyr::n(),
+    n_exceeding_reference = sum(exceeds_threshold, na.rm = TRUE),
+    pct_exceeding_reference = round(100 * n_exceeding_reference / n_total, 1),
+    .groups = "drop"
+  )
+
+truncated_values <- truncation_summary |>
+  dplyr::filter(exceeds_threshold) |>
+  dplyr::arrange(period, level, dplyr::desc(original_value_pct))
+
+```
+
+At county or sub-county level, truncation is evaluated by comparing the non-scaled point estimate to the matching _X~100~_.
+At regional and national level, the tables report cases where the `ecTools::ec_upscale()` median equals 1.
+The following tables summarise how often truncation occurred in each period and list the affected units.
+
+```{r bgsk-report-truncation}
+#| code-summary: "Report truncation"
+#| echo: false
+
+truncation_counts |>
+  dplyr::rename(
+    Period = period,
+    Level = level,
+    `Total` = n_total,
+    `Exceeding reference` = n_exceeding_reference,
+    `% Exceeding reference` = pct_exceeding_reference
+  ) |>
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `% Exceeding reference`,
+    decimals = 1
+  )
+
+if (nrow(truncated_values) > 0) {
+  truncated_values |>
+    dplyr::mutate(
+      location = dplyr::case_when(
+        level == "County" ~ fylke_name,
+        level == "Region" ~ region_name,
+        level == "National" ~ "National",
+        TRUE ~ NA_character_
+      )
+    ) |>
+    dplyr::select(period, level, location, reference_value_pct, original_value_pct) |>
+    dplyr::rename(
+      Period = period,
+      Level = level,
+      Location = location,
+      `Reference (%)` = reference_value_pct,
+      `Original value (%)` = original_value_pct
+    ) |>
+    gt::gt() |>
+    gt::tab_style(
+      style = gt::cell_text(weight = "bold"),
+      locations = gt::cells_column_labels()
+    ) |>
+    gt::fmt_number(
+      columns = c(`Reference (%)`, `Original value (%)`),
+      decimals = 1
+    )
+} else {
+  cat("\nNo values exceeded their reference and required truncation.\n")
+}
+
+```
+
+The time series below (@fig-bgsk-timeSeries) summarises regional and national values.
+
+```{r fig-bgsk-timeSeries}
+#| fig-cap: "Indicator values for biologically old forest share by region and reporting period. Points show the MC median; error bars are 95% credible intervals from the Monte Carlo propagation. National values use filled circles and a thicker line."
+#| code-summary: "Time series of indicator values by region and period"
+#| cache: false
+#| warning: false
+#| message: false
+
+bgsk_region_labels <- c(
+  "1" = "Øst", "2" = "Sør", "3" = "Vest",
+  "4" = "Midt", "5" = "Nord", "National" = "National"
+)
+bgsk_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
+bgsk_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(bgsk_region_levels)),
+  bgsk_region_levels
+)
+
+bgsk_plot_data <- bgsk_mc_combined |>
+  dplyr::mutate(
+    region_name = dplyr::recode(region, !!!bgsk_region_labels),
+    series_type = dplyr::if_else(region == "National", "National", "Region")
+  ) |>
+  dplyr::group_by(period, region_name, series_type) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = factor(region_name, levels = bgsk_region_levels))
+
+ggplot2::ggplot(
+  bgsk_plot_data,
+  ggplot2::aes(x = period, y = median, colour = region_name, group = region_name)
+) +
+  ggplot2::geom_line(
+    ggplot2::aes(linewidth = series_type),
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::geom_pointrange(
+    ggplot2::aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8, linewidth = 0.45,
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::scale_colour_manual(values = bgsk_region_cols, name = NULL) +
+  ggplot2::scale_shape_manual(values = c(National = 19, Region = 17), name = NULL) +
+  ggplot2::scale_linewidth_manual(values = c(National = 1, Region = 0.55), guide = "none") +
+  ggplot2::scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme(
+    legend.position    = "bottom",
+    legend.box         = "horizontal",
+    panel.grid.minor   = ggplot2::element_blank(),
+    panel.grid.major.x = ggplot2::element_blank()
+  ) +
+  ggplot2::guides(
+    colour = ggplot2::guide_legend(
+      nrow = 2,
+      override.aes = list(size = 0.7, linewidth = 0.45)
+    ),
+    shape  = ggplot2::guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  ggplot2::labs(y = "Indicator value", x = "")
+```
+
+## 10. Results {#sec-results}
+
+The following tables present scaled indicator results at county or sub-county, regional, and national scales for each reporting period.
+Tables report the median as the indicator value, with an approximate 95% interval (2.5% and 97.5% quantiles) and an approximate interquartile range (25% and 75% quantiles).
+
+### 10.1 County-level results (scaled with uncertainty)
+
+Use the search box and page controls in @tbl-bgsk-county-results to browse county rows across all reporting periods.
+
+```{r tbl-bgsk-county-results}
+#| tbl-cap: 'County or sub-county indicator values for biologically old forest share by reporting period. Values are scaled to 0–1 using county-specific _X~0~_ and _X~100~_ via `ecTools::ec_normalise()`. Uncertainty is derived from 1000 bootstrap draws scaled with the same function (section 9.3–9.4). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the scaled draw distribution.'
+#| echo: false
+
+county_scaled_with_uncertainty |>
+  dplyr::mutate(
+    fylke_name_clean = stringi::stri_trans_general(
+      stringr::str_squish(
+        tolower(stringr::str_replace_all(.data$fylke_name, "[0-9.-]", " "))
+      ),
+      "Latin-ASCII"
+    ),
+    region_code = assign_region_code(.data$fylke_name_clean),
+    region_name = assign_region_name(.data$region_code),
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
+  ) |>
+  dplyr::arrange(.data$period, .data$region_code, .data$fylke_name) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "C1",
+    Indicator = "Biologically old forest share",
+    ID = "NO_BGSK_001",
+    `Accounting area` = .data$fylke_name,
+    Region = .data$region_name,
+    `Sub-county` = .data$county_part,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
+  ) |>
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  ) |>
+  gt::opt_interactive(
+    use_search = TRUE,
+    use_pagination = TRUE,
+    use_page_size_select = TRUE,
+    page_size_default = 12,
+    page_size_values = c(12, 24, 66)
+  )
+```
+
+### 10.2 Regional results (scaled with uncertainty)
+
+```{r tbl-bgsk-region-results}
+#| tbl-cap: 'Regional indicator values for biologically old forest share by reporting period. Scaled values and uncertainty are derived from ecTools::ec_upscale() Monte Carlo propagation (1000 draws per region per period). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
+#| echo: false
+
+region_scaled_agg_with_uncertainty |>
+  dplyr::mutate(
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
+  ) |>
+  dplyr::arrange(.data$period, .data$region_code) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "C1",
+    Indicator = "Biologically old forest share",
+    ID = "NO_BGSK_001",
+    `Accounting area` = .data$region_name,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
+  ) |>
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  )
+```
+
+### 10.3 National results (scaled with uncertainty)
+
+```{r tbl-bgsk-national-results}
+#| tbl-cap: 'National indicator values for biologically old forest share by reporting period. Scaled values and uncertainty are derived from ecTools::ec_upscale() Monte Carlo propagation (1000 draws). The median is reported as the indicator value, with approximate 95% and interquartile intervals from the MC distribution.'
+#| echo: false
+
+national_scaled_agg_with_uncertainty |>
+  dplyr::mutate(
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
+  ) |>
+  dplyr::arrange(.data$period) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "C1",
+    Indicator = "Biologically old forest share",
+    ID = "NO_BGSK_001",
+    `Accounting area` = .data$region,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
+  ) |>
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  )
+```
+
+
+## 11. Export file
+
+Regional and national Monte Carlo draws are exported in one table (`bgsk_mc_combined`: `period`, `region`, `sampled_mean`).
+
+```{r export}
+#| eval: false
+#| code-summary: "Export regional and national MC-propagated indicator draws"
+
+write.csv(
+  bgsk_mc_combined,
+  here::here("data/results_NO_BGSK_001.csv"),
+  row.names = FALSE
+)
+```
+
+## 12. Author contributions
+
+**CRediT statement**
+
+* Conceptualization: [KOS, EF, UJA]
+* Methodology: [EF, KOS, UJA]
+* Data curation: [OS]
+* Formal analysis: [AHH]
+* Validation: [AHH, KOS]
+* Visualization: [AHH]
+* Writing – original draft: [AHH, EF]
+* Writing – review & editing: [All]
+
+MeRIT attribution
+
+This part supplements the CRediT statement with more granularity for method section.
+
+Study design
+The study was designed by [AB, CD].
+
+Data collection / fieldwork
+Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
+
+Laboratory procedures
+DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
+
+Data processing
+Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
+
+Statistical analysis
+All analyses were conducted by [CD] using [software], with verification by [AB].
+
+Visualization
+Figures were produced by [KL], with input from [CD].
+
+Reproducibility
+All code was reviewed and validated by [AB, CD].
+
+::: {.callout-tip collapse="true"}
+## Session Info
+This workflow uses `renv`. Run `renv::restore()` to recreate the working environment. 
+:::
