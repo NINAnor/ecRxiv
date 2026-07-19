@@ -1,5 +1,4 @@
-# Functions for NO_AATS_001 indicator calculation
-# Absence of alien coniferous tree species
+# Functions for indicator calculation
 
 # Helper to merge split county names (e.g., Telemark SØ/NV -> Telemark)
 # Uses hard-coded mappings for reliability
@@ -76,6 +75,65 @@ assign_region_name <- function(region_code) {
   )
 }
 
+# Map NFI county names to BBCA county-part reference codes
+assign_bbca_county_part <- function(fylke_name) {
+  name <- stringi::stri_trans_general(
+    stringr::str_squish(tolower(fylke_name)),
+    "Latin-ASCII"
+  )
+
+  south <- stringr::str_detect(
+    name,
+    "[ -](so|sor|sud|south)(?![a-z])|[ -]s$"
+  )
+  north <- stringr::str_detect(
+    name,
+    "[ -](nv|no|nord|north)(?![a-z])|[ -]n$"
+  )
+  west <- stringr::str_detect(
+    name,
+    "[ -](v|vest|west)(?![a-z])|[ -]v$"
+  )
+
+  base <- dplyr::if_else(
+    south | north | west,
+    stringr::str_replace(
+      name,
+      "(?i)[ -](so|sor|sud|south|s|nv|no|nord|north|n|v|vest|west)$",
+      ""
+    ) |>
+      stringr::str_squish(),
+    name
+  )
+
+  dplyr::case_when(
+    base == "ostfold" ~ "Øs",
+    base == "oslo og akershus" ~ "OA",
+    base == "hedmark" & south ~ "HeS",
+    base == "hedmark" & north ~ "HeN",
+    base == "oppland" & south ~ "OpS",
+    base == "oppland" & north ~ "OpN",
+    base == "buskerud" & south ~ "BuS",
+    base == "buskerud" & west ~ "BuV",
+    base == "vestfold" ~ "Ve",
+    base == "telemark" & south ~ "TeS",
+    base == "telemark" & north ~ "TeN",
+    name %in% c("aust-agder", "aust agder") ~ "AA",
+    name %in% c("vest-agder", "vest agder") ~ "VA",
+    name %in% c("sor-trondelag", "sortrondelag") ~ "ST",
+    name %in% c("nord-trondelag", "nordtrondelag") ~ "NT",
+    base == "rogaland" ~ "Ro",
+    base == "hordaland" ~ "Ho",
+    base == "sogn og fjordane" ~ "SF",
+    base == "more og romsdal" ~ "MR",
+    base == "nordland" & south ~ "NoS",
+    base == "nordland" & north ~ "NoN",
+    base == "troms" ~ "Tr",
+    base == "finnmark" ~ "Fi",
+    TRUE ~ NA_character_
+  )
+}
+
 # Function to calculate area-weighted indicator values
 calculate_indicator <- function(data, group_var) {
   
@@ -98,37 +156,50 @@ calculate_indicator <- function(data, group_var) {
   return(result)
 }
 
-# Function to calculate bootstrap uncertainty
+# Bootstrap uncertainty; `draws` is used by ecTools::ec_upscale() workflows.
 bootstrap_indicator <- function(data, n_bootstrap = 1000) {
-  
-  bootstrap_results <- numeric(n_bootstrap)
-  
-  for (i in 1:n_bootstrap) {
-    # Resample with replacement
-    boot_sample <- data %>%
-      slice_sample(n = nrow(data), replace = TRUE)
-    
-    # Calculate indicator
-    bootstrap_results[i] <- sum(boot_sample$indicator_continuous_weighted, na.rm = TRUE) / 
-                            sum(boot_sample$au_areal, na.rm = TRUE)
-  }
-  
-  return(list(
-    mean = mean(bootstrap_results),
-    se = sd(bootstrap_results),
-    ci_lower = as.numeric(quantile(bootstrap_results, 0.025)),
-    ci_upper = as.numeric(quantile(bootstrap_results, 0.975)),
-    q1 = as.numeric(quantile(bootstrap_results, 0.25)),      # First quartile (25th percentile)
-    median = as.numeric(quantile(bootstrap_results, 0.50)),  # Median (50th percentile)
-    q3 = as.numeric(quantile(bootstrap_results, 0.75))       # Third quartile (75th percentile)
-  ))
-}
+  na_summary <- list(
+    draws = numeric(0),
+    mean = NA_real_,
+    se = NA_real_,
+    ci_lower = NA_real_,
+    ci_upper = NA_real_,
+    q1 = NA_real_,
+    median = NA_real_,
+    q3 = NA_real_
+  )
 
-# Function to scale indicator values
-scale_indicator <- function(value, x0, x100) {
-  scaled <- (value - x0) / (x100 - x0)
-  scaled <- pmax(0, pmin(1, scaled))  # Truncate to [0, 1]
-  return(scaled)
+  n <- nrow(data)
+  if (n == 0L) {
+    return(na_summary)
+  }
+
+  bootstrap_results <- numeric(n_bootstrap)
+
+  for (i in seq_len(n_bootstrap)) {
+    boot_sample <- data %>%
+      dplyr::slice_sample(n = n, replace = TRUE)
+
+    bootstrap_results[i] <- sum(boot_sample$indicator_continuous_weighted, na.rm = TRUE) /
+      sum(boot_sample$au_areal, na.rm = TRUE)
+  }
+
+  bootstrap_results <- bootstrap_results[is.finite(bootstrap_results)]
+
+  if (length(bootstrap_results) < 1L) {
+    return(na_summary)
+  }
+
+  list(
+    draws = bootstrap_results,
+    mean = mean(bootstrap_results),
+    se = stats::sd(bootstrap_results),
+    ci_lower = as.numeric(stats::quantile(bootstrap_results, 0.025)),
+    ci_upper = as.numeric(stats::quantile(bootstrap_results, 0.975)),
+    q1 = as.numeric(stats::quantile(bootstrap_results, 0.25)),
+    median = as.numeric(stats::quantile(bootstrap_results, 0.50)),
+    q3 = as.numeric(stats::quantile(bootstrap_results, 0.75))
+  )
 }
 
 # Function to calculate indicators for a specific period
@@ -141,7 +212,9 @@ calculate_period_indicators <- function(data, period_name, years) {
   
   # Calculate county indicators (attach region_code and cleaned name)
   county_to_region <- period_data %>%
-    dplyr::distinct(fylke_name, region_code, fylke_name_clean)
+    dplyr::distinct(dplyr::across(dplyr::any_of(
+      c("fylke_name", "county_part", "region_code", "fylke_name_clean")
+    )))
 
   county_results <- calculate_indicator(period_data, fylke_name) %>%
     dplyr::left_join(county_to_region, by = "fylke_name") %>%
@@ -168,96 +241,4 @@ calculate_period_indicators <- function(data, period_name, years) {
     national = national_results,
     data = period_data
   ))
-}
-
-# Bootstrap national uncertainty for scaled-then-aggregated workflow
-# Resample plots, compute county non-scaled, scale counties, aggregate scaled to national
-bootstrap_national_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 1000) {
-  bootstrap_results <- numeric(n_bootstrap)
-
-  for (i in 1:n_bootstrap) {
-    boot_sample <- period_data %>%
-      dplyr::slice_sample(n = nrow(period_data), replace = TRUE)
-
-    # county non-scaled from bootstrapped plots (by cleaned county name)
-    boot_county <- calculate_indicator(boot_sample, fylke_name)
-
-    # scale counties
-    boot_county_scaled <- boot_county %>%
-      dplyr::mutate(
-        scaled_value = scale_indicator(indicator_value, x0, x100)
-      )
-
-    # aggregate scaled to national (area-weighted by total_area)
-    boot_national_scaled <- boot_county_scaled %>%
-      dplyr::summarise(
-        scaled_value = sum(scaled_value * total_area, na.rm = TRUE) /
-                       sum(total_area, na.rm = TRUE)
-      ) %>%
-      dplyr::pull(scaled_value)
-
-    bootstrap_results[i] <- boot_national_scaled
-  }
-
-  return(list(
-    mean = mean(bootstrap_results),
-    se = stats::sd(bootstrap_results),
-    ci_lower = as.numeric(stats::quantile(bootstrap_results, 0.025)),
-    ci_upper = as.numeric(stats::quantile(bootstrap_results, 0.975)),
-    q1 = as.numeric(stats::quantile(bootstrap_results, 0.25)),      # First quartile (25th percentile)
-    median = as.numeric(stats::quantile(bootstrap_results, 0.50)),  # Median (50th percentile)
-    q3 = as.numeric(stats::quantile(bootstrap_results, 0.75))       # Third quartile (75th percentile)
-  ))
-}
-
-# Bootstrap region uncertainty for scaled-then-aggregated workflow
-# For each bootstrap: compute county non-scaled by fylke_name, scale counties,
-# aggregate scaled to each region_code using total_area
-bootstrap_region_scaled_agg <- function(period_data, x0, x100, n_bootstrap = 1000) {
-  region_codes <- unique(period_data$region_code)
-  # storage: matrix n_bootstrap x n_regions
-  res_mat <- matrix(NA_real_, nrow = n_bootstrap, ncol = length(region_codes))
-  colnames(res_mat) <- region_codes
-
-  for (i in 1:n_bootstrap) {
-    boot_sample <- period_data %>% dplyr::slice_sample(n = nrow(period_data), replace = TRUE)
-
-    # county non-scaled by cleaned county name
-    boot_county <- calculate_indicator(boot_sample, fylke_name)
-
-    # bring region_code and total_area per county by joining a distinct mapping
-    county_to_region <- boot_sample %>%
-      dplyr::distinct(fylke_name, region_code)
-
-    boot_county <- boot_county %>% dplyr::left_join(county_to_region, by = "fylke_name")
-
-    # scale county values
-    boot_county_scaled <- boot_county %>%
-      dplyr::mutate(scaled_value = scale_indicator(indicator_value, x0, x100))
-
-    # aggregate to region_code
-    boot_region_scaled <- boot_county_scaled %>%
-      dplyr::group_by(region_code) %>%
-      dplyr::summarise(
-        scaled_value = sum(scaled_value * total_area, na.rm = TRUE) / sum(total_area, na.rm = TRUE),
-        .groups = "drop"
-      )
-
-    # record
-    res_mat[i, match(boot_region_scaled$region_code, region_codes)] <- boot_region_scaled$scaled_value
-  }
-
-  # summarize per region_code
-  out <- tibble::tibble(
-    region_code = region_codes,
-    mean = apply(res_mat, 2, mean, na.rm = TRUE),
-    se = apply(res_mat, 2, stats::sd, na.rm = TRUE),
-    ci_lower = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.025, na.rm = TRUE)),
-    ci_upper = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.975, na.rm = TRUE)),
-    q1 = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.25, na.rm = TRUE)),      # First quartile (25th percentile)
-    median = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.50, na.rm = TRUE)),  # Median (50th percentile)
-    q3 = as.numeric(apply(res_mat, 2, stats::quantile, probs = 0.75, na.rm = TRUE))       # Third quartile (75th percentile)
-  )
-
-  return(out)
 }
