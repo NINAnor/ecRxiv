@@ -1,30 +1,37 @@
 ---
-title: "Multi-layered forest as share of productive forest area"
+title: "Multi-layered forest"
 subtitle: |
   [NO_MLFA_001]
 indicatorID: 
   - NO_MLFA_001
 indicatorName: 
-  - Multi-layered forest as share of productive forest area
+  - Multi-layered forest
+verbatimName: 
+  - Flersjiktet skog
 folderName: NO_MLFA_001
 country: Norway
 continent: Europe
-ECT: B1 Biotic compositional characteristic
+ECT: B2 - Structural State Characteristics
 Realm: 
   - Terrestrial (T)
 Biome: 
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests
+verbatimEcosystem:
+  - T2.1 Boreal/subalpin skot
+  - T2.2 Temperert edellauvskog
 yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
-yearLastUpdate: 2025
+yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
-Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
+Version: "000.002" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: County/sub-county reference scaling (X0 = 0%, X100 varies by unit); scaled regional/national bootstrap
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_MLFA_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
-Normalised: No # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Aggregate # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+Precision: Approximate 95% bootstrap interval (2.5th–97.5th percentile of 1000 bootstrap draws) as inferential uncertainty around the point estimate (median). At county or sub-county level, bootstrapping is applied directly to NFI plot data; at regional and national level, uncertainty is propagated from scaled county bootstrap draws.
 format: 
   html:
     embed-resources: true
@@ -35,32 +42,48 @@ format:
     smooth-scroll: true
 execute: 
   cache: true
-  eval: false
 author:
+  - name: Aud Helen Halbritter
+    affiliations:
+      - name: University of Bergen
+  - name: Ken Olaf Storaunet
+    affiliations:
+      - name: Norwegian Institute of Bioeconomy Research
   - name: Erik Framstad
     email: erik.framstad@nina.no
     affiliations:
       - name: Norwegian Institute for Nature Research
-  - name: Ken Olav Storaunet
+  - name: Mari Jönsson
+    affiliations:
+      - name: Norwegian Institute for Nature Research
+  - name: Oliver Snoksrud
     affiliations:
       - name: Norwegian Institute of Bioeconomy Research
-  - name: Aud Helen Halbritter
+  - name: Ulrika Jansson Asplund
     affiliations:
-      - name: University of Bergen
-AuthorList: Framstad, E., Storaunet, K. O. and Halbritter, A. H.
-date: November 8, 2025
-data_availability: none
-code_reproducibility: silver
-open_science_badge: none
+      - name: Norwegian Institute for Nature Research
+AuthorList: Halbritter, A. H., Storaunet, K. O., Framstad, E., Jönsson, M., Snoksrud, O., and Jansson Asplund, U.
+date: May 13, 2026
+data_availability: bronze
+code_reproducibility: gold
+open_science_badge: silver
 callout-icon: false
 lightbox: true
-css: ../../../style.css
-bibliography: bibliography.bib
+csl: ambio.csl
 code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
-hide: FALSE
+hide: FALSE # Change to FALSE
+bibliography: references.bib
+codeReviewers:
+  - name: Matthew Grainger
+    email: matthew.grainger@nina.no
+    affiliations:
+      - id: reviewerInst
+        name: Norwegian Institute for Nature Resaech (NINA)
+    reviewType: code review
+    github: DrMattG
 ---
 
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -70,7 +93,12 @@ hide: FALSE
 ```{r setup}
 #| include: false
 #| cache: false
-#| eval: true
+if (file.exists("renv/activate.R")) {
+  source("renv/activate.R")
+} else if (file.exists("../renv/activate.R")) {
+  source("../renv/activate.R")
+}
+
 library(knitr)
 library(tidyverse)
 library(kableExtra)
@@ -82,6 +110,8 @@ library(conflicted)
 library(janitor)
 library(stringi)
 library(DT)
+library(ecTools)
+library(MetBrewer)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -94,51 +124,71 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r source}
 #| echo: false
 #| cache: false
-#| eval: true
 source(here::here("_common.R"))
-source(here("indicators/NO_MLFA_001/R/functions.R"))
-source(here::here("extract_yaml.R"))
+source(here("R/functions.R"))
 ```
 
 
 <!--# The following parts are autogenerated. Do not edit. -->
 
-::: {layout-ncol="5"}
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
+```
+
+::: {layout-ncol="6"}
 
 ```{r statusBadge}
 #| echo: false
-#| eval: true
 status_badge(as.character(st))
 ```
 
 ```{r versionBadge}
 #| echo: false
-#| eval: true
-version_badge(my_version_number = version[[1]],
-  folder_name = folder_name)
+status_badge(as.character(st))
 ```
 
 ```{r dataBadge}
 #| echo: false
-#| eval: true
 data_badge(as.character(badges[[1]]))
 ```
 
 ```{r codeBadge}
 #| echo: false
-#| eval: true
 code_badge(as.character(badges[[2]]))
 ```
 
 ```{r openScienceBadge}
 #| echo: false
-#| eval: true
 open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+license_badge()
 ```
 ::: 
  
 
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", id, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 
 
@@ -148,23 +198,25 @@ open_science_badge(as.character(badges[[3]]))
 #| tbl-cap: 'Indicator metadata'
 #| echo: false
 #| warning: false
-#| eval: true
 meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -176,6 +228,9 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 08 Nov. 2025 - Original PR
+- 13 May 2026 - ecRxiv template workflow; MLFA denominator includes NA as ensiktet; county/sub-county scaling (X0 = 0%, X100 varies by unit), truncation, split-county units; scaled regional/national bootstrap
+- 19 July 2026 - Accepted
+
 :::
 
 
@@ -186,88 +241,123 @@ meta |>
 ## 1. Summary
 
 1. **Background and rationale**:
-This indicator represents share of productive forest area with more than two vertical tree layers.
+This indicator represents the proportion of productive forest area with more than two vertical tree layers (multi-layered forests).
 In forests shaped by natural disturbances and succession, a substantial part of the forest will be multi-layered.
-Only where large stand-replacing disturbances occur at a certain intervals may one tree layer be characteristic.
+Stand-replacing disturbances that occur at certain intervals, might however result in  one tree layer characterzing  the forest.
 Modern even-aged forestry practices will result in one tree layer for much of the managed forest.
-Multi-layered forests will generally have more varied habitats and resources for species than a one-layered forest.
-This indicator has been proposed as a voluntary indicator in EU.
+Multi-layered forests will generally have more varied habitats and resources for species than one-layered forests. This indicator has been proposed as a voluntary indicator in EU.  
 
 2. **Methods**:
-Data for this indicator come from the National Forest Inventory (NFI), where the number of tree layers within the 250 m^2^ NFI plot has been recorded for productive forest by current methods since the mid-1990s [@viken2021-feltinstruks].
+Data for this indicator comes from the National Forest Inventory (NFI), where the number of tree layers around 0.1 ha of the NFI plot has been recorded for productive forest by current methods since the mid-1990s [@viken2025-feltinstruks].
 
 3. **Interpretation**:
-The estimated share of productive forest area with more than two tree layers will eventually be compared to a reference value for all forest, based on expert assessments supported by empirical data for near-natural forests and knowledge of ecosystem dynamics in intact forest ecosystems. Such reference values have not yet been determined for this indicator.
+The non-scaled indicator is the area-weighted proportion of productive forest land that is categorized to multilayered (`flersjiktet`).
+The indicator is scaled for each county/sub-county with _X~0~_ = 0% multilayered forest and _X~100~_-values corresponding to the proportion expected under reference condition. Regional and national scaled values are area-weighted means of scaled county/sub-county values. 
 
 4. **Results and development needs**:
-Otherwise, the indicator is ready for use as a non-scaled variable.
-The indicator should not be used at finer spatial resolution than allows reliable estimates, probably regions.
+The indicator value for the current reporting period (2020-2024) is 0.91, and has increased since 2010 (2010-2014: 0.86, 2015-2019: 0.90).
+The lowest value is in the region Vest (0.75) and the higest value in the region South (0.96).
+The indicator should not be used at finer spatial resolution than allows reliable estimates.
+We suggest using counties for this indicator.
+There are no specific development needs for the indicator measure from the NFI data.
+However, a more thorough analysis and review of the assessment of reference values and the scaling function is needed. 
+
+
+
+## 1.2 Native language summary - Norwegian
+
+1. **Bakgrunn og begrunnelse**: Denne indikatoren representerer andelen av produktivt skogareal med mer enn to vertikale tresjikt (flersjiktet skog).
+I skoger formet av naturlige forstyrrelser og suksesjon, vil en betydelig andel av skogen være flersjiktet, mens etter forstyrrelser som gir høy dødelighet for trærne (intense branner, vindfellinger, etc.) vil ett tresjikt kunne være karakteristisk for skogen også i referansetilstand.
+Moderne skogbrukspraksis med flatehogst vil ofte resultere i bare ett tresjikt. 
+Flersjiktede skoger vil ha større variasjon i strukturer og habitater enn ensjiktede. 
+Denne indikatoren er foreslått som en frivillig indikator i EU. 
+
+2. **Metoder**: Data for indikatoren kommer fra Landsskogtakseringen (LSK), hvor antall tresjikt rundt 0,1 hektar av LSK-prøveflatene er blitt registrert i produktiv skog siden midten av 1990-tallet [@viken2025-feltinstruks]. 
+
+3. **Tolkning**: Indikatoren måles som den arealvektede andelen av produktiv skog kategorisert som flersjiktet skog i LSKs data.
+Indikatoren skaleres for hvert fylke/delfylke med _X~0~_ = 0 % flersjiktet skog og _X~100~_-verdier som tilsvarer andelen forventet i referansetilstanden.
+Regionale og nasjonale skalerte verdier er arealvektede gjennomsnitt av skalerte verdier i fylker/delfylker. 
+
+4. **Resultater og utviklingsbehov**: Indikatorverdien for nåværende rapporteringsperiode (2020–2024) er 0,91, og har økt siden 2010 (2010–2014: 0,86, 2015–2019: 0,90).
+Den laveste verdien er i region Vest (0,75) og den høyeste verdien i region Sør (0,96).
+Indikatoren er klar til bruk, men bør ikke brukes på finere oppløsning enn fylker.
+Det er ingen spesifikke utviklingsbehov for datagrunnlaget fra LSK-dataene.
+Fra 2024 registreres LSK-variabelen også i uproduktiv skog, slik at arealgrunnlaget for indikatoren kan utvides i framtiden.
+Imidlertid er det et klart behov for en grundigere analyse og gjennomgang av vurderingen av referanseverdier og skaleringsfunksjonen mellom _X~0~_ og _X~100~_.
+
 
 
 ## 2. About the underlying data
 
-The number of tree layers is recorded for each 250 m^2^ NFI inventory plot [@viken2021-feltinstruks].
+The number of tree layers is recorded for each 250 m^2^ National Forest Inventory (NFI) plot [@viken2025-feltinstruks].
 There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
-The indicator value is an unbiased area-weighted estimate of the share of the productive forest area with more than two tree layers, for included NFI plots in any selected region.
- All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
- For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
- The data are available upon request from NFI. 
+The indicator value is an unbiased area-weighted estimate of the share of the productive forest area with more than two tree layers (mulit-layered forests), for included NFI plots in any selected region.
+All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
+For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
+The data are available upon request from NFI. 
 
 ### 2.1 Spatial and temporal resolution and extent
 
 Data are available from the mid-1990s, when current recording methods were established. Annual estimates are possible due to representative sampling every year.
-For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010.
-The data are representative for all productive forest land within the selected region. Spatial resolution should be limited to the resolution allowing for reliable estimates, probably counties.
+For this indicator all data from each full inventory cycle of 5 years are used, starting in 2010. 
+The data are representative for all productive forest land within the selected region.
+Spatial resolution should be limited to the resolution allowing for reliable estimates, probably counties.
 
 ### 2.2 Sampling design
 
+There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
+Stands are classified as single-layered, two-layered, or multi-layered.
+A single-layered stand consists predominantly of trees in one canopy layer.
+A two-layered stand consists of two distinct canopy layers representing different stand development stages.
+The lower layer must contain viable trees to form a stand if the upper layer is removed. 
+A multi-layered stand contains three or more canopy layers, with continuous variation in tree age and size. After removal of the upper canopy, the remaining trees should still constitute a two- or multi-layered stand.
+
+Tree layers are described in the variable `best_form` extracted from the NFI data.
+It iscategorical and the multi-layered category states that the forest has trees in more than two vertical layers, where tree-age variation also is a characteristic of the stand.
 
 ### 2.3 Original units
 
-The indicator is specified as the share of forest area (%) with at least two tree layers.
+The indicator is specified as the area-weighted proportion (%) of productive forest area  with more than two vertical tree layers (`best_form` = 3), relative to the total productive forest area. 
 
 
-### 2.3 Instructions for citing, using and accessing data
+### 2.4 Instructions for citing, using and accessing data
 
 The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2025-10-20, between NIBIO and the specified users.
 Further use of these data requires a separate data user agreement with NIBIO.
 
 
-### 2.4 Additional comments about the dataset
-
-None
-
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-The vertical tree layers represent a structural attribute of forests.
-Hence, this indicator represents a B2 Biotic structural characteristic.
-
-### 3.1.1 Other condition typologies
-
-None
+The multilayered forest indicator represents a structural attribute of the forests. 
+Hence, this indicator represents a B2 Biotic structural characteristic. 
 
 
 ### 3.2 Ecosystem condition characteristic
 
-The vertical tree layers represent a structural attribute of forests. The indicator is characterised as Functionally important species and biophysical structures.
 
 ### 3.3 Collinearities with other indicators
 
-There may be some positive correlations with indicators for old forest and dead wood.
+There might be a positive correlation with the indicator for large trees.
+The variable values for multi-layered forest and biologically old forest do not seem to correlate.  
 
 
 ### 3.4 Impact factors
 
 Natural disturbances and succession at small scale or with moderate severity will generally result in multi-layered forests.
 Severe, stand-replacing disturbances may result in one-layered forests, but such disturbances are expected to be rare.
-Modern even-aged forestry practices will result in one tree layer for much of the managed forest.
+Modern even-aged forestry practices will result in one tree layer for much of the managed forest. 
 
 ### 3.5 Spatial aggregation
 
-The indicator should not be used at finer spatial resolution than allows reliable estimates, probably regions. 
+The spatial aggregation pathway is Aggregate (NFI plots to county) – [Scale – Truncate] – Aggregate (geographic region) – Aggregate (national level).
+For each NFI plot we derive weighted numerator and denominator areas from `best_form`, where multi-layered plots (`best_form` = 3) contribute to the numerator and all productive forest land  (`arealtype` = 1) contribute to the denominator.
+Non-scaled indicator values for each reporting period are then calculated separately for counties, regions, and the national level as the area-weighted share: sum of numerator area divided by sum of denominator area.
+Scaling and truncation are applied after county/sub-county aggregation: each unit is normalised with _X~0~_ = 0 and a county/sub-county-specific _X~100~_ @sec-reference-levels using a linear function, and values above 1 are truncated to 1.
+Regional and national scaled values are area-weighted means of already scaled county/sub-county values. The indicator should not be used at finer spatial resolution than allows reliable estimates.
+We suggest using counties. 
 
 ## 4. Reference condition and levels
 
@@ -275,14 +365,13 @@ The indicator should not be used at finer spatial resolution than allows reliabl
 
 The reference condition is considered to be intact forest ecosystems, where effects of human activities are clearly subordinate to those of natural ecosystem processes and disturbances. 
 
-### 4.2 Reference levels
+### 4.2 Reference levels {#section-reference-levels}
 
-An upper reference value (X100) has not yet been determined.
-It would likely be based on expert assessments supported by information on (1) the proportion of multi-layered forest in NFI plots assessed to be little affected by recent human activities, (2) the distribution of dominating tree species in various regions/counties, and (3) general assessments of natural forest dynamics and the effects on the size of trees.
-Reference values would be expert assessments without estimated uncertainty.
-The lower reference value (X0) is set to 0%.
-For lack of better knowledge, the relationship between indicator values and ecosystem condition is assumed to be linear for values between X100 and X0.
-Hence, indicator values are scaled between 0 and 1 based on a linear scaling function between X0 and X100; scaled indicator values above 1 are truncated to 1.
+For the analyses below we use county/sub-county-specific reference levels: _X~0~_ = 0% (no multi-layered forest) and _X~100~_ (area percentage of forest being multilayered expected under reference conditions) varying among county/sub-county units.
+The lower reference value (_X~0~_) is set to 0%.
+For lack of better knowledge, the relationship between indicator values and ecosystem condition is assumed to be linear for values between _X~100~_ and _X~0~_.
+County values are scaled to 0–1; values above _X~100~_ are truncated to 1.
+Regional and national scaled point estimates are area-weighted means of scaled county/sub-county values.
 
 
 #### 4.2.1 Spatial resolution and validity
@@ -295,47 +384,59 @@ Although indicator values from NFI plots may technically be aggregated at finer 
 ### 5.1 General uncertainties
 
 Uncertainties relate to the variability in the frequency of forest layers among NFI plots and assessment errors for tree layers within NFI plots.
-This combined uncertainty is quantified by bootstrapping.
+This uncertainty is quantified by bootstrapping; the results report the resulting uncertainty for scaled values.
+
 There will also be uncertainty related to the setting of the upper reference value and to the shape of the relationship between indicator values and ecosystem condition.
-These uncertainties will not be quantified.
+These uncertainties are not quantified. 
 
 ### 5.2 Reported uncertainties
 
+For non-scaled values, plots are resampled with replacement within each county and the ratio *flersjiktet / (ensjiktet + tosjiktet + flersjiktet + NA)* is recalculated in each replicate.
+NA mainly represent young forest (age classes I–II).
+For scaled county values, those bootstrap draws are transformed with the same linear normalisation used for point estimates.
+For scaled regional and national values, uncertainty is propagated from scaled county bootstrap draws.
+The scaled tables in section 10 report the median and quantile intervals from these propagated distributions.
 
 ## 6. References
 
-The data used for this indicator have been made available by the Norwegian National Forest Inventory under a specific data use agreement of 2025-10-20, between NIBIO and the specified users.
-Further use of these data requires a separate data user agreement with NIBIO.
+::: {#refs}
+:::
 
 ## 7. Import and prepare datasets
 
 ### 7.1 Dataset Multi-layered forest
 
-The number of tree layers is recorded for each 250 m^2^ NFI inventory plot [@viken2021-feltinstruks]. There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
+The number of tree layers is recorded for each  0.1 ha area around NFI inventory plots [@viken2025-feltinstruks].
+There are about 12 000 NFI plots in forest ecosystems, distributed on a regular grid, with varying grid density for forest below/above the coniferous forest line and in Finnmark county.
 The indicator value is an unbiased area-weighted estimate of the share of the productive forest area with more than two tree layers, for included NFI plots in any selected region.
 All NFI plots are sampled over a 5-year period, with a representative sampling scheme every year, allowing unbiased estimates from data for each year.
 For this indicator data from each full inventory cycle of 5 years are used, starting in 2010, meaning that results reported for 2024 are based on data from the years 2020-2024.
 
 ```{r load-data}
+#| code-summary: "Load data"
 
-# Load main data file
-lsk_data_raw <- read_csv(here("indicators/NO_MLFA_001/data/LSK_data_naturregnskap.csv"), 
-                     show_col_types = FALSE,
-                     locale = locale(encoding = "UTF-8")) |>
+lsk_data_file <- here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")
+
+lsk_data_raw <- read_csv(
+  lsk_data_file,
+  show_col_types = FALSE,
+  locale = locale(encoding = "UTF-8")
+) |>
   clean_names()
 
 ```
 
 ## 8. Spatial units
 
-Aggregated indicator values should not be applied for spatial units finer than those that allow reliable estimates, probably counties (i.e., de facto Ecosystem Assets).
+Aggregated indicator values are reported for counties, regions, and nationally.
+Where counties are split into parts in the NFI export, MLFA uses county/sub-county units matching the reference table in section 9.4.
+Aggregated indicator values should not be applied for spatial units finer than those that allow reliable estimates, probably counties or sub-counties.
 
 ## 9. Analyses
 
 ### 9.1 Prepare data and create derived variables
 
 This section prepares the NFI plot data for calculating the indicator.
-We retain only productive forest plots (`arealtype` = 1), and then create the derived variables used in subsequent aggregation steps.
 
 First we define the 5-year reporting periods that match the temporal structure of the indicator.
 
@@ -350,24 +451,29 @@ reporting_periods <- list(
 
 ```
 
-Next we filter the raw dataset to include only productive forest plots, remove records missing the required `best_form` variable, standardise the geography fields, and compute the indicator value.
-The indicator is based on the NFI variable `best_form`, where a value of "3" indicates multi-layered forest (more than two tree layers).
-Area-weighted values are created using `au_areal`.
+Next we filter the raw dataset to include only productive forest plots (`arealtype` = 1), standardise the geography fields, and compute plot-level weights for the MLFA ratio.
+The indicator is based on the NFI variable `best_form` predominantly, where a value of `"3"` indicates multi-layered forest (more than two tree layers; *flersjiktet*).
+Missing `best_form` corresponds to age classes 1 and 2 and is treated as single-layer forest (*enskiktet*).
+Those plots stay in the dataset and count toward the denominator together with plots coded explicitly as *enskiktet* or *tosjiktet* (`best_form` `"1"` or `"2"`).
+The reported share is *andel flersjiktet divided by (enskiktet + tosjiktet + flersjiktet + NA)*: the total productive forest area represented by multi-layered plots, divided by the total area of all plots that belong to one of those four classes (with NA counted as *enskiktet*).
+Plots with any other `best_form` code are left out of both the numerator and the denominator.
+Each plot contributes its sample area `au_areal` (hectares) to those totals.
 
 ```{r create-derived-variables}
 #| cache: false
 
 lsk_data <- lsk_data_raw |>
-  filter(
-    arealtype == 1
-  ) |>
-  filter(!is.na(best_form)) |>
-  mutate(
-    fylke_name = region_fylke |>
+  dplyr::filter(arealtype == 1) |>
+  dplyr::mutate(
+    best_form_chr = as.character(best_form),
+    best_form_eligible = is.na(best_form) |
+      best_form_chr %in% c("1", "2", "3"),
+    fylke_name_raw = region_fylke |>
       stringr::str_remove("^\\d+-\\d+\\s+") |>
       stringr::str_remove("^\\d+\\s*") |>
       stringr::str_squish(),
-    fylke_name = normalize_county_parts(fylke_name),
+    county_part = assign_mlfa_county_part(fylke_name_raw),
+    fylke_name = normalize_county_parts(fylke_name_raw),
     fylke_name_clean = stringi::stri_trans_general(
       stringr::str_squish(
         tolower(stringr::str_replace_all(fylke_name, "[0-9.-]", " "))
@@ -376,9 +482,22 @@ lsk_data <- lsk_data_raw |>
     ),
     region_code = assign_region_code(fylke_name_clean),
     region_name = assign_region_name(region_code),
-    # Indicator value: binary variable (1 = multi-layered forest with BEST_FORM = "3", 0 = otherwise)
-    indicator_continuous = if_else(best_form == "3", 1, 0),
-    indicator_continuous_weighted = indicator_continuous * au_areal
+    indicator_continuous = dplyr::if_else(
+      best_form_eligible & best_form_chr %in% "3",
+      1,
+      0
+    ),
+    indicator_continuous_weighted = indicator_continuous * au_areal,
+    mlfa_num_weighted = dplyr::if_else(
+      best_form_eligible,
+      as.numeric(best_form_chr %in% "3") * au_areal,
+      0
+    ),
+    mlfa_den_weighted = dplyr::if_else(
+      best_form_eligible,
+      au_areal,
+      0
+    )
   )
 
 ```
@@ -394,16 +513,17 @@ lsk_data <- lsk_data |>
     arealtype,
     region_code,
     region_name,
+    county_part,
     fylke_name,
     fylke_name_clean,
     best_form,
     indicator_continuous,
-    indicator_continuous_weighted
+    indicator_continuous_weighted,
+    mlfa_num_weighted,
+    mlfa_den_weighted
   )
 
 ```
-
-Reference values are not yet available for this indicator, so subsequent steps focus on summarising the raw indicator values.
 
 ### 9.2 Calculate non-scaled area-weighted indicator values
 
@@ -413,7 +533,7 @@ With the indicator-specific values we can produce area-weighted summaries for ea
 
 mlfa_results <- purrr::imap(
   reporting_periods,
-  ~ calculate_period_indicators(lsk_data, .y, .x)
+  ~ calculate_mlfa_period_indicators(lsk_data, .y, .x)
 ) |>
   purrr::compact()
 
@@ -425,277 +545,656 @@ mlfa_results_national_all_periods <- purrr::map_dfr(mlfa_results, "national")
 
 ### 9.3 Bootstrap uncertainty estimation for non-scaled indicator values
 
-Uncertainty in the non-scaled indicator estimates is quantified using bootstrapping.
-For each 5-year period we resample the plot dataset, calculate area-weighted indicator values, and summarise the distribution for counties, regions, and the national aggregate.
+Uncertainty in non-scaled values is quantified with county-level bootstrap draws.
+For each county and reporting period, plots are resampled with replacement 1000 times and the non-scaled ratio is recalculated in each replicate.
+The non-scaled unit is a proportion of productive forest area (0–1), also presented as percent (%).
 
-```{r bootstrap-mlfa-all-periods}
+```{r county-draws-long}
+#| code-summary: "Bootstrap draws per county (1000 per county per period)"
+#| cache: true
+#| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026-06-03.csv")), file.mtime(here::here("R/NO_MLFA_001.qmd")))
 
-mlfa_bootstrap <- mlfa_results |>
-  purrr::imap(
-    ~ list(
-      period = .y,
-      data = .x$data,
-      county = .x$county,
-      region = .x$region,
-      national = .x$national,
-      national_boot = bootstrap_indicator(.x$data, n_bootstrap = 1000),
-      county_boot = purrr::map(
-        split(.x$data, .x$data$fylke_name),
-        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
-      ),
-      region_boot = purrr::map(
-        split(.x$data, .x$data$region_code),
-        ~ bootstrap_indicator(.x, n_bootstrap = 1000)
+county_draws_long <- purrr::imap_dfr(mlfa_results, function(period_result, period_name) {
+  county_meta <- period_result$county |>
+    dplyr::select(county_part, fylke_name, total_area, region_code)
+
+  purrr::imap_dfr(
+    split(period_result$data, period_result$data$county_part),
+    function(county_data, county_code) {
+      boot <- bootstrap_mlfa_indicator(county_data, n_bootstrap = 1000)
+      dplyr::tibble(
+        period           = period_name,
+        county_part      = county_code,
+        sim_id           = seq_along(boot$draws),
+        non_scaled_value = boot$draws
       )
-    )
-  )
-
-mlfa_results_county_non_scaled_uncertainty <- purrr::map_dfr(
-  mlfa_bootstrap,
-  ~ {
-    county_summary <- purrr::imap_dfr(
-      .x$county_boot,
-      function(boot, county_name) {
-        dplyr::tibble(
-          fylke_name = county_name,
-          mean = boot$mean,
-          se = boot$se,
-          ci_lower = boot$ci_lower,
-          ci_upper = boot$ci_upper,
-          q1 = boot$q1,
-          median = boot$median,
-          q3 = boot$q3
-        )
-      }
-    )
-
-    .x$county |>
-      dplyr::select(fylke_name, period, total_area, n_plots) |>
-      dplyr::left_join(county_summary, by = "fylke_name")
-  }
-)
-
-mlfa_results_region_non_scaled_uncertainty <- purrr::map_dfr(
-  mlfa_bootstrap,
-  ~ {
-    region_summary <- purrr::imap_dfr(
-      .x$region_boot,
-      function(boot, region_code) {
-        dplyr::tibble(
-          region_code = region_code,
-          mean = boot$mean,
-          se = boot$se,
-          ci_lower = boot$ci_lower,
-          ci_upper = boot$ci_upper,
-          q1 = boot$q1,
-          median = boot$median,
-          q3 = boot$q3
-        )
-      }
-    )
-
-    .x$region |>
-      dplyr::select(region_code, period, total_area, n_plots) |>
-      dplyr::left_join(region_summary, by = "region_code")
-  }
-)
-
-mlfa_results_national_non_scaled_uncertainty <- purrr::map_dfr(
-  mlfa_bootstrap,
-  ~ .x$national |>
-    dplyr::mutate(
-      mean = .x$national_boot$mean,
-      se = .x$national_boot$se,
-      ci_lower = .x$national_boot$ci_lower,
-      ci_upper = .x$national_boot$ci_upper,
-      q1 = .x$national_boot$q1,
-      median = .x$national_boot$median,
-      q3 = .x$national_boot$q3
-    )
-)
+    }
+  ) |>
+    dplyr::left_join(county_meta, by = "county_part")
+})
 
 ```
 
+The table below (@tbl-mlfa-county-nonscaled-latest) shows the direct area-weighted mean share of multi-layered forest per county for the latest period (`2020-2024`), with approximate 95% bootstrap confidence intervals (2.5th–97.5th percentile of 1000 draws).
+
+```{r tbl-mlfa-county-nonscaled-latest}
+#| tbl-cap: "Non-scaled share of multi-layered forest (%) by county for reporting period 2020–2024. Point estimate is the direct area-weighted mean; 95% CI is derived from 1000 bootstrap draws."
+#| echo: false
+
+mlfa_latest_period <- tail(names(reporting_periods), 1)
+
+county_draws_long |>
+  dplyr::filter(period == mlfa_latest_period) |>
+  dplyr::group_by(period, fylke_name, county_part, region_code, total_area) |>
+  dplyr::summarise(
+    ci_low  = round(quantile(non_scaled_value, 0.025, na.rm = TRUE) * 100, 1),
+    ci_high = round(quantile(non_scaled_value, 0.975, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  ) |>
+  dplyr::left_join(
+    mlfa_results_county_all_periods |>
+      dplyr::filter(period == mlfa_latest_period) |>
+      dplyr::select(period, county_part, n_plots, indicator_value),
+    by = c("period", "county_part")
+  ) |>
+  dplyr::mutate(
+    region_name = assign_region_name(region_code),
+    mean_pct = round(indicator_value * 100, 1),
+    `95% CI` = paste0(ci_low, " – ", ci_high)
+  ) |>
+  dplyr::arrange(region_code, fylke_name) |>
+  dplyr::transmute(
+    Period = period,
+    County = fylke_name,
+    `Sub-county` = county_part,
+    Region = region_name,
+    `Multi-layered forest area (%)` = mean_pct,
+    `95% CI`,
+    `Total area (ha)` = round(total_area, 0),
+    `Number of plots` = n_plots
+  ) |>
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+### 9.4 Scale indicator values and aggregate to regional and national levels
+
+County or sub-county reference values are created manually andlisted below.
+
+```{r mlfa-reference-values}
+#| code-summary: "County/sub-county reference values for MLFA scaling"
+
+mlfa_reference_values <- dplyr::tibble(
+  county_part = c(
+    "Øs", "OA", "HeS", "HeN", "OpSØ", "OpNV", "BuSØ", "BuV", "Ve",
+    "TeSØ", "TeNV", "AA", "VA", "Ro", "Ho", "SF", "MR", "ST", "NT",
+    "NoS", "NoN", "Tr", "Fi"
+  ),
+  x100_pct = c(
+    70, 70, 70, 60, 65, 55, 70, 55, 70, 70, 65, 65, 65, 60, 60,
+    55, 60, 60, 65, 55, 45, 45, 40
+  )
+) |> 
+  mutate(x100=x100_pct/100)
+
+x0 <- 0
+
+mlfa_reference_values |>
+  knitr::kable()
+```
+
+Each county's 1000 non-scaled draws from section 9.3 are scaled with `ecTools::ec_normalise()` (linear, _X~0~_ = 0, county-specific _X~100~_).
+@fig-mlfa-norm shows the mapping for each sub-county.
+
+```{r county-draws-scaled-mlfa}
+#| code-summary: "Scale county draws; derive county uncertainty and feed ec_upscale"
+
+county_draws_scaled <- county_draws_long |>
+  dplyr::inner_join(mlfa_reference_values |> dplyr::select(county_part, x100), by = "county_part") |>
+  dplyr::mutate(
+    scaled_value = ec_normalise(
+      non_scaled_value,
+      x0 = x0,
+      x100 = x100,
+      fun = "linear"
+    ),
+    nation = "National"
+  )
+
+county_scaled_with_uncertainty <- county_draws_scaled |>
+  dplyr::group_by(period, fylke_name, county_part, total_area, region_code) |>
+  dplyr::summarise(
+    median = median(scaled_value, na.rm = TRUE),
+    p_025  = as.numeric(quantile(scaled_value, 0.025, na.rm = TRUE)),
+    p_25   = as.numeric(quantile(scaled_value, 0.25, na.rm = TRUE)),
+    p_75   = as.numeric(quantile(scaled_value, 0.75, na.rm = TRUE)),
+    p_975  = as.numeric(quantile(scaled_value, 0.975, na.rm = TRUE)),
+    .groups = "drop"
+  ) |>
+  dplyr::left_join(
+    mlfa_results_county_all_periods |> dplyr::select(period, county_part, n_plots),
+    by = c("period", "county_part")
+  ) |>
+  dplyr::mutate(region_name = assign_region_name(region_code))
+
+```
+
+```{r fig-mlfa-norm}
+#| fig-cap: "Linear normalisation of the share of multi-layered forest to indicator values (0–1). Each panel shows one sub-county accounting unit, with its own _X~100~_ reference value (upper right corner of the scaling line). The x-axis is free-scaled per panel to reflect the range of resampled non-scaled indicator values in that sub-county. Points are a random sample of 100 bootstrap draws (out of 1000) pooled across all reporting periods, illustrating the spread of resampled area-weighted means around the direct estimate. The diagonal line shows the linear scaling function between _X~0~_ = 0% (lower reference, worst condition) and the sub-county-specific _X~100~_ (upper reference, reference condition); values above _X~100~_ are truncated to 1."
+#| code-summary: "Normalisation diagnostic figure"
+#| cache: false
+#| fig-height: 6
+#| fig-width: 8
+
+norm_plot_data <- county_draws_scaled |>
+  dplyr::group_by(county_part) |>
+  dplyr::slice_sample(n = 100) |>
+  dplyr::ungroup()
+
+mlfa_norm_plot <- ec_norm_plot(norm_plot_data$non_scaled_value, norm_plot_data$scaled_value) +
+  ggplot2::facet_wrap(~norm_plot_data$county_part, scales = "free_x") +
+  ggplot2::labs(
+    x = "MLFA share (proportion of productive forest area)",
+    y = "Scaled indicator value"
+  ) +
+  ggplot2::theme_bw(base_size = 11)
+mlfa_norm_plot$layers[[1]]$aes_params$size <- 2.5
+
+suppressMessages(
+  ggsave(
+    filename = here::here("img/mlfa_norm_plot.png"),
+    plot = mlfa_norm_plot,
+    scale = 1.5
+  )
+)
+
+mlfa_norm_plot
+```
+
+The scaled draws are then passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
+For each of 1000 Monte Carlo iterations, one draw is sampled per county and the area-weighted mean gives one regional value; a second `ec_upscale()` call repeats this from regions to national level.
+
+```{r mlfa-upscale-county-to-region}
+#| code-summary: "ec_upscale county to region (compute once, save RDS)"
+
+mlfa_mc_cache_deps <- c(
+  here::here("data/LSK_data_okologisk_tilstand_2026-06-03.csv"),
+  here::here("R/functions.R"),
+  here::here("R/NO_MLFA_001.qmd")
+)
+mlfa_mc_rds_regional <- here::here("data/mlfa_mc_regional.rds")
+
+if (
+  file.exists(mlfa_mc_rds_regional) &&
+  file.mtime(mlfa_mc_rds_regional) >= max(file.mtime(mlfa_mc_cache_deps), na.rm = TRUE)
+) {
+  mlfa_mc_regional <- readRDS(mlfa_mc_rds_regional)
+} else {
+  mlfa_mc_regional <- ecTools::ec_upscale(
+    data        = county_draws_scaled,
+    variable    = scaled_value,
+    weight      = total_area,
+    start_units = county_part,
+    end_units   = region_code,
+    year        = period,
+    end_units_name = "region_code",
+    n = 1000
+  )
+  saveRDS(mlfa_mc_regional, mlfa_mc_rds_regional)
+}
+```
+
+```{r mlfa-upscale-region-to-national}
+#| code-summary: "ec_upscale region to national (compute once, save RDS)"
+
+region_area_weights <- county_draws_scaled |>
+  dplyr::distinct(period, county_part, total_area, region_code) |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(region_area = sum(total_area), .groups = "drop")
+
+mlfa_mc_regional_for_national <- mlfa_mc_regional |>
+  dplyr::left_join(region_area_weights, by = c("period", "region_code")) |>
+  dplyr::mutate(nation = "National")
+
+mlfa_mc_rds_national <- here::here("data/mlfa_mc_national.rds")
+
+if (
+  file.exists(mlfa_mc_rds_national) &&
+  file.mtime(mlfa_mc_rds_national) >= max(
+    c(file.mtime(mlfa_mc_cache_deps), file.mtime(mlfa_mc_rds_regional)),
+    na.rm = TRUE
+  )
+) {
+  mlfa_mc_national <- readRDS(mlfa_mc_rds_national)
+} else {
+  mlfa_mc_national <- ecTools::ec_upscale(
+    data        = mlfa_mc_regional_for_national,
+    variable    = sampled_mean,
+    weight      = region_area,
+    start_units = region_code,
+    end_units   = nation,
+    year        = period,
+    end_units_name = "nation",
+    n = 1000
+  )
+  saveRDS(mlfa_mc_national, mlfa_mc_rds_national)
+}
+```
+
+```{r mlfa-mc-combined}
+#| code-summary: "Combine regional/national MC draws and build summary objects"
+
+mlfa_mc_combined <- dplyr::bind_rows(
+  mlfa_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
+  mlfa_mc_national |> dplyr::select(period, region = nation, sampled_mean)
+)
+
+county_scaled_all_periods <- mlfa_results_county_all_periods |>
+  dplyr::left_join(mlfa_reference_values |> dplyr::select(county_part, x100), by = "county_part") |>
+  dplyr::mutate(
+    scaled_value = ec_normalise(indicator_value, x0 = x0, x100 = x100, fun = "linear")
+  )
+
+region_scaled_agg_all_periods <- mlfa_mc_regional |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::mutate(region_name = assign_region_name(region_code))
+
+national_scaled_agg_all_periods <- mlfa_mc_national |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::mutate(region = "National")
+
+region_scaled_agg_with_uncertainty <- mlfa_mc_regional |>
+  dplyr::group_by(period, region_code) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
+    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+  dplyr::left_join(
+    mlfa_results_region_all_periods |> dplyr::select(period, region_code, total_area, n_plots),
+    by = c("period", "region_code")
+  )
+
+national_scaled_agg_with_uncertainty <- mlfa_mc_national |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
+    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region = "National") |>
+  dplyr::left_join(
+    mlfa_results_national_all_periods |> dplyr::select(period, total_area, n_plots),
+    by = "period"
+  )
+
+truncation_summary <- dplyr::bind_rows(
+  county_scaled_all_periods |>
+    dplyr::left_join(
+      mlfa_reference_values |> dplyr::select(county_part, reference_value_pct = x100_pct),
+      by = "county_part"
+    ) |>
+    dplyr::mutate(
+      level = "County",
+      exceeds_threshold = indicator_value > x100,
+      original_value_pct = round(100 * indicator_value, 2),
+      region_code = NA_character_,
+      region_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    ),
+  region_scaled_agg_all_periods |>
+    dplyr::left_join(
+      mlfa_results_region_all_periods |> dplyr::select(period, region_code, indicator_value),
+      by = c("period", "region_code")
+    ) |>
+    dplyr::mutate(
+      level = "Region",
+      reference_value_pct = NA_real_,
+      exceeds_threshold = scaled_value >= 1,
+      original_value_pct = round(100 * indicator_value, 2),
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    ),
+  national_scaled_agg_all_periods |>
+    dplyr::left_join(
+      mlfa_results_national_all_periods |> dplyr::select(period, indicator_value),
+      by = "period"
+    ) |>
+    dplyr::mutate(
+      level = "National",
+      reference_value_pct = NA_real_,
+      exceeds_threshold = scaled_value >= 1,
+      original_value_pct = round(100 * indicator_value, 2),
+      region_code = NA_character_,
+      region_name = "National",
+      fylke_name = NA_character_
+    ) |>
+    dplyr::select(
+      period, level, region_code, region_name, fylke_name,
+      reference_value_pct, exceeds_threshold, original_value_pct
+    )
+)
+
+truncation_counts <- truncation_summary |>
+  dplyr::group_by(period, level) |>
+  dplyr::summarise(
+    n_total = dplyr::n(),
+    n_exceeding_reference = sum(exceeds_threshold, na.rm = TRUE),
+    pct_exceeding_reference = round(100 * n_exceeding_reference / n_total, 1),
+    .groups = "drop"
+  )
+
+truncated_values <- truncation_summary |>
+  dplyr::filter(exceeds_threshold) |>
+  dplyr::arrange(period, level, dplyr::desc(original_value_pct))
+```
+
+At county or sub-county level, truncation is evaluated by comparing the non-scaled point estimate to the matching X100.
+At regional and national level, the tables report cases where the `ec_upscale()` median equals 1.
+The following tables summarise how often truncation occurred in each period and list the affected units.
+
+```{r report-truncation-mlfa}
+#| code-summary: "Report truncation"
+#| echo: false
+
+truncation_counts |>
+  dplyr::rename(
+    Period = period,
+    Level = level,
+    `Total` = n_total,
+    `Exceeding reference` = n_exceeding_reference,
+    `% Exceeding reference` = pct_exceeding_reference
+  ) |>
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+if (nrow(truncated_values) > 0) {
+  truncated_values |>
+    dplyr::mutate(
+      location = dplyr::case_when(
+        level == "County" ~ fylke_name,
+        level == "Region" ~ region_name,
+        level == "National" ~ "National",
+        TRUE ~ NA_character_
+      )
+    ) |>
+    dplyr::select(period, level, location, reference_value_pct, original_value_pct) |>
+    dplyr::rename(
+      Period = period,
+      Level = level,
+      Location = location,
+      `Reference (%)` = reference_value_pct,
+      `Original Value (%)` = original_value_pct
+    ) |>
+    knitr::kable() |>
+    kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+} else {
+  cat("\nNo values exceeded their reference and required truncation.\n")
+}
+```
+
+The time series below (@fig-mlfa-timeSeries) summarises regional and national values over the three reporting periods.
+
+```{r fig-mlfa-timeSeries}
+#| fig-cap: "Indicator values for multi-layered forest share by region and reporting period. Points show MC medians; error bars show 95% intervals from Monte Carlo propagation. National values use filled circles and a thicker line."
+#| code-summary: "Time series of indicator values by region and period"
+#| cache: false
+#| warning: false
+#| message: false
+
+mlfa_region_labels <- c(
+  "1" = "Øst", "2" = "Sør", "3" = "Vest",
+  "4" = "Midt", "5" = "Nord", "National" = "National"
+)
+mlfa_region_levels <- c("National", "Midt", "Nord", "Øst", "Sør", "Vest")
+mlfa_region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(mlfa_region_levels)),
+  mlfa_region_levels
+)
+
+mlfa_plot_data <- mlfa_mc_combined |>
+  dplyr::mutate(
+    region_name = dplyr::recode(region, !!!mlfa_region_labels),
+    series_type = dplyr::if_else(region == "National", "National", "Region")
+  ) |>
+  dplyr::group_by(period, region_name, series_type) |>
+  dplyr::summarise(
+    median = median(sampled_mean),
+    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
+    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(region_name = factor(region_name, levels = mlfa_region_levels))
+
+ggplot2::ggplot(
+  mlfa_plot_data,
+  ggplot2::aes(x = period, y = median, colour = region_name, group = region_name)
+) +
+  ggplot2::geom_line(
+    ggplot2::aes(linewidth = series_type),
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::geom_pointrange(
+    ggplot2::aes(ymin = p_025, ymax = p_975, shape = series_type),
+    size = 0.8, linewidth = 0.45,
+    position = ggplot2::position_dodge(width = 0.18)
+  ) +
+  ggplot2::scale_colour_manual(values = mlfa_region_cols, name = NULL) +
+  ggplot2::scale_shape_manual(values = c(National = 19, Region = 17), name = NULL) +
+  ggplot2::scale_linewidth_manual(values = c(National = 1, Region = 0.55), guide = "none") +
+  ggplot2::scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+  ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme(
+    legend.position = "bottom",
+    legend.box = "horizontal",
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.grid.major.x = ggplot2::element_blank()
+  ) +
+  ggplot2::guides(
+    colour = ggplot2::guide_legend(nrow = 2, override.aes = list(size = 0.7, linewidth = 0.45)),
+    shape = ggplot2::guide_legend(override.aes = list(size = 0.8, linewidth = 0.45))
+  ) +
+  ggplot2::labs(y = "Indicator value", x = "")
+```
 
 ## 10. Results
 
-The tables below present the non-scaled indicator values (proportion of productive forest area with multi-layered forest) together with bootstrap-derived uncertainty summaries for each 5-year reporting period.
+The tables below report scaled values on a 0–1 condition scale.
+The indicator value is reported as the median, together with a 95% interval (2.5% and 97.5% quantiles) and a 50% interval (25% and 75% quantiles).
+County medians come from scaled bootstrap draws (section 9.3); regional and national medians come from `ec_upscale()` Monte Carlo draws saved in `data/mlfa_mc_*.rds` (recomputed when the data file, `R/functions.R`, or this document is newer than the RDS).
 
-### 10.1 County-level results (non-scaled with uncertainty)
+### 10.1 County-level results (scaled with uncertainty)
 
-```{r tbl-mlfa-county-results}
-#| tbl-cap: 'County-level non-scaled MLFA indicator values by reporting period. Values are expressed as proportion of productive forest area with multi-layered forest (more than two tree layers). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+Use the search box and page controls in @tbl-mlfa-county-scaled to browse county rows across all reporting periods.
+
+```{r tbl-mlfa-county-scaled}
+#| tbl-cap: 'County-level MLFA values by reporting period (0–1 condition scale; `ec_normalise()` with _X~0~_ = 0 and county/sub-county-specific _X~100~_). The indicator value is the median of scaled county bootstrap draws (section 9.3–9.4); 95% and 50% CI columns are quantile intervals from the same distribution.'
 #| echo: false
 
-mlfa_county_results <- mlfa_results_county_non_scaled_uncertainty |>
+county_scaled_with_uncertainty |>
   dplyr::mutate(
-    mean = round(mean, 2),
-    se = round(se, 2),
-    ci_lower = round(ci_lower, 2),
-    ci_upper = round(ci_upper, 2),
-    q1 = round(q1, 2),
-    median = round(median, 2),
-    q3 = round(q3, 2),
-    total_area = round(total_area, 0)
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
   ) |>
-  dplyr::rename(
-    Period = period,
-    County = fylke_name,
-    `Bootstrapped (mean)` = mean,
-    `Bootstrapped (median)` = median,
-    `Standard Error` = se,
-    `CI Lower` = ci_lower,
-    `CI Upper` = ci_upper,
-    `Q1` = q1,
-    `Q3` = q3,
-    `Total Area (ha)` = total_area,
-    `Number of Plots` = n_plots
+  dplyr::arrange(.data$period, .data$region_code, .data$fylke_name) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "B2",
+    Indicator = "Multi-layered forest share",
+    ID = "NO_MLFA_001",
+    `Accounting area` = .data$fylke_name,
+    Region = .data$region_name,
+    `Sub-county` = .data$county_part,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
   ) |>
-  dplyr::select(
-    Period,
-    County,
-    `Bootstrapped (mean)`,
-    `Bootstrapped (median)`,
-    `Standard Error`,
-    `CI Lower`,
-    `CI Upper`,
-    `Q1`,
-    `Q3`,
-    `Total Area (ha)`,
-    `Number of Plots`
+  gt::gt() |>
+  gt::tab_style(
+    style = gt::cell_text(weight = "bold"),
+    locations = gt::cells_column_labels()
+  ) |>
+  gt::fmt_number(
+    columns = `Number of plots`,
+    decimals = 0,
+    use_seps = TRUE
+  ) |>
+  gt::opt_interactive(
+    use_search = TRUE,
+    use_pagination = TRUE,
+    use_page_size_select = TRUE,
+    page_size_default = 12,
+    page_size_values = c(12, 24, 66)
   )
-
-DT::datatable(
-  mlfa_county_results,
-  rownames = FALSE,
-  options = list(pageLength = 10, scrollX = TRUE, lengthMenu = c(10, 25, 50, 100))
-)
 ```
 
-### 10.2 Regional results (non-scaled with uncertainty)
+### 10.2 Regional results (scaled with uncertainty)
 
-```{r tbl-mlfa-region-results}
-#| tbl-cap: 'Regional-level non-scaled MLFA indicator values by reporting period. Values are expressed as proportion of productive forest area with multi-layered forest (more than two tree layers). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+```{r tbl-mlfa-region-scaled}
+#| tbl-cap: 'Regional scaled MLFA values by reporting period (0–1 condition scale). The indicator value is the median of Monte Carlo draws (1000 samples per period and region); 95% and 50% CI columns are quantile intervals from the same distribution.'
 #| echo: false
 
-mlfa_region_results <- mlfa_results_region_non_scaled_uncertainty |>
-  dplyr::mutate(region_name = assign_region_name(region_code)) |>
+region_scaled_agg_with_uncertainty |>
   dplyr::mutate(
-    mean = round(mean %||% NA_real_, 2),
-    se = round(se %||% NA_real_, 2),
-    ci_lower = round(ci_lower %||% NA_real_, 2),
-    ci_upper = round(ci_upper %||% NA_real_, 2),
-    q1 = round(q1 %||% NA_real_, 2),
-    median = round(median %||% NA_real_, 2),
-    q3 = round(q3 %||% NA_real_, 2),
-    total_area = round(total_area, 0)
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
   ) |>
-  dplyr::rename(
-    Period = period,
-    Region = region_name,
-    `Bootstrapped (mean)` = mean,
-    `Bootstrapped (median)` = median,
-    `Standard Error` = se,
-    `CI Lower` = ci_lower,
-    `CI Upper` = ci_upper,
-    `Q1` = q1,
-    `Q3` = q3,
-    `Total Area (ha)` = total_area,
-    `Number of Plots` = n_plots
+  dplyr::arrange(.data$period, .data$region_code) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "B2",
+    Indicator = "Multi-layered forest share",
+    ID = "NO_MLFA_001",
+    `Accounting area` = .data$region_name,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
   ) |>
-  dplyr::select(
-    Period,
-    Region,
-    `Bootstrapped (mean)`,
-    `Bootstrapped (median)`,
-    `Standard Error`,
-    `CI Lower`,
-    `CI Upper`,
-    `Q1`,
-    `Q3`,
-    `Total Area (ha)`,
-    `Number of Plots`
-  )
-
-mlfa_region_results |>
-  kable() |>
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
 
-![](../img/MLFA_regional.jpg)
+### 10.3 National results (scaled with uncertainty)
 
-### 10.3 National results (non-scaled with uncertainty)
-
-```{r tbl-mlfa-national-results}
-#| tbl-cap: 'National-level non-scaled MLFA indicator values by reporting period. Values are expressed as proportion of productive forest area with multi-layered forest (more than two tree layers). Columns include the bootstrap mean and median, standard error (SE), 95% confidence interval (CI Lower, CI Upper), and quartiles (Q1, Q3).'
+```{r tbl-mlfa-national-scaled}
+#| tbl-cap: 'National scaled MLFA values by reporting period (0–1 condition scale). The indicator value is the median of Monte Carlo draws (1000 samples per period); 95% and 50% CI columns are quantile intervals from the same distribution.'
 #| echo: false
 
-mlfa_national_results <- mlfa_results_national_non_scaled_uncertainty |>
+national_scaled_agg_with_uncertainty |>
   dplyr::mutate(
-    mean = round(mean, 2),
-    se = round(se, 2),
-    ci_lower = round(ci_lower, 2),
-    ci_upper = round(ci_upper, 2),
-    q1 = round(q1, 2),
-    median = round(median, 2),
-    q3 = round(q3, 2),
-    total_area = round(total_area, 0)
+    median = round(.data$median, 2),
+    p_025 = round(.data$p_025, 2),
+    p_25 = round(.data$p_25, 2),
+    p_75 = round(.data$p_75, 2),
+    p_975 = round(.data$p_975, 2)
   ) |>
-  dplyr::rename(
-    Period = period,
-    `Bootstrapped (mean)` = mean,
-    `Bootstrapped (median)` = median,
-    `Standard Error` = se,
-    `CI Lower` = ci_lower,
-    `CI Upper` = ci_upper,
-    `Q1` = q1,
-    `Q3` = q3,
-    `Total Area (ha)` = total_area,
-    `Number of Plots` = n_plots
+  dplyr::arrange(.data$period) |>
+  tidyr::unite("CI_95", c(p_025, p_975), sep = " - ") |>
+  tidyr::unite("IQR", c(p_25, p_75), sep = " - ") |>
+  dplyr::transmute(
+    ECT = "B2",
+    Indicator = "Multi-layered forest share",
+    ID = "NO_MLFA_001",
+    `Accounting area` = .data$region,
+    Ecosystem = "Boreal/montane forests",
+    `Reporting period` = .data$period,
+    `Indicator value` = .data$median,
+    `95% CI` = .data$CI_95,
+    `50% CI` = .data$IQR,
+    `Number of plots` = .data$n_plots
   ) |>
-  dplyr::select(
-    Period,
-    `Bootstrapped (mean)`,
-    `Bootstrapped (median)`,
-    `Standard Error`,
-    `CI Lower`,
-    `CI Upper`,
-    `Q1`,
-    `Q3`,
-    `Total Area (ha)`,
-    `Number of Plots`
-  )
-
-mlfa_national_results |>
-  kable() |>
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+  knitr::kable() |>
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
 
-![](../img/MLFA_national.jpg)
-<!--# 
 
-Repeat the final results here. Typically this is a map or table of indicator values.
-
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
-
--->
-
+## 11. Export file
 
 ```{r export}
 #| eval: false
+#| code-summary: "Export regional and national MC-propagated indicator draws"
+
+write.csv(
+  mlfa_mc_combined,
+  here::here("data/results_NO_MLFA_001.csv"),
+  row.names = FALSE
+)
 ```
 
-<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+## 12. Author contributions
+
+<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+
+**CRediT statement**
+
+* Conceptualization: [KOS, EF, UJA]
+* Methodology: [KOS, EF, UJA]
+* Data curation: [OS]
+* Formal analysis: [AHH]
+* Validation: [AHH, KOS]
+* Visualization: [AHH]
+* Writing – original draft: [AHH, EF]
+* Writing – review & editing: [All]
+
+
+**MeRIT attribution**
+
+This part supplements the CRediT statement with more granularity for method section.
+
+**Study design**
+The study was designed by [AB, CD].
+
+**Data collection / fieldwork**
+Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
+
+**Laboratory procedures**
+DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
+
+**Data processing**
+Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
+
+**Statistical analysis**
+All analyses were conducted by [CD] using [software], with verification by [AB].
+
+**Visualization**
+Figures were produced by [KL], with input from [CD].
+
+**Reproducibility**
+All code was reviewed and validated by [AB, CD].
+
+
 
 ::: {.callout-tip collapse="true"}
 ## Session Info
-
-This information is mainly aimed at developers that need to recreate the R environment that produced the html.
-Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
-
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
-```
-
+This workflow uses `renv`. Run `renv::restore()` to recreate the working environment. 
 :::
