@@ -1,28 +1,49 @@
-# Function to add url to images embedded using knitr
-image_link <- function(image,url,...){
-  htmltools::a(
-    href=url,
-    htmltools::img(src=image, height = "20px", ...)
+check_anybadger <- function() {
+  if (!requireNamespace("anybadger", quietly = TRUE)) {
+    stop(
+      "Package 'anybadger' is required.\n",
+      "Install with:\n",
+      'remotes::install_github("lmeninato/anybadger")',
+      call. = FALSE
     )
+  }
+
+  if (utils::packageVersion("anybadger") < "0.1.1") {
+    stop(
+      "This project requires anybadger >= 0.1.1.\n",
+      "The CRAN version (0.1.0) is broken.\n\n",
+      "Install with:\n",
+      'remotes::install_github("lmeninato/anybadger")',
+      call. = FALSE
+    )
+  }
+}
+check_anybadger()
+
+# Function to add url to images embedded using knitr
+image_link <- function(image, url, ...) {
+  htmltools::a(
+    href = url,
+    htmltools::img(src = image, height = "20px", ...)
+  )
 }
 
 # print status badge
 status_badge <- function(type) {
-  image_path <- switch(type,
-                   complete = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_operational.svg",
-                   incomplete = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_under_development.svg",
-                   deprecated = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_deprecated.svg",
-                   stop("Invalid `type`", call. = FALSE)
+  image_path <- switch(
+    type,
+    complete = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_operational.svg",
+    incomplete = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_under_development.svg",
+    deprecated = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_status_deprecated.svg",
+    stop("Invalid `type`", call. = FALSE)
   )
-  
-  image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#status-badge")
 
+  image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#status-badge")
 }
 
 
 # Create and print version badge
-version_badge <- function(my_version_number){
-
+version_badge <- function(my_version_number) {
   version_badge_name <- paste0("badge_version_", my_version_number, ".svg")
 
   version_badge_path <- here::here("img", version_badge_name)
@@ -32,59 +53,72 @@ version_badge <- function(my_version_number){
     dir.create(dir_to_create, recursive = TRUE)
   }
   anybadger::create_badge(
-    version_badge_path, 
-    label = "Version", 
-    value = as.character(my_version_number), 
-    color = "#add8e6")
-  
+    version_badge_path,
+    label = "Version",
+    value = as.character(my_version_number),
+    color = "#add8e6"
+  )
+
   image_link(
-    version_badge_path, 
-    "https://github.com/NINAnor/ecRxiv/wiki#naming-convention")
+    version_badge_path,
+    "https://github.com/NINAnor/ecRxiv/wiki#naming-convention"
+  )
 }
 
 # print open science badges
 data_badge <- function(dataAvailability = none) {
-  image_path <- switch(dataAvailability,
-                   gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_gold.svg",
-                   silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_silver.svg",
-                   bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_bronze.svg",
-                   none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_none.svg",
-                   stop("Invalid `type`", call. = FALSE)
+  image_path <- switch(
+    dataAvailability,
+    gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_gold.svg",
+    silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_silver.svg",
+    bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_bronze.svg",
+    none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_data_none.svg",
+    stop("Invalid `type`", call. = FALSE)
   )
-  
-  image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#data-availability")
 
+  image_link(
+    image_path,
+    "https://github.com/NINAnor/ecRxiv/wiki#data-availability"
+  )
 }
 
 code_badge <- function(codeReproducibility = none) {
-  image_path <- switch(codeReproducibility,
-                   gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_gold.svg",
-                   silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_silver.svg",
-                   bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_bronze.svg",
-                   none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_none.svg",
-                   stop("Invalid `type`", call. = FALSE)
+  image_path <- switch(
+    codeReproducibility,
+    gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_gold.svg",
+    silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_silver.svg",
+    bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_bronze.svg",
+    none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_code_none.svg",
+    stop("Invalid `type`", call. = FALSE)
   )
-  
-  image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#code-reproducibility")
 
+  image_link(
+    image_path,
+    "https://github.com/NINAnor/ecRxiv/wiki#code-reproducibility"
+  )
 }
 
 open_science_badge <- function(openScienceBadge = none) {
-  image_path <- switch(openScienceBadge,
-                   gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_gold.svg",
-                   silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_silver.svg",
-                   bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_bronze.svg",
-                   none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_none.svg",
-                   stop("Invalid `type`", call. = FALSE)
+  image_path <- switch(
+    openScienceBadge,
+    gold = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_gold.svg",
+    silver = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_silver.svg",
+    bronze = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_bronze.svg",
+    none = "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_overall_none.svg",
+    stop("Invalid `type`", call. = FALSE)
   )
-  
-  image_link(image_path, "https://github.com/NINAnor/ecRxiv/wiki#open-science-badges")
 
+  image_link(
+    image_path,
+    "https://github.com/NINAnor/ecRxiv/wiki#open-science-badges"
+  )
 }
 
-license_badge <- function(){
-  image_link("https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_gplv3.svg",
-   "https://www.gnu.org/licenses/gpl-3.0")
+license_badge <- function() {
+  image_link(
+    "https://raw.githubusercontent.com/NINAnor/ecRxiv/main/docs/badge_gplv3.svg",
+    "https://www.gnu.org/licenses/gpl-3.0"
+  )
 }
 
 # function to get the current file path
@@ -103,9 +137,11 @@ get_file_info <- function() {
       ))
     }
   }
-  
+
   # Interactive RStudio session
-  if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  if (
+    requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()
+  ) {
     rstudio_file <- rstudioapi::getSourceEditorContext()$path
     if (rstudio_file != "") {
       return(list(
@@ -116,36 +152,45 @@ get_file_info <- function() {
       ))
     }
   }
-  
+
   return(NULL)
 }
 
 # This is a legacy function that is not used in the current version of the qmd template
 # use results: "asis" when setting a status for a chapter
 status <- function(type) {
-  status <- switch(type,
-                   complete = "complete, and indicator values can be calculated as described below.",
-                   incomplete = "incomplete and needs further development before indicator values can be calculated.",
-                   deprecated = "describing an indicator that is deprecated.",
-                   stop("Invalid `type`", call. = FALSE)
+  status <- switch(
+    type,
+    complete = "complete, and indicator values can be calculated as described below.",
+    incomplete = "incomplete and needs further development before indicator values can be calculated.",
+    deprecated = "describing an indicator that is deprecated.",
+    stop("Invalid `type`", call. = FALSE)
   )
-  
-  class <- switch(type,
-                  complete = "note",
-                  incomplete = "warning",
-                  deprecated = "important"
+
+  class <- switch(
+    type,
+    complete = "note",
+    incomplete = "warning",
+    deprecated = "important"
   )
-  
-  color <- switch(type,
-                  complete = "lightgreen",
-                  incomplete = "orange",
-                  deprecated = "salmon"
+
+  color <- switch(
+    type,
+    complete = "lightgreen",
+    incomplete = "orange",
+    deprecated = "salmon"
   )
-  
+
   cat(paste0(
     "\n",
-    ':::  {.callout-', class, ' style="background: ', color,  ';"}', " \n",
-    "## Status",  " \n",
+    ':::  {.callout-',
+    class,
+    ' style="background: ',
+    color,
+    ';"}',
+    " \n",
+    "## Status",
+    " \n",
     "This indicator documentation is ",
     status,
     "\n",
@@ -159,14 +204,10 @@ get_root_NINA <- function(server = "P") {
     stop("server must be 'P' or 'R'")
   }
   if (.Platform$OS.type == "windows") {
-    base <- switch(server,
-                   P = "P:/",
-                   R = "R:/")
+    base <- switch(server, P = "P:/", R = "R:/")
   } else {
-    base <- switch(server,
-                   P = "/data/P-Prosjekter2/",
-                   R = "/data/R/")
-  } 
+    base <- switch(server, P = "/data/P-Prosjekter2/", R = "/data/R/")
+  }
   return(base)
 }
 
@@ -174,8 +215,6 @@ get_root_NINA <- function(server = "P") {
 ### ----------------------------- ####
 ## Code to extract top yaml
 ### ----------------------------- ####
-
-
 
 # code to extract from yaml
 this_file <- get_file_info()
@@ -215,7 +254,7 @@ auth <- meta |>
   dplyr::filter(Variable == "AuthorList") |>
   pull(Value)
 year <- meta |>
-  dplyr::filter(Variable == "yearAdded") |>
+  dplyr::filter(Variable == "yearLastUpdate") |>
   pull(Value)
 id <- meta |>
   dplyr::filter(Variable == "indicatorID") |>
@@ -226,25 +265,30 @@ name <- meta |>
 url <- meta |>
   dplyr::filter(Variable == "url") |>
   pull(Value)
-badges<-meta |> 
-  dplyr::filter(Variable %in% c("data_availability",
-         "code_reproducibility", "open_science_badge")) |> 
+badges <- meta |>
+  dplyr::filter(
+    Variable %in%
+      c("data_availability", "code_reproducibility", "open_science_badge")
+  ) |>
   pull(Value)
-folder_name <-meta |> 
-  dplyr::filter(Variable == "folderName") |> 
+folder_name <- meta |>
+  dplyr::filter(Variable == "folderName") |>
   pull(Value)
 
 meta <- meta |>
-  dplyr::mutate(Variable = dplyr::case_match(Variable,
-    "indicatorID" ~ "Indicator ID" ,
-    "indicatorName" ~ "Indicator Name",
-    "continent" ~ "Continent",
-    "country" ~ "Country",
-    "ECT" ~ "Ecosystem Condition Typology Class",
-    "yearAdded" ~ "Year added",
-    "yearLastUpdate" ~ "Last update",
-    "VersionComment" ~ "Version comment",
-    "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
-    .default = Variable
-  )) |>
+  dplyr::mutate(
+    Variable = dplyr::recode_values(
+      Variable,
+      "indicatorID" ~ "Indicator ID",
+      "indicatorName" ~ "Indicator Name",
+      "continent" ~ "Continent",
+      "country" ~ "Country",
+      "ECT" ~ "Ecosystem Condition Typology Class",
+      "yearAdded" ~ "Year added",
+      "yearLastUpdate" ~ "Last update",
+      "VersionComment" ~ "Version comment",
+      "SpatialAggregationPathway" ~ "Spatial aggregation pathway",
+      default = Variable
+    )
+  ) |>
   dplyr::filter(Variable != "authors")
