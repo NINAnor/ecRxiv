@@ -195,7 +195,7 @@ The workflow for calculating indicator values, and for storing data, is integrat
 An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species.
 
 4. **Results and development needs**:
-The indicator values for Norway in 2024 are 0.61 [95% CI: 0.52-0.68] for forests 0.63 [0.45-0.71], and for semi-natural ecosystems. These are relatively low numbers, indicating a level of alteration to the bumblebee communities which is starting to have adverse effects on ecosystem integrity. 
+The indicator values for Norway in 2024 are 0.61 [95% CI: 0.52-0.68] for forests 0.63 [0.45-0.71], and for semi-natural ecosystems (part of _open lowland ecosystems_). These are relatively low numbers, indicating a level of alteration to the bumblebee communities which is starting to have adverse effects on ecosystem integrity. 
 Development needs include a larger geographic coverage of monitoring sites. 
  There is some uncertainty around the validity of reference level X~100~, which is based on expert opinion, and there is a need to develop more reference levels, especially around the critical part of the range around X~60~. There is also some uncertainty in how the field data are tied to specific ecosystems.
 
@@ -205,7 +205,7 @@ Development needs include a larger geographic coverage of monitoring sites.
 Humler representerer en synlig og lett observerbar del av det biologiske mangfoldet, samtidig som de fungerer som indikatorer på habitatkvalitet og viktige økosystemfunksjoner, som pollinering. Som artsgruppe er de avhengige av en variert urteflora. Sammensetningen av humlesamfunn kan forstyrres av menneskelig aktivitet, som intensivt jordbruk og arealbruksendringer, og de utgjør derfor en viktig indikator på økosystemtilstand.
 
 2. **Metoder**: 
-Her beregnes indikatorverdier for fire geografiske regioner og for Norge som helhet, både for skogøkosystemer og semi-naturlige økosystemer. Indikatoren er basert på data fra Norsk overvåking av humler og dagsommerfugler (NMBB) [@åström2024]. Dette er en transektbasert overvåking som benytter et representativt utvalg av lokaliteter i fire regioner av Norge (Nord-Norge ble inkludert fra 2024, men disse dataene er ennå ikke tilgjengelige). Indikatoren baserer seg på antall humler registrert på hver lokalitet, som deretter sammenlignes med ekspertvurderte referansesamfunn som angir forventet forekomst av de ulike humleartene. Arbeidsflyten for beregning av indikatorverdier og lagring av data er integrert i R-pakken ´bombLepiSurv´. Indikatoren er fullt operativ og brukes i flere nasjonale rapporteringssammenhenger.
+Her beregnes indikatorverdier for fire geografiske regioner og for Norge som helhet, både for skogøkosystemer og semi-naturlige økosystemer (del av _åpent lavland_). Indikatoren er basert på data fra Norsk overvåking av humler og dagsommerfugler (NMBB) [@åström2024]. Dette er en transektbasert overvåking som benytter et representativt utvalg av lokaliteter i fire regioner av Norge (Nord-Norge ble inkludert fra 2024, men disse dataene er ennå ikke tilgjengelige). Indikatoren baserer seg på antall humler registrert på hver lokalitet, som deretter sammenlignes med ekspertvurderte referansesamfunn som angir forventet forekomst av de ulike humleartene. Arbeidsflyten for beregning av indikatorverdier og lagring av data er integrert i R-pakken ´bombLepiSurv´. Indikatoren er fullt operativ og brukes i flere nasjonale rapporteringssammenhenger.
 
 3. **Tolkning**: 
 En indikatorverdi på 1 tilsvarer et intakt humlesamfunn. Verdier som nærmer seg null reflekterer negative økologiske endringer, nærmere bestemt tilbakegang hos arter som forventes å være til stede. Indikatoren fanger ikke opp potensielt positive endringer, som økt forekomst av enkelte arter eller etablering av nye arter.
@@ -231,7 +231,7 @@ Since the same locations are visited each year, yearly estimates of the conditio
 
 ### 2.2 Sampling design
 
-A number of 50 m transects are selected from each sampling locality. All butterflies (and bumblebees) are identified along this transect, with 2,5 m buffer to each side. Field work was only done if it ws either above 15 degree C, or less than 60% cloud cover [@öberg2011].
+A number of 50 m transects are selected from each sampling locality. All butterflies (and bumblebees) are identified along this transect, with 2,5 m buffer to each side. Field work was only done if it was either above 15 degree C, or less than 60% cloud cover [@öberg2011].
 
 ### 2.3 Original units
 
@@ -329,6 +329,7 @@ The indicator values are estimated with an inferential type of uncertainty for t
 ::: {#refs}
 :::
 
+## 7. Datasets
 ### 7.1 Dataset A - NMBB
 
 The `bombLepiSurv` package has convenience functions to fetch data from the internal NINA database. This database is currently not available outside NINA, so we will instead get the data from the GitHub repo. 
@@ -376,7 +377,7 @@ These are not the same geographic regions that we are asked to calculate indicat
 It is not possible to split the data point between the regions, since the indicator is defined based on this _a priori_ collation of localities. 
 I therefore chose to simply use the regions as is. 
 
-Ecosystem assets (EA): Mid-, central-, east-, and southern Norway. Note that eastern Norway only includes the old counties of Vestfold and Østfold, and the south region contains Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal. As noted above, we say that BSs equals EAs.
+Ecosystem assets (EA): Western-, central-, easters-, and southern Norway. Note that eastern Norway only includes the old counties of Vestfold and Østfold, and the south region contains Rogaland and Vest Agder, but not Øst Agder. The mid or central region includes Trøndelag and Møre og Romsdal. As noted above, we say that BSs equals EAs.
 
 Ecosystem accounting area: Norway (although N-Norway and several sub-regions are missing).
 
@@ -388,7 +389,7 @@ Indicator values are computed at the level of BSs directly from the field data.
 The uncertainties around the point estimates are from resampling localities with the EA, with replacement.
 This resampling procedure causes a downwards shift in the distribution of indicator values, at leastly partly because the species richness tends to decrease as some localities are selected more than once. 
 In order to harmonise with other indicator workflows in Norway, 
-our workflow here also needs to result in uncertainty distributions where the point estimate is defined as the mean of this distribution.
+our workflow here also needs to result in uncertainty distributions where the point estimate is defined as the median of this distribution.
 The uncertainty distribution, we believe, has a shape and spread which is representative of the true parameter uncertainty.
 Therefore we will shift this distribution to become centered on the point estimate, as it is from the original, non-resampled data.
 
@@ -624,7 +625,7 @@ outF <- read_csv(here::here("data/results_NO_BUMB_002_v1.0.0.csv"))
 
 ## 10. Results
 
-The final indicator values for Norway are given in @tbl-results.
+The final indicator values for geographic regions, and Norway as a whole, are given in @tbl-results.
 
 ```{r summaryStats}
 #| warning: false
@@ -667,7 +668,7 @@ summary_outF <- outF |>
 ```{r tbl-results}
 #| warning: false
 #| message: false
-#| tbl-cap: 'Indicator values and uncertainty estimates for NO_BUMB_001.'
+#| tbl-cap: 'Indicator values (median values) and uncertainty estimates for NO_BUMB_001. Semi-natural ecosystems are part of the main ecosystem type 'Open lowlands'.'
 
 summary_out |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
