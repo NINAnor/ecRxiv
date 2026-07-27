@@ -79,6 +79,9 @@ conflicts_prefer(dplyr::select)
 if (!requireNamespace("ecTools", quietly = TRUE)) {
   remotes::install_github("NINAnor/ecTools", upgrade = "never")
 }
+if (!requireNamespace("arrow", quietly = TRUE)) {
+  install.packages("arrow")
+}
 library(ecTools)
 
 knitr::opts_chunk$set(echo = TRUE)
@@ -127,17 +130,19 @@ license_badge()
 
 > **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
-## 1. Summary
+## 1. Aim
 
-1. **Background and rationale**: NO_INDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for **forest** and **mountain** ecosystems, separately by region and for Norway and for ECT classes.
+NO_INDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for **forest** and **mountain** ecosystems, separately by region and for Norway and for ECT classes. Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
 
-2. **Methods**: For each reporting period and region we (i) load MC draws from indicator `results_*_v*.csv` files on ecRxiv main (with fallback to submission branches and the source manifest), (ii) keep the last three reporting years per indicator, (iii) resample one draw per indicator per simulation using `ecTools::ec_upscale()`, (iv) aggregate to ECT classes (equal weights), and (v) compute an overall index as the unweighted mean of available ECT values.
+## 2. Datasets {#sec-datasets}
 
-3. **Interpretation**: Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
+First, we check which indicators are included in each index and where their results can be found on ecRxiv.
 
-4. **Results and development needs**: ...
+**Indicator lists.** Forest indicators are listed in `data/indicators_2026.csv`; mountain indicators follow [ECA_2026 #104](https://github.com/NINAnor/ECA_2026/issues/104) in `data/indicators_mountain.csv`. Each row specifies the indicator name, ecRxiv ID, and ECT class assignment.
 
-## 2. Datasets
+**Source manifest.** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`. Manual or fork entries can be added in `data/indicator_sources_extra.csv`.
+
+**Registry.** `build_indicator_registry()` joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (`match_status`: `matched` or `no_results`). The tables below show the outcome for forest and mountain. Only `matched` indicators proceed to the analysis in @sec-analyses.
 
 ```{r refresh-sources}
 #| cache: false
@@ -173,10 +178,41 @@ registry_forest |>
 ```{r registry-mountain}
 registry_mountain |>
   select(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) |>
-  kable(caption = "Mountain indicator registry (draft)")
+  kable(caption = "Mountain indicator registry (ECA_2026 #104)")
 ```
 
-## 3. Analyses
+## 3. Analyses {#sec-analyses}
+
+Forest and mountain indices are calculated separately using the same workflow (`calculate_index()` in `R/index_functions.R`). The steps below describe phase 1 (equal weights). The indicator registries built in @sec-datasets are the input to this section.
+
+### 3.1 Loading and harmonising indicator draws
+
+For each `matched` indicator in the registry, `load_registry_draws()` fetches the resolved results file and harmonises it to a common structure (`year`, `part`, `value`). Supported source formats include:
+
+- standard CSV (`year`, `part`, `sampled_mean`);
+- period-based CSV or RDS (`period`, `region`/`region_code`, `sampled_mean`);
+- regional RDS with companion national RDS (`*_mc_regional.rds` + `*_mc_national.rds`);
+- parquet (`year`, `part`, `value` or `sim`).
+
+Region labels are mapped to NI regions (`C`, `E`, `S`, `W`, `N`, `Norway`) via `data/region_lookup.csv`. Each row in the loaded data is one Monte Carlo draw for a given indicator, reporting year, and region.
+
+### 3.2 Reporting years
+
+For each indicator we retain the **last three reporting years** available (`select_reporting_years()`). Indicators therefore contribute to different calendar years depending on their own reporting schedule.
+
+### 3.3 Resampling and aggregation
+
+Aggregation uses `ecTools::ec_upscale()` with equal weights throughout (phase 1). For each year, region, and simulation (`n_sim = 1000` by default):
+
+1. **Indicator → ECT** — one draw is resampled per indicator within each ECT class, then combined with equal weights to give an ECT-level draw (`aggregate_to_ect()`).
+2. **ECT → index** — one draw is resampled per ECT class, then combined with equal weights to give an overall index draw (`aggregate_to_index()`).
+3. **Region → Norway** — regional ECT and index draws are upscaled to national values with equal weights across the five NI regions (`aggregate_to_national()`).
+
+This propagates uncertainty from individual indicators through ECT classes to the composite index without assuming independence beyond the structure encoded in the published indicator MC distributions.
+
+### 3.4 Summaries and coverage
+
+The full MC distributions are stored for export. For reporting we summarise each ECT class and the overall index by the **median** and an approximate **95% interval** (2.5% and 97.5% quantiles). A coverage table records how many indicators contributed to each year–region combination.
 
 ```{r run-forest}
 forest_index <- calculate_index(

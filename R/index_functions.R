@@ -26,6 +26,147 @@ standardize_part <- function(x, lookup = load_region_lookup()) {
   out
 }
 
+period_to_year <- function(period) {
+  p <- as.character(period)
+  out <- suppressWarnings(as.integer(p))
+  needs_parse <- is.na(out) | nchar(p) > 4L
+  if (any(needs_parse, na.rm = TRUE)) {
+    end_year <- stringr::str_match(p[needs_parse], "-([0-9]{4})$")[, 2]
+    out[needs_parse] <- as.integer(end_year)
+  }
+  out
+}
+
+is_results_url <- function(path) {
+  grepl("^https?://", path)
+}
+
+read_indicator_file <- function(path, n_max = Inf) {
+  ext <- tolower(tools::file_ext(path))
+
+  if (ext == "csv") {
+    return(readr::read_csv(path, n_max = n_max, show_col_types = FALSE))
+  }
+
+  if (ext == "rds") {
+    dat <- if (is_results_url(path)) {
+      con <- url(path, open = "rb")
+      on.exit(close(con), add = TRUE)
+      readRDS(con)
+    } else {
+      readRDS(path)
+    }
+    if (n_max < Inf && is.data.frame(dat)) {
+      dat <- utils::head(dat, n_max)
+    }
+    return(dat)
+  }
+
+  if (ext %in% c("parquet", "pq")) {
+    if (!requireNamespace("arrow", quietly = TRUE)) {
+      stop("Install the arrow package to read parquet indicator results.", call. = FALSE)
+    }
+    dat <- arrow::read_parquet(path)
+    if (n_max < Inf) {
+      dat <- utils::head(dat, n_max)
+    }
+    return(dat)
+  }
+
+  stop("Unsupported results file type: ", ext, " (", path, ")", call. = FALSE)
+}
+
+harmonise_indicator_draws <- function(
+    dat,
+    indicator_id = NA_character_,
+    lookup = load_region_lookup()) {
+  if (!is.data.frame(dat)) {
+    stop("Indicator results must be a data frame.", call. = FALSE)
+  }
+
+  value_col <- intersect(
+    names(dat),
+    c("sampled_mean", "indicator", "value", "sim")
+  )[1]
+  if (is.na(value_col)) {
+    value_col <- intersect(tolower(names(dat)), c("sampled_mean", "indicator", "value", "sim"))[1]
+    if (!is.na(value_col)) {
+      value_col <- names(dat)[match(value_col, tolower(names(dat)))]
+    }
+  }
+  if (is.na(value_col)) {
+    stop("Results must contain sampled_mean, indicator, value, or sim column.", call. = FALSE)
+  }
+
+  name_map <- stats::setNames(names(dat), tolower(names(dat)))
+  part_key <- intersect(
+    c("part", "reg", "region", "region_code", "nation"),
+    names(name_map)
+  )[1]
+  if (is.na(part_key)) {
+    stop(
+      "Results must contain part, reg, region, region_code, or nation column.",
+      call. = FALSE
+    )
+  }
+  part_col <- name_map[[part_key]]
+
+  time_col <- if ("year" %in% names(dat)) {
+    "year"
+  } else if ("period" %in% names(dat)) {
+    "period"
+  } else {
+    NA_character_
+  }
+  if (is.na(time_col)) {
+    stop("Results must contain year or period column.", call. = FALSE)
+  }
+
+  dat |>
+    dplyr::mutate(
+      indicator_id = indicator_id,
+      period = if (time_col == "period") as.character(.data[[time_col]]) else NA_character_,
+      year = if (time_col == "year") {
+        as.integer(.data[[time_col]])
+      } else {
+        period_to_year(.data[[time_col]])
+      },
+      part_raw = as.character(.data[[part_col]]),
+      part = standardize_part(.data[[part_col]], lookup = lookup),
+      value = as.numeric(.data[[value_col]])
+    ) |>
+    dplyr::select(
+      "indicator_id",
+      "year",
+      "period",
+      "part_raw",
+      "part",
+      "value"
+    ) |>
+    dplyr::filter(!is.na(.data$part), !is.na(.data$value), !is.na(.data$year))
+}
+
+extract_indicator_id_from_path <- function(path, ref_name = NA_character_) {
+  id <- stringr::str_match(path, "results_(NO_[A-Z0-9]+_[0-9]{3})")[, 2]
+  if (!is.na(id)) {
+    return(id)
+  }
+
+  id <- stringr::str_match(path, "(?:^|/)(NO_[A-Z0-9]+_[0-9]{3})/")[, 2]
+  if (!is.na(id)) {
+    return(id)
+  }
+
+  if (!is.na(ref_name) && ref_name != "") {
+    id <- stringr::str_match(ref_name, "submission[-_](NO_[A-Z0-9]+_[0-9]{3})")[, 2]
+    if (!is.na(id)) {
+      return(id)
+    }
+  }
+
+  NA_character_
+}
+
 indicator_catalog <- function() {
   tibble::tribble(
     ~folder, ~title, ~indicator_id, ~ecosystem_hint,
@@ -33,18 +174,20 @@ indicator_catalog <- function() {
     "NO_AATS_002", "Alien conifers", "NO_AATS_002", "forest",
     "NO_AFOX_001", "Arctic fox", "NO_AFOX_001", "mountain",
     "NO_ALIE_001", "Alien species", "NO_ALIE_001", "mountain",
-    "NO_ALIE_002", "Alien plants", "NO_ALIE_002", "forest",
+    "NO_ALIE_002", "Alien plants", "NO_ALIE_002", "forest,mountain",
     "NO_BFLY_001_002", "Butterflies", "NO_BFLY_002", "forest",
     "NO_BFLY_001_002", "Butterflies", "NO_BFLY_001", "grassland",
     "NO_BUMB_001_002", "Bumblebees", "NO_BUMB_002", "forest",
     "NO_BUMB_001_002", "Bumblebees", "NO_BUMB_001", "grassland",
     "NO_BBCA_001", "Bilberry cover by area", "NO_BBCA_001", "forest",
-    "NO_CONN_001", "Connectivity", "NO_CONN_001", "mountain",
+    "NO_CONN_001", "Connectivity", "NO_CONN_001", "forest",
     "NO_DEER_001", "Red deer", "NO_DEER_001", "forest",
     "NO_DTVS_001", "Dead trees by volume as share of volume of all trees in productive forests", "NO_DTVS_001", "forest",
     "NO_FUMO_004", "Moisture impact on vegetation", "NO_FUMO_004", "forest",
     "NO_FUNI_004", "Nitrogen impact on vegetation", "NO_FUNI_004", "forest",
     "NO_FUNI_002", "Nitrogen impact on vegetation", "NO_FUNI_002", "grassland",
+    "NO_DIST_001", "Disturbance index", "NO_DIST_001", "mountain",
+    "NO_FUNC_001-004", "Vegetation functional indicators", "NO_FUNC_xxx", "mountain",
     "NO_GLAC_001", "Glacier area", "NO_GLAC_001", "mountain",
     "NO_GOLD_001", "Golden eagle", "NO_GOLD_001", "mountain",
     "NO_JERV_001", "Wolverine", "NO_JERV_001", "mountain",
@@ -57,30 +200,45 @@ indicator_catalog <- function() {
     "NO_ROED_001", "Roe deer", "NO_ROED_001", "forest",
     "NO_SNOW_001", "NO_SNOW_001", "NO_SNOW_001", "mountain",
     "NO_TDTA_001", "Temperate deciduous trees by share of forest area in the nemoral and boreonemoral zones", "NO_TDTA_001", "forest",
+    "NO_SLIT_001-004", "Trampling disturbance", "NO_SLIT_001", "mountain",
     "NO_SLIT_002", "Erosive disturbance", "NO_SLIT_002", "forest",
     "NO_BAER_001", "Brown bear", "NO_BAER_001", "forest",
     "NO_LYNX_001", "Lynx", "NO_LYNX_001", "forest",
-    "NO_WOLF_001", "Wolf", "NO_WOLF_001", "forest"
+    "NO_WOLF_001", "Wolf", "NO_WOLF_001", "forest",
+    "NO_AIFH_001", "Clear-cutting", "NO_AIFH_001", "forest",
+    "NO_AIVS_001", "Ditching", "NO_AIVS_001", "forest",
+    "NO_BLAA_001", "Bilberry cover", "NO_BLAA_001", "forest",
+    "NO_BGSK_001", "Old forest", "NO_BGSK_001", "forest",
+    "NO_ROSE_001", "Rowan, aspen, and goat willow", "NO_ROSE_001", "forest",
+    "NO_DLTA_001", "Large trees", "NO_DLTA_001", "forest",
+    "NO_DWTO_001", "Dead wood share", "NO_DWTO_001", "forest",
+    "NO_ALIE_004", "Alien plant species", "NO_ALIE_004", "forest"
   )
 }
 
 name_to_id_overrides <- function() {
   c(
-    "Ditching" = "NO_SLIT_002",
+    "Ditching" = "NO_AIVS_001",
+    "Clear-cutting" = "NO_AIFH_001",
     "Moisture impacts on vegetation" = "NO_FUMO_004",
     "Nitrogen impacts on vegetation" = "NO_FUNI_004",
     "Butterflies" = "NO_BFLY_002",
     "Bumblebees" = "NO_BUMB_002",
     "Dead wood volume" = "NO_DTVS_001",
-    "Alien plantspecies" = "NO_ALIE_002",
+    "Dead wood share" = "NO_DWTO_001",
+    "Disturbance index" = "NO_DIST_001",
+    "Trampling disturbance" = "NO_SLIT_001",
+    "Vegetation functional indicators" = "NO_FUNC_xxx",
+    "Alien plantspecies" = "NO_ALIE_004",
     "Alien conifers" = "NO_AATS_002",
-    "Rowan, aspen and goat willow" = "NO_TDTA_001",
+    "Rowan, aspen and goat willow" = "NO_ROSE_001",
     "Multi-layered forest" = "NO_MLFA_001",
-    "Large trees" = "NO_LTFA_001",
+    "Large trees" = "NO_DLTA_001",
+    "Old forest" = "NO_BGSK_001",
     "Moose" = "NO_MOOS_001",
     "Red deer" = "NO_DEER_001",
     "Roe deer" = "NO_ROED_001",
-    "Bilberry cover" = "NO_BBCA_001",
+    "Bilberry cover" = "NO_BLAA_001",
     "Connected low-infrastructure forest habitat" = "NO_CONN_001",
     "Glacier area" = "NO_GLAC_001",
     "Snow cover" = "NO_SNOW_001",
@@ -88,7 +246,6 @@ name_to_id_overrides <- function() {
     "Arctic fox" = "NO_AFOX_001",
     "Ptarmigan" = "NO_PTAR_001",
     "Small rodents" = "NO_RODE_001",
-    "Alien species" = "NO_ALIE_001",
     "Wolverine" = "NO_JERV_001",
     "Golden eagle" = "NO_GOLD_001",
     "Connectivity" = "NO_CONN_001",
@@ -149,18 +306,61 @@ submission_branch_candidates <- function(indicator_id, folder = indicator_id) {
   ))
 }
 
+indicator_mc_slug <- function(indicator_id) {
+  core <- sub("^NO_", "", indicator_id)
+  core <- sub("_0[0-9]{2}.*$", "", core)
+  tolower(core)
+}
+
+filter_indicator_source_candidates <- function(candidates, indicator_id) {
+  if (nrow(candidates) == 0) {
+    return(candidates)
+  }
+
+  preferred_rds <- glue::glue("{indicator_mc_slug(indicator_id)}_mc_regional.rds")
+  candidates <- candidates |>
+    dplyr::mutate(
+      is_mc_rds = grepl("_mc_regional\\.rds$", .data$results_path, ignore.case = TRUE),
+      slug_match = basename(.data$results_path) == preferred_rds
+    )
+
+  if (any(candidates$is_mc_rds & candidates$slug_match, na.rm = TRUE)) {
+    candidates <- candidates |>
+      dplyr::filter(!.data$is_mc_rds | .data$slug_match)
+  }
+
+  candidates |>
+    dplyr::arrange(.data$priority, .data$ref, .data$results_path) |>
+    dplyr::select(-"is_mc_rds", -"slug_match")
+}
+
 results_path_candidates <- function(
     indicator_id,
     folder = indicator_id,
     version = "1.0.0") {
-  fname <- glue::glue("results_{indicator_id}_v{version}.csv")
+  slug <- indicator_mc_slug(indicator_id)
+  fname_v <- glue::glue("results_{indicator_id}_v{version}.csv")
+  fname <- glue::glue("results_{indicator_id}.csv")
+  fname_parquet <- glue::glue("results_{indicator_id}.parquet")
+  fname_parquet_sim <- glue::glue("results_{indicator_id}_sim.parquet")
+  mc_regional <- glue::glue("{slug}_mc_regional.rds")
+
   unique(c(
+    glue::glue("indicators/{folder}/data/{fname_v}"),
     glue::glue("indicators/{folder}/data/{fname}"),
+    glue::glue("indicators/{indicator_id}/data/{fname_v}"),
     glue::glue("indicators/{indicator_id}/data/{fname}"),
-    glue::glue("R/{indicator_id}/data/{fname}"),
-    glue::glue("R/{folder}/data/{fname}"),
+    glue::glue("indicators/{folder}/data/{fname_parquet}"),
+    glue::glue("indicators/{folder}/data/{fname_parquet_sim}"),
+    glue::glue("indicators/{folder}/data/{mc_regional}"),
+    glue::glue("indicators/{indicator_id}/data/{mc_regional}"),
+    glue::glue("{folder}/data/{fname_v}"),
+    glue::glue("R/{indicator_id}/data/{fname_v}"),
+    glue::glue("R/{folder}/data/{fname_v}"),
+    glue::glue("data/{fname_v}"),
     glue::glue("data/{fname}"),
-    glue::glue("{indicator_id}/data/{fname}")
+    glue::glue("data/{mc_regional}"),
+    glue::glue("{indicator_id}/data/{fname_v}")
   ))
 }
 
@@ -170,21 +370,32 @@ default_source_candidates <- function(
     version = "1.0.0",
     repo = "NINAnor/ecRxiv",
     include_submission = TRUE) {
-  rows <- tibble::tribble(
-    ~indicator_id, ~ref, ~results_path, ~priority, ~repo,
-    indicator_id, "main",
-    glue::glue("indicators/{folder}/data/results_{indicator_id}_v{version}.csv"),
-    1L, repo
+  paths <- results_path_candidates(indicator_id, folder, version)
+  rows <- tibble::tibble(
+    indicator_id = indicator_id,
+    ref = "main",
+    results_path = paths,
+    priority = dplyr::if_else(
+      grepl("_mc_regional\\.rds$", paths) | grepl("\\.parquet$", paths),
+      2L,
+      1L
+    ),
+    repo = repo
   )
 
   if (include_submission) {
     sub_rows <- tidyr::crossing(
       ref = submission_branch_candidates(indicator_id, folder),
-      results_path = results_path_candidates(indicator_id, folder, version)
+      results_path = paths
     ) |>
       dplyr::mutate(
         indicator_id = indicator_id,
-        priority = 2L,
+        priority = dplyr::if_else(
+          grepl("_mc_regional\\.rds$", .data$results_path) |
+            grepl("\\.parquet$", .data$results_path),
+          4L,
+          3L
+        ),
         repo = repo
       )
     rows <- dplyr::bind_rows(rows, sub_rows)
@@ -193,9 +404,9 @@ default_source_candidates <- function(
   rows
 }
 
-probe_results_url <- function(url) {
+probe_results_source <- function(path_or_url) {
   tryCatch({
-    suppressWarnings(readr::read_csv(url, n_max = 1, show_col_types = FALSE))
+    read_indicator_results(path_or_url, n_max = 1)
     TRUE
   }, error = function(e) {
     FALSE
@@ -207,10 +418,12 @@ find_local_results_path <- function(
     local_dir = here::here("data")) {
   patterns <- c(
     glue::glue("results_{indicator_id}_v*.csv"),
-    glue::glue("results_{indicator_id}.csv")
+    glue::glue("results_{indicator_id}.csv"),
+    glue::glue("results_{indicator_id}*.parquet"),
+    glue::glue("*_{indicator_mc_slug(indicator_id)}_mc_regional.rds")
   )
   hits <- unlist(lapply(patterns, function(pat) {
-    list.files(local_dir, pattern = glob2rx(pat), full.names = TRUE)
+    list.files(local_dir, pattern = glob2rx(pat), full.names = TRUE, recursive = TRUE)
   }))
   hits <- unique(hits[file.exists(hits)])
   if (length(hits) == 0) {
@@ -245,13 +458,15 @@ resolve_indicator_source <- function(
     )
   }
 
+  candidates <- filter_indicator_source_candidates(candidates, indicator_id)
+
   for (i in seq_len(nrow(candidates))) {
     url <- build_raw_url(
       candidates$repo[i],
       candidates$ref[i],
       candidates$results_path[i]
     )
-    if (probe_results_url(url)) {
+    if (probe_results_source(url)) {
       return(list(
         indicator_id = indicator_id,
         repo = candidates$repo[i],
@@ -264,7 +479,7 @@ resolve_indicator_source <- function(
   }
 
   local_path <- find_local_results_path(indicator_id, local_dir = local_dir)
-  if (!is.na(local_path)) {
+  if (!is.na(local_path) && probe_results_source(local_path)) {
     return(list(
       indicator_id = indicator_id,
       repo = NA_character_,
@@ -337,18 +552,36 @@ scan_git_indicator_sources <- function(
       paste0(git_remote, "/", ref_name)
     }
     files <- git_ls_files(branch)
-    files <- files[grepl("results_NO_", files, fixed = TRUE) & grepl(".csv$", files)]
-    if (length(files) == 0) {
+
+    csv_files <- files[
+      grepl("results_NO_", files, fixed = TRUE) & grepl("\\.csv$", files)
+    ]
+    pq_files <- files[grepl("results_NO_.*\\.parquet$", files)]
+    rds_files <- files[grepl("_mc_regional\\.rds$", files)]
+
+    matched <- c(csv_files, pq_files, rds_files)
+    if (length(matched) == 0) {
       return(NULL)
     }
-    id <- stringr::str_match(files, "results_(NO_[A-Z0-9_]+)_v")[, 2]
+
     tibble::tibble(
-      indicator_id = id,
+      indicator_id = vapply(
+        matched,
+        extract_indicator_id_from_path,
+        character(1),
+        ref_name = ref_name
+      ),
       ref = ref_name,
-      results_path = files,
-      priority = if (ref_name == "main") 1L else 2L,
+      results_path = matched,
+      priority = dplyr::case_when(
+        ref_name == "main" & grepl("\\.csv$", matched) ~ 1L,
+        ref_name == "main" ~ 2L,
+        grepl("\\.csv$", matched) ~ 3L,
+        TRUE ~ 4L
+      ),
       repo = repo
-    )
+    ) |>
+      dplyr::filter(!is.na(.data$indicator_id))
   })
 
   out <- dplyr::bind_rows(rows) |>
@@ -473,32 +706,32 @@ build_indicator_registry <- function(
 read_indicator_results <- function(
     path,
     indicator_id = NA_character_,
-    lookup = load_region_lookup()) {
-  dat <- readr::read_csv(path, show_col_types = FALSE)
+    lookup = load_region_lookup(),
+    n_max = Inf) {
+  dat <- read_indicator_file(path, n_max = n_max)
+  out <- harmonise_indicator_draws(dat, indicator_id = indicator_id, lookup = lookup)
 
-  value_col <- dplyr::case_when(
-    "sampled_mean" %in% names(dat) ~ "sampled_mean",
-    "indicator" %in% names(dat) ~ "indicator",
-    TRUE ~ NA_character_
-  )
-  if (is.na(value_col)) {
-    stop("Results file must contain sampled_mean or indicator column.", call. = FALSE)
+  if (grepl("_mc_regional\\.rds$", path, ignore.case = TRUE)) {
+    nat_path <- sub("_mc_regional\\.rds$", "_mc_national.rds", path, ignore.case = TRUE)
+    nat_ok <- if (nat_path != path) {
+      if (is_results_url(nat_path)) {
+        probe_results_source(nat_path)
+      } else {
+        file.exists(nat_path)
+      }
+    } else {
+      FALSE
+    }
+    if (nat_ok) {
+      nat_dat <- read_indicator_file(nat_path, n_max = n_max)
+      out <- dplyr::bind_rows(
+        out,
+        harmonise_indicator_draws(nat_dat, indicator_id = indicator_id, lookup = lookup)
+      )
+    }
   }
 
-  part_col <- if ("part" %in% names(dat)) "part" else if ("reg" %in% names(dat)) "reg" else NA_character_
-  if (is.na(part_col)) {
-    stop("Results file must contain part or reg column.", call. = FALSE)
-  }
-
-  dat |>
-    dplyr::transmute(
-      indicator_id = indicator_id,
-      year = as.integer(.data$year),
-      part_raw = .data[[part_col]],
-      part = standardize_part(.data[[part_col]], lookup = lookup),
-      value = as.numeric(.data[[value_col]])
-    ) |>
-    dplyr::filter(!is.na(.data$part), !is.na(.data$value))
+  out
 }
 
 fetch_indicator_results <- function(

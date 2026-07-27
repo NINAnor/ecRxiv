@@ -2236,9 +2236,15 @@ font-family: inherit;
     <h2 id="toc-title">Contents</h2>
    
   <ul>
-  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">1. Summary</a></li>
-  <li><a href="#datasets" id="toc-datasets" class="nav-link" data-scroll-target="#datasets">2. Datasets</a></li>
-  <li><a href="#analyses" id="toc-analyses" class="nav-link" data-scroll-target="#analyses">3. Analyses</a></li>
+  <li><a href="#aim" id="toc-aim" class="nav-link active" data-scroll-target="#aim">1. Aim</a></li>
+  <li><a href="#sec-datasets" id="toc-sec-datasets" class="nav-link" data-scroll-target="#sec-datasets">2. Datasets</a></li>
+  <li><a href="#sec-analyses" id="toc-sec-analyses" class="nav-link" data-scroll-target="#sec-analyses">3. Analyses</a>
+  <ul class="collapse">
+  <li><a href="#loading-and-harmonising-indicator-draws" id="toc-loading-and-harmonising-indicator-draws" class="nav-link" data-scroll-target="#loading-and-harmonising-indicator-draws">3.1 Loading and harmonising indicator draws</a></li>
+  <li><a href="#reporting-years" id="toc-reporting-years" class="nav-link" data-scroll-target="#reporting-years">3.2 Reporting years</a></li>
+  <li><a href="#resampling-and-aggregation" id="toc-resampling-and-aggregation" class="nav-link" data-scroll-target="#resampling-and-aggregation">3.3 Resampling and aggregation</a></li>
+  <li><a href="#summaries-and-coverage" id="toc-summaries-and-coverage" class="nav-link" data-scroll-target="#summaries-and-coverage">3.4 Summaries and coverage</a></li>
+  </ul></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">4. Results</a></li>
   <li><a href="#export-file" id="toc-export-file" class="nav-link" data-scroll-target="#export-file">5. Export file</a></li>
   </ul>
@@ -2285,15 +2291,6 @@ font-family: inherit;
 </header>
 
 
-<div class="cell">
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: There was 1 warning in `dplyr::mutate()`.
-ℹ In argument: `Variable = dplyr::case_match(...)`.
-Caused by warning:
-! `case_match()` was deprecated in dplyr 1.2.0.
-ℹ Please use `recode_values()` instead.</code></pre>
-</div>
-</div>
 <div class="quarto-layout-panel" data-layout-ncol="6">
 <div class="quarto-layout-row">
 <div class="cell quarto-layout-cell" style="flex-basis: 16.7%;justify-content: flex-start;">
@@ -2343,59 +2340,81 @@ Caused by warning:
 <blockquote class="blockquote">
 <p><strong>Recommended citation</strong>: Halbritter, A. H. 2026. Composite index (ID(s): NO_INDEX_001) v. 1.0.0. ecRxiv: https://github.com/NINAnor/ecRxiv</p>
 </blockquote>
-<section id="summary" class="level2">
-<h2 class="anchored" data-anchor-id="summary">1. Summary</h2>
-<ol type="1">
-<li><p><strong>Background and rationale</strong>: NO_INDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for <strong>forest</strong> and <strong>mountain</strong> ecosystems, separately by region and for Norway and for ECT classes.</p></li>
-<li><p><strong>Methods</strong>: For each reporting period and region we (i) load MC draws from indicator <code>results_*_v*.csv</code> files on ecRxiv main (with fallback to submission branches and the source manifest), (ii) keep the last three reporting years per indicator, (iii) resample one draw per indicator per simulation using <code>ecTools::ec_upscale()</code>, (iv) aggregate to ECT classes (equal weights), and (v) compute an overall index as the unweighted mean of available ECT values.</p></li>
-<li><p><strong>Interpretation</strong>: Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.</p></li>
-<li><p><strong>Results and development needs</strong>: …</p></li>
-</ol>
+<section id="aim" class="level2">
+<h2 class="anchored" data-anchor-id="aim">1. Aim</h2>
+<p>NO_INDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for <strong>forest</strong> and <strong>mountain</strong> ecosystems, separately by region and for Norway and for ECT classes. Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.</p>
 </section>
-<section id="datasets" class="level2">
-<h2 class="anchored" data-anchor-id="datasets">2. Datasets</h2>
+<section id="sec-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="sec-datasets">2. Datasets</h2>
+<p>First, we check which indicators are included in each index and where their results can be found on ecRxiv.</p>
+<p><strong>Indicator lists.</strong> Forest indicators are listed in <code>data/indicators_2026.csv</code>; mountain indicators follow <a href="https://github.com/NINAnor/ECA_2026/issues/104">ECA_2026 #104</a> in <code>data/indicators_mountain.csv</code>. Each row specifies the indicator name, ecRxiv ID, and ECT class assignment.</p>
+<p><strong>Source manifest.</strong> <code>scan_git_indicator_sources()</code> searches the local <code>upstream</code> git remote (main and <code>submission-*</code> branches) for published result files (CSV, RDS, parquet) and writes <code>data/indicator_sources.csv</code>. Manual or fork entries can be added in <code>data/indicator_sources_extra.csv</code>.</p>
+<p><strong>Registry.</strong> <code>build_indicator_registry()</code> joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (<code>match_status</code>: <code>matched</code> or <code>no_results</code>). The tables below show the outcome for forest and mountain. Only <code>matched</code> indicators proceed to the analysis in <a href="#sec-analyses" class="quarto-xref">Section 3</a>.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Refresh manifest from local git (upstream main + submission-* branches)</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scan_git_indicator_sources</span>(<span class="at">git_remote =</span> <span class="st">&quot;upstream&quot;</span>),</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">invisible</span>(<span class="cn">NULL</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Refresh manifest from local git (upstream main + submission-* branches)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scan_git_indicator_sources</span>(<span class="at">git_remote =</span> <span class="st">&quot;upstream&quot;</span>),</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">invisible</span>(<span class="cn">NULL</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 6 × 5
+<pre><code># A tibble: 7 × 5
   indicator_id ref                    results_path                priority repo 
   &lt;chr&gt;        &lt;chr&gt;                  &lt;chr&gt;                          &lt;dbl&gt; &lt;chr&gt;
-1 NO_AFOX_001  submission-NO_AFOX_001 NO_AFOX_001/data/results_N…        2 NINA…
-2 NO_BAER_001  no-bbab-001-ah         data/results_NO_BAER_001_v…        3 audh…
-3 NO_BFLY_002  BFLY-update            data/results_NO_BFLY_002_v…        3 audh…
-4 NO_JERV_001  submission-NO_JERV_001 NO_JERV_001/data/results_N…        2 NINA…
-5 NO_LYNX_001  no-bbab-001-ah         data/results_NO_LYNX_001_v…        3 audh…
-6 NO_WOLF_001  no-bbab-001-ah         data/results_NO_WOLF_001_v…        3 audh…</code></pre>
+1 NO_AFOX_001  submission-NO_AFOX_001 NO_AFOX_001/data/results_N…        3 NINA…
+2 NO_ALIE_002  submission_NO_ALIE_002 results_NO_ALIE_002_sim.pa…        4 NINA…
+3 NO_BAER_001  no-bbab-001-ah         data/results_NO_BAER_001_v…        3 audh…
+4 NO_BFLY_002  BFLY-update            data/results_NO_BFLY_002_v…        3 audh…
+5 NO_JERV_001  submission-NO_JERV_001 NO_JERV_001/data/results_N…        3 NINA…
+6 NO_LYNX_001  no-bbab-001-ah         data/results_NO_LYNX_001_v…        3 audh…
+7 NO_WOLF_001  no-bbab-001-ah         data/results_NO_WOLF_001_v…        3 audh…</code></pre>
 </div>
 </div>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>n_sim <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>n_years <span class="ot">&lt;-</span> <span class="dv">3</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>registry_forest <span class="ot">&lt;-</span> <span class="fu">build_indicator_registry</span>(</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/indicators_2026.csv&quot;</span>),</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">ecosystem =</span> <span class="st">&quot;forest&quot;</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">write_path =</span> <span class="fu">here</span>(<span class="st">&quot;data/indicators_registry_forest.csv&quot;</span>)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>registry_mountain <span class="ot">&lt;-</span> <span class="fu">build_indicator_registry</span>(</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/indicators_mountain.csv&quot;</span>),</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">ecosystem =</span> <span class="st">&quot;mountain&quot;</span>,</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">write_path =</span> <span class="fu">here</span>(<span class="st">&quot;data/indicators_registry_mountain.csv&quot;</span>)</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>registry_forest <span class="sc">|&gt;</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) <span class="sc">|&gt;</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Forest indicator registry&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>n_sim <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>n_years <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>registry_forest <span class="ot">&lt;-</span> <span class="fu">build_indicator_registry</span>(</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/indicators_2026.csv&quot;</span>),</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">ecosystem =</span> <span class="st">&quot;forest&quot;</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">write_path =</span> <span class="fu">here</span>(<span class="st">&quot;data/indicators_registry_forest.csv&quot;</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 230 warnings in `dplyr::mutate()`.
+The first warning was:
+ℹ In argument: `source_info = list(...)`.
+ℹ In row 1.
+Caused by warning:
+! Failed to open &#39;https://raw.githubusercontent.com/NINAnor/ecRxiv/main/NO_AIVS_001/data/results_NO_AIVS_001_v1.0.0.csv&#39;: The requested URL returned error: 404
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 229 remaining warnings.</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>registry_mountain <span class="ot">&lt;-</span> <span class="fu">build_indicator_registry</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/indicators_mountain.csv&quot;</span>),</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">ecosystem =</span> <span class="st">&quot;mountain&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">write_path =</span> <span class="fu">here</span>(<span class="st">&quot;data/indicators_registry_mountain.csv&quot;</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 261 warnings in `dplyr::mutate()`.
+The first warning was:
+ℹ In argument: `source_info = list(...)`.
+ℹ In row 1.
+Caused by warning:
+! Failed to open &#39;https://raw.githubusercontent.com/NINAnor/ecRxiv/main/NO_GLAC_001/data/results_NO_GLAC_001_v1.0.0.csv&#39;: The requested URL returned error: 404
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 260 remaining warnings.</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>registry_forest <span class="sc">|&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) <span class="sc">|&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Forest indicator registry&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -2425,28 +2444,28 @@ Caused by warning:
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">A1</td>
 <td style="text-align: left;">Ditching</td>
-<td style="text-align: left;">NO_SLIT_002</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_AIVS_001</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">A1</td>
 <td style="text-align: left;">Moisture impacts on vegetation</td>
 <td style="text-align: left;">NO_FUMO_004</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">A2</td>
 <td style="text-align: left;">Nitrogen impacts on vegetation</td>
 <td style="text-align: left;">NO_FUNI_004</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">forest</td>
@@ -2471,63 +2490,63 @@ Caused by warning:
 <td style="text-align: left;">B1</td>
 <td style="text-align: left;">Dead wood volume</td>
 <td style="text-align: left;">NO_DTVS_001</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">B1</td>
 <td style="text-align: left;">Alien plantspecies</td>
-<td style="text-align: left;">NO_ALIE_002</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_ALIE_004</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">B1</td>
 <td style="text-align: left;">Alien conifers</td>
 <td style="text-align: left;">NO_AATS_002</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">B2</td>
 <td style="text-align: left;">Rowan, aspen and goat willow</td>
-<td style="text-align: left;">NO_TDTA_001</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_ROSE_001</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">B2</td>
 <td style="text-align: left;">Dead wood share</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">missing</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_DWTO_001</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">B2</td>
 <td style="text-align: left;">Multi-layered forest</td>
 <td style="text-align: left;">NO_MLFA_001</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">B2</td>
 <td style="text-align: left;">Large trees</td>
-<td style="text-align: left;">NO_LTFA_001</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_DLTA_001</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">forest</td>
@@ -2587,28 +2606,28 @@ Caused by warning:
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">B3</td>
 <td style="text-align: left;">Bilberry cover</td>
-<td style="text-align: left;">NO_BBCA_001</td>
-<td style="text-align: left;">no_results</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_BLAA_001</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">C1</td>
 <td style="text-align: left;">Old forest</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">missing</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_BGSK_001</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">forest</td>
 <td style="text-align: left;">C1</td>
 <td style="text-align: left;">Clear-cutting</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">missing</td>
-<td style="text-align: left;">NA</td>
-<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NO_AIFH_001</td>
+<td style="text-align: left;">matched</td>
+<td style="text-align: left;">main</td>
+<td style="text-align: left;">main</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">forest</td>
@@ -2626,21 +2645,21 @@ Caused by warning:
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>registry_mountain <span class="sc">|&gt;</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) <span class="sc">|&gt;</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Mountain indicator registry (draft)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>registry_mountain <span class="sc">|&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Mountain indicator registry (ECA_2026 #104)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Mountain indicator registry (draft)</caption>
+<caption>Mountain indicator registry (ECA_2026 #104)</caption>
 <colgroup>
-<col style="width: 12%">
+<col style="width: 10%">
 <col style="width: 4%">
-<col style="width: 18%">
-<col style="width: 14%">
-<col style="width: 16%">
-<col style="width: 14%">
-<col style="width: 18%">
+<col style="width: 33%">
+<col style="width: 12%">
+<col style="width: 13%">
+<col style="width: 12%">
+<col style="width: 15%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -2665,32 +2684,41 @@ Caused by warning:
 </tr>
 <tr class="even">
 <td style="text-align: left;">mountain</td>
-<td style="text-align: left;">A1</td>
-<td style="text-align: left;">Snow cover</td>
-<td style="text-align: left;">NO_SNOW_001</td>
+<td style="text-align: left;">B1</td>
+<td style="text-align: left;">Arctic fox</td>
+<td style="text-align: left;">NO_AFOX_001</td>
 <td style="text-align: left;">no_results</td>
 <td style="text-align: left;">NA</td>
 <td style="text-align: left;">NA</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">mountain</td>
-<td style="text-align: left;">A2</td>
-<td style="text-align: left;">Lichen biomass</td>
-<td style="text-align: left;">NO_LAVH_001</td>
-<td style="text-align: left;">matched</td>
-<td style="text-align: left;">main</td>
-<td style="text-align: left;">main</td>
+<td style="text-align: left;">B1</td>
+<td style="text-align: left;">Alien plants</td>
+<td style="text-align: left;">NO_ALIE_002</td>
+<td style="text-align: left;">no_results</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">mountain</td>
 <td style="text-align: left;">B1</td>
-<td style="text-align: left;">Arctic fox</td>
-<td style="text-align: left;">NO_AFOX_001</td>
+<td style="text-align: left;">Golden eagle</td>
+<td style="text-align: left;">NO_GOLD_001</td>
 <td style="text-align: left;">matched</td>
 <td style="text-align: left;">main</td>
 <td style="text-align: left;">main</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">mountain</td>
+<td style="text-align: left;">B1</td>
+<td style="text-align: left;">Wolverine</td>
+<td style="text-align: left;">NO_JERV_001</td>
+<td style="text-align: left;">no_results</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">mountain</td>
 <td style="text-align: left;">B1</td>
 <td style="text-align: left;">Ptarmigan</td>
@@ -2699,9 +2727,18 @@ Caused by warning:
 <td style="text-align: left;">main</td>
 <td style="text-align: left;">main</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">mountain</td>
 <td style="text-align: left;">B1</td>
+<td style="text-align: left;">Vegetation functional indicators</td>
+<td style="text-align: left;">NO_FUNC_xxx</td>
+<td style="text-align: left;">no_results</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: left;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mountain</td>
+<td style="text-align: left;">B3</td>
 <td style="text-align: left;">Small rodents</td>
 <td style="text-align: left;">NO_RODE_001</td>
 <td style="text-align: left;">matched</td>
@@ -2710,45 +2747,18 @@ Caused by warning:
 </tr>
 <tr class="odd">
 <td style="text-align: left;">mountain</td>
-<td style="text-align: left;">B1</td>
-<td style="text-align: left;">Alien species</td>
-<td style="text-align: left;">NO_ALIE_001</td>
+<td style="text-align: left;">B3</td>
+<td style="text-align: left;">Trampling disturbance</td>
+<td style="text-align: left;">NO_SLIT_001</td>
 <td style="text-align: left;">no_results</td>
 <td style="text-align: left;">NA</td>
 <td style="text-align: left;">NA</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">mountain</td>
-<td style="text-align: left;">B3</td>
-<td style="text-align: left;">Wolverine</td>
-<td style="text-align: left;">NO_JERV_001</td>
-<td style="text-align: left;">matched</td>
-<td style="text-align: left;">main</td>
-<td style="text-align: left;">main</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">mountain</td>
-<td style="text-align: left;">B3</td>
-<td style="text-align: left;">Golden eagle</td>
-<td style="text-align: left;">NO_GOLD_001</td>
-<td style="text-align: left;">matched</td>
-<td style="text-align: left;">main</td>
-<td style="text-align: left;">main</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">mountain</td>
-<td style="text-align: left;">B3</td>
-<td style="text-align: left;">Moose</td>
-<td style="text-align: left;">NO_MOOS_001</td>
-<td style="text-align: left;">matched</td>
-<td style="text-align: left;">main</td>
-<td style="text-align: left;">main</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">mountain</td>
 <td style="text-align: left;">C1</td>
-<td style="text-align: left;">Connectivity</td>
-<td style="text-align: left;">NO_CONN_001</td>
+<td style="text-align: left;">Disturbance index</td>
+<td style="text-align: left;">NO_DIST_001</td>
 <td style="text-align: left;">no_results</td>
 <td style="text-align: left;">NA</td>
 <td style="text-align: left;">NA</td>
@@ -2758,19 +2768,48 @@ Caused by warning:
 </div>
 </div>
 </section>
-<section id="analyses" class="level2">
-<h2 class="anchored" data-anchor-id="analyses">3. Analyses</h2>
+<section id="sec-analyses" class="level2">
+<h2 class="anchored" data-anchor-id="sec-analyses">3. Analyses</h2>
+<p>Forest and mountain indices are calculated separately using the same workflow (<code>calculate_index()</code> in <code>R/index_functions.R</code>). The steps below describe phase 1 (equal weights). The indicator registries built in <a href="#sec-datasets" class="quarto-xref">Section 2</a> are the input to this section.</p>
+<section id="loading-and-harmonising-indicator-draws" class="level3">
+<h3 class="anchored" data-anchor-id="loading-and-harmonising-indicator-draws">3.1 Loading and harmonising indicator draws</h3>
+<p>For each <code>matched</code> indicator in the registry, <code>load_registry_draws()</code> fetches the resolved results file and harmonises it to a common structure (<code>year</code>, <code>part</code>, <code>value</code>). Supported source formats include:</p>
+<ul>
+<li>standard CSV (<code>year</code>, <code>part</code>, <code>sampled_mean</code>);</li>
+<li>period-based CSV or RDS (<code>period</code>, <code>region</code>/<code>region_code</code>, <code>sampled_mean</code>);</li>
+<li>regional RDS with companion national RDS (<code>*_mc_regional.rds</code> + <code>*_mc_national.rds</code>);</li>
+<li>parquet (<code>year</code>, <code>part</code>, <code>value</code> or <code>sim</code>).</li>
+</ul>
+<p>Region labels are mapped to NI regions (<code>C</code>, <code>E</code>, <code>S</code>, <code>W</code>, <code>N</code>, <code>Norway</code>) via <code>data/region_lookup.csv</code>. Each row in the loaded data is one Monte Carlo draw for a given indicator, reporting year, and region.</p>
+</section>
+<section id="reporting-years" class="level3">
+<h3 class="anchored" data-anchor-id="reporting-years">3.2 Reporting years</h3>
+<p>For each indicator we retain the <strong>last three reporting years</strong> available (<code>select_reporting_years()</code>). Indicators therefore contribute to different calendar years depending on their own reporting schedule.</p>
+</section>
+<section id="resampling-and-aggregation" class="level3">
+<h3 class="anchored" data-anchor-id="resampling-and-aggregation">3.3 Resampling and aggregation</h3>
+<p>Aggregation uses <code>ecTools::ec_upscale()</code> with equal weights throughout (phase 1). For each year, region, and simulation (<code>n_sim = 1000</code> by default):</p>
+<ol type="1">
+<li><strong>Indicator → ECT</strong> — one draw is resampled per indicator within each ECT class, then combined with equal weights to give an ECT-level draw (<code>aggregate_to_ect()</code>).</li>
+<li><strong>ECT → index</strong> — one draw is resampled per ECT class, then combined with equal weights to give an overall index draw (<code>aggregate_to_index()</code>).</li>
+<li><strong>Region → Norway</strong> — regional ECT and index draws are upscaled to national values with equal weights across the five NI regions (<code>aggregate_to_national()</code>).</li>
+</ol>
+<p>This propagates uncertainty from individual indicators through ECT classes to the composite index without assuming independence beyond the structure encoded in the published indicator MC distributions.</p>
+</section>
+<section id="summaries-and-coverage" class="level3">
+<h3 class="anchored" data-anchor-id="summaries-and-coverage">3.4 Summaries and coverage</h3>
+<p>The full MC distributions are stored for export. For reporting we summarise each ECT class and the overall index by the <strong>median</strong> and an approximate <strong>95% interval</strong> (2.5% and 97.5% quantiles). A coverage table records how many indicators contributed to each year–region combination.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>forest_index <span class="ot">&lt;-</span> <span class="fu">calculate_index</span>(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  registry_forest <span class="sc">|&gt;</span> <span class="fu">filter</span>(match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>),</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_sim =</span> n_sim,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_years =</span> n_years</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>forest_index<span class="sc">$</span>coverage <span class="sc">|&gt;</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Forest index — indicator coverage by year and region&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>forest_index <span class="ot">&lt;-</span> <span class="fu">calculate_index</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  registry_forest <span class="sc">|&gt;</span> <span class="fu">filter</span>(match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_sim =</span> n_sim,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_years =</span> n_years</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>forest_index<span class="sc">$</span>coverage <span class="sc">|&gt;</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Forest index — indicator coverage by year and region&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -2925,14 +2964,14 @@ Caused by warning:
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>mountain_index <span class="ot">&lt;-</span> <span class="fu">calculate_index</span>(</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  registry_mountain <span class="sc">|&gt;</span> <span class="fu">filter</span>(match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>),</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_sim =</span> n_sim,</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_years =</span> n_years</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>mountain_index<span class="sc">$</span>coverage <span class="sc">|&gt;</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Mountain index — indicator coverage by year and region&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>mountain_index <span class="ot">&lt;-</span> <span class="fu">calculate_index</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  registry_mountain <span class="sc">|&gt;</span> <span class="fu">filter</span>(match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_sim =</span> n_sim,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_years =</span> n_years</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>mountain_index<span class="sc">$</span>coverage <span class="sc">|&gt;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">&quot;Mountain index — indicator coverage by year and region&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3087,29 +3126,30 @@ Caused by warning:
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Single-indicator test: index equals that indicator when only one is matched</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">sum</span>(registry_mountain<span class="sc">$</span>match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>) <span class="sc">&gt;=</span> <span class="dv">1</span>) {</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  one_id <span class="ot">&lt;-</span> registry_mountain <span class="sc">|&gt;</span> <span class="fu">filter</span>(match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">slice</span>(<span class="dv">1</span>)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  one_reg <span class="ot">&lt;-</span> one_id</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  one_out <span class="ot">&lt;-</span> <span class="fu">calculate_index</span>(one_reg, <span class="at">n_sim =</span> <span class="dv">200</span>, <span class="at">n_years =</span> <span class="dv">1</span>)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  val_one <span class="ot">&lt;-</span> one_out<span class="sc">$</span>summaries <span class="sc">|&gt;</span> <span class="fu">filter</span>(level <span class="sc">==</span> <span class="st">&quot;Index&quot;</span>, part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">slice</span>(<span class="dv">1</span>)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  src <span class="ot">&lt;-</span> one_out<span class="sc">$</span>indicator_draws <span class="sc">|&gt;</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">median =</span> <span class="fu">median</span>(value), <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span>)</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">abs</span>(val_one<span class="sc">$</span>median <span class="sc">-</span> src<span class="sc">$</span>median) <span class="sc">&lt;</span> <span class="fl">0.05</span>)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Single-indicator test: index equals that indicator when only one is matched</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">sum</span>(registry_mountain<span class="sc">$</span>match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>) <span class="sc">&gt;=</span> <span class="dv">1</span>) {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  one_id <span class="ot">&lt;-</span> registry_mountain <span class="sc">|&gt;</span> <span class="fu">filter</span>(match_status <span class="sc">==</span> <span class="st">&quot;matched&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">slice</span>(<span class="dv">1</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  one_reg <span class="ot">&lt;-</span> one_id</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  one_out <span class="ot">&lt;-</span> <span class="fu">calculate_index</span>(one_reg, <span class="at">n_sim =</span> <span class="dv">200</span>, <span class="at">n_years =</span> <span class="dv">1</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  val_one <span class="ot">&lt;-</span> one_out<span class="sc">$</span>summaries <span class="sc">|&gt;</span> <span class="fu">filter</span>(level <span class="sc">==</span> <span class="st">&quot;Index&quot;</span>, part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>) <span class="sc">|&gt;</span> <span class="fu">slice</span>(<span class="dv">1</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  src <span class="ot">&lt;-</span> one_out<span class="sc">$</span>indicator_draws <span class="sc">|&gt;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">median =</span> <span class="fu">median</span>(value), <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span>)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="fu">abs</span>(val_one<span class="sc">$</span>median <span class="sc">-</span> src<span class="sc">$</span>median) <span class="sc">&lt;</span> <span class="fl">0.05</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
+</section>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">4. Results</h2>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>forest_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>, year <span class="sc">==</span> <span class="fu">max</span>(year)) <span class="sc">|&gt;</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(level, id) <span class="sc">|&gt;</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>, <span class="at">caption =</span> <span class="st">&quot;Forest index — Norway (latest year)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>forest_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>, year <span class="sc">==</span> <span class="fu">max</span>(year)) <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(level, id) <span class="sc">|&gt;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>, <span class="at">caption =</span> <span class="st">&quot;Forest index — Norway (latest year)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3154,10 +3194,10 @@ Caused by warning:
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>mountain_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>, year <span class="sc">==</span> <span class="fu">max</span>(year)) <span class="sc">|&gt;</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(level, id) <span class="sc">|&gt;</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>, <span class="at">caption =</span> <span class="st">&quot;Mountain index — Norway (latest year)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>mountain_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>, year <span class="sc">==</span> <span class="fu">max</span>(year)) <span class="sc">|&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(level, id) <span class="sc">|&gt;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>, <span class="at">caption =</span> <span class="st">&quot;Mountain index — Norway (latest year)&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3222,10 +3262,10 @@ Caused by warning:
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_index_forest</span>(</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  forest_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span> <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>),</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;NO_INDEX_001 — forest (Norway)&quot;</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_index_forest</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  forest_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span> <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;NO_INDEX_001 — forest (Norway)&quot;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -3238,10 +3278,10 @@ Caused by warning:
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_index_forest</span>(</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  mountain_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span> <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>),</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;NO_INDEX_001 — mountain (Norway)&quot;</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_index_forest</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  mountain_index<span class="sc">$</span>summaries <span class="sc">|&gt;</span> <span class="fu">filter</span>(part <span class="sc">==</span> <span class="st">&quot;Norway&quot;</span>),</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;NO_INDEX_001 — mountain (Norway)&quot;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -3257,15 +3297,15 @@ Caused by warning:
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">export_index_results</span>(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  forest_index<span class="sc">$</span>distributions,</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/results_NO_INDEX_001_forest_v1.0.0.csv&quot;</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">export_index_results</span>(</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  mountain_index<span class="sc">$</span>distributions,</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/results_NO_INDEX_001_mountain_v1.0.0.csv&quot;</span>)</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">export_index_results</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  forest_index<span class="sc">$</span>distributions,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/results_NO_INDEX_001_forest_v1.0.0.csv&quot;</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">export_index_results</span>(</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  mountain_index<span class="sc">$</span>distributions,</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">here</span>(<span class="st">&quot;data/results_NO_INDEX_001_mountain_v1.0.0.csv&quot;</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
