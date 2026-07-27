@@ -66,6 +66,14 @@ code-links:
         href: https://github.com/NINAnor/ecRxiv
 bibliography: references.bib
 hide: FALSE
+codeReviewers:
+  - name: Aud Halbritter
+    email: aud.halbritter@uib.no
+    affiliations:
+      - id: UiB
+        name: UiB
+    reviewType: code review
+    github: audhalbritter
 ---
 
 ```{r setup}
@@ -86,6 +94,29 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r source}
 #| echo: false
 source(here::here("_common.R"))
+```
+
+```{r reviewers}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
 ```
 
 ::: {layout-ncol="5"}
@@ -668,7 +699,7 @@ summary_outF <- outF |>
 ```{r tbl-results}
 #| warning: false
 #| message: false
-#| tbl-cap: 'Indicator values (median values) and uncertainty estimates for NO_BUMB_001. Semi-natural ecosystems are part of the main ecosystem type 'Open lowlands'.'
+#| tbl-cap: 'Indicator values (median values) and uncertainty estimates for NO_BUMB_001. Semi-natural ecosystems are part of the main ecosystem type "Open lowlands".'
 
 summary_out |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
@@ -691,7 +722,7 @@ summary_out |>
 ```{r tbl-resultsF}
 #| warning: false
 #| message: false
-#| tbl-cap: 'Indicator values and uncertainty estimates for NO_BUMB_002.'
+#| tbl-cap: 'Indicator values (median) and uncertainty estimates for NO_BUMB_002.'
 
 summary_outF |>
   unite(col = "CI_95", c(p_025, p_975), sep = " - ") |>
@@ -825,7 +856,7 @@ ggplot(plot_dataF, aes(x = year, y = median, colour = part2, group = part2)) +
 
 ## 11. Export file
 
-The results are exported to `data/results_NO_BUMB_001 and *_002`. 
+The results are exported to `data/results_NO_BUMB_001_v.1.0.0.csv` and `*_002v.1.0.0.csv`. 
 
 ## 12. Author contributions
 
