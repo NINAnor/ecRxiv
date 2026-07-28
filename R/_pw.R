@@ -1,0 +1,2 @@
+BOMB_USER= "sa_shiny"
+BOMB_PASSWORD= "VBkqVa2dtaGVKuP"
