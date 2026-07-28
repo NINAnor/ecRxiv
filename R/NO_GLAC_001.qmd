@@ -9,7 +9,7 @@ verbatimName: Isbreer
 folderName: NO_GLAC_001
 country: Norway
 continent: Europe
-ECT: C1 - Landscape and Seascape Characteristics
+ECT: A1 - Physical state characteristics
 Realm: 
   - Terrestrial
 Biome: 
@@ -231,10 +231,10 @@ in the mapping method, and the spatial variation across strata.
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
 The indicator value represents the negative ecological effect of melting glacier ice. 
-Most glaciers are found in western and northern Norway, and due to the way the regions are weighted by their initial glacier extent, the national estimate is determined mainly by the changes in glacer area in these regions. 
+Most glaciers are found in western and northern Norway, and due to the way the regions are weighted by their initial glacier extent, the national estimate is determined mainly by the changes in glacier area in these regions. 
 The indicator does NOT directly represent the area of remaining glacier ice.
 An indicator value of 1 signifies that the glacier extent is equal to, or greater than it was in the reference condition, defined by the climatic period between 1947 and 1985. 
-Values decreasing toward zero reflect a reduction in the positive impacts of glacier and melt water, driven by the reduction in glacer area and volume.
+Values decreasing toward zero reflect a reduction in the positive impacts of glacier and melt water, driven by the reduction in glacier area and volume.
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
@@ -260,7 +260,7 @@ Indikatoren representerer ikke direkte hvor stort areal som fortsatt er dekket a
 
 4. **Resultater og utviklingsbehov**: 
 Indikatorverdien for hele Norge i 2024 (basert på data fra 2018–2019) er 0,49 [95 % KI = 0,48–0,50]. Dette indikerer at breareal og brevolum er betydelig redusert, til et nivå der endringene påvirker integriteten til fjelløkosystemene negativt.
-Usikkerheten rundt the nasjonale estimatet på indikatorverdien er svært lav, noe som er forventet grunnet den store utvalgsstørreslen.
+Usikkerheten rundt det nasjonale estimatet på indikatorverdien er svært lav, noe som er forventet grunnet den store utvalgsstørreslen.
 Fremtidige oppdateringer av indikatoren vil kreve nye kart over bredekningen i Norge. Slike kart kan med trolig produseres ved hjelp av satellittdata.
 
 
@@ -313,7 +313,7 @@ easy as well probably.
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
 
-Area of glaciers is categorised as describing a *A1 - Physical state characteristic* on the importance of melt water, and hence glacer volume.
+Area of glaciers is categorised as describing a *A1 - Physical state characteristic* on the importance of melt water, and hence glacier volume.
 The indicator has previous been under C1 - Landscape characteristics, with a stronger emphasis on glaciers as landscape elements and a habitat.
 
 
@@ -369,7 +369,7 @@ v3 <- 40^1.36
 
 ```
 
-The X~60~ value therefore ensures that the indicator puts more weight on the ecological effect of a reduced supply of melt water from glacers than if there was no X~60~ value defined.  
+The X~60~ value therefore ensures that the indicator puts more weight on the ecological effect of a reduced supply of melt water from glaciers than if there was no X~60~ value defined.  
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -403,7 +403,7 @@ condition and assume this glacier cover represents the climatic period
 
 The dataset is manually downloaded.
 
-URL: <https://nve.brage.unit.no/nve-xmlui/handle/11250/2831053>
+URL: <https://temakart.nve.no/tema/breatlas>
 
 ```{r readCache1}
 #| code-summary: "Read data"
@@ -416,7 +416,10 @@ dat_old <- readRDS(here::here("data/glacial_extent_old.rds"))
 This is the map of glacier cover measured in the period 2018-2019
 [@andreassen2022].
 
-URL: <https://nve.brage.unit.no/nve-xmlui/handle/11250/2836926>
+
+The dataset is manually downloaded.
+
+URL: <https://temakart.nve.no/tema/breatlas>
 
 ```{r readCache2}
 #| code-summary: "Read data"
@@ -663,7 +666,7 @@ dat_region <- dat_old_region |>
   select(-ID, -rowID) |>
   mutate(
     year = "2024",
-    x60 = x100 * scalar,
+    x60 = x100 * 0.7,
     indicator = ecTools::ec_normalise(
       variable = variable,
       x100 = x100,
