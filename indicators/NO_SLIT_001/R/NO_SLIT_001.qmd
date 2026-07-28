@@ -103,7 +103,6 @@ library(tibble)
 library(conflicted)
 library(sf)
 library(ecTools)
-library(glmmTMB)
 library(MASS)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
@@ -300,7 +299,7 @@ Uncertainties relate partly to sampling and observer variability (and possible o
 Spatial variability as a source of descriptive uncertainty can be quantified.
 
 ### 5.2 Reported uncertainties
-For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
+For this indicator, we report 95% confidence intervals as inferential uncertainty.
 
 ## 6. References
 Nybø, S. & Evju, M. (red.) 2017. Fagsystem for fastsetting av god økologisk tilstand. Forslag fra et ekspertråd, https://regjeringen.no/no/dokument/rapportar-og-planar/id438817/.
@@ -316,7 +315,7 @@ Tingstad, L., Evju, M., Sickel, H., & Töpper, J. 2019. Utvikling av nasjonal ar
 Import ANO testing data:
 First, download from [Miljødirektoratet]("https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip") then upload from local storage.
 
-```{r, eval = F, echo = F}
+```{r, eval = FALSE, echo = FALSE}
 # download 
 url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
 download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
@@ -341,7 +340,7 @@ The spatial units for the 'Erosive disturbance' indicator are governed by the AN
 #### Data handling
 First we need to do some data handling. The data for this evaluation need to represent mountain ecosystems and the years 2020-2024. 
 
-```{r, include = T, results='hide', warning=F, message=F}
+```{r, include = TRUE, results='hide', warning=FALSE, message=FALSE}
 
 ## fix NiN-variables
 colnames(ANO.geo)
@@ -509,7 +508,7 @@ Indicator values are calculated as the arithmetic mean of the normalised indicat
 
 
 
-```{r, warning=F}
+```{r}
 #| warning: false
 #| message: false
 set.seed(123)
@@ -615,18 +614,7 @@ arrow::write_parquet(
 * Visualization: [JT]
 * Reproducibility: [AH]
 
-
-
 ::: {.callout-tip collapse="true"}
 ## Session Info
-<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
-
-This information is mainly aimed at developers that need to recreate the R environment that produced the html.
-Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
-
-```{r sessionInfo}
-#| echo: false
-sessionInfo()
-```
-
+This workflow uses `renv`. Run `renv::restore()` to recreate the working environment. 
 :::
