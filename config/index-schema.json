@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/NINAnor/ecRxiv/schema/index-schema.json",
+  "title": "Ecological condition assessment import",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["input", "output"],
+  "properties": {
+    "input": {
+      "$ref": "#/$defs/input"
+    },
+    "output": {
+      "$ref": "#/$defs/output"
+    }
+  },
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kode", "datasett"],
+      "properties": {
+        "kode": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/kode"
+          }
+        },
+        "datasett": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/datasett"
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["indikatorVurderinger", "rapportData"],
+      "properties": {
+        "indikatorVurderinger": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/indikatorVurdering"
+          }
+        },
+        "rapportData": {
+          "$ref": "#/$defs/rapportData"
+        }
+      }
+    },
+    "kode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["navn", "link"],
+      "properties": {
+        "navn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "link": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "datasett": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["navn", "link", "kilde", "periodeStart", "periodeSlutt", "type"],
+      "properties": {
+        "navn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "link": {
+          "type": "string",
+          "format": "uri"
+        },
+        "kilde": {
+          "type": "string",
+          "minLength": 1
+        },
+        "periodeStart": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+        },
+        "periodeSlutt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "indikatorVurdering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["indikatorBeskrivelse", "indikatorReferanseUid", "geografiskOmradeReferanseUid", "nedreKonfidensIntervalGrense", "tilstandsverdi", "ovreKonfidensIntervalGrense", "periodeStart", "periodeSlutt"],
+      "properties": {
+        "indikatorBeskrivelse": {
+          "type": "string",
+          "minLength": 1
+        },
+        "indikatorReferanseUid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geografiskOmradeReferanseUid": {
+          "$ref": "#/$defs/geografiskOmradeReferanseUid"
+        },
+        "nedreKonfidensIntervalGrense": {
+          "type": "number"
+        },
+        "tilstandsverdi": {
+          "type": "number"
+        },
+        "ovreKonfidensIntervalGrense": {
+          "type": "number"
+        },
+        "periodeStart": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+        },
+        "periodeSlutt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+        }
+      }
+    },
+    "rapportData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["navn", "totalVurdering", "egenskapsVurderinger", "indikatorVurderinger_egenskapVurderinger_vekting"],
+      "properties": {
+        "navn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "totalVurdering": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/totalVurdering"
+          }
+        },
+        "egenskapsVurderinger": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/egenskapsVurdering"
+          }
+        },
+        "indikatorVurderinger_egenskapVurderinger_vekting": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vekting"
+          }
+        }
+      }
+    }
+  }
+}
