@@ -24,7 +24,7 @@ Version: "1.0.0." # Beta-versions are numbers incrementally with values below 0.
 VersionComment: Last version was 000.003. This update has removed redundtant sensitivity analyses and simplified the workflow.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001
 Normalised: Yes
-SpatialAggregationPathway: 'sp. agg (polygons to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway, weighted by initial glacier area)'
+SpatialAggregationPathway: 'sp. agg (sum of area; polygon to geographic region) - [scale - trunc. - trans.] - sp. agg. (weighted mean; Norway (weighted by initial glacier area))'
 Precision: Inferential uncertainties (probability distributions and credible intervals) for the true value of the indicator mean.
 AuthorList: Kolstad, A.
 data_availability: gold
@@ -233,12 +233,12 @@ in the mapping method, and the spatial variation across strata.
 The indicator value represents the negative ecological effect of melting glacier ice. 
 Most glaciers are found in western and northern Norway, and due to the way the regions are weighted by their initial glacier extent, the national estimate is determined mainly by the changes in glacier area in these regions. 
 The indicator does NOT directly represent the area of remaining glacier ice.
-An indicator value of 1 signifies that the glacier extent is equal to, or greater than it was in the reference condition, defined by the climatic period between 1947 and 1985. 
+An indicator value of 1 signifies that the glacier extent and volume is equal to, or greater than it was in the reference condition, defined by the climatic period between 1947 and 1985. 
 Values decreasing toward zero reflect a reduction in the positive impacts of glacier and melt water, driven by the reduction in glacier area and volume.
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-The indicator value for Norway as a whole in 2024 (using data from 2018-2019) is 0.49 [95% CI = 0.48-0.50], which indicates that glacier area and volume have been reduced considerably, to the point where this change is having a negative effect the integrity of mountain ecosystems. 
+The indicator value for Norway as a whole in 2024 (using data from 2018-2019) is 0.52 [95% CI = 0.51-0.52], which indicates that glacier area and volume have been reduced considerably, to the point where this change is having a negative effect the integrity of mountain ecosystems. 
 The uncertainty for the national point estimate for this indicator is very small, which is expected due to the high level of spatial replication.  
 Future updates will require new maps of glacier cover in Norway, which is highly possible to produce from satellite imagery.
 
@@ -259,7 +259,7 @@ En indikatorverdi på 1 betyr at breutbredelsen er lik eller større enn den var
 Indikatoren representerer ikke direkte hvor stort areal som fortsatt er dekket av breis.
 
 4. **Resultater og utviklingsbehov**: 
-Indikatorverdien for hele Norge i 2024 (basert på data fra 2018–2019) er 0,49 [95 % KI = 0,48–0,50]. Dette indikerer at breareal og brevolum er betydelig redusert, til et nivå der endringene påvirker integriteten til fjelløkosystemene negativt.
+Indikatorverdien for hele Norge i 2024 (basert på data fra 2018–2019) er 0,52 [95 % KI = 0,51–0,52]. Dette indikerer at breareal og brevolum er betydelig redusert, til et nivå der endringene påvirker integriteten til fjelløkosystemene negativt.
 Usikkerheten rundt det nasjonale estimatet på indikatorverdien er svært lav, noe som er forventet grunnet den store utvalgsstørreslen.
 Fremtidige oppdateringer av indikatoren vil kreve nye kart over bredekningen i Norge. Slike kart kan med trolig produseres ved hjelp av satellittdata.
 
@@ -334,8 +334,9 @@ warming [@zemp2025].
 ### 3.5 Spatial aggregation
 The map data is prepared (clipped) to the spatial scale of five geographic regions in Norway. Then the variable is normalised before being aggregated to a national estimate.
 $$
-sp. agg (polygons to geographic region) - [scale - trunc. - trans.] - sp. agg. (Norway)
+sp. agg (1) - [scale - trunc. - trans.] - sp. agg. (2)
 $$
+where 1 is the sum of polygon area per geographic  region and 2 is a weighted mean for Norway.
 
 ## 4. Reference condition and levels
 
@@ -615,12 +616,13 @@ dat_old_region <- dat_old3 |>
     start_units = BS,
     end_units = region,
     end_units_name = "part",
-    n = 1000
+    n = 1000,
+    aggregation = "sum"
   ) |>
   # adding an ID column to make sure the left join that we do later is perfect
   rownames_to_column("rowID") |>
   unite("ID", c("rowID", "part"), remove = F) |>
-  rename(x100 = sampled_mean)
+  rename(x100 = sampled_value)
 
 saveRDS(dat_old_region, here::here("data/cache_dat_old_region.rds"))
 
@@ -637,11 +639,12 @@ dat_new_region <- dat_new3 |>
     start_units = BS,
     end_units = region,
     end_units_name = "part",
-    n = 1000
+    n = 1000,
+    aggregation = "sum"
   ) |>
   rownames_to_column("rowID") |>
   unite("ID", c("rowID", "part"), remove = F) |>
-  rename(variable = sampled_mean)
+  rename(variable = sampled_value)
 
 saveRDS(dat_new_region, here::here("data/cache_dat_new_region.rds"))
 
@@ -650,13 +653,13 @@ saveRDS(dat_new_region, here::here("data/cache_dat_new_region.rds"))
 
 ```{r}
 #| include: false
-#| eval: false
+#| eval: true
 dat_new_region <- readRDS(here::here("data/cache_dat_new_region.rds"))
 dat_old_region <- readRDS(here::here("data/cache_dat_old_region.rds"))
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
 dat_region <- dat_old_region |>
   left_join(
     dat_new_region |> select(ID, variable),
@@ -695,22 +698,24 @@ ggsave(here::here("img/skaleringsfunksjone.png"))
 
 ### Aggregate to Norway
 Then I propagate the uncertainties and a get an estimate for Norway as a whole.
+This time I aggregate using the weighted mean, and not the sum.
 
 ```{r}
-#| eval: false
+#| eval: true
 dat_norway <- dat_region |>
   add_column(end = "Norway") |>
   ecTools::ec_upscale(
     data = _,
     variable = indicator,
     year = year,
-    weight = variable,
+    weight = x100,
     start_units = part,
     end_units = end,
     end_units_name = "part",
-    n = 1000
+    n = 1000,
+    aggregation = "weighted_mean"
   )
-saveRDS(dat_norway, here::here("data/cache_dat_norway.rds"))
+# saveRDS(dat_norway, here::here("data/cache_dat_norway.rds"))
 ```
 
 ```{r}
@@ -720,9 +725,9 @@ dat_norway <- readRDS(here::here("data/cache_dat_norway.rds"))
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
 dat_comb <- dat_region |>
-  select(year, part, sampled_mean = indicator) |>
+  select(year, part, sampled_value = indicator) |>
   bind_rows(dat_norway) |>
   mutate(
     part = case_when(
@@ -734,19 +739,14 @@ dat_comb <- dat_region |>
       part == "Norway" ~ "Norway",
       .unmatched = "error"
     )
-  )
+  ) |>
+    rename(sampled_mean = sampled_value)
 ```
 
 ```{r exportCSV}
 #| eval: false
 #| code-summary: 'Export data'
 write.csv(dat_comb, here::here("data/results_NO_GLAC_001_v1.0.0.csv"), row.names = F)
-```
-
-```{r}
-#| include: false
-#| message: false
-dat_comb <- read_csv(here::here("data/results_NO_GLAC_001_v1.0.0.csv"))
 ```
 
 
