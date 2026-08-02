@@ -1,17 +1,29 @@
 # Functions for NO_INDEX_001 composite index calculation
 # Tidyverse orchestration + ecTools::ec_upscale for MC aggregation
+#
+# Sections follow the analysis pipeline:
+#   helpers → catalog → read/harmonise → source resolution →
+#   registry → load draws → aggregate → summarise/plot/export
 
+# =============================================================================
+# 1. Constants and small helpers
+# =============================================================================
+
+# NI region codes used throughout (plus Norway).
 CANONICAL_PARTS <- c("C", "E", "S", "W", "N", "Norway")
 
+# Extract ECT class code (e.g. A1) from a label.
 parse_ect <- function(x) {
   stringr::str_extract(stringr::str_squish(x), "^[ABC][0-9]")
 }
 
+# Load alias → part lookup table.
 load_region_lookup <- function(path = here::here("data/region_lookup.csv")) {
   lookup <- readr::read_csv(path, show_col_types = FALSE)
   stats::setNames(lookup$part, lookup$alias)
 }
 
+# Map region labels to canonical NI parts.
 standardize_part <- function(x, lookup = load_region_lookup()) {
   x_clean <- stringr::str_squish(as.character(x))
   out <- lookup[x_clean]
@@ -26,6 +38,7 @@ standardize_part <- function(x, lookup = load_region_lookup()) {
   out
 }
 
+# Map a reporting period to its end year.
 period_to_year <- function(period) {
   p <- as.character(period)
   out <- suppressWarnings(as.integer(p))
@@ -37,10 +50,110 @@ period_to_year <- function(period) {
   out
 }
 
+# TRUE if path is an http(s) URL.
 is_results_url <- function(path) {
   grepl("^https?://", path)
 }
 
+# =============================================================================
+# 2. Indicator catalog and ID mapping
+# =============================================================================
+
+# Known ecRxiv folders, IDs, and ecosystems.
+indicator_catalog <- function() {
+  tibble::tribble(
+    ~folder, ~title, ~indicator_id, ~ecosystem_hint,
+    "NO_AATS_001", "Absence of alien coniferous tree species", "NO_AATS_001", "forest",
+    "NO_AATS_002", "Alien conifers", "NO_AATS_002", "forest",
+    "NO_AFOX_001", "Arctic fox", "NO_AFOX_001", "mountain",
+    "NO_ALIE_001", "Alien species", "NO_ALIE_001", "mountain",
+    "NO_ALIE_002", "Alien plants", "NO_ALIE_002", "forest,mountain",
+    "NO_BFLY_001_002", "Butterflies", "NO_BFLY_002", "forest",
+    "NO_BFLY_001_002", "Butterflies", "NO_BFLY_001", "grassland",
+    "NO_BUMB_001_002", "Bumblebees", "NO_BUMB_002", "forest",
+    "NO_BUMB_001_002", "Bumblebees", "NO_BUMB_001", "grassland",
+    "NO_BBCA_001", "Bilberry cover by area", "NO_BBCA_001", "forest",
+    "NO_CONN_001", "Connectivity", "NO_CONN_001", "forest",
+    "NO_DEER_001", "Red deer", "NO_DEER_001", "forest",
+    "NO_DTVS_001", "Dead trees by volume as share of volume of all trees in productive forests", "NO_DTVS_001", "forest",
+    "NO_FUMO_004", "Moisture impact on vegetation", "NO_FUMO_004", "forest",
+    "NO_FUNI_004", "Nitrogen impact on vegetation", "NO_FUNI_004", "forest",
+    "NO_FUNI_002", "Nitrogen impact on vegetation", "NO_FUNI_002", "grassland",
+    "NO_DIST_001", "Disturbance index", "NO_DIST_001", "mountain",
+    "NO_FUNC_001-004", "Vegetation functional indicators", "NO_FUNC_xxx", "mountain",
+    "NO_GLAC_001", "Glacier area", "NO_GLAC_001", "mountain",
+    "NO_GOLD_001", "Golden eagle", "NO_GOLD_001", "mountain",
+    "NO_JERV_001", "Wolverine", "NO_JERV_001", "mountain",
+    "NO_LAVH_001", "Lichen biomass", "NO_LAVH_001", "mountain",
+    "NO_LTFA_001", "Large trees share of forest area", "NO_LTFA_001", "forest",
+    "NO_MLFA_001", "Multi-layered forest as share of productive forest area", "NO_MLFA_001", "forest",
+    "NO_MOOS_001", "Moose", "NO_MOOS_001", "forest",
+    "NO_PTAR_001", "Ptarmigan", "NO_PTAR_001", "mountain",
+    "NO_RODE_001", "Rodents", "NO_RODE_001", "mountain",
+    "NO_ROED_001", "Roe deer", "NO_ROED_001", "forest",
+    "NO_SNOW_001", "NO_SNOW_001", "NO_SNOW_001", "mountain",
+    "NO_TDTA_001", "Temperate deciduous trees by share of forest area in the nemoral and boreonemoral zones", "NO_TDTA_001", "forest",
+    "NO_SLIT_001-004", "Trampling disturbance", "NO_SLIT_001", "mountain",
+    "NO_SLIT_002", "Erosive disturbance", "NO_SLIT_002", "forest",
+    "NO_BEAR_001", "Brown bear", "NO_BAER_001", "forest",
+    "NO_LYNX_001", "Lynx", "NO_LYNX_001", "forest",
+    "NO_WOLF_001", "Wolf", "NO_WOLF_001", "forest",
+    "NO_AIFH_001", "Clear-cutting", "NO_AIFH_001", "forest",
+    "NO_AIVS_001", "Ditching", "NO_AIVS_001", "forest",
+    "NO_BLAA_001", "Bilberry cover", "NO_BLAA_001", "forest",
+    "NO_BGSK_001", "Old forest", "NO_BGSK_001", "forest",
+    "NO_ROSE_001", "Rowan, aspen, and goat willow", "NO_ROSE_001", "forest",
+    "NO_DLTA_001", "Large trees", "NO_DLTA_001", "forest",
+    "NO_DWTO_001", "Dead wood share", "NO_DWTO_001", "forest",
+    "NO_ALIE_004", "Alien plant species", "NO_ALIE_004", "forest"
+  )
+}
+
+# Map registry display names to indicator IDs.
+name_to_id_overrides <- function() {
+  c(
+    "Ditching" = "NO_AIVS_001",
+    "Clear-cutting" = "NO_AIFH_001",
+    "Moisture impacts on vegetation" = "NO_FUMO_004",
+    "Nitrogen impacts on vegetation" = "NO_FUNI_004",
+    "Butterflies" = "NO_BFLY_002",
+    "Bumblebees" = "NO_BUMB_002",
+    "Dead wood volume" = "NO_DTVS_001",
+    "Dead wood share" = "NO_DWTO_001",
+    "Disturbance index" = "NO_DIST_001",
+    "Trampling disturbance" = "NO_SLIT_001",
+    "Vegetation functional indicators" = "NO_FUNC_xxx",
+    "Alien plantspecies" = "NO_ALIE_004",
+    "Alien conifers" = "NO_AATS_002",
+    "Rowan, aspen and goat willow" = "NO_ROSE_001",
+    "Multi-layered forest" = "NO_MLFA_001",
+    "Large trees" = "NO_DLTA_001",
+    "Old forest" = "NO_BGSK_001",
+    "Moose" = "NO_MOOS_001",
+    "Red deer" = "NO_DEER_001",
+    "Roe deer" = "NO_ROED_001",
+    "Bilberry cover" = "NO_BLAA_001",
+    "Connected low-infrastructure forest habitat" = "NO_CONN_001",
+    "Glacier area" = "NO_GLAC_001",
+    "Snow cover" = "NO_SNOW_001",
+    "Lichen biomass" = "NO_LAVH_001",
+    "Arctic fox" = "NO_AFOX_001",
+    "Ptarmigan" = "NO_PTAR_001",
+    "Small rodents" = "NO_RODE_001",
+    "Wolverine" = "NO_JERV_001",
+    "Golden eagle" = "NO_GOLD_001",
+    "Connectivity" = "NO_CONN_001",
+    "Brown bear" = "NO_BAER_001",
+    "Lynx" = "NO_LYNX_001",
+    "Wolf" = "NO_WOLF_001"
+  )
+}
+
+# =============================================================================
+# 3. Reading and harmonising results
+# =============================================================================
+
+# Read CSV, RDS, or parquet results from path/URL.
 read_indicator_file <- function(path, n_max = Inf) {
   ext <- tolower(tools::file_ext(path))
 
@@ -76,6 +189,7 @@ read_indicator_file <- function(path, n_max = Inf) {
   stop("Unsupported results file type: ", ext, " (", path, ")", call. = FALSE)
 }
 
+# Standardise columns to year, part, value.
 harmonise_indicator_draws <- function(
     dat,
     indicator_id = NA_character_,
@@ -146,6 +260,63 @@ harmonise_indicator_draws <- function(
     dplyr::filter(!is.na(.data$part), !is.na(.data$value), !is.na(.data$year))
 }
 
+# Read and harmonise results (incl. companion national RDS).
+read_indicator_results <- function(
+    path,
+    indicator_id = NA_character_,
+    lookup = load_region_lookup(),
+    n_max = Inf) {
+  dat <- read_indicator_file(path, n_max = n_max)
+  out <- harmonise_indicator_draws(dat, indicator_id = indicator_id, lookup = lookup)
+
+  if (grepl("_mc_regional\\.rds$", path, ignore.case = TRUE)) {
+    nat_path <- sub("_mc_regional\\.rds$", "_mc_national.rds", path, ignore.case = TRUE)
+    nat_ok <- if (nat_path != path) {
+      if (is_results_url(nat_path)) {
+        probe_results_source(nat_path)
+      } else {
+        file.exists(nat_path)
+      }
+    } else {
+      FALSE
+    }
+    if (nat_ok) {
+      nat_dat <- read_indicator_file(nat_path, n_max = n_max)
+      out <- dplyr::bind_rows(
+        out,
+        harmonise_indicator_draws(nat_dat, indicator_id = indicator_id, lookup = lookup)
+      )
+    }
+  }
+
+  out
+}
+
+# Resolve source then load harmonised draws.
+fetch_indicator_results <- function(
+    indicator_id,
+    folder = indicator_id,
+    version = "1.0.0",
+    repo = "NINAnor/ecRxiv",
+    ref = "main",
+    lookup = load_region_lookup(),
+    include_submission = TRUE,
+    local_dir = here::here("data")) {
+  src <- resolve_indicator_source(
+    indicator_id,
+    folder,
+    version,
+    repo,
+    include_submission = include_submission,
+    local_dir = local_dir
+  )
+  if (is.null(src)) {
+    stop("No results found for ", indicator_id, call. = FALSE)
+  }
+  read_indicator_results(src$results_url, indicator_id = indicator_id, lookup = lookup)
+}
+
+# Pull indicator ID from a file path or branch name.
 extract_indicator_id_from_path <- function(path, ref_name = NA_character_) {
   id <- stringr::str_match(path, "results_(NO_[A-Z0-9]+_[0-9]{3})")[, 2]
   if (!is.na(id)) {
@@ -167,94 +338,11 @@ extract_indicator_id_from_path <- function(path, ref_name = NA_character_) {
   NA_character_
 }
 
-indicator_catalog <- function() {
-  tibble::tribble(
-    ~folder, ~title, ~indicator_id, ~ecosystem_hint,
-    "NO_AATS_001", "Absence of alien coniferous tree species", "NO_AATS_001", "forest",
-    "NO_AATS_002", "Alien conifers", "NO_AATS_002", "forest",
-    "NO_AFOX_001", "Arctic fox", "NO_AFOX_001", "mountain",
-    "NO_ALIE_001", "Alien species", "NO_ALIE_001", "mountain",
-    "NO_ALIE_002", "Alien plants", "NO_ALIE_002", "forest,mountain",
-    "NO_BFLY_001_002", "Butterflies", "NO_BFLY_002", "forest",
-    "NO_BFLY_001_002", "Butterflies", "NO_BFLY_001", "grassland",
-    "NO_BUMB_001_002", "Bumblebees", "NO_BUMB_002", "forest",
-    "NO_BUMB_001_002", "Bumblebees", "NO_BUMB_001", "grassland",
-    "NO_BBCA_001", "Bilberry cover by area", "NO_BBCA_001", "forest",
-    "NO_CONN_001", "Connectivity", "NO_CONN_001", "forest",
-    "NO_DEER_001", "Red deer", "NO_DEER_001", "forest",
-    "NO_DTVS_001", "Dead trees by volume as share of volume of all trees in productive forests", "NO_DTVS_001", "forest",
-    "NO_FUMO_004", "Moisture impact on vegetation", "NO_FUMO_004", "forest",
-    "NO_FUNI_004", "Nitrogen impact on vegetation", "NO_FUNI_004", "forest",
-    "NO_FUNI_002", "Nitrogen impact on vegetation", "NO_FUNI_002", "grassland",
-    "NO_DIST_001", "Disturbance index", "NO_DIST_001", "mountain",
-    "NO_FUNC_001-004", "Vegetation functional indicators", "NO_FUNC_xxx", "mountain",
-    "NO_GLAC_001", "Glacier area", "NO_GLAC_001", "mountain",
-    "NO_GOLD_001", "Golden eagle", "NO_GOLD_001", "mountain",
-    "NO_JERV_001", "Wolverine", "NO_JERV_001", "mountain",
-    "NO_LAVH_001", "Lichen biomass", "NO_LAVH_001", "mountain",
-    "NO_LTFA_001", "Large trees share of forest area", "NO_LTFA_001", "forest",
-    "NO_MLFA_001", "Multi-layered forest as share of productive forest area", "NO_MLFA_001", "forest",
-    "NO_MOOS_001", "Moose", "NO_MOOS_001", "forest",
-    "NO_PTAR_001", "Ptarmigan", "NO_PTAR_001", "mountain",
-    "NO_RODE_001", "Rodents", "NO_RODE_001", "mountain",
-    "NO_ROED_001", "Roe deer", "NO_ROED_001", "forest",
-    "NO_SNOW_001", "NO_SNOW_001", "NO_SNOW_001", "mountain",
-    "NO_TDTA_001", "Temperate deciduous trees by share of forest area in the nemoral and boreonemoral zones", "NO_TDTA_001", "forest",
-    "NO_SLIT_001-004", "Trampling disturbance", "NO_SLIT_001", "mountain",
-    "NO_SLIT_002", "Erosive disturbance", "NO_SLIT_002", "forest",
-    "NO_BEAR_001", "Brown bear", "NO_BAER_001", "forest",
-    "NO_LYNX_001", "Lynx", "NO_LYNX_001", "forest",
-    "NO_WOLF_001", "Wolf", "NO_WOLF_001", "forest",
-    "NO_AIFH_001", "Clear-cutting", "NO_AIFH_001", "forest",
-    "NO_AIVS_001", "Ditching", "NO_AIVS_001", "forest",
-    "NO_BLAA_001", "Bilberry cover", "NO_BLAA_001", "forest",
-    "NO_BGSK_001", "Old forest", "NO_BGSK_001", "forest",
-    "NO_ROSE_001", "Rowan, aspen, and goat willow", "NO_ROSE_001", "forest",
-    "NO_DLTA_001", "Large trees", "NO_DLTA_001", "forest",
-    "NO_DWTO_001", "Dead wood share", "NO_DWTO_001", "forest",
-    "NO_ALIE_004", "Alien plant species", "NO_ALIE_004", "forest"
-  )
-}
+# =============================================================================
+# 4. Finding and resolving result sources
+# =============================================================================
 
-name_to_id_overrides <- function() {
-  c(
-    "Ditching" = "NO_AIVS_001",
-    "Clear-cutting" = "NO_AIFH_001",
-    "Moisture impacts on vegetation" = "NO_FUMO_004",
-    "Nitrogen impacts on vegetation" = "NO_FUNI_004",
-    "Butterflies" = "NO_BFLY_002",
-    "Bumblebees" = "NO_BUMB_002",
-    "Dead wood volume" = "NO_DTVS_001",
-    "Dead wood share" = "NO_DWTO_001",
-    "Disturbance index" = "NO_DIST_001",
-    "Trampling disturbance" = "NO_SLIT_001",
-    "Vegetation functional indicators" = "NO_FUNC_xxx",
-    "Alien plantspecies" = "NO_ALIE_004",
-    "Alien conifers" = "NO_AATS_002",
-    "Rowan, aspen and goat willow" = "NO_ROSE_001",
-    "Multi-layered forest" = "NO_MLFA_001",
-    "Large trees" = "NO_DLTA_001",
-    "Old forest" = "NO_BGSK_001",
-    "Moose" = "NO_MOOS_001",
-    "Red deer" = "NO_DEER_001",
-    "Roe deer" = "NO_ROED_001",
-    "Bilberry cover" = "NO_BLAA_001",
-    "Connected low-infrastructure forest habitat" = "NO_CONN_001",
-    "Glacier area" = "NO_GLAC_001",
-    "Snow cover" = "NO_SNOW_001",
-    "Lichen biomass" = "NO_LAVH_001",
-    "Arctic fox" = "NO_AFOX_001",
-    "Ptarmigan" = "NO_PTAR_001",
-    "Small rodents" = "NO_RODE_001",
-    "Wolverine" = "NO_JERV_001",
-    "Golden eagle" = "NO_GOLD_001",
-    "Connectivity" = "NO_CONN_001",
-    "Brown bear" = "NO_BAER_001",
-    "Lynx" = "NO_LYNX_001",
-    "Wolf" = "NO_WOLF_001"
-  )
-}
-
+# Build default raw GitHub URL for a results CSV.
 fetch_indicator_results_url <- function(
     indicator_id,
     folder = indicator_id,
@@ -265,10 +353,12 @@ fetch_indicator_results_url <- function(
   glue::glue("https://raw.githubusercontent.com/{repo}/{ref}/{file}")
 }
 
+# Build raw.githubusercontent.com URL for repo/ref/path.
 build_raw_url <- function(repo, ref, results_path) {
   glue::glue("https://raw.githubusercontent.com/{repo}/{ref}/{results_path}")
 }
 
+# Load scanned (+ optional extra) source manifest.
 load_indicator_sources_manifest <- function(
     path = here::here("data/indicator_sources.csv"),
     extra_path = here::here("data/indicator_sources_extra.csv")) {
@@ -303,6 +393,7 @@ load_indicator_sources_manifest <- function(
     dplyr::arrange(.data$indicator_id, .data$priority, .data$ref)
 }
 
+# Likely submission-* branch names for an indicator.
 submission_branch_candidates <- function(indicator_id, folder = indicator_id) {
   unique(c(
     glue::glue("submission-{indicator_id}"),
@@ -312,12 +403,14 @@ submission_branch_candidates <- function(indicator_id, folder = indicator_id) {
   ))
 }
 
+# Short slug for MC RDS filenames (e.g. dtvs).
 indicator_mc_slug <- function(indicator_id) {
   core <- sub("^NO_", "", indicator_id)
   core <- sub("_0[0-9]{2}.*$", "", core)
   tolower(core)
 }
 
+# Prefer slug-matching MC RDS when several exist.
 filter_indicator_source_candidates <- function(candidates, indicator_id) {
   if (nrow(candidates) == 0) {
     return(candidates)
@@ -340,6 +433,7 @@ filter_indicator_source_candidates <- function(candidates, indicator_id) {
     dplyr::select(-"is_mc_rds", -"slug_match")
 }
 
+# Possible results file paths inside a repo.
 results_path_candidates <- function(
     indicator_id,
     folder = indicator_id,
@@ -370,6 +464,7 @@ results_path_candidates <- function(
   ))
 }
 
+# Default main/submission candidate table for probing.
 default_source_candidates <- function(
     indicator_id,
     folder = indicator_id,
@@ -410,6 +505,7 @@ default_source_candidates <- function(
   rows
 }
 
+# Check whether a results path/URL can be read.
 probe_results_source <- function(path_or_url) {
   # Candidate URLs often 404; readr/arrow emit warnings rather than (only) errors.
   suppressWarnings(
@@ -422,6 +518,7 @@ probe_results_source <- function(path_or_url) {
   )
 }
 
+# Search local data/ for a results file.
 find_local_results_path <- function(
     indicator_id,
     local_dir = here::here("data")) {
@@ -441,6 +538,7 @@ find_local_results_path <- function(
   hits[[1]]
 }
 
+# Resolve the best available results source for an ID.
 resolve_indicator_source <- function(
     indicator_id,
     folder = indicator_id,
@@ -502,6 +600,7 @@ resolve_indicator_source <- function(
   NULL
 }
 
+# Scan upstream git refs and write the source manifest.
 scan_git_indicator_sources <- function(
     git_remote = "upstream",
     repo = "NINAnor/ecRxiv",
@@ -617,6 +716,7 @@ scan_git_indicator_sources <- function(
   out
 }
 
+# TRUE if any results source resolves for an ID.
 results_available_remote <- function(
     indicator_id,
     folder = indicator_id,
@@ -635,6 +735,11 @@ results_available_remote <- function(
   ))
 }
 
+# =============================================================================
+# 5. Building the indicator registry
+# =============================================================================
+
+# Build forest/mountain registry and match status.
 build_indicator_registry <- function(
     csv_path,
     ecosystem = c("forest", "mountain"),
@@ -720,60 +825,11 @@ build_indicator_registry <- function(
   registry
 }
 
-read_indicator_results <- function(
-    path,
-    indicator_id = NA_character_,
-    lookup = load_region_lookup(),
-    n_max = Inf) {
-  dat <- read_indicator_file(path, n_max = n_max)
-  out <- harmonise_indicator_draws(dat, indicator_id = indicator_id, lookup = lookup)
+# =============================================================================
+# 6. Loading draws for the index
+# =============================================================================
 
-  if (grepl("_mc_regional\\.rds$", path, ignore.case = TRUE)) {
-    nat_path <- sub("_mc_regional\\.rds$", "_mc_national.rds", path, ignore.case = TRUE)
-    nat_ok <- if (nat_path != path) {
-      if (is_results_url(nat_path)) {
-        probe_results_source(nat_path)
-      } else {
-        file.exists(nat_path)
-      }
-    } else {
-      FALSE
-    }
-    if (nat_ok) {
-      nat_dat <- read_indicator_file(nat_path, n_max = n_max)
-      out <- dplyr::bind_rows(
-        out,
-        harmonise_indicator_draws(nat_dat, indicator_id = indicator_id, lookup = lookup)
-      )
-    }
-  }
-
-  out
-}
-
-fetch_indicator_results <- function(
-    indicator_id,
-    folder = indicator_id,
-    version = "1.0.0",
-    repo = "NINAnor/ecRxiv",
-    ref = "main",
-    lookup = load_region_lookup(),
-    include_submission = TRUE,
-    local_dir = here::here("data")) {
-  src <- resolve_indicator_source(
-    indicator_id,
-    folder,
-    version,
-    repo,
-    include_submission = include_submission,
-    local_dir = local_dir
-  )
-  if (is.null(src)) {
-    stop("No results found for ", indicator_id, call. = FALSE)
-  }
-  read_indicator_results(src$results_url, indicator_id = indicator_id, lookup = lookup)
-}
-
+# Keep the last n reporting years per indicator.
 select_reporting_years <- function(data, n = 2) {
   years_keep <- data |>
     dplyr::distinct(.data$indicator_id, .data$year) |>
@@ -786,6 +842,7 @@ select_reporting_years <- function(data, n = 2) {
     dplyr::semi_join(years_keep, by = c("indicator_id", "year"))
 }
 
+# Load MC draws for all matched registry indicators.
 load_registry_draws <- function(
     registry,
     n_years = 2,
@@ -838,6 +895,11 @@ load_registry_draws <- function(
     select_reporting_years(n = n_years)
 }
 
+# =============================================================================
+# 7. Aggregation with ecTools::ec_upscale
+# =============================================================================
+
+# Unnest list-column sampled_mean from ec_upscale output.
 unnest_upscale <- function(x) {
   if (vctrs::vec_size(x$sampled_mean[[1]]) == 1L) {
     return(x)
@@ -845,6 +907,7 @@ unnest_upscale <- function(x) {
   tidyr::unnest_longer(x, sampled_mean)
 }
 
+# Resample indicators to ECT classes (equal weights).
 aggregate_to_ect <- function(draws, n = 1000) {
   parts <- unique(draws$part)
   purrr::map_dfr(parts, function(p) {
@@ -868,6 +931,7 @@ aggregate_to_ect <- function(draws, n = 1000) {
   })
 }
 
+# Resample ECT classes to overall index (equal weights).
 aggregate_to_index <- function(ect_draws, n = 1000) {
   parts <- unique(ect_draws$part)
   purrr::map_dfr(parts, function(p) {
@@ -891,6 +955,7 @@ aggregate_to_index <- function(ect_draws, n = 1000) {
   })
 }
 
+# Upscale regional draws to Norway (equal weights).
 aggregate_to_national <- function(
     draws,
     value_col = "sampled_mean",
@@ -926,6 +991,11 @@ aggregate_to_national <- function(
     })
 }
 
+# =============================================================================
+# 8. Index calculation, summaries, plots, and export
+# =============================================================================
+
+# Count contributing indicators by year and region.
 indicator_coverage <- function(draws, registry) {
   draws |>
     dplyr::group_by(.data$year, .data$part) |>
@@ -937,6 +1007,7 @@ indicator_coverage <- function(draws, registry) {
     )
 }
 
+# Full index pipeline: load, aggregate, summarise.
 calculate_index <- function(
     registry,
     n_sim = 1000,
@@ -977,6 +1048,7 @@ calculate_index <- function(
   )
 }
 
+# Median and 95% interval of MC distributions.
 summarise_index <- function(distributions) {
   distributions |>
     dplyr::group_by(.data$year, .data$part, .data$level, .data$id) |>
@@ -989,6 +1061,7 @@ summarise_index <- function(distributions) {
     )
 }
 
+# Forest-style plot of ECT and index summaries.
 plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
   ect_ids <- summaries |>
     dplyr::filter(.data$level == "ECT") |>
@@ -1033,6 +1106,7 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
     )
 }
 
+# Write MC distributions to CSV.
 export_index_results <- function(distributions, path) {
   out <- distributions |>
     dplyr::transmute(
@@ -1044,3 +1118,4 @@ export_index_results <- function(distributions, path) {
     )
   readr::write_csv(out, path)
 }
+
