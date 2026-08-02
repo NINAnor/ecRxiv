@@ -202,7 +202,7 @@ indicator_catalog <- function() {
     "NO_TDTA_001", "Temperate deciduous trees by share of forest area in the nemoral and boreonemoral zones", "NO_TDTA_001", "forest",
     "NO_SLIT_001-004", "Trampling disturbance", "NO_SLIT_001", "mountain",
     "NO_SLIT_002", "Erosive disturbance", "NO_SLIT_002", "forest",
-    "NO_BAER_001", "Brown bear", "NO_BAER_001", "forest",
+    "NO_BEAR_001", "Brown bear", "NO_BAER_001", "forest",
     "NO_LYNX_001", "Lynx", "NO_LYNX_001", "forest",
     "NO_WOLF_001", "Wolf", "NO_WOLF_001", "forest",
     "NO_AIFH_001", "Clear-cutting", "NO_AIFH_001", "forest",
@@ -285,7 +285,13 @@ load_indicator_sources_manifest <- function(
     parts <- c(parts, list(readr::read_csv(path, show_col_types = FALSE)))
   }
   if (file.exists(extra_path)) {
-    parts <- c(parts, list(readr::read_csv(extra_path, show_col_types = FALSE)))
+    extra <- readr::read_csv(extra_path, show_col_types = FALSE)
+    if (nrow(extra) > 0) {
+      if ("priority" %in% names(extra)) {
+        extra$priority <- as.integer(extra$priority)
+      }
+      parts <- c(parts, list(extra))
+    }
   }
 
   if (length(parts) == 0) {
@@ -597,9 +603,15 @@ scan_git_indicator_sources <- function(
 
   extra_path <- here::here("data/indicator_sources_extra.csv")
   if (file.exists(extra_path)) {
-    out <- dplyr::bind_rows(out, readr::read_csv(extra_path, show_col_types = FALSE)) |>
-      dplyr::distinct(.data$indicator_id, .data$ref, .data$results_path, .keep_all = TRUE) |>
-      dplyr::arrange(.data$indicator_id, .data$priority, .data$ref)
+    extra <- readr::read_csv(extra_path, show_col_types = FALSE)
+    if (nrow(extra) > 0) {
+      if ("priority" %in% names(extra)) {
+        extra$priority <- as.integer(extra$priority)
+      }
+      out <- dplyr::bind_rows(out, extra) |>
+        dplyr::distinct(.data$indicator_id, .data$ref, .data$results_path, .keep_all = TRUE) |>
+        dplyr::arrange(.data$indicator_id, .data$priority, .data$ref)
+    }
   }
 
   out
