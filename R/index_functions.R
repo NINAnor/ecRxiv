@@ -997,8 +997,11 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
     )
   ) +
     ggplot2::geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey70") +
-    ggplot2::geom_pointrange(position = ggplot2::position_dodge(width = 0.5)) +
-    ggplot2::facet_grid(level ~ year, scales = "free_y", space = "free_y") +
+    ggplot2::geom_pointrange(
+      position = ggplot2::position_dodge(width = 0.5),
+      size = 0.35
+    ) +
+    ggplot2::facet_wrap(~year, nrow = 1) +
     ggplot2::scale_x_continuous(limits = c(0, 1)) +
     ggplot2::labs(
       title = title,
@@ -1006,7 +1009,11 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
       y = NULL,
       colour = "Region"
     ) +
-    ggplot2::theme_bw()
+    ggplot2::theme_bw(base_size = 11) +
+    ggplot2::theme(
+      panel.spacing.x = ggplot2::unit(0.8, "lines"),
+      plot.margin = ggplot2::margin(5, 5, 5, 5)
+    )
 }
 
 export_index_results <- function(distributions, path) {
