@@ -757,7 +757,7 @@ fetch_indicator_results <- function(
   read_indicator_results(src$results_url, indicator_id = indicator_id, lookup = lookup)
 }
 
-select_reporting_years <- function(data, n = 3) {
+select_reporting_years <- function(data, n = 2) {
   years_keep <- data |>
     dplyr::distinct(.data$indicator_id, .data$year) |>
     dplyr::group_by(.data$indicator_id) |>
@@ -771,7 +771,7 @@ select_reporting_years <- function(data, n = 3) {
 
 load_registry_draws <- function(
     registry,
-    n_years = 3,
+    n_years = 2,
     repo = "NINAnor/ecRxiv",
     ref = "main",
     local_root = NULL,
@@ -923,7 +923,7 @@ indicator_coverage <- function(draws, registry) {
 calculate_index <- function(
     registry,
     n_sim = 1000,
-    n_years = 3,
+    n_years = 2,
     include_national = TRUE,
     ...) {
   draws <- load_registry_draws(registry, n_years = n_years, ...)

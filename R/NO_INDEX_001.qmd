@@ -161,7 +161,7 @@ Only `matched` indicators proceed to the analysis in @sec-analyses.
 ```{r registry}
 #| cache: false
 n_sim <- 1000
-n_years <- 3
+n_years <- 2
 
 registry_forest <- build_indicator_registry(
   here("data/indicators_2026.csv"),
@@ -176,17 +176,29 @@ registry_mountain <- build_indicator_registry(
 )
 ```
 
+```{r registry-status}
+# Compact included / not-included overview (instead of long coverage lists)
+registry_status_table <- function(registry, caption) {
+  registry |>
+    dplyr::transmute(
+      ECT = .data$ect,
+      Indicator = .data$indicatorName,
+      ID = .data$indicatorID,
+      Status = dplyr::case_when(
+        .data$match_status == "matched" ~ "Included",
+        .data$match_status == "no_results" ~ "No results yet",
+        TRUE ~ "Missing ID"
+      )
+    ) |>
+    dplyr::arrange(.data$ECT, .data$Status, .data$Indicator) |>
+    knitr::kable(caption = caption)
+}
 
-```{r registry-forest}
-registry_forest |>
-  select(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) |>
-  kable(caption = "Forest indicator registry")
+registry_status_table(registry_forest, "Forest indicators — inclusion status")
 ```
 
-```{r registry-mountain}
-registry_mountain |>
-  select(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) |>
-  kable(caption = "Mountain indicator registry (ECA_2026 #104)")
+```{r registry-status-mountain}
+registry_status_table(registry_mountain, "Mountain indicators — inclusion status")
 ```
 
 ## 3. Analyses {#sec-analyses}
@@ -214,7 +226,7 @@ Some publish single calendar years (`year`); others publish multi-year **reporti
 These period labels also differ between indicators (length and start/end years are not standardised).
 
 For aggregation we map each reporting period to a single calendar year using the **period end year** (`period_to_year()`, e.g. `2020-2024` → `2024`).
-Where the source already provides `year`, that value is kept as is. For each indicator we then retain the **last three** of these mapped years (`select_reporting_years()`).
+Where the source already provides `year`, that value is kept as is. For each indicator we then retain the **last two** of these mapped years (`select_reporting_years()`), which for most current forest indicators corresponds to **2019** and **2024**.
 Indicators may therefore appear in different years in the index, depending on their own reporting schedule.
 
 ### 3.3 Resampling and aggregation
@@ -229,11 +241,11 @@ Steps 1–2 are run separately for each year and region (`C`, `E`, `S`, `W`, `N`
 
 This propagates uncertainty from individual indicators through ECT classes to the composite index without assuming independence beyond the structure encoded in the published indicator MC distributions.
 
-### 3.4 Summaries and coverage
+### 3.4 Summaries
 
-The full MC distributions are stored for export.
+The full MC distributions (all regions) are stored for export.
 For reporting we summarise each ECT class and the overall index by the **median** and an approximate **95% interval** (2.5% and 97.5% quantiles).
-A coverage table records how many indicators contributed to each year–region combination.
+Regional indices are calculated in steps 1–2 above; national values are obtained in step 3.
 
 ```{r run-forest}
 #| cache: false
@@ -242,9 +254,6 @@ forest_index <- calculate_index(
   n_sim = n_sim,
   n_years = n_years
 )
-
-forest_index$coverage |>
-  kable(caption = "Forest index — indicator coverage by year and region")
 ```
 
 ```{r run-mountain}
@@ -254,9 +263,6 @@ mountain_index <- calculate_index(
   n_sim = n_sim,
   n_years = n_years
 )
-
-mountain_index$coverage |>
-  kable(caption = "Mountain index — indicator coverage by year and region")
 ```
 
 ```{r validation}
@@ -275,39 +281,44 @@ if (sum(registry_mountain$match_status == "matched") >= 1) {
 
 ## 4. Results
 
+Summary tables report ECT classes and the overall index for **Norway** only (both retained reporting years).
+Regional indices (`C`, `E`, `S`, `W`, `N`) are calculated and shown in the figures below; full draws including regions are also written to the export files in @sec-export.
+
 ```{r forest-summary}
 forest_index$summaries |>
-  filter(part == "Norway", year == max(year)) |>
-  arrange(level, id) |>
-  kable(digits = 3, caption = "Forest index — Norway (latest year)")
+  filter(part == "Norway") |>
+  arrange(year, level, id) |>
+  select(year, level, id, median, q025, q975) |>
+  kable(digits = 3, caption = "Forest index — Norway")
 ```
 
 ```{r mountain-summary}
 mountain_index$summaries |>
-  filter(part == "Norway", year == max(year)) |>
-  arrange(level, id) |>
-  kable(digits = 3, caption = "Mountain index — Norway (latest year)")
+  filter(part == "Norway") |>
+  arrange(year, level, id) |>
+  select(year, level, id, median, q025, q975) |>
+  kable(digits = 3, caption = "Mountain index — Norway")
 ```
 
 ```{r forest-plot}
-#| fig-height: 3.5
+#| fig-height: 4
 #| fig-width: 9
 plot_index_forest(
-  forest_index$summaries |> filter(part == "Norway"),
-  title = "NO_INDEX_001 — forest (Norway)"
+  forest_index$summaries,
+  title = "NO_INDEX_001 — forest"
 )
 ```
 
 ```{r mountain-plot}
-#| fig-height: 3
+#| fig-height: 3.5
 #| fig-width: 9
 plot_index_forest(
-  mountain_index$summaries |> filter(part == "Norway"),
-  title = "NO_INDEX_001 — mountain (Norway)"
+  mountain_index$summaries,
+  title = "NO_INDEX_001 — mountain"
 )
 ```
 
-## 5. Export file
+## 5. Export file {#sec-export}
 
 ```{r export}
 #| cache: false
