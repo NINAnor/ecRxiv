@@ -1,30 +1,28 @@
 ---
 title: "Calculation of ecological indicators index"
 subtitle: |
-  NO_INDEX_001 (forest and mountain)
+  Ecological index for forest and mountain
 indicatorID:
   - NO_INDEX_001
 indicatorName:
-  - Composite index
+  - Index
 folderName: NO_INDEX_001
 country: Norway
 continent: Europe
-ECT: Composite
+ECT: NA
 Realm:
   - Terrestrial (T)
 Biome:
-  - T2 Temperate-boreal forests and woodlands biome
-  - T7 Polar/alpine biome
+  - NA
 Ecosystem:
-  - T2.1 Boreal/montane forests
-  - T7.1 Alpine grasslands and shrublands
+  - NA
 yearAdded: 2026
 yearLastUpdate: 2026
 status: incomplete
 Version: "1.0.0"
 VersionComment: Phase 1 equal-weight composite index from published indicator MC distributions
 url: https://github.com/NINAnor/ecRxiv
-Normalised: Yes
+Normalised: NA
 SpatialAggregationPathway: Resample - Aggregate (equal-weight mean) - Summarise
 format:
   html:
@@ -132,26 +130,33 @@ license_badge()
 
 ## 1. Aim
 
-NO_INDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for **forest** and **mountain** ecosystems, separately by region and for Norway and for ECT classes. Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
+NO_INDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for **forest** and **mountain** ecosystems, separately by region, for Norway, and for ECT classes.
+Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
 
 ## 2. Datasets {#sec-datasets}
 
 First, we check which indicators are included in each index and where their results can be found on ecRxiv.
 
-**Indicator lists.** Forest indicators are listed in `data/indicators_2026.csv`; mountain indicators follow [ECA_2026 #104](https://github.com/NINAnor/ECA_2026/issues/104) in `data/indicators_mountain.csv`. Each row specifies the indicator name, ecRxiv ID, and ECT class assignment.
-
-**Source manifest.** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`. Manual or fork entries can be added in `data/indicator_sources_extra.csv`.
-
-**Registry.** `build_indicator_registry()` joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (`match_status`: `matched` or `no_results`). The tables below show the outcome for forest and mountain. Only `matched` indicators proceed to the analysis in @sec-analyses.
+**Indicator lists** Forest indicators are listed in `data/indicators_2026.csv`; mountain indicators follow [ECA_2026 #104](https://github.com/NINAnor/ECA_2026/issues/104) in `data/indicators_mountain.csv`.
+Each row specifies the indicator name, ecRxiv ID, and ECT class assignment.
 
 ```{r refresh-sources}
 #| cache: false
 # Refresh manifest from local git (upstream main + submission-* branches)
-tryCatch(
+invisible(tryCatch(
   scan_git_indicator_sources(git_remote = "upstream"),
   error = function(e) invisible(NULL)
-)
+))
 ```
+
+**Source manifest** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`.
+Manual or fork entries can be added in `data/indicator_sources_extra.csv`.
+This manifest is used internally when resolving result paths; it is not shown in the document. 
+If the scan finds few entries, run `git fetch upstream` from the project root to refresh local branch refs.
+
+**Registry** `build_indicator_registry()` joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (`match_status`: `matched` or `no_results`).
+The tables below show the outcome for forest and mountain.
+Only `matched` indicators proceed to the analysis in @sec-analyses.
 
 ```{r registry}
 #| cache: false
@@ -169,7 +174,10 @@ registry_mountain <- build_indicator_registry(
   ecosystem = "mountain",
   write_path = here("data/indicators_registry_mountain.csv")
 )
+```
 
+
+```{r registry-forest}
 registry_forest |>
   select(ecosystem, ect, indicatorName, indicatorID, match_status, results_ref, results_source) |>
   kable(caption = "Forest indicator registry")
@@ -183,38 +191,52 @@ registry_mountain |>
 
 ## 3. Analyses {#sec-analyses}
 
-Forest and mountain indices are calculated separately using the same workflow (`calculate_index()` in `R/index_functions.R`). The steps below describe phase 1 (equal weights). The indicator registries built in @sec-datasets are the input to this section.
+Forest and mountain indices are calculated separately using the same workflow (`calculate_index()` in `R/index_functions.R`).
+The indicator registries built in @sec-datasets are the input to this section.
 
 ### 3.1 Loading and harmonising indicator draws
 
-For each `matched` indicator in the registry, `load_registry_draws()` fetches the resolved results file and harmonises it to a common structure (`year`, `part`, `value`). Supported source formats include:
+For each `matched` indicator in the registry, `load_registry_draws()` fetches the resolved results file and harmonises it to a common structure (`year`, `part`, `value`).
+Supported source formats include:
 
 - standard CSV (`year`, `part`, `sampled_mean`);
 - period-based CSV or RDS (`period`, `region`/`region_code`, `sampled_mean`);
 - regional RDS with companion national RDS (`*_mc_regional.rds` + `*_mc_national.rds`);
 - parquet (`year`, `part`, `value` or `sim`).
 
-Region labels are mapped to NI regions (`C`, `E`, `S`, `W`, `N`, `Norway`) via `data/region_lookup.csv`. Each row in the loaded data is one Monte Carlo draw for a given indicator, reporting year, and region.
+Region labels are mapped to NI regions (`C`, `E`, `S`, `W`, `N`, `Norway`) via `data/region_lookup.csv`.
+Each row in the loaded data is one Monte Carlo draw for a given indicator, reporting year, and region.
 
-### 3.2 Reporting years
+### 3.2 Reporting periods
 
-For each indicator we retain the **last three reporting years** available (`select_reporting_years()`). Indicators therefore contribute to different calendar years depending on their own reporting schedule.
+Indicators do not all use the same time axis.
+Some publish single calendar years (`year`); others publish multi-year **reporting periods** such as `2010-2014` or `2020-2024` (`period`).
+These period labels also differ between indicators (length and start/end years are not standardised).
+
+For aggregation we map each reporting period to a single calendar year using the **period end year** (`period_to_year()`, e.g. `2020-2024` → `2024`).
+Where the source already provides `year`, that value is kept as is. For each indicator we then retain the **last three** of these mapped years (`select_reporting_years()`).
+Indicators may therefore appear in different years in the index, depending on their own reporting schedule.
 
 ### 3.3 Resampling and aggregation
 
-Aggregation uses `ecTools::ec_upscale()` with equal weights throughout (phase 1). For each year, region, and simulation (`n_sim = 1000` by default):
+Aggregation uses `ecTools::ec_upscale()` with equal weights throughout (`n_sim = 1000` by default).
+Steps 1–2 are run separately for each year and region (`C`, `E`, `S`, `W`, `N`, and for Norway when national draws are already present in the indicator files):
 
-1. **Indicator → ECT** — one draw is resampled per indicator within each ECT class, then combined with equal weights to give an ECT-level draw (`aggregate_to_ect()`).
-2. **ECT → index** — one draw is resampled per ECT class, then combined with equal weights to give an overall index draw (`aggregate_to_index()`).
-3. **Region → Norway** — regional ECT and index draws are upscaled to national values with equal weights across the five NI regions (`aggregate_to_national()`).
+1. **Indicator → ECT** — within a region, one draw is resampled per indicator within each ECT class, then combined with equal weights to give an ECT-level draw (`aggregate_to_ect()`).
+2. **ECT → index** — within the same region, one draw is resampled per ECT class, then combined with equal weights to give a regional overall index draw (`aggregate_to_index()`).
+
+3. **Region → Norway** — the five regional ECT and index draws are upscaled to national values with equal weights across NI regions (`aggregate_to_national()`).
 
 This propagates uncertainty from individual indicators through ECT classes to the composite index without assuming independence beyond the structure encoded in the published indicator MC distributions.
 
 ### 3.4 Summaries and coverage
 
-The full MC distributions are stored for export. For reporting we summarise each ECT class and the overall index by the **median** and an approximate **95% interval** (2.5% and 97.5% quantiles). A coverage table records how many indicators contributed to each year–region combination.
+The full MC distributions are stored for export.
+For reporting we summarise each ECT class and the overall index by the **median** and an approximate **95% interval** (2.5% and 97.5% quantiles).
+A coverage table records how many indicators contributed to each year–region combination.
 
 ```{r run-forest}
+#| cache: false
 forest_index <- calculate_index(
   registry_forest |> filter(match_status == "matched"),
   n_sim = n_sim,
@@ -226,6 +248,7 @@ forest_index$coverage |>
 ```
 
 ```{r run-mountain}
+#| cache: false
 mountain_index <- calculate_index(
   registry_mountain |> filter(match_status == "matched"),
   n_sim = n_sim,
@@ -267,7 +290,8 @@ mountain_index$summaries |>
 ```
 
 ```{r forest-plot}
-#| fig-height: 8
+#| fig-height: 3.5
+#| fig-width: 9
 plot_index_forest(
   forest_index$summaries |> filter(part == "Norway"),
   title = "NO_INDEX_001 — forest (Norway)"
@@ -275,7 +299,8 @@ plot_index_forest(
 ```
 
 ```{r mountain-plot}
-#| fig-height: 8
+#| fig-height: 3
+#| fig-width: 9
 plot_index_forest(
   mountain_index$summaries |> filter(part == "Norway"),
   title = "NO_INDEX_001 — mountain (Norway)"
