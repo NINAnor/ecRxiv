@@ -405,12 +405,15 @@ default_source_candidates <- function(
 }
 
 probe_results_source <- function(path_or_url) {
-  tryCatch({
-    read_indicator_results(path_or_url, n_max = 1)
-    TRUE
-  }, error = function(e) {
-    FALSE
-  })
+  # Candidate URLs often 404; readr/arrow emit warnings rather than (only) errors.
+  suppressWarnings(
+    tryCatch({
+      read_indicator_results(path_or_url, n_max = 1)
+      TRUE
+    }, error = function(e) {
+      FALSE
+    })
+  )
 }
 
 find_local_results_path <- function(
@@ -668,7 +671,9 @@ build_indicator_registry <- function(
           if (is.na(.data$indicatorID) || .data$indicatorID == "") {
             NULL
           } else {
-            resolve_indicator_source(.data$indicatorID, .data$folder)
+            suppressWarnings(
+              resolve_indicator_source(.data$indicatorID, .data$folder)
+            )
           }
         )
       ) |>
