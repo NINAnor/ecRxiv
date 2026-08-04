@@ -14,6 +14,20 @@ indicator_metadata <- tibble::tibble(
 indicator_metadata
 
 
+`%||%` <- function(x, y) {
+  if (is.null(x) || length(x) == 0) y else x
+}
+
+metadata_chr <- function(x, collapse = "; ") {
+  x <- x %||% NA_character_
+  
+  if (length(x) == 0 || all(is.na(x))) {
+    return(NA_character_)
+  }
+  
+  paste(as.character(x), collapse = collapse)
+}
+
 read_indicator_metadata <- function(path) {
   inspect <- quarto::quarto_inspect(path)
   
@@ -21,20 +35,15 @@ read_indicator_metadata <- function(path) {
   meta <- file_info$metadata
   
   tibble::tibble(
-    file = path,
-    indicator_id = meta$indicatorID %||% NA_character_,
-    indicator_name = meta$indicatorName %||% NA_character_,
-    title = meta$title %||% NA_character_,
-    ecosystem = meta$Ecosystem %||% NA_character_,
-    version = meta$Version %||% NA_character_,
-    status = meta$status %||% NA_character_
+    file = as.character(path),
+    indicator_id = metadata_chr(meta$indicatorID),
+    indicator_name = metadata_chr(meta$indicatorName),
+    title = metadata_chr(meta$title),
+    ecosystem = metadata_chr(meta$Ecosystem),
+    version = metadata_chr(meta$Version),
+    status = metadata_chr(meta$status)
   )
 }
-
-`%||%` <- function(x, y) {
-  if (is.null(x) || length(x) == 0) y else x
-}
-
 indicator_metadata <- read_indicator_metadata(
   "indicators/NO_SNOW_001/R/NO_SNOW_001.qmd"
 )
@@ -52,3 +61,4 @@ all_indicator_metadata <- purrr::map_dfr(
   qmd_files,
   read_indicator_metadata
 )
+all_indicator_metadata
