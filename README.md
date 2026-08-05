@@ -2,7 +2,7 @@
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
-[![DOI](https://zenodo.org/badge/775432816.svg)](https://doi.org/10.5281/zenodo.21802603)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21802603-1682D4.svg)](https://doi.org/10.5281/zenodo.21802603)
 
 ## To browse ecosystem condition indicators, please visit the [ecRxiv web app](https://ecRxiv.com). 
 
