@@ -2,6 +2,8 @@
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
+[![DOI](https://zenodo.org/badge/775432816.svg)](https://doi.org/10.5281/zenodo.21802603)
+
 ## To browse ecosystem condition indicators, please visit the [ecRxiv web app](https://ecRxiv.com). 
 
 ## Browse source files, please switch to the [main branch](https://github.com/NINAnor/ecRxiv/tree/main/indicators).
