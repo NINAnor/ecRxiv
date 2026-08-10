@@ -93,7 +93,9 @@ indicator_catalog <- function() {
     "NO_ROED_001", "Roe deer", "NO_ROED_001", "forest",
     "NO_SNOW_001", "NO_SNOW_001", "NO_SNOW_001", "mountain",
     "NO_TDTA_001", "Temperate deciduous trees by share of forest area in the nemoral and boreonemoral zones", "NO_TDTA_001", "forest",
-    "NO_SLIT_001-004", "Trampling disturbance", "NO_SLIT_001", "mountain",
+    # Published mountain indicator lives in NO_SLIT_001 (file may be named *_002_*).
+    "NO_SLIT_001", "Erosive disturbance", "NO_SLIT_001", "mountain",
+    "NO_SLIT_001-004", "Erosive disturbance", "NO_SLIT_001", "mountain",
     "NO_SLIT_002", "Erosive disturbance", "NO_SLIT_002", "forest",
     "NO_BEAR_001", "Brown bear", "NO_BAER_001", "forest",
     "NO_LYNX_001", "Lynx", "NO_LYNX_001", "forest",
@@ -122,6 +124,7 @@ name_to_id_overrides <- function() {
     "Dead wood share" = "NO_DWTO_001",
     "Disturbance index" = "NO_DIST_001",
     "Trampling disturbance" = "NO_SLIT_001",
+    "Erosive disturbance" = "NO_SLIT_001",
     "Vegetation functional indicators" = "NO_FUNC_xxx",
     "Alien plantspecies" = "NO_ALIE_004",
     "Alien conifers" = "NO_AATS_002",
@@ -189,11 +192,25 @@ read_indicator_file <- function(path, n_max = Inf) {
   stop("Unsupported results file type: ", ext, " (", path, ")", call. = FALSE)
 }
 
+# End-year fallback for single-period exports that omit year/period columns.
+indicator_default_year <- function(indicator_id) {
+  defaults <- c(
+    # ANO cycle 2020-2024; published parquet has region + sim only.
+    "NO_SLIT_001" = 2024L,
+    "NO_SLIT_002" = 2024L
+  )
+  if (is.na(indicator_id) || !indicator_id %in% names(defaults)) {
+    return(NA_integer_)
+  }
+  unname(defaults[[indicator_id]])
+}
+
 # Standardise columns to year, part, value.
 harmonise_indicator_draws <- function(
     dat,
     indicator_id = NA_character_,
-    lookup = load_region_lookup()) {
+    lookup = load_region_lookup(),
+    default_year = NULL) {
   if (!is.data.frame(dat)) {
     stop("Indicator results must be a data frame.", call. = FALSE)
   }
@@ -232,18 +249,31 @@ harmonise_indicator_draws <- function(
   } else {
     NA_character_
   }
-  if (is.na(time_col)) {
+
+  fallback_year <- if (!is.null(default_year) && !is.na(default_year)) {
+    as.integer(default_year)
+  } else {
+    indicator_default_year(indicator_id)
+  }
+
+  if (is.na(time_col) && is.na(fallback_year)) {
     stop("Results must contain year or period column.", call. = FALSE)
   }
 
   dat |>
     dplyr::mutate(
       indicator_id = indicator_id,
-      period = if (time_col == "period") as.character(.data[[time_col]]) else NA_character_,
-      year = if (time_col == "year") {
-        as.integer(.data[[time_col]])
+      period = if (!is.na(time_col) && time_col == "period") {
+        as.character(.data[[time_col]])
       } else {
+        NA_character_
+      },
+      year = if (!is.na(time_col) && time_col == "year") {
+        as.integer(.data[[time_col]])
+      } else if (!is.na(time_col) && time_col == "period") {
         period_to_year(.data[[time_col]])
+      } else {
+        fallback_year
       },
       part_raw = as.character(.data[[part_col]]),
       part = standardize_part(.data[[part_col]], lookup = lookup),
@@ -265,15 +295,21 @@ read_indicator_results <- function(
     path,
     indicator_id = NA_character_,
     lookup = load_region_lookup(),
-    n_max = Inf) {
+    n_max = Inf,
+    default_year = NULL) {
   dat <- read_indicator_file(path, n_max = n_max)
-  out <- harmonise_indicator_draws(dat, indicator_id = indicator_id, lookup = lookup)
+  out <- harmonise_indicator_draws(
+    dat,
+    indicator_id = indicator_id,
+    lookup = lookup,
+    default_year = default_year
+  )
 
   if (grepl("_mc_regional\\.rds$", path, ignore.case = TRUE)) {
     nat_path <- sub("_mc_regional\\.rds$", "_mc_national.rds", path, ignore.case = TRUE)
     nat_ok <- if (nat_path != path) {
       if (is_results_url(nat_path)) {
-        probe_results_source(nat_path)
+        probe_results_source(nat_path, indicator_id = indicator_id)
       } else {
         file.exists(nat_path)
       }
@@ -443,15 +479,18 @@ results_path_candidates <- function(
   fname <- glue::glue("results_{indicator_id}.csv")
   fname_parquet <- glue::glue("results_{indicator_id}.parquet")
   fname_parquet_sim <- glue::glue("results_{indicator_id}_sim.parquet")
+  fname_bare_sim <- glue::glue("{indicator_id}_sim.parquet")
   mc_regional <- glue::glue("{slug}_mc_regional.rds")
 
-  unique(c(
+  paths <- c(
     glue::glue("indicators/{folder}/data/{fname_v}"),
     glue::glue("indicators/{folder}/data/{fname}"),
     glue::glue("indicators/{indicator_id}/data/{fname_v}"),
     glue::glue("indicators/{indicator_id}/data/{fname}"),
     glue::glue("indicators/{folder}/data/{fname_parquet}"),
     glue::glue("indicators/{folder}/data/{fname_parquet_sim}"),
+    glue::glue("indicators/{folder}/data/{fname_bare_sim}"),
+    glue::glue("indicators/{indicator_id}/data/{fname_bare_sim}"),
     glue::glue("indicators/{folder}/data/{mc_regional}"),
     glue::glue("indicators/{indicator_id}/data/{mc_regional}"),
     glue::glue("{folder}/data/{fname_v}"),
@@ -461,7 +500,18 @@ results_path_candidates <- function(
     glue::glue("data/{fname}"),
     glue::glue("data/{mc_regional}"),
     glue::glue("{indicator_id}/data/{fname_v}")
-  ))
+  )
+
+  # Upstream NO_SLIT_001 currently exports under a *_002_* filename.
+  if (identical(indicator_id, "NO_SLIT_001")) {
+    paths <- c(
+      paths,
+      glue::glue("indicators/{folder}/data/NO_SLIT_002_sim.parquet"),
+      "indicators/NO_SLIT_001/data/NO_SLIT_002_sim.parquet"
+    )
+  }
+
+  unique(paths)
 }
 
 # Default main/submission candidate table for probing.
@@ -506,11 +556,15 @@ default_source_candidates <- function(
 }
 
 # Check whether a results path/URL can be read.
-probe_results_source <- function(path_or_url) {
+probe_results_source <- function(path_or_url, indicator_id = NA_character_) {
   # Candidate URLs often 404; readr/arrow emit warnings rather than (only) errors.
   suppressWarnings(
     tryCatch({
-      read_indicator_results(path_or_url, n_max = 1)
+      read_indicator_results(
+        path_or_url,
+        indicator_id = indicator_id,
+        n_max = 1
+      )
       TRUE
     }, error = function(e) {
       FALSE
@@ -551,19 +605,21 @@ resolve_indicator_source <- function(
     return(NULL)
   }
 
-  candidates <- manifest |>
+  manifest_candidates <- manifest |>
     dplyr::filter(.data$indicator_id == !!indicator_id) |>
     dplyr::arrange(.data$priority, .data$ref)
 
-  if (nrow(candidates) == 0) {
-    candidates <- default_source_candidates(
-      indicator_id,
-      folder,
-      version,
-      repo,
-      include_submission = include_submission
-    )
-  }
+  default_candidates <- default_source_candidates(
+    indicator_id,
+    folder,
+    version,
+    repo,
+    include_submission = include_submission
+  )
+
+  # Prefer manifest hits, but always fall back to default path guesses if needed.
+  candidates <- dplyr::bind_rows(manifest_candidates, default_candidates) |>
+    dplyr::distinct(.data$repo, .data$ref, .data$results_path, .keep_all = TRUE)
 
   candidates <- filter_indicator_source_candidates(candidates, indicator_id)
 
@@ -573,7 +629,7 @@ resolve_indicator_source <- function(
       candidates$ref[i],
       candidates$results_path[i]
     )
-    if (probe_results_source(url)) {
+    if (probe_results_source(url, indicator_id = indicator_id)) {
       return(list(
         indicator_id = indicator_id,
         repo = candidates$repo[i],
@@ -586,7 +642,7 @@ resolve_indicator_source <- function(
   }
 
   local_path <- find_local_results_path(indicator_id, local_dir = local_dir)
-  if (!is.na(local_path) && probe_results_source(local_path)) {
+  if (!is.na(local_path) && probe_results_source(local_path, indicator_id = indicator_id)) {
     return(list(
       indicator_id = indicator_id,
       repo = NA_character_,
@@ -605,13 +661,20 @@ scan_git_indicator_sources <- function(
     git_remote = "upstream",
     repo = "NINAnor/ecRxiv",
     write_path = here::here("data/indicator_sources.csv")) {
-  branches <- tryCatch(
+  # Always run git from the project root (Quarto often knits with cwd = R/).
+  git_root <- tryCatch(here::here(), error = function(e) getwd())
+
+  git_run <- function(args, stdout = TRUE) {
     suppressWarnings(system2(
       "git",
-      c("branch", "-r", "--list", paste0(git_remote, "/*")),
-      stdout = TRUE,
-      stderr = FALSE
-    )),
+      c("-C", git_root, args),
+      stdout = stdout,
+      stderr = if (isFALSE(stdout)) FALSE else FALSE
+    ))
+  }
+
+  branches <- tryCatch(
+    git_run(c("branch", "-r", "--list", paste0(git_remote, "/*"))),
     error = function(e) character()
   )
   branches <- trimws(branches)
@@ -627,12 +690,7 @@ scan_git_indicator_sources <- function(
   refs <- unique(c("main", submission_refs))
 
   git_branch_exists <- function(branch) {
-    status <- suppressWarnings(system2(
-      "git",
-      c("rev-parse", "--verify", branch),
-      stdout = FALSE,
-      stderr = FALSE
-    ))
+    status <- git_run(c("rev-parse", "--verify", branch), stdout = FALSE)
     identical(status, 0L)
   }
 
@@ -640,12 +698,7 @@ scan_git_indicator_sources <- function(
     if (!git_branch_exists(branch)) {
       return(character())
     }
-    out <- suppressWarnings(system2(
-      "git",
-      c("ls-tree", "-r", "--name-only", branch),
-      stdout = TRUE,
-      stderr = FALSE
-    ))
+    out <- git_run(c("ls-tree", "-r", "--name-only", branch))
     status <- attr(out, "status")
     if (!is.null(status) && status != 0) {
       return(character())
@@ -664,7 +717,10 @@ scan_git_indicator_sources <- function(
     csv_files <- files[
       grepl("results_NO_", files, fixed = TRUE) & grepl("\\.csv$", files)
     ]
-    pq_files <- files[grepl("results_NO_.*\\.parquet$", files)]
+    pq_files <- files[
+      grepl("results_NO_.*\\.parquet$", files) |
+        grepl("(^|/)NO_[A-Z0-9]+_[0-9]{3}_sim\\.parquet$", files)
+    ]
     rds_files <- files[grepl("_mc_regional\\.rds$", files)]
 
     matched <- c(csv_files, pq_files, rds_files)
@@ -696,7 +752,24 @@ scan_git_indicator_sources <- function(
     dplyr::distinct() |>
     dplyr::arrange(.data$indicator_id, .data$priority, .data$ref)
 
-  if (!is.null(write_path) && nrow(out) > 0) {
+  # Avoid clobbering a good manifest with a failed/partial scan.
+  if (!is.null(write_path) && file.exists(write_path) && nrow(out) > 0) {
+    existing_n <- tryCatch(
+      nrow(readr::read_csv(write_path, show_col_types = FALSE)),
+      error = function(e) 0L
+    )
+    if (existing_n > nrow(out) * 2L) {
+      warning(
+        "scan_git_indicator_sources() found only ", nrow(out),
+        " rows but existing manifest has ", existing_n,
+        "; keeping the existing file.",
+        call. = FALSE
+      )
+      out <- readr::read_csv(write_path, show_col_types = FALSE)
+    } else {
+      readr::write_csv(out, write_path)
+    }
+  } else if (!is.null(write_path) && nrow(out) > 0) {
     readr::write_csv(out, write_path)
   }
 
@@ -765,7 +838,9 @@ build_indicator_registry <- function(
     dplyr::left_join(
       catalog |>
         dplyr::select(indicator_id, folder) |>
-        dplyr::distinct(),
+        # Prefer the concrete published folder when several aliases exist.
+        dplyr::arrange(.data$indicator_id, .data$folder) |>
+        dplyr::distinct(.data$indicator_id, .keep_all = TRUE),
       by = c("indicatorID" = "indicator_id")
     ) |>
     dplyr::mutate(
@@ -1062,7 +1137,31 @@ summarise_index <- function(distributions) {
 }
 
 # Forest-style plot of ECT and index summaries.
+# Uses the same MetBrewer "Archambault" region colours as forest indicator
+# time series, with Norway shown as filled circles and regions as triangles.
 plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
+  part_labels <- c(
+    Norway = "Norway",
+    C = "Central",
+    E = "East",
+    N = "North",
+    S = "South",
+    W = "West"
+  )
+  region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+  region_cols <- if (requireNamespace("MetBrewer", quietly = TRUE)) {
+    stats::setNames(
+      MetBrewer::met.brewer("Archambault", n = length(region_levels)),
+      region_levels
+    )
+  } else {
+    # Fallback Archambault-like colours if MetBrewer is unavailable
+    stats::setNames(
+      c("#88A0DC", "#381A61", "#7C4B73", "#ED968C", "#AB3329", "#E78429"),
+      region_levels
+    )
+  }
+
   ect_ids <- summaries |>
     dplyr::filter(.data$level == "ECT") |>
     dplyr::pull(.data$id) |>
@@ -1073,8 +1172,11 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
   plot_dat <- summaries |>
     dplyr::mutate(
       id = factor(.data$id, levels = id_levels),
-      part = factor(.data$part, levels = CANONICAL_PARTS)
-    )
+      region = dplyr::recode(as.character(.data$part), !!!part_labels),
+      region = factor(.data$region, levels = region_levels),
+      series_type = dplyr::if_else(.data$region == "Norway", "National", "Region")
+    ) |>
+    dplyr::filter(!is.na(.data$region))
 
   ggplot2::ggplot(
     plot_dat,
@@ -1083,26 +1185,44 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
       y = id,
       xmin = q025,
       xmax = q975,
-      colour = part
+      colour = region,
+      shape = series_type
     )
   ) +
     ggplot2::geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey70") +
     ggplot2::geom_pointrange(
-      position = ggplot2::position_dodge(width = 0.5),
-      size = 0.35
+      position = ggplot2::position_dodge(width = 0.55),
+      size = 0.7,
+      linewidth = 0.45
     ) +
     ggplot2::facet_wrap(~year, nrow = 1) +
-    ggplot2::scale_x_continuous(limits = c(0, 1)) +
+    ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+    ggplot2::scale_colour_manual(values = region_cols, name = NULL) +
+    ggplot2::scale_shape_manual(
+      values = c(National = 19, Region = 17),
+      name = NULL
+    ) +
     ggplot2::labs(
       title = title,
       x = "Index value",
-      y = NULL,
-      colour = "Region"
+      y = NULL
     ) +
     ggplot2::theme_bw(base_size = 11) +
     ggplot2::theme(
+      legend.position = "bottom",
+      legend.box = "vertical",
+      panel.grid.minor = ggplot2::element_blank(),
       panel.spacing.x = ggplot2::unit(0.8, "lines"),
       plot.margin = ggplot2::margin(5, 5, 5, 5)
+    ) +
+    ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        nrow = 2,
+        override.aes = list(size = 0.7, linewidth = 0.45)
+      ),
+      shape = ggplot2::guide_legend(
+        override.aes = list(size = 0.8, linewidth = 0.45)
+      )
     )
 }
 
