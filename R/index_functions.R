@@ -1030,40 +1030,70 @@ aggregate_to_index <- function(ect_draws, n = 1000) {
   })
 }
 
-# Upscale regional draws to Norway (equal weights).
-aggregate_to_national <- function(
-    draws,
-    value_col = "sampled_mean",
-    id_col = "ect",
-    n = 1000) {
-  regional <- draws |>
-    dplyr::filter(.data$part %in% setdiff(CANONICAL_PARTS, "Norway"))
+# Ensure every indicator/year has a national ("Norway") value.
+#
+# Most ecRxiv indicators already publish their own national draws alongside
+# the five NI regions. Those published values may embed weighting that an
+# equal-weight regional average would not reproduce - e.g. NO_GLAC_001's own
+# national value down-weights southern Norway relative to the other regions
+# (see ECA_2026 #76: "For NO_GLAC blir sor-Norge veid ned, slik det er gjort
+# i den nasjonale verdien for denne indikatoren"). We therefore always prefer
+# an indicator's own published Norway draws. Only indicators that do not
+# publish a national value get an equal-weight fallback computed here from
+# their regional draws.
+fill_missing_national_draws <- function(draws, n = 1000) {
+  needs_national <- draws |>
+    dplyr::group_by(.data$indicator_id, .data$year) |>
+    dplyr::summarise(has_norway = "Norway" %in% .data$part, .groups = "drop") |>
+    dplyr::filter(!.data$has_norway)
 
-  if (nrow(regional) == 0) {
-    return(tibble::tibble())
+  if (nrow(needs_national) == 0) {
+    return(draws)
   }
 
-  id_sym <- rlang::sym(id_col)
+  synthesized <- purrr::map_dfr(seq_len(nrow(needs_national)), function(i) {
+    ind <- needs_national$indicator_id[i]
+    yr <- needs_national$year[i]
+    df <- draws |>
+      dplyr::filter(
+        .data$indicator_id == ind,
+        .data$year == yr,
+        .data$part %in% setdiff(CANONICAL_PARTS, "Norway")
+      ) |>
+      dplyr::mutate(wgt = 1, national = "Norway")
 
-  regional |>
-    dplyr::mutate(wgt = 1, national = "Norway") |>
-    dplyr::group_by(!!id_sym, .data$year) |>
-    dplyr::group_split(.keep = TRUE) |>
-    purrr::map_dfr(function(df) {
-      id_val <- df[[id_col]][1]
-      out <- ecTools::ec_upscale(
-        data = df,
-        variable = !!rlang::sym(value_col),
-        weight = wgt,
-        start_units = part,
-        end_units = national,
-        year = year,
-        end_units_name = "part",
-        n = n
+    if (nrow(df) == 0) {
+      return(NULL)
+    }
+
+    out <- ecTools::ec_upscale(
+      data = df,
+      variable = value,
+      weight = wgt,
+      start_units = part,
+      end_units = national,
+      year = year,
+      end_units_name = "part",
+      n = n
+    )
+
+    unnest_upscale(out) |>
+      dplyr::transmute(
+        indicator_id = ind,
+        year = .data$year,
+        period = df$period[1],
+        part_raw = "Norway (equal-weight fallback)",
+        part = "Norway",
+        value = .data$sampled_mean,
+        ect = df$ect[1],
+        ecosystem = df$ecosystem[1],
+        indicator_name = df$indicator_name[1],
+        results_ref = df$results_ref[1],
+        results_source = df$results_source[1]
       )
-      unnest_upscale(out) |>
-        dplyr::mutate(!!id_col := id_val, part = "Norway")
-    })
+  })
+
+  dplyr::bind_rows(draws, synthesized)
 }
 
 # =============================================================================
@@ -1091,6 +1121,17 @@ calculate_index <- function(
     ...) {
   draws <- load_registry_draws(registry, n_years = n_years, ...)
 
+  # Each indicator's own published Norway draws are used as-is (so any
+  # indicator-specific weighting, e.g. NO_GLAC_001's down-weighted southern
+  # Norway, is preserved). Indicators without a national value get an
+  # equal-weight regional fallback. "Norway" is then just another part fed
+  # through the same indicator -> ECT -> Index resampling as the regions.
+  draws <- if (include_national) {
+    fill_missing_national_draws(draws, n = n_sim)
+  } else {
+    draws |> dplyr::filter(.data$part != "Norway")
+  }
+
   ect_draws <- aggregate_to_ect(draws, n = n_sim) |>
     dplyr::mutate(level = "ECT")
 
@@ -1101,19 +1142,6 @@ calculate_index <- function(
     ect_draws |> dplyr::rename(id = ect),
     index_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_mean")))
   )
-
-  if (include_national) {
-    nat_ect <- aggregate_to_national(ect_draws, id_col = "ect", n = n_sim) |>
-      dplyr::mutate(level = "ECT") |>
-      dplyr::rename(id = ect)
-    nat_index <- aggregate_to_national(
-      index_draws |> dplyr::mutate(id = "Index"),
-      id_col = "id",
-      n = n_sim
-    ) |>
-      dplyr::mutate(level = "Index")
-    results <- dplyr::bind_rows(results, nat_ect, nat_index)
-  }
 
   list(
     indicator_draws = draws,
@@ -1169,12 +1197,21 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
     sort()
   id_levels <- c(ect_ids, "Index")
 
+  # One legend: Norway = filled circle; regions = triangles in their colours.
+  region_shapes <- c(
+    Norway = 19,
+    Central = 17,
+    East = 17,
+    North = 17,
+    South = 17,
+    West = 17
+  )
+
   plot_dat <- summaries |>
     dplyr::mutate(
       id = factor(.data$id, levels = id_levels),
       region = dplyr::recode(as.character(.data$part), !!!part_labels),
-      region = factor(.data$region, levels = region_levels),
-      series_type = dplyr::if_else(.data$region == "Norway", "National", "Region")
+      region = factor(.data$region, levels = region_levels)
     ) |>
     dplyr::filter(!is.na(.data$region))
 
@@ -1186,7 +1223,7 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
       xmin = q025,
       xmax = q975,
       colour = region,
-      shape = series_type
+      shape = region
     )
   ) +
     ggplot2::geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey70") +
@@ -1198,10 +1235,7 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
     ggplot2::facet_wrap(~year, nrow = 1) +
     ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
     ggplot2::scale_colour_manual(values = region_cols, name = NULL) +
-    ggplot2::scale_shape_manual(
-      values = c(National = 19, Region = 17),
-      name = NULL
-    ) +
+    ggplot2::scale_shape_manual(values = region_shapes, name = NULL) +
     ggplot2::labs(
       title = title,
       x = "Index value",
@@ -1210,19 +1244,20 @@ plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
     ggplot2::theme_bw(base_size = 11) +
     ggplot2::theme(
       legend.position = "bottom",
-      legend.box = "vertical",
       panel.grid.minor = ggplot2::element_blank(),
       panel.spacing.x = ggplot2::unit(0.8, "lines"),
       plot.margin = ggplot2::margin(5, 5, 5, 5)
     ) +
     ggplot2::guides(
       colour = ggplot2::guide_legend(
-        nrow = 2,
-        override.aes = list(size = 0.7, linewidth = 0.45)
+        nrow = 1,
+        override.aes = list(
+          shape = unname(region_shapes),
+          size = 0.8,
+          linewidth = 0.45
+        )
       ),
-      shape = ggplot2::guide_legend(
-        override.aes = list(size = 0.8, linewidth = 0.45)
-      )
+      shape = "none"
     )
 }
 
