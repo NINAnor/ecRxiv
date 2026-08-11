@@ -7,7 +7,7 @@ subtitle: |
 # In the parentheses you can add a word to distinguish multiple indicators 
 # from each other, for example the ecosystem type that they cover
 indicatorID: 
-  - [NO_ALIE_004]
+  - NO_ALIE_004
 # If you are presenting multiple indicators, and have multiple 
 # indicator IDs, then add them as a list here, and make sure you add
 # the same number of list entries, 
@@ -20,7 +20,7 @@ indicatorID:
 indicatorName: 
   - Alien plant species
 verbatimName: 
-  - Fremmede karplanter # the indicator name that us used in the native language
+  - Fremmede plantearter # the indicator name that us used in the native language
 folderName: NO_ALIE_004 # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
 # If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
 # If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
@@ -39,7 +39,7 @@ verbatimEcosystem:
   - Skog
 yearAdded: 2025
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
+status: complete # options are complete, incomplete, or deprecated
 Version: "2.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: separate code for forest ecosystem. Revised reference values.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ALIE_004
@@ -433,6 +433,7 @@ Indicator values are calculated as arithmetic means of the normalised indicator 
 ```{r}
 #| warning: false
 #| message: false
+#| eval: false
 set.seed(123)
 
 B <- 1000
@@ -492,9 +493,16 @@ NO_ALIE_004_table <- boot_results |>
   ) |>
   mutate(Year = 2024)
 
+saveRDS(NO_ALIE_004_table, here::here("data/NO_ALIE_004_table.rds"))
 NO_ALIE_004_table
 ```
 
+```{r readCache}
+#| echo: false
+
+NO_ALIE_004_table <- readRDS(here::here("data/NO_ALIE_004_table.rds"))
+NO_ALIE_004_table
+```
 
 ## 11. Export file
 
