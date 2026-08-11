@@ -237,26 +237,25 @@ Indicators may therefore appear in different years in the index, depending on th
 ### 3.3 Resampling and aggregation
 
 Aggregation uses `ecTools::ec_upscale()` with equal weights **across indicators within an ECT class**, and **across ECT classes within the index** (`n_sim = 1000` by default).
-Steps 1–2 are run separately for each year and each of six parts: the five NI regions (`C`, `E`, `S`, `W`, `N`) and Norway.
+Steps 1–2 are run separately for each year and each of six areas: the five NI regions (`C`, `E`, `S`, `W`, `N`) and Norway.
 
-1. **Indicator → ECT** — within a part, one draw is resampled per indicator within each ECT class, then combined with equal weights to give an ECT-level draw (`aggregate_to_ect()`).
-2. **ECT → index** — within the same part, one draw is resampled per ECT class, then combined with equal weights to give an overall index draw for that part (`aggregate_to_index()`).
+1. **Indicator → ECT** — within an area, one draw is resampled per indicator within each ECT class, then combined with equal weights to give an ECT-level draw (`aggregate_to_ect()`).
+2. **ECT → index** — within the same area, one draw is resampled per ECT class, then combined with equal weights to give an overall index draw for that area (`aggregate_to_index()`).
 
-**Norway is not recomputed by equally averaging the five regions.**
-Most ecRxiv indicators already publish their own national ("Norway") draws alongside the five regions, and that published value may already reflect region weighting that is specific to the indicator.
-For example, the glacier area indicator ([NO_GLAC_001](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001)) down-weights southern Norway in its own national value, because glaciers make up a much smaller share of that region (see [ECA_2026 #76](https://github.com/NINAnor/ECA_2026/issues/76#issuecomment-4864265018)).
-We therefore always use an indicator's own published Norway draws when available, and only fall back to an equal-weight upscale across its five regions (`fill_missing_national_draws()`) for indicators that do not publish a national value.
-Norway is then treated as just another part in steps 1–2 above, so indicator-specific national weighting propagates through the ECT and index levels rather than being overwritten by our own equal-weight recomputation.
+**Norway goes through the same two steps above, as each region.**
+All indicators publish their own national ("Norway") draws alongside the five regions, so each indicator's value going into step 1 for the Norway area is simply its own published national draw, not a recomputation by us from the five regions.
+This matters because a published national value can reflect region weighting that is specific to that indicator - for example, the glacier area indicator ([NO_GLAC_001](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001)) down-weights southern Norway in its own national value, because glaciers make up a much smaller share of that region (see [ECA_2026 #76](https://github.com/NINAnor/ECA_2026/issues/76#issuecomment-4864265018)).
+As a fallback, indicators without a published national value get a synthetic one via equal-weight upscaling across the five regions (`fill_missing_national_draws()`).
 
 This propagates uncertainty from individual indicators through ECT classes to the composite index without assuming independence beyond the structure encoded in the published indicator MC distributions.
 
-Weighting **between** indicators, ECT classes, or regions (e.g. by area share) is not yet implemented in this Phase 1 version; all weights described above are equal (`weight = 1`) except for the indicator-specific national weighting already embedded in a small number of published national values (currently `NO_GLAC_001`).
+No weighting is done between indicators, ECT classes, or regions: all indicators, ECT classes, and regions have equal weight (`weight = 1`), with one exception: `NO_GLAC_001`'s own published national value already down-weights southern Norway (see above), and we use that published value as-is rather than overriding it with an equal-weight regional average.
 
 ### 3.4 Summaries
 
-The full MC distributions (all regions) are stored for export.
+The full MC distributions (all areas) are stored for export.
 For reporting we summarise each ECT class and the overall index by the **median** and an approximate **95% interval** (2.5% and 97.5% quantiles).
-Regional indices are calculated in steps 1–2 above; national values are obtained in step 3.
+Regional and national (Norway) indices are both calculated by the same steps 1–2 above, since Norway is treated as just another area (see @sec-analyses).
 
 ```{r run-forest}
 #| cache: false
@@ -278,9 +277,9 @@ mountain_index <- calculate_index(
 
 ```{r validation}
 #| cache: false
-# Single-indicator test: with one matched indicator, the index for any part
+# Single-indicator test: with one matched indicator, the index for any area
 # (including Norway, using that indicator's own published national draws)
-# equals that indicator's own draws for the same part.
+# equals that indicator's own draws for the same area.
 if (sum(registry_mountain$match_status == "matched") >= 1) {
   one_reg <- registry_mountain |> filter(match_status == "matched") |> slice(1)
   one_out <- calculate_index(one_reg, n_sim = 200, n_years = 1)
