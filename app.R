@@ -96,6 +96,7 @@ server <- function(input, output, session) {
     data |>
       dplyr::select(!c(html_file_rel, url,html_file_abs, file)),
     selection = "single",
+    rownames = FALSE,
     filter = "top",
     options = list(
       pageLength = 30,

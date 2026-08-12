@@ -133,6 +133,7 @@ App_data <- App_data %>%
   transmute(
     Name = title,
     ID = indicator_id,
+    "common name" = verbatim_name,
     #indicator_name,
     ECT = str_to_upper(ect),                 # Capitalise to ECT
     continent,
@@ -140,6 +141,7 @@ App_data <- App_data %>%
     realm,
     biome,
     ecosystem,                               # Assuming this is the correct ecosystem column
+    "verbatim ecosystem" = verbatim_ecosystem,
     #authors = author_list,                   # Renamed
     #year_added,
     #year_last_update,
