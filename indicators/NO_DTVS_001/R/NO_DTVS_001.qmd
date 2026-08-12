@@ -7,7 +7,7 @@ indicatorID:
 indicatorName: 
   - Dead wood share
 verbatimName: 
-  - Død ved andel
+  - Dødvedandel
 folderName: NO_DTVS_001
 country: Norway
 continent: Europe
@@ -18,15 +18,17 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+verbatimEcosystem: Skog
 yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
-Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+status: complete # options are complete, incomplete, or deprecated
+Version: "1.0.0" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
 VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DTVS_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (NFI plots to county) - [Scale - Truncate] - Aggregate (geographic region) - Aggregate (national level)
+Precision: Missing information
 format: 
   html:
     embed-resources: true
@@ -52,10 +54,10 @@ author:
     affiliations:
       - name: Norwegian Institute of Bioeconomy Research
 AuthorList: Halbritter, A. H., Framstad, E., Snoksrud, O., and Storaunet, K. O.
-date: November 8, 2025
+date: August 11, 2026
 data_availability: bronze
 code_reproducibility: gold
-open_science_badge: silver
+open_science_badge: bronze
 callout-icon: false
 csl: ambio.csl
 code-links:
@@ -81,11 +83,11 @@ codeReviewers:
 ```{r setup}
 #| include: false
 #| cache: false
-if (file.exists("renv/activate.R")) {
-  source("renv/activate.R")
-} else if (file.exists("../renv/activate.R")) {
-  source("../renv/activate.R")
-}
+#if (file.exists("renv/activate.R")) {
+#  source("renv/activate.R")
+#} else if (file.exists("../renv/activate.R")) {
+#  source("../renv/activate.R")
+#}
 
 library(knitr)
 library(tidyverse)
@@ -195,18 +197,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -541,6 +546,7 @@ Each replicate computes the area-weighted non-scaled dead wood share, giving a d
 #| code-summary: "Bootstrap draws per county (1000 per county per period)"
 #| cache: true
 #| cache.extra: !expr list(file.mtime(here::here("R/functions.R")), file.mtime(here::here("data/LSK_data_okologisk_tilstand_2026.csv")), file.mtime(here::here("R/NO_DTVS_001.qmd")))
+#| eval: false
 
 county_draws_long <- purrr::imap_dfr(dtvs_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
@@ -561,6 +567,12 @@ county_draws_long <- purrr::imap_dfr(dtvs_results, function(period_result, perio
     dplyr::left_join(county_meta, by = "fylke_name")
 })
 
+saveRDS(county_draws_long, here::here("data/county_draws_long.rds"))
+```
+
+```{r readCache}
+#| include: false
+county_draws_long <- readRDS(here::here("data/county_draws_long.rds"))
 ```
 
 The table below (@tbl-dtvs-county-nonscaled) shows the direct area-weighted mean dead wood share per county for all reporting periods, with approximate 95% bootstrap confidence intervals (2.5th–97.5th percentile of 1000 draws).
@@ -700,6 +712,7 @@ For each of 1000 Monte Carlo iterations, one draw is sampled per county and the 
 
 ```{r dtvs-ec-upscale-regional}
 #| code-summary: "ec_upscale: county to region (compute once, save RDS)"
+#| eval: false
 
 dtvs_mc_cache_deps <- c(
   here::here("data/LSK_data_okologisk_tilstand_2026.csv"),
@@ -728,8 +741,14 @@ if (
 }
 ```
 
+```{r readCacheReg}
+#| include: false
+dtvs_mc_regional <- readRDS(here::here("data/dtvs_mc_regional.rds"))
+```
+
 ```{r dtvs-ec-upscale-national}
 #| code-summary: "ec_upscale: region to national (compute once, save RDS)"
+#| eval: false
 
 region_area_weights <- county_draws_scaled |>
   dplyr::distinct(period, fylke_name, total_area, region_code) |>
@@ -763,6 +782,11 @@ if (
   )
   saveRDS(dtvs_mc_national, dtvs_mc_rds_national)
 }
+```
+
+```{r readCacheNat}
+#| include: false
+dtvs_mc_national <- readRDS(here::here("data/dtvs_mc_national.rds"))
 ```
 
 ```{r dtvs-mc-combined}

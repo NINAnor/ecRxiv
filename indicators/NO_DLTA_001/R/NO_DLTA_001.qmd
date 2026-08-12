@@ -19,11 +19,11 @@ Biome:
 Ecosystem: 
   - T2.1 Boreal/montane forests
   - T2.2 Deciduous temperate forests
-verbatimEcosystem: T2.1 Boreal/subalpin skog; T2.2 Temperert edellauvskog
+verbatimEcosystem: Skog
 yearAdded: 2024 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
-Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+status: complete # options are complete, incomplete, or deprecated
+Version: 1.0.0 # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
 VersionComment: ecTools workflow with X0 = 0% and county/sub-county-specific X100
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DLTA_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
@@ -64,7 +64,7 @@ AuthorList: Halbritter, A. H., Jansson Asplund, U., Framstad, E., Jönsson, M., 
 date: June 9, 2026
 data_availability: bronze
 code_reproducibility: gold
-open_science_badge: silver
+open_science_badge: bronze
 callout-icon: false
 lightbox: true
 csl: ambio.csl
@@ -91,11 +91,11 @@ codeReviewers:
 ```{r setup}
 #| include: false
 #| cache: false
-if (file.exists("renv/activate.R")) {
-  source("renv/activate.R")
-} else if (file.exists("../renv/activate.R")) {
-  source("../renv/activate.R")
-}
+#if (file.exists("renv/activate.R")) {
+#  source("renv/activate.R")
+#} else if (file.exists("../renv/activate.R")) {
+#  source("../renv/activate.R")
+#}
 
 library(knitr)
 library(tidyverse)
@@ -268,19 +268,19 @@ The indicator is ready for use but should not be used at finer spatial resolutio
 
 ### 1.2 Native language summary - Norwegian
 
-**Bakgrunn og begrunnelse**: Indikatoren viser andelen skogareal med trær som har en diameter i brysthøyde (DBH) over treslags- og bonitetsavhengige terskelverdier.
+1. **Bakgrunn og begrunnelse**: Indikatoren viser andelen skogareal med trær som har en diameter i brysthøyde (DBH) over treslags- og bonitetsavhengige terskelverdier.
 Diametergrensene varierer fra ≥17 cm for bjørk, rogn, gråor, hassel og enkelte andre sjeldnere forekommende treslag i uproduktiv skog til ≥49 cm for furu på høy bonitet (see @tbl-dlta-thresholds).
 I skog preget av naturlige forstyrrelser og suksesjon forventes forekomst av store trær i større utstrekning enn i dag.
 Historisk hogst av store trær og relativt korte omløpstider i dagens skogbruk hindrer trær i å vokse seg svært store. 
 
-**Metoder**: Data kommer fra Landsskogtakseringen (NFI), der dbh er registrert for alle trær ≥5 cm dbh på hver 250 m² takstflate [@viken2025-feltinstruks].
+2. **Metoder**: Data kommer fra Landsskogtakseringen (NFI), der dbh er registrert for alle trær ≥5 cm dbh på hver 250 m² takstflate [@viken2025-feltinstruks].
 For hver rapporteringsperiode beregnes arealvektede gjennomsnitt for fylker, regioner og nasjonalt nivå. 
 
-**Tolkning**: Indikatorverdi 1 tilsvarer at andelen av skogarealet som har forekomst av store trær er minst så høy som forventet i referansetilstanden (_X~100~_).
+3. **Tolkning**: Indikatorverdi 1 tilsvarer at andelen av skogarealet som har forekomst av store trær er minst så høy som forventet i referansetilstanden (_X~100~_).
 Indikatorverdi 0 tilsvarer at 0% (_X~0~_) av skogarealet har forekomst av store trær.
 Verdier mellom 0 og 1 reflekterer mellomliggende andeler på en lineær skala.
 
-**Resultater og utviklingsbehov**:
+4. **Resultater og utviklingsbehov**:
 På nasjonalt nivå ligger de skalerte verdiene under øvre referansenivå i alle tre rapporteringsperioder.
 Medianverdien øker fra 0.31 (2010–2014) til 0.35 (2020–2024); omtrentlig 95 %-intervall er smalt (ca. 0.30–0.36), med den høyeste verdi i regionen Vest (2020–2024: 0.49) og den laveste verdi i regionen Nord (2020–2024: 0.28).
 Dette tilsvarer en arealvektet andel skog med store trær på om lag 20–22 % nasjonalt, med en svak økning over tid.
@@ -554,6 +554,7 @@ Each replicate computes the area-weighted non-scaled large trees share, giving a
 #| code-summary: "Bootstrap draws per county (1000 per county per period)"
 #| cache: true
 #| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
+#| eval: false
 
 county_draws_long <- purrr::imap_dfr(dlta_results, function(period_result, period_name) {
   county_meta <- period_result$county |>
@@ -573,6 +574,14 @@ county_draws_long <- purrr::imap_dfr(dlta_results, function(period_result, perio
   ) |>
     dplyr::left_join(county_meta, by = "fylke_name")
 })
+
+saveRDS(county_draws_long, here("data/county_draws_long.rds"))
+```
+
+```{r readCache}
+#| include: false
+
+county_draws_long <- readRDS(here("data/county_draws_long.rds"))
 
 ```
 
@@ -771,6 +780,7 @@ For each of 1000 Monte Carlo iterations, one draw is sampled per county and the 
 #| cache: true
 #| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
 #| code-summary: "ec_upscale: county to region"
+#| eval: false
 
 dlta_mc_rds_regional <- here::here("data/dlta_mc_regional.rds")
 
@@ -787,10 +797,17 @@ dlta_mc_regional <- ecTools::ec_upscale(
 saveRDS(dlta_mc_regional, dlta_mc_rds_regional)
 ```
 
+```{r readCache2}
+#| include: false
+dlta_mc_regional <- readRDS(here::here("data/dlta_mc_regional.rds"))
+
+```
+
 ```{r dlta-ec-upscale-national}
 #| cache: true
 #| cache.extra: !expr list(deps_mtime = max(file.mtime(dlta_cache_deps), na.rm = TRUE))
 #| code-summary: "ec_upscale: region to national"
+#| eval: false
 
 region_area_weights <- county_draws_scaled |>
   dplyr::distinct(period, fylke_name, total_area, region_code) |>
@@ -814,6 +831,13 @@ dlta_mc_national <- ecTools::ec_upscale(
   n = 1000
 )
 saveRDS(dlta_mc_national, dlta_mc_rds_national)
+```
+
+```{r readCache3}
+#| include: false
+
+dlta_mc_national <- readRDS(here::here("data/dlta_mc_national.rds"))
+
 ```
 
 ```{r dlta-mc-combined}
