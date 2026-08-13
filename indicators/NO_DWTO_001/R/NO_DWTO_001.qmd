@@ -1,13 +1,13 @@
 ---
-title: "Dead wood volume"
+title: "Total deadwood"
 subtitle: |
   NO_DWTO_001
 indicatorID: 
   - NO_DWTO_001
 indicatorName: 
-  - Dead wood volume
+  - Total deadwood
 verbatimName: 
-  - Død ved volum
+  - Dødvedandel
 folderName: NO_DWTO_001
 country: Norway
 continent: Europe
@@ -18,10 +18,11 @@ Biome:
   - T2 Temperate-boreal forests and woodlands biome
 Ecosystem: 
   - T2.1 Boreal/montane forests
+verbatimEcosystem: Skog
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
-Version: "000.001" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+status: complete # options are complete, incomplete, or deprecated
+Version: "1.0.0" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
 VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DWTO_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
@@ -39,7 +40,7 @@ format:
     embed-resources: true
     code-fold: true
 execute: 
-  cache: true
+  cache: false
 author:
   - name: Aud Helen Halbritter
     affiliations:
@@ -58,7 +59,7 @@ AuthorList: Halbritter, A. H., Framstad, E., Snoksrud, O., and Storaunet, K. O.
 date: May 12, 2026
 data_availability: bronze
 code_reproducibility: gold
-open_science_badge: silver
+open_science_badge: bronze
 callout-icon: false
 csl: ambio.csl
 code-links:
@@ -84,11 +85,11 @@ codeReviewers:
 ```{r setup}
 #| include: false
 #| cache: false
-if (file.exists("renv/activate.R")) {
-  source("renv/activate.R")
-} else if (file.exists("../renv/activate.R")) {
-  source("../renv/activate.R")
-}
+#if (file.exists("renv/activate.R")) {
+#  source("renv/activate.R")
+#} else if (file.exists("../renv/activate.R")) {
+#  source("../renv/activate.R")
+#}
 
 library(knitr)
 library(tidyverse)
@@ -198,18 +199,21 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
     "Version comment",
     "Normalised",
-    "Spatial aggregation pathway")) |>   
+    "Spatial aggregation pathway",
+    "Precision")) |>   
   kable()
 
 ```
@@ -222,6 +226,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - 12. May 2026 - Original PR
 - 18 July 2026 - Accepted
+- 13 August 2026 - Minor update to metadata
 :::
 
 
