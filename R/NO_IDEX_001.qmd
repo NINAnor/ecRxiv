@@ -176,6 +176,8 @@ Only `matched` indicators proceed to the analysis in @sec-analyses.
 #| cache: false
 n_sim <- 1000
 n_years <- 2
+report_years <- c(2014, 2019, 2024)
+max_gap <- 5 # max gap in years to fill missing reporting years
 
 registry_forest <- build_indicator_registry(
   here("data/indicators_2026.csv"),
@@ -244,8 +246,13 @@ Some publish single calendar years (`year`); others publish multi-year **reporti
 These period labels also differ between indicators (length and start/end years are not standardised).
 
 For aggregation we map each reporting period to a single calendar year using the **period end year** (`period_to_year()`, e.g. `2020-2024` → `2024`).
-Where the source already provides `year`, that value is kept as is. For each indicator we then retain the **last two** of these mapped years (`select_reporting_years()`), which for most current forest indicators corresponds to **2019** and **2024**.
-Indicators may therefore appear in different years in the index, depending on their own reporting schedule.
+Where the source already provides `year`, that value is kept as is.
+
+We use fixed national reporting years: `report_years <- c(2014, 2019, 2024)`, and retain the last `n_years` of these (`2019` and `2024` with the current settings).
+
+Some indicators only publish one of the two retained report years — for example a first submission with only `2024` data and nothing for `2019`.
+For indicators that are missing one of the retained report years, `impute_missing_indicator_years()` carries its nearest other retained year's draws forward or backward to fill the gap, so the same indicator set contributes to every reported year.
+This is bounded by `max_gap <- 5`: if no other retained year is within `max_gap` of the missing one, the indicator stays excluded for that year rather than being filled with a stale value. With `report_years <- c(2014, 2019, 2024)` this simply means an indicator's nearest retained year must be within one reporting cycle (5 years) to be carried forward or backward.
 
 ### 3.3 Resampling and aggregation
 
@@ -276,7 +283,9 @@ Regional and national (Norway) indices are both calculated by the same steps 1�
 forest_index <- calculate_index(
   registry_forest |> filter(match_status == "matched"),
   n_sim = n_sim,
-  n_years = n_years
+  n_years = n_years,
+  report_years = report_years,
+  max_gap = max_gap
 )
 ```
 
@@ -286,7 +295,9 @@ forest_index <- calculate_index(
 mountain_index <- calculate_index(
   registry_mountain |> filter(match_status == "matched"),
   n_sim = n_sim,
-  n_years = n_years
+  n_years = n_years,
+  report_years = report_years,
+  max_gap = max_gap
 )
 ```
 
@@ -297,7 +308,7 @@ mountain_index <- calculate_index(
 # equals that indicator's own draws for the same area.
 if (sum(registry_mountain$match_status == "matched") >= 1) {
   one_reg <- registry_mountain |> filter(match_status == "matched") |> slice(1)
-  one_out <- calculate_index(one_reg, n_sim = 200, n_years = 1)
+  one_out <- calculate_index(one_reg, n_sim = 200, n_years = 1, report_years = report_years, max_gap = max_gap)
   part_chk <- one_out$indicator_draws |>
     distinct(part) |>
     arrange(part) |>

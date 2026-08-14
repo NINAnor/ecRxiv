@@ -906,23 +906,19 @@ build_indicator_registry <- function(
 # 6. Loading draws for the index
 # =============================================================================
 
-# Keep the last n reporting years per indicator.
-select_reporting_years <- function(data, n = 2) {
-  years_keep <- data |>
-    dplyr::distinct(.data$indicator_id, .data$year) |>
-    dplyr::group_by(.data$indicator_id) |>
-    dplyr::arrange(dplyr::desc(.data$year), .by_group = TRUE) |>
-    dplyr::slice_head(n = n) |>
-    dplyr::ungroup()
-
-  data |>
-    dplyr::semi_join(years_keep, by = c("indicator_id", "year"))
-}
-
 # Load MC draws for all matched registry indicators.
+#
+# Years are filtered to a fixed national reporting schedule (`report_years`,
+# e.g. Norway's 5-year assessment cycle, defined once in the qmd) rather
+# than each indicator's own last N years, so every retained year draws from
+# the same set of report years across indicators. Indicators that publish
+# extra years outside the retained schedule (e.g. older cycles) simply have
+# those rows dropped here; gaps at a retained report year are handled
+# afterwards by `impute_missing_indicator_years()` in `calculate_index()`.
 load_registry_draws <- function(
     registry,
     n_years = 2,
+    report_years,
     repo = "NINAnor/ecRxiv",
     ref = "main",
     local_root = NULL,
@@ -934,6 +930,8 @@ load_registry_draws <- function(
   if (nrow(use) == 0) {
     stop("No matched indicators with results in registry.", call. = FALSE)
   }
+
+  target_years <- utils::tail(sort(report_years), n_years)
 
   purrr::map_dfr(seq_len(nrow(use)), function(i) {
     row <- use[i, ]
@@ -969,7 +967,72 @@ load_registry_draws <- function(
         results_source = if ("results_source" %in% names(row)) row$results_source else NA_character_
       )
   }) |>
-    select_reporting_years(n = n_years)
+    dplyr::filter(.data$year %in% target_years)
+}
+
+# Ensure every matched indicator/part has a value at every retained report
+# year.
+#
+# `load_registry_draws()` filters to the fixed national report years
+# (`target_years`), but some indicators only publish one of them (e.g. a
+# first submission with only 2024 data, nothing for 2019). Rather than
+# silently dropping such indicators from the years they don't cover, we
+# carry the nearest other retained year's draws forward/backward, so the
+# same indicator set contributes to every reported year. Bounded by
+# `max_gap`: if no other retained year is within `max_gap` of a missing one,
+# the indicator/part stays excluded for that year rather than being
+# force-filled with a stale value.
+impute_missing_indicator_years <- function(draws, target_years, max_gap = Inf) {
+  draws <- draws |>
+    dplyr::mutate(imputed = FALSE, source_year = .data$year)
+
+  have <- draws |>
+    dplyr::distinct(.data$indicator_id, .data$part, .data$year)
+
+  gaps <- tidyr::expand_grid(
+    have |> dplyr::distinct(.data$indicator_id, .data$part),
+    year = target_years
+  ) |>
+    dplyr::anti_join(have, by = c("indicator_id", "part", "year"))
+
+  if (nrow(gaps) == 0) {
+    return(draws)
+  }
+
+  imputed <- purrr::map_dfr(seq_len(nrow(gaps)), function(i) {
+    ind <- gaps$indicator_id[i]
+    p <- gaps$part[i]
+    missing_year <- gaps$year[i]
+
+    available_years <- have |>
+      dplyr::filter(.data$indicator_id == ind, .data$part == p) |>
+      dplyr::pull(.data$year) |>
+      intersect(target_years)
+
+    if (length(available_years) == 0) {
+      return(NULL)
+    }
+
+    gap <- abs(available_years - missing_year)
+    if (min(gap) > max_gap) {
+      return(NULL)
+    }
+    source_year <- available_years[which.min(gap)]
+
+    draws |>
+      dplyr::filter(
+        .data$indicator_id == ind,
+        .data$part == p,
+        .data$year == source_year
+      ) |>
+      dplyr::mutate(
+        year = missing_year,
+        imputed = TRUE,
+        source_year = source_year
+      )
+  })
+
+  dplyr::bind_rows(draws, imputed)
 }
 
 # =============================================================================
@@ -1102,14 +1165,22 @@ fill_missing_national_draws <- function(draws, n = 1000) {
 # 8. Index calculation, summaries, plots, and export
 # =============================================================================
 
-# Count contributing indicators by year and region.
+# Count contributing indicators by year and region, incl. imputed values.
 indicator_coverage <- function(draws, registry) {
+  imputed_flag <- if ("imputed" %in% names(draws)) {
+    dplyr::coalesce(draws$imputed, FALSE)
+  } else {
+    FALSE
+  }
   draws |>
+    dplyr::mutate(.imputed = imputed_flag) |>
     dplyr::group_by(.data$year, .data$part) |>
     dplyr::summarise(
       n_indicators = dplyr::n_distinct(.data$indicator_id),
       indicators = paste(sort(unique(.data$indicator_name)), collapse = "; "),
       n_registry_matched = sum(registry$match_status == "matched", na.rm = TRUE),
+      n_indicators_imputed = dplyr::n_distinct(.data$indicator_id[.data$.imputed]),
+      n_indicators_observed = dplyr::n_distinct(.data$indicator_id[!.data$.imputed]),
       .groups = "drop"
     )
 }
@@ -1119,9 +1190,25 @@ calculate_index <- function(
     registry,
     n_sim = 1000,
     n_years = 2,
+    report_years,
+    max_gap = Inf,
     include_national = TRUE,
     ...) {
-  draws <- load_registry_draws(registry, n_years = n_years, ...)
+  target_years <- utils::tail(sort(report_years), n_years)
+
+  draws <- load_registry_draws(
+    registry,
+    n_years = n_years,
+    report_years = report_years,
+    ...
+  )
+
+  # Fixed report years mean an indicator may still be missing one of the
+  # retained years (e.g. a first submission with only 2024 data); carry the
+  # nearest other retained year's draws forward/backward so the same
+  # indicator set contributes to every reported year (see
+  # impute_missing_indicator_years()).
+  draws <- impute_missing_indicator_years(draws, target_years, max_gap = max_gap)
 
   # Each indicator's own published Norway draws are used as-is (so any
   # indicator-specific weighting, e.g. NO_GLAC_001's down-weighted southern
