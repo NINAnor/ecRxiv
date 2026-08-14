@@ -123,17 +123,34 @@ server <- function(input, output, session) {
 
   output$documentation <- renderUI({
     selected_row <- input$indicatorTable_rows_selected
-
-    if (length(selected_row) == 0) message("Whoops, it seems like no row was selected.")
-
-    html_rel <- data$html_file_rel[selected_row]
-
-    html_full <- normalizePath(file.path(app_dir, html_rel), mustWork = FALSE)
-
-    if (!file.exists(html_full)) {
-      return(tags$p("No documentation available for the selected indicator."))
+    
+    if (is.null(selected_row) || length(selected_row) == 0) {
+      return(
+        bslib::card(
+          class = "mt-4",
+          bslib::card_body(
+            shiny::icon("circle-info"),
+            "Please select an indicator on the ‘Find indicator’ page first."
+          )
+        )
+      )
     }
-
+    
+    html_rel <- data$html_file_rel[[selected_row]]
+    html_full <- normalizePath(
+      file.path(app_dir, html_rel),
+      mustWork = FALSE
+    )
+    
+    if (is.na(html_rel) || !nzchar(html_rel) || !file.exists(html_full)) {
+      return(
+        tags$p(
+          class = "alert alert-warning mt-4",
+          "No documentation is available for the selected indicator."
+        )
+      )
+    }
+    
     tags$iframe(
       src = html_rel,
       style = "width:100%; height:90vh; border:none;"
