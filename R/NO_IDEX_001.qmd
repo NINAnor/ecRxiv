@@ -271,6 +271,13 @@ This propagates uncertainty from individual indicators through ECT classes to th
 
 No weighting is done between indicators, ECT classes, or regions: all indicators, ECT classes, and regions have equal weight (`weight = 1`), with one exception: `NO_GLAC_001`'s own published national value already down-weights southern Norway (see above), and we use that published value as-is rather than overriding it with an equal-weight regional average.
 
+### 3.3.1 Direct national aggregation (no ECT step)
+
+We also calculate a direct national index that skips the ECT step: every matched indicator is resampled directly to the index with equal weight (`aggregate_indicators_to_index_direct()`), rather than first being equal-weighted within its ECT class.
+This means an ECT class with many indicators has proportionally more influence on this version of the index than it does in the ECT-based workflow, where each ECT class counts equally regardless of how many indicators it contains.
+
+This direct aggregation is computed independently, and reported alongside the ECT-based index (tagged `"Index (direct)"` in the results) so the two can be compared.
+
 ### 3.4 Summaries
 
 The full MC distributions (all areas) are stored for export.
@@ -285,7 +292,8 @@ forest_index <- calculate_index(
   n_sim = n_sim,
   n_years = n_years,
   report_years = report_years,
-  max_gap = max_gap
+  max_gap = max_gap,
+  include_direct_index = TRUE
 )
 ```
 
@@ -297,7 +305,8 @@ mountain_index <- calculate_index(
   n_sim = n_sim,
   n_years = n_years,
   report_years = report_years,
-  max_gap = max_gap
+  max_gap = max_gap,
+  include_direct_index = TRUE
 )
 ```
 
@@ -326,8 +335,8 @@ if (sum(registry_mountain$match_status == "matched") >= 1) {
 
 ## 4. Results
 
-Summary tables report ECT classes and the overall index for **Norway** only (both retained reporting years).
-Regional indices (`C`, `E`, `S`, `W`, `N`) are calculated and shown in the figures below; full draws including regions are also written to the export files in @sec-export.
+Summary tables report ECT classes, the overall (ECT-based) index, and the alternative direct-aggregation index (`"Index (direct)"`, @sec-analyses) for **Norway** only (both retained reporting years).
+Regional indices (`C`, `E`, `S`, `W`, `N`) are calculated for all of the above and included in the export files in @sec-export; the figures below currently show the ECT-based index only (regional and national).
 
 ```{r forest-summary}
 #| cache: false
@@ -368,6 +377,8 @@ plot_index_forest(
 ```
 
 ## 5. Export file {#sec-export}
+
+The exported files contain the full MC distributions for every level (`"ECT"`, `"Index"`, and the alternative `"Index (direct)"`, see @sec-analyses), area, and year — identifiable via the `level` and `id` columns.
 
 ```{r export}
 #| cache: false

@@ -1095,6 +1095,38 @@ aggregate_to_index <- function(ect_draws, n = 1000) {
   })
 }
 
+# Resample indicators directly to the overall index, skipping the ECT step.
+#
+# This is a separate, alternative aggregation: every matched indicator gets
+# equal weight directly in the national/regional index, rather than first
+# being equal-weighted within its ECT class and then having ECT classes
+# equal-weighted into the index (`aggregate_to_ect()` + `aggregate_to_index()`
+# above). An ECT class with many indicators therefore has more influence
+# here than it does in the two-step workflow. Kept separate (own `level`,
+# `"Index (direct)"`) so it never mixes into the `"ECT"`/`"Index"` levels.
+aggregate_indicators_to_index_direct <- function(draws, n = 1000) {
+  parts <- unique(draws$part)
+  purrr::map_dfr(parts, function(p) {
+    df <- draws |>
+      dplyr::filter(.data$part == p) |>
+      dplyr::mutate(wgt = 1, index_level = "Index (direct)")
+
+    out <- ecTools::ec_upscale(
+      data = df,
+      variable = value,
+      weight = wgt,
+      start_units = indicator_id,
+      end_units = index_level,
+      year = year,
+      end_units_name = "id",
+      n = n
+    )
+
+    unnest_upscale(out) |>
+      dplyr::mutate(part = p, level = "Index (direct)")
+  })
+}
+
 # Ensure every indicator/year has a national ("Norway") value.
 #
 # Most ecRxiv indicators already publish their own national draws alongside
@@ -1193,6 +1225,7 @@ calculate_index <- function(
     report_years,
     max_gap = Inf,
     include_national = TRUE,
+    include_direct_index = TRUE,
     ...) {
   target_years <- utils::tail(sort(report_years), n_years)
 
@@ -1227,9 +1260,26 @@ calculate_index <- function(
   index_draws <- aggregate_to_index(ect_draws, n = n_sim) |>
     dplyr::mutate(level = "Index")
 
+  # Alternative, separate aggregation: indicators straight to the index,
+  # skipping the ECT step (see aggregate_indicators_to_index_direct()).
+  # Added as its own `level` ("Index (direct)") so it flows through the
+  # same summaries/export as ECT/Index without altering either.
+  direct_draws <- if (include_direct_index) {
+    aggregate_indicators_to_index_direct(draws, n = n_sim)
+  } else {
+    NULL
+  }
+
+  direct_draws <- if (!is.null(direct_draws)) {
+    direct_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_mean")))
+  } else {
+    NULL
+  }
+
   results <- dplyr::bind_rows(
     ect_draws |> dplyr::rename(id = ect),
-    index_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_mean")))
+    index_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_mean"))),
+    direct_draws
   )
 
   list(
