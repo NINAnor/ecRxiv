@@ -133,7 +133,7 @@ license_badge()
 
 ## 1. Aim
 
-NO_IDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices for **forest** and **mountain** ecosystems, separately by region, for Norway, and for ECT classes.
+NO_IDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices. Version 1.0.0 contains indices for **forest** and **mountain** ecosystems, for year 2024, separately by region, for Norway, and for ECT classes.
 Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
 
 ## 2. Datasets {#sec-datasets}
@@ -152,12 +152,12 @@ invisible(tryCatch(
 ))
 ```
 
-**Source manifest** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`.
+**Source manifest.** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`.
 Optional manual or fork entries can be added in `data/indicator_sources_extra.csv` if results are not yet on `upstream`.
 This manifest is used internally when resolving result paths; it is not shown in the document. 
 If the scan finds few entries, run `git fetch upstream` from the project root to refresh local branch refs.
 
-**Registry** `build_indicator_registry()` joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (`match_status`: `matched` or `no_results`).
+**Registry.** `build_indicator_registry()` joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (`match_status`: `matched` or `no_results`).
 The tables below show the outcome for forest and mountain.
 Only `matched` indicators proceed to the analysis in @sec-analyses.
 
@@ -181,6 +181,7 @@ registry_mountain <- build_indicator_registry(
 
 ```{r registry-status}
 #| cache: false
+#| code-summary: "Create forest table"
 # Compact included / not-included overview (instead of long coverage lists)
 registry_status_table <- function(registry, caption) {
   registry |>
@@ -203,6 +204,7 @@ registry_status_table(registry_forest, "Forest indicators — inclusion status")
 
 ```{r registry-status-mountain}
 #| cache: false
+#| code-summary: "Create mountaintable"
 registry_status_table(registry_mountain, "Mountain indicators — inclusion status")
 ```
 
@@ -242,7 +244,7 @@ Steps 1–2 are run separately for each year and each of six areas: the five NI 
 1. **Indicator → ECT** — within an area, one draw is resampled per indicator within each ECT class, then combined with equal weights to give an ECT-level draw (`aggregate_to_ect()`).
 2. **ECT → index** — within the same area, one draw is resampled per ECT class, then combined with equal weights to give an overall index draw for that area (`aggregate_to_index()`).
 
-**Norway goes through the same two steps above, as each region.**
+**The national index goes through the same two steps above, same as the regions.**
 All indicators publish their own national ("Norway") draws alongside the five regions, so each indicator's value going into step 1 for the Norway area is simply its own published national draw, not a recomputation by us from the five regions.
 This matters because a published national value can reflect region weighting that is specific to that indicator - for example, the glacier area indicator ([NO_GLAC_001](https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GLAC_001)) down-weights southern Norway in its own national value, because glaciers make up a much smaller share of that region (see [ECA_2026 #76](https://github.com/NINAnor/ECA_2026/issues/76#issuecomment-4864265018)).
 As a fallback, indicators without a published national value get a synthetic one via equal-weight upscaling across the five regions (`fill_missing_national_draws()`).
