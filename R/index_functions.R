@@ -1,4 +1,4 @@
-# Functions for NO_INDEX_001 composite index calculation
+# Functions for NO_IDEX_001 composite index calculation
 # Tidyverse orchestration + ecTools::ec_upscale for MC aggregation
 #
 # Sections follow the analysis pipeline:
@@ -1167,7 +1167,7 @@ summarise_index <- function(distributions) {
 # Forest-style plot of ECT and index summaries.
 # Uses the same MetBrewer "Archambault" region colours as forest indicator
 # time series, with Norway shown as filled circles and regions as triangles.
-plot_index_forest <- function(summaries, title = "NO_INDEX_001") {
+plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
   part_labels <- c(
     Norway = "Norway",
     C = "Central",
