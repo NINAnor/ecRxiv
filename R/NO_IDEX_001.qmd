@@ -137,7 +137,7 @@ license_badge()
 
 <!--# Update this log with short messages for each update -->
 - 1 July 2026 - First draft of calculation
-- 14 August 2026 - Renamed to NO_IDEX_001, update indicator list
+- 14 August 2026 - Renamed to NO_IDEX_001, update indicator list, imputation of missing reporting years, direct national aggregation, and update figures
 :::
 
 <hr />
@@ -337,8 +337,8 @@ if (sum(registry_mountain$match_status == "matched") >= 1) {
 
 ## 4. Results
 
-Summary tables report ECT classes, the overall (ECT-based) index, and the alternative direct-aggregation index (`"Index (direct)"`, @sec-analyses) for **Norway** only (both retained reporting years).
-Regional indices (`C`, `E`, `S`, `W`, `N`) are calculated for all of the above and included in the export files in @sec-export; the figures below currently show the ECT-based index only (regional and national).
+Summary tables report ECT classes, the overall (ECT-based) index, and the direct-aggregation index for Norway only.
+Regional indices (`C`, `E`, `S`, `W`, `N`) are calculated for all of the above and included in the export files in @sec-export.
 
 ```{r forest-summary}
 #| cache: false
@@ -358,24 +358,47 @@ mountain_index$summaries |>
   kable(digits = 3, caption = "Mountain index — Norway")
 ```
 
-```{r forest-plot}
+The figures below show every matched indicator individually, followed by the ECT classes, the overall totals.
+Horizontal lines separate these three groups.
+Grey dashed vertical lines mark `0`, `0.6`, and `1`.
+
+```{r forest-plot-detailed}
 #| cache: false
-#| fig-height: 4
+#| fig-height: 11
 #| fig-width: 9
-plot_index_forest(
-  forest_index$summaries,
-  title = "NO_IDEX_001 — forest"
-)
+target_years <- tail(sort(report_years), n_years)
+for (yr in target_years) {
+  print(plot_index_detailed(forest_index, yr, title = "NO_IDEX_001 — forest"))
+}
 ```
 
-```{r mountain-plot}
+```{r mountain-plot-detailed}
 #| cache: false
-#| fig-height: 3.5
+#| fig-height: 8
 #| fig-width: 9
-plot_index_forest(
-  mountain_index$summaries,
-  title = "NO_IDEX_001 — mountain"
-)
+for (yr in target_years) {
+  print(plot_index_detailed(mountain_index, yr, title = "NO_IDEX_001 — mountain"))
+}
+```
+
+The same figures below show the **national (Norway) value only** for each indicator, ECT class, and total, without the five regions.
+
+```{r forest-plot-detailed-national}
+#| cache: false
+#| fig-height: 7
+#| fig-width: 7
+for (yr in target_years) {
+  print(plot_index_detailed(forest_index, yr, title = "NO_IDEX_001 — forest", national_only = TRUE))
+}
+```
+
+```{r mountain-plot-detailed-national}
+#| cache: false
+#| fig-height: 5.5
+#| fig-width: 7
+for (yr in target_years) {
+  print(plot_index_detailed(mountain_index, yr, title = "NO_IDEX_001 — mountain", national_only = TRUE))
+}
 ```
 
 ## 5. Export file {#sec-export}

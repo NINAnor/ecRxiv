@@ -1400,6 +1400,155 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
     )
 }
 
+# Detailed dot-and-whisker plot for one year: every matched indicator
+# individually, then ECT classes, then the overall totals (the ECT-based
+# "Index" and the alternative "Index (direct)", see aggregate_indicators_to_
+# index_direct()). Horizontal lines separate the three groups; grey dashed
+# vertical lines mark 0, 0.6 (assessment "good condition" reference) and 1
+# (reference condition). One figure per year (not facetted) - call once per
+# report year.
+#
+# `national_only = TRUE` drops the five regions and shows a single national
+# ("Norway") value per row instead, with no region colour/shape legend.
+plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", national_only = FALSE) {
+  part_labels <- c(
+    Norway = "Norway",
+    C = "Central",
+    E = "East",
+    N = "North",
+    S = "South",
+    W = "West"
+  )
+  region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+  region_cols <- if (requireNamespace("MetBrewer", quietly = TRUE)) {
+    stats::setNames(
+      MetBrewer::met.brewer("Archambault", n = length(region_levels)),
+      region_levels
+    )
+  } else {
+    stats::setNames(
+      c("#88A0DC", "#381A61", "#7C4B73", "#ED968C", "#AB3329", "#E78429"),
+      region_levels
+    )
+  }
+  region_shapes <- c(
+    Norway = 19, Central = 17, East = 17, North = 17, South = 17, West = 17
+  )
+
+  indicator_summary <- index_result$indicator_draws |>
+    dplyr::filter(.data$year == .env$year) |>
+    dplyr::group_by(.data$part, .data$indicator_id, .data$indicator_name) |>
+    dplyr::summarise(
+      median = stats::median(.data$value, na.rm = TRUE),
+      q025 = stats::quantile(.data$value, 0.025, na.rm = TRUE),
+      q975 = stats::quantile(.data$value, 0.975, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    dplyr::transmute(
+      part = .data$part,
+      level = "Indicator",
+      id = .data$indicator_name,
+      median = .data$median,
+      q025 = .data$q025,
+      q975 = .data$q975
+    )
+
+  agg_summary <- index_result$summaries |>
+    dplyr::filter(.data$year == .env$year) |>
+    dplyr::select("part", "level", "id", "median", "q025", "q975")
+
+  ind_ids <- sort(unique(indicator_summary$id))
+  ect_ids <- sort(unique(agg_summary$id[agg_summary$level == "ECT"]))
+  total_ids <- intersect(c("Index", "Index (direct)"), unique(agg_summary$id))
+  id_levels <- c(ind_ids, ect_ids, total_ids)
+
+  group_labels <- c(Indicator = "Indicator", ECT = "ECT class", Index = "Total", `Index (direct)` = "Total")
+  group_levels <- c("Indicator", "ECT class", "Total")
+  group_shapes <- c(Indicator = 15, `ECT class` = 1, Total = 19)
+
+  plot_dat <- dplyr::bind_rows(indicator_summary, agg_summary) |>
+    dplyr::mutate(
+      id = factor(.data$id, levels = id_levels),
+      region = dplyr::recode(as.character(.data$part), !!!part_labels),
+      region = factor(.data$region, levels = region_levels),
+      group = dplyr::recode(.data$level, !!!group_labels),
+      group = factor(.data$group, levels = group_levels)
+    ) |>
+    dplyr::filter(!is.na(.data$id), !is.na(.data$region))
+
+  if (national_only) {
+    plot_dat <- plot_dat |> dplyr::filter(.data$region == "Norway")
+  }
+
+  # Boundaries between indicators/ECT and ECT/totals blocks.
+  group_breaks <- c(length(ind_ids), length(ind_ids) + length(ect_ids)) + 0.5
+
+  p <- ggplot2::ggplot(
+    plot_dat,
+    if (national_only) {
+      ggplot2::aes(x = median, y = id, xmin = q025, xmax = q975, shape = group)
+    } else {
+      ggplot2::aes(
+        x = median,
+        y = id,
+        xmin = q025,
+        xmax = q975,
+        colour = region,
+        shape = region
+      )
+    }
+  ) +
+    ggplot2::geom_vline(
+      xintercept = c(0, 0.6, 1), linetype = "dashed", colour = "grey70"
+    ) +
+    ggplot2::geom_hline(
+      yintercept = group_breaks, colour = "grey40", linewidth = 0.4
+    ) +
+    ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+    ggplot2::labs(
+      title = paste0(title, " \u2014 ", year, if (national_only) " (Norway)" else ""),
+      x = "Index value",
+      y = NULL
+    ) +
+    ggplot2::theme_bw(base_size = 10) +
+    ggplot2::theme(
+      panel.grid.minor = ggplot2::element_blank(),
+      plot.margin = ggplot2::margin(5, 5, 5, 5)
+    )
+
+  if (national_only) {
+    p +
+      ggplot2::geom_pointrange(
+        colour = unname(region_cols["Norway"]),
+        size = 0.45,
+        linewidth = 0.35
+      ) +
+      ggplot2::scale_shape_manual(values = group_shapes, name = NULL) +
+      ggplot2::theme(legend.position = "bottom")
+  } else {
+    p +
+      ggplot2::geom_pointrange(
+        position = ggplot2::position_dodge(width = 0.55),
+        size = 0.5,
+        linewidth = 0.35
+      ) +
+      ggplot2::scale_colour_manual(values = region_cols, name = NULL) +
+      ggplot2::scale_shape_manual(values = region_shapes, name = NULL) +
+      ggplot2::theme(legend.position = "bottom") +
+      ggplot2::guides(
+        colour = ggplot2::guide_legend(
+          nrow = 1,
+          override.aes = list(
+            shape = unname(region_shapes),
+            size = 0.6,
+            linewidth = 0.4
+          )
+        ),
+        shape = "none"
+      )
+  }
+}
+
 # Write MC distributions to CSV.
 export_index_results <- function(distributions, path) {
   out <- distributions |>
