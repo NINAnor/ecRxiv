@@ -1226,7 +1226,7 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
       shape = region
     )
   ) +
-    ggplot2::geom_vline(xintercept = 0.5, linetype = "dashed", colour = "grey70") +
+    ggplot2::geom_vline(xintercept = 0.6, linetype = "dashed", colour = "grey70") +
     ggplot2::geom_pointrange(
       position = ggplot2::position_dodge(width = 0.55),
       size = 0.7,
