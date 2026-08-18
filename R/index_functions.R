@@ -757,8 +757,11 @@ scan_git_indicator_sources <- function(
   })
 
   out <- dplyr::bind_rows(rows) |>
-    dplyr::distinct() |>
-    dplyr::arrange(.data$indicator_id, .data$priority, .data$ref)
+    dplyr::distinct()
+
+  if (nrow(out) > 0 && "indicator_id" %in% names(out)) {
+    out <- dplyr::arrange(out, .data$indicator_id, .data$priority, .data$ref)
+  }
 
   # Avoid clobbering a good manifest with a failed/partial scan.
   if (!is.null(write_path) && file.exists(write_path) && nrow(out) > 0) {
