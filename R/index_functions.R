@@ -219,16 +219,22 @@ harmonise_indicator_draws <- function(
 
   value_col <- intersect(
     names(dat),
-    c("sampled_mean", "indicator", "value", "sim")
+    c("sampled_value", "sampled_mean", "indicator", "value", "sim")
   )[1]
   if (is.na(value_col)) {
-    value_col <- intersect(tolower(names(dat)), c("sampled_mean", "indicator", "value", "sim"))[1]
+    value_col <- intersect(
+      tolower(names(dat)),
+      c("sampled_value", "sampled_mean", "indicator", "value", "sim")
+    )[1]
     if (!is.na(value_col)) {
       value_col <- names(dat)[match(value_col, tolower(names(dat)))]
     }
   }
   if (is.na(value_col)) {
-    stop("Results must contain sampled_mean, indicator, value, or sim column.", call. = FALSE)
+    stop(
+      "Results must contain sampled_value, sampled_mean, indicator, value, or sim column.",
+      call. = FALSE
+    )
   }
 
   name_map <- stats::setNames(names(dat), tolower(names(dat)))
@@ -1039,12 +1045,16 @@ impute_missing_indicator_years <- function(draws, target_years, max_gap = Inf) {
 # 7. Aggregation with ecTools::ec_upscale
 # =============================================================================
 
-# Unnest list-column sampled_mean from ec_upscale output.
+# Unnest list-column sampled_value from ec_upscale output.
+# Older ecTools versions named this column sampled_mean; rename that if present.
 unnest_upscale <- function(x) {
-  if (vctrs::vec_size(x$sampled_mean[[1]]) == 1L) {
+  if ("sampled_mean" %in% names(x) && !"sampled_value" %in% names(x)) {
+    x <- dplyr::rename(x, sampled_value = "sampled_mean")
+  }
+  if (vctrs::vec_size(x$sampled_value[[1]]) == 1L) {
     return(x)
   }
-  tidyr::unnest_longer(x, sampled_mean)
+  tidyr::unnest_longer(x, sampled_value)
 }
 
 # Resample indicators to ECT classes (equal weights).
@@ -1081,7 +1091,7 @@ aggregate_to_index <- function(ect_draws, n = 1000) {
 
     out <- ecTools::ec_upscale(
       data = df,
-      variable = sampled_mean,
+      variable = sampled_value,
       weight = wgt,
       start_units = ect,
       end_units = index_level,
@@ -1181,7 +1191,7 @@ fill_missing_national_draws <- function(draws, n = 1000) {
         period = df$period[1],
         part_raw = "Norway (equal-weight fallback)",
         part = "Norway",
-        value = .data$sampled_mean,
+        value = .data$sampled_value,
         ect = df$ect[1],
         ecosystem = df$ecosystem[1],
         indicator_name = df$indicator_name[1],
@@ -1271,14 +1281,14 @@ calculate_index <- function(
   }
 
   direct_draws <- if (!is.null(direct_draws)) {
-    direct_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_mean")))
+    direct_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_value")))
   } else {
     NULL
   }
 
   results <- dplyr::bind_rows(
     ect_draws |> dplyr::rename(id = ect),
-    index_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_mean"))),
+    index_draws |> dplyr::select(dplyr::any_of(c("year", "part", "id", "level", "sampled_value"))),
     direct_draws
   )
 
@@ -1295,9 +1305,9 @@ summarise_index <- function(distributions) {
   distributions |>
     dplyr::group_by(.data$year, .data$part, .data$level, .data$id) |>
     dplyr::summarise(
-      median = stats::median(.data$sampled_mean, na.rm = TRUE),
-      q025 = stats::quantile(.data$sampled_mean, 0.025, na.rm = TRUE),
-      q975 = stats::quantile(.data$sampled_mean, 0.975, na.rm = TRUE),
+      median = stats::median(.data$sampled_value, na.rm = TRUE),
+      q025 = stats::quantile(.data$sampled_value, 0.025, na.rm = TRUE),
+      q975 = stats::quantile(.data$sampled_value, 0.975, na.rm = TRUE),
       n = dplyr::n(),
       .groups = "drop"
     )
@@ -1557,7 +1567,7 @@ export_index_results <- function(distributions, path) {
       part = .data$part,
       level = .data$level,
       id = .data$id,
-      sampled_mean = .data$sampled_mean
+      sampled_value = .data$sampled_value
     )
   readr::write_csv(out, path)
 }
