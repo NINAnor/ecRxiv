@@ -1,7 +1,7 @@
 ---
-title: "Calculation of ecological indicators index"
+title: "Calculation of ecological condition indices"
 subtitle: |
-  Ecological index for forest and mountain
+  NO_IDEX_001 - for forest and mountain ecosystems
 indicatorID:
   - NO_IDEX_001
 indicatorName:
@@ -45,23 +45,30 @@ code_reproducibility: gold
 open_science_badge: gold
 callout-icon: false
 lightbox: true
-css: ../../../style.css
 code-links:
   - text: Add a review
     icon: github
     href: https://github.com/NINAnor/ecRxiv
 hide: FALSE
 bibliography: references.bib
+codeReviewers:
+  - name: Anders Kolstad
+    email: anders.kolstad@nina.no
+    affiliations:
+      - id: reviewerInst
+        name: NINA
+    reviewType: code review
+    github: anders-kolstad
 ---
 
 ```{r setup}
 #| include: false
 #| cache: false
-if (file.exists("renv/activate.R")) {
-  source("renv/activate.R")
-} else if (file.exists("../renv/activate.R")) {
-  source("../renv/activate.R")
-}
+#if (file.exists("renv/activate.R")) {
+#  source("renv/activate.R")
+#} else if (file.exists("../renv/activate.R")) {
+#  source("../renv/activate.R")
+#}
 
 library(knitr)
 library(tidyverse)
@@ -151,8 +158,15 @@ Values near 1 indicate better ecological condition relative to reference; values
 
 First, we check which indicators are included in each index and where their results can be found on ecRxiv.
 
-**Indicator lists** Forest indicators are listed in `data/indicators_2026.csv`; mountain indicators follow [ECA_2026 #104](https://github.com/NINAnor/ECA_2026/issues/104) in `data/indicators_mountain.csv`.
+**Indicator lists.** Forest indicators are listed in `data/indicators_2026.csv`; mountain indicators follow [ECA_2026 #104](https://github.com/NINAnor/ECA_2026/issues/104) in `data/indicators_mountain.csv`.
 Each row specifies the indicator name, ecRxiv ID, and ECT class assignment.
+
+
+
+**Source manifest.** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`.
+Optional manual or fork entries can be added in `data/indicator_sources_extra.csv` if results are not yet on `upstream`.
+This manifest is used internally when resolving result paths; it is not shown in the document. 
+If the scan finds few entries, run `git fetch upstream` from the project root to refresh local branch refs.
 
 ```{r refresh-sources}
 #| cache: false
@@ -162,11 +176,6 @@ invisible(tryCatch(
   error = function(e) invisible(NULL)
 ))
 ```
-
-**Source manifest.** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`.
-Optional manual or fork entries can be added in `data/indicator_sources_extra.csv` if results are not yet on `upstream`.
-This manifest is used internally when resolving result paths; it is not shown in the document. 
-If the scan finds few entries, run `git fetch upstream` from the project root to refresh local branch refs.
 
 **Registry.** `build_indicator_registry()` joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (`match_status`: `matched` or `no_results`).
 The tables below show the outcome for forest and mountain.
@@ -282,7 +291,7 @@ We use these national draws as-is rather than overriding it with an equal-weight
 We also calculate a direct national index that skips the ECT step: every matched indicator is resampled directly to the index with equal weight (`aggregate_indicators_to_index_direct()`), rather than first being equal-weighted within its ECT class.
 This means an ECT class with many indicators has proportionally more influence on this version of the index than it does in the ECT-based workflow, where each ECT class counts equally regardless of how many indicators it contains.
 
-This direct aggregation is computed independently, and reported alongside the ECT-based index (tagged `"Index (direct)"` in the results) so the two can be compared.
+This direct aggregation is computed independently, and reported alongside the ECT-based index (tagged `"Index (direct)"` in the results) so the two can be compared. Note that the indicator ID NO_IDEX_001 retains to the hierarchically aggregated version. 
 
 ### 3.4 Summaries
 
@@ -292,7 +301,9 @@ Regional and national (Norway) indices are both calculated by the same steps 1â€
 
 ```{r run-forest}
 #| cache: true
+#| code-summary: 'Calculate forest index'
 #| cache.extra: !expr digest::digest(registry_forest)
+#| eval: false
 forest_index <- calculate_index(
   registry_forest |> filter(match_status == "matched"),
   n_sim = n_sim,
@@ -301,10 +312,19 @@ forest_index <- calculate_index(
   max_gap = max_gap,
   include_direct_index = TRUE
 )
+
+saveRDS(forest_index, here::here("data/forest_index_170826.rds"))
 ```
+
+```{r readForestCache}
+#| include: false
+forest_index <- readRDS(here::here("data/forest_index_170826.rds"))
+```
+
 
 ```{r run-mountain}
 #| cache: true
+#| code-summary: 'Calculate mountain index'
 #| cache.extra: !expr digest::digest(registry_mountain)
 mountain_index <- calculate_index(
   registry_mountain |> filter(match_status == "matched"),
@@ -314,6 +334,13 @@ mountain_index <- calculate_index(
   max_gap = max_gap,
   include_direct_index = TRUE
 )
+```
+
+```{r tbl-checkForest}
+#| tbl-cap: 'Table showing the number of indicators used in the index, and how many of therse were either observed or imputed.' 
+forest_index$coverage |>
+  select(year, part, "# indicators" = n_indicators, "# indicators imputed" = n_indicators_imputed, "# indicators observed" = n_indicators_observed) |>
+  gt::gt()
 ```
 
 ```{r validation}
@@ -394,6 +421,8 @@ The same figures below show the **national (Norway) value only** for each indica
 for (yr in target_years) {
   print(plot_index_detailed(forest_index, yr, title = "NO_IDEX_001 â€” forest", national_only = TRUE))
 }
+
+ggsave(here::here("img/forest_forestplot.png"), width = 13, height = 16, units = "cm")
 ```
 
 ```{r mountain-plot-detailed-national}

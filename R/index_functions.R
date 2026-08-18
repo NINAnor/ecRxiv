@@ -1448,9 +1448,23 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
     Norway = 19, Central = 17, East = 17, North = 17, South = 17, West = 17
   )
 
+  ect_order <- c("A1", "A2", "B1", "B2", "B3", "C1")
+  ect_shapes <- c(
+      A1 = 15,
+      A2 = 16,
+      B1 = 17,
+      B2 = 18,
+      B3 = 3,
+      C1 = 4
+    )
+  
   indicator_summary <- index_result$indicator_draws |>
     dplyr::filter(.data$year == .env$year) |>
-    dplyr::group_by(.data$part, .data$indicator_id, .data$indicator_name) |>
+    dplyr::group_by(
+      .data$part, 
+      .data$indicator_id, 
+      .data$indicator_name,
+      .data$ect) |>
     dplyr::summarise(
       median = stats::median(.data$value, na.rm = TRUE),
       q025 = stats::quantile(.data$value, 0.025, na.rm = TRUE),
@@ -1460,7 +1474,10 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
     dplyr::transmute(
       part = .data$part,
       level = "Indicator",
-      id = .data$indicator_name,
+      indicator_id = as.character(.data$indicator_id),
+      label = .data$indicator_name,
+      ect = as.character(.data$ect),
+      row_key = paste0("Indicator::", .data$indicator_id),
       median = .data$median,
       q025 = .data$q025,
       q975 = .data$q975
@@ -1469,55 +1486,152 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
   agg_summary <- index_result$summaries |>
     dplyr::filter(.data$year == .env$year) |>
     dplyr::select("part", "level", "id", "median", "q025", "q975")
+  
+  ect_summary <- agg_summary |>
+    dplyr::filter(.data$level == "ECT") |>
+    dplyr::transmute(
+      part = .data$part,
+      level = "ECT",
+      indicator_id = NA_character_,
+      label = as.character(.data$id),
+      ect = as.character(.data$id),
+      row_key = paste0("ECT::", .data$id),
+      median = .data$median,
+      q025 = .data$q025,
+      q975 = .data$q975
+    )
 
-  ind_ids <- sort(unique(indicator_summary$id))
-  ect_ids <- sort(unique(agg_summary$id[agg_summary$level == "ECT"]))
-  total_ids <- intersect(c("Index", "Index (direct)"), unique(agg_summary$id))
-  id_levels <- c(ind_ids, ect_ids, total_ids)
-
-  group_labels <- c(Indicator = "Indicator", ECT = "ECT class", Index = "Total", `Index (direct)` = "Total")
-  group_levels <- c("Indicator", "ECT class", "Total")
-  group_shapes <- c(Indicator = 15, `ECT class` = 1, Total = 19)
-
-  plot_dat <- dplyr::bind_rows(indicator_summary, agg_summary) |>
-    dplyr::mutate(
-      id = factor(.data$id, levels = id_levels),
-      region = dplyr::recode(as.character(.data$part), !!!part_labels),
-      region = factor(.data$region, levels = region_levels),
-      group = dplyr::recode(.data$level, !!!group_labels),
-      group = factor(.data$group, levels = group_levels)
+  total_summary <- agg_summary |>
+    dplyr::filter(
+      .data$id %in% c("Index", "Index (direct)")
     ) |>
-    dplyr::filter(!is.na(.data$id), !is.na(.data$region))
+    dplyr::transmute(
+      part = .data$part,
+      level = "Total",
+      indicator_id = NA_character_,
+      label = as.character(.data$id),
+      ect = NA_character_,
+      row_key = paste0("Total::", .data$id),
+      median = .data$median,
+      q025 = .data$q025,
+      q975 = .data$q975
+    )
+
+  indicator_rows <- indicator_summary |>
+  dplyr::distinct(
+    .data$row_key,
+    .data$indicator_id,
+    .data$label,
+    .data$ect
+  ) |>
+  dplyr::mutate(
+    ect = factor(.data$ect, levels = ect_order)
+  ) |>
+  dplyr::arrange(
+    .data$ect,
+    .data$indicator_id
+  )
+  indicator_keys <- indicator_rows$row_key
+
+  ect_keys <- paste0(
+    "ECT::",
+    ect_order[ect_order %in% unique(ect_summary$ect)]
+  )
+
+  total_order <- c("Index", "Index (direct)")
+
+  total_keys <- paste0(
+    "Total::",
+    total_order[
+      total_order %in% unique(total_summary$label)
+    ])
+  top_to_bottom <- c(
+    total_keys,
+    ect_keys,
+    indicator_keys
+  )
+  # ggplot's discrete y axis runs factor levels BOTTOM -> TOP,
+  # hence rev().
+  y_levels <- rev(top_to_bottom)
+
+  # Labels shown on the y axis
+  label_lookup <- c(
+    stats::setNames(total_summary$label, total_summary$row_key),
+    stats::setNames(ect_summary$label, ect_summary$row_key),
+    stats::setNames(indicator_rows$label, indicator_rows$row_key)
+  )
+
+  label_lookup <- label_lookup[!duplicated(names(label_lookup))]
+
+  plot_dat <- dplyr::bind_rows(
+    indicator_summary,
+    ect_summary,
+    total_summary
+  ) |>
+    dplyr::mutate(
+      row_key = factor(
+        .data$row_key,
+        levels = y_levels
+      ),
+
+      region = dplyr::recode(
+        as.character(.data$part),
+        !!!part_labels
+      ),
+
+      region = factor(
+        .data$region,
+        levels = region_levels
+      ),
+
+      # Shape grouping:
+      # indicators + ECT summaries get their ECT-class shape;
+      # totals receive their own shape.
+      shape_group = dplyr::if_else(
+        .data$level == "Total",
+        "Total",
+        .data$ect
+      )
+    ) |>
+    dplyr::filter(!is.na(.data$row_key), !is.na(.data$region))
 
   if (national_only) {
     plot_dat <- plot_dat |> dplyr::filter(.data$region == "Norway")
   }
 
   # Boundaries between indicators/ECT and ECT/totals blocks.
-  group_breaks <- c(length(ind_ids), length(ind_ids) + length(ect_ids)) + 0.5
+  n_ind <- length(indicator_keys)
+  n_ect <- length(ect_keys)
+
+  group_breaks <- c(
+    n_ind + 0.5,
+    n_ind + n_ect + 0.5
+  )
 
   p <- ggplot2::ggplot(
     plot_dat,
     if (national_only) {
-      ggplot2::aes(x = median, y = id, xmin = q025, xmax = q975, shape = group)
+      ggplot2::aes(x = median, y = row_key, xmin = q025, xmax = q975, shape = shape_group)
     } else {
       ggplot2::aes(
         x = median,
-        y = id,
+        y = row_key,
         xmin = q025,
         xmax = q975,
         colour = region,
-        shape = region
+        shape = shape_group
       )
     }
   ) +
-    ggplot2::geom_vline(
-      xintercept = c(0, 0.6, 1), linetype = "dashed", colour = "grey70"
-    ) +
+    #ggplot2::geom_vline(
+    #  xintercept = c(0, 0.6, 1), linetype = "dashed", colour = "grey70"
+    #) +
     ggplot2::geom_hline(
       yintercept = group_breaks, colour = "grey40", linewidth = 0.4
     ) +
     ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+    ggplot2::scale_y_discrete(
+      labels = label_lookup) +
     ggplot2::labs(
       title = paste0(title, " \u2014 ", year, if (national_only) " (Norway)" else ""),
       x = "Index value",
@@ -1529,6 +1643,12 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
       plot.margin = ggplot2::margin(5, 5, 5, 5)
     )
 
+  # Add one extra shape for the total index rows.
+  shape_values <- c(
+    ect_shapes,
+    Total = 19
+  )
+
   if (national_only) {
     p +
       ggplot2::geom_pointrange(
@@ -1536,7 +1656,7 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
         size = 0.45,
         linewidth = 0.35
       ) +
-      ggplot2::scale_shape_manual(values = group_shapes, name = NULL) +
+      ggplot2::scale_shape_manual(values = shape_values, name = "ECT") +
       ggplot2::theme(legend.position = "bottom")
   } else {
     p +
@@ -1546,19 +1666,9 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
         linewidth = 0.35
       ) +
       ggplot2::scale_colour_manual(values = region_cols, name = NULL) +
-      ggplot2::scale_shape_manual(values = region_shapes, name = NULL) +
-      ggplot2::theme(legend.position = "bottom") +
-      ggplot2::guides(
-        colour = ggplot2::guide_legend(
-          nrow = 1,
-          override.aes = list(
-            shape = unname(region_shapes),
-            size = 0.6,
-            linewidth = 0.4
-          )
-        ),
-        shape = "none"
-      )
+      ggplot2::scale_shape_manual(values = shape_values, name = "ECT") +
+      ggplot2::theme(legend.position = "bottom") 
+      
   }
 }
 
