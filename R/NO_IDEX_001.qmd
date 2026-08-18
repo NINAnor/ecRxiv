@@ -326,6 +326,7 @@ forest_index <- readRDS(here::here("data/forest_index_170826.rds"))
 #| cache: true
 #| code-summary: 'Calculate mountain index'
 #| cache.extra: !expr digest::digest(registry_mountain)
+#| eval: false
 mountain_index <- calculate_index(
   registry_mountain |> filter(match_status == "matched"),
   n_sim = n_sim,
@@ -334,10 +335,17 @@ mountain_index <- calculate_index(
   max_gap = max_gap,
   include_direct_index = TRUE
 )
+
+saveRDS(mountain_index, here::here("data/mountain_index_170826.rds"))
+```
+
+```{r readMountainCache}
+#| include: false
+mountain_index <- readRDS(here::here("data/mountain_index_170826.rds"))
 ```
 
 ```{r tbl-checkForest}
-#| tbl-cap: 'Table showing the number of indicators used in the index, and how many of therse were either observed or imputed.' 
+#| tbl-cap: 'Table showing the number of indicators used in the index, and how many of these were either observed or imputed.' 
 forest_index$coverage |>
   select(year, part, "# indicators" = n_indicators, "# indicators imputed" = n_indicators_imputed, "# indicators observed" = n_indicators_observed) |>
   gt::gt()
@@ -389,9 +397,8 @@ mountain_index$summaries |>
   kable(digits = 3, caption = "Mountain index — Norway")
 ```
 
-The figures below show every matched indicator individually, followed by the ECT classes, the overall totals.
+The figures below show every matched indicator individually, followed by the ECT classes and the overall totals.
 Horizontal lines separate these three groups.
-Grey dashed vertical lines mark `0`, `0.6`, and `1`.
 
 ```{r forest-plot-detailed}
 #| cache: false
