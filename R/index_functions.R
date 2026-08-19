@@ -484,6 +484,7 @@ results_path_candidates <- function(
     version = "1.0.0") {
   slug <- indicator_mc_slug(indicator_id)
   fname_v <- glue::glue("results_{indicator_id}_v{version}.csv")
+  fname_v_parquet <- glue::glue("results_{indicator_id}_v{version}.parquet")
   fname <- glue::glue("results_{indicator_id}.csv")
   fname_parquet <- glue::glue("results_{indicator_id}.parquet")
   fname_parquet_sim <- glue::glue("results_{indicator_id}_sim.parquet")
@@ -492,8 +493,10 @@ results_path_candidates <- function(
 
   paths <- c(
     glue::glue("indicators/{folder}/data/{fname_v}"),
+    glue::glue("indicators/{folder}/data/{fname_v_parquet}"),
     glue::glue("indicators/{folder}/data/{fname}"),
     glue::glue("indicators/{indicator_id}/data/{fname_v}"),
+    glue::glue("indicators/{indicator_id}/data/{fname_v_parquet}"),
     glue::glue("indicators/{indicator_id}/data/{fname}"),
     glue::glue("indicators/{folder}/data/{fname_parquet}"),
     glue::glue("indicators/{folder}/data/{fname_parquet_sim}"),
@@ -516,6 +519,15 @@ results_path_candidates <- function(
       paths,
       glue::glue("indicators/{folder}/data/NO_SLIT_002_sim.parquet"),
       "indicators/NO_SLIT_001/data/NO_SLIT_002_sim.parquet"
+    )
+  }
+
+  # NO_SNOW_001 v0.1.0 parquet on main (version differs from default 1.0.0).
+  if (identical(indicator_id, "NO_SNOW_001")) {
+    paths <- c(
+      paths,
+      glue::glue("indicators/{folder}/data/results_{indicator_id}_v0.1.0.parquet"),
+      glue::glue("indicators/{indicator_id}/data/results_{indicator_id}_v0.1.0.parquet")
     )
   }
 
