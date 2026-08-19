@@ -444,7 +444,7 @@ yrs_tcd <- str_sub(path_tcd_list, start = -4)
 file_tcd <- map_vec(seq_along(path_tcd_list), function(i){paste0(path_tcd_list[i], "/TCD_", yrs_tcd[i], ".tif")})
 
 # Set target CRS
-tcd_crs <- st_crs(file_tcd[1])
+tcd_crs <- st_crs(rast(file_tcd[1]))
 
 ## Clean the R environment
 rm(list = setdiff(ls(), 
@@ -478,13 +478,13 @@ walk(gk_list, function(x){
   
   dbExecute(conn_tcd, 
       sprintf("
-        CREATE TABLE '%s' AS
-        SELECT okosystemtype_1, geom
+        CREATE OR REPLACE TABLE '%s' AS
+        SELECT okosystemtype1_name, geom
         FROM ST_Read('%s')
-        WHERE okosystemtype_1 = 'Settlements and other artificial areas' 
-          OR okosystemtype_1 = 'Forest and woodlands' 
+        WHERE okosystemtype1_name = 'Settlements and other artificial areas' 
+          OR okosystemtype1_name = 'Forest and woodlands' 
       ", 
-paste0("gk_et014_", str_extract(x, "(?<=UTM33_).{2}")),
+paste0("gk_et014_", str_extract(x, "(?<=UTM33_f).{2}")),
 x))
   
 })
@@ -569,7 +569,7 @@ for(tbl in tables){
 
 # Clean duckdb database of the raw tables
 tables <- dbListTables(conn_tcd) 
-tables <- tables[!tables %in% keep(tables, startsWith(tables, "cln_"))]
+tables <- keep(tables, startsWith(tables, "temp_"))
 
 for (tbl in tables) {
 
@@ -644,7 +644,7 @@ lau_dgurb <- inner_join(lau_no,
               select(Fylke_nummer, Fylke_navn, GISCO_ID, LAU_NAME, DEGURBA, geometry) %>%
               st_as_sf()
 
-# Re-project in the CRS of IMD data and store in duckdb database
+# Re-project in the CRS of TCD data and store in duckdb database
 st_transform(lau_dgurb, crs = tcd_crs) %>%
       ddbs_make_valid(conn = conn_tcd,
                       "cln_lau",
@@ -661,17 +661,38 @@ empty_check <- ddbs_is_empty("cln_lau",
                              conn = conn_tcd) %>%
                   filter(is_empty == TRUE) %>%
                   ddbs_collect() %>%
-                  dim()
+                 dim()
 
 simple_check <- ddbs_is_simple("cln_lau",
                                conn = conn_tcd) %>%
                   filter(!is_simple) %>% 
                   ddbs_collect() %>%
-                  dim()
+                 dim()
 
+print(valid_check)
+print(empty_check)
+print(simple_check)
 
 # Verify table is in my duckdb conn_ug database
 ddbs_list_tables(conn_tcd)
+
+# Clean duckdb database of the raw tables
+tables <- dbListTables(conn_tcd) 
+tables <- keep(tables, startsWith(tables, "temp_"))
+
+for (tbl in tables) {
+
+  if(substr(tbl, 1, 9) == "temp_view"){
+
+    dbExecute(conn_tcd, sprintf("DROP VIEW IF EXISTS %s", dbQuoteIdentifier(conn_tcd, tbl)))
+
+  }else{
+
+    dbExecute(conn_tcd, sprintf("DROP TABLE IF EXISTS %s", dbQuoteIdentifier(conn_tcd, tbl)))
+
+  }
+
+}
 
 ## Clean the R environment
 rm(list = setdiff(ls(), 
@@ -789,13 +810,14 @@ for(tbl in tables){
 # 
 # as_duckspatial_df(paste0("lau_et014_", lyr), conn = conn_tcd) %>%
 #                 ddbs_collect() %>%
+#     select(!fid) %>% # if intermediate layer used
 # 
 #     st_write(path_gpkg,
 #              layer = lyr,
 #              append = TRUE)
 # }
 
-## Read intermediate layer (if needed)
+# ## Read intermediate layer (if needed)
 path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "TCCD_tmp_layers/ET014_LAU_3035.gpkg")
 layers <- st_layers(path_gpkg)$name
 
@@ -857,7 +879,7 @@ lau_et04_all <- map(tables, function(tbl) {
   as_duckspatial_df(tbl, conn = conn_tcd) %>%
     ddbs_collect()}) %>%
   bind_rows() %>%
-  filter(okosystemtype_1 == "Forest and woodlands")
+  filter(okosystemtype1_name == "Forest and woodlands")
 
 
 ## Fylke number for parallelisation
@@ -869,7 +891,7 @@ fylke_nb <- dbGetQuery(conn_tcd, "SELECT DISTINCT Fylke_nummer FROM cln_lau") %>
 path_tcd <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/TCD_Copernicus"
 path_tcd_list <- dir(path_tcd, recursive = FALSE, full.names = TRUE)
 yrs_tcd <- str_sub(path_tcd_list, start = -4)
-file_tcd <- map_vec(seq_along(path_tcd_list), function(i){paste0(path_tcd_list[i], "/TCD_", yrs_tcd[i], ".vrt")})
+file_tcd <- map_vec(seq_along(path_tcd_list), function(i){paste0(path_tcd_list[i], "/TCD_", yrs_tcd[i], ".tif")})
 
 
 ## Retrieve IMD per year and fylke
@@ -942,7 +964,7 @@ lau_et01_all <- map(tables, function(tbl) {
   as_duckspatial_df(tbl, conn = conn_tcd) %>%
     ddbs_collect()}) %>%
   bind_rows() %>%
-  filter(okosystemtype_1 == "Settlements and other artificial areas")
+  filter(okosystemtype1_name == "Settlements and other artificial areas")
 
 
 ## Fylke number for parallelisation
@@ -954,7 +976,7 @@ fylke_nb <- dbGetQuery(conn_tcd, "SELECT DISTINCT Fylke_nummer FROM cln_lau") %>
 path_tcd <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/TCD_Copernicus"
 path_tcd_list <- dir(path_tcd, recursive = FALSE, full.names = TRUE)
 yrs_tcd <- str_sub(path_tcd_list, start = -4)
-file_tcd <- map_vec(seq_along(path_tcd_list), function(i){paste0(path_tcd_list[i], "/TCD_", yrs_tcd[i], ".vrt")})
+file_tcd <- map_vec(seq_along(path_tcd_list), function(i){paste0(path_tcd_list[i], "/TCD_", yrs_tcd[i], ".tif")})
 
 
 ## Retrieve IMD per year and fylke
@@ -1033,7 +1055,7 @@ fylke_nb <- dbGetQuery(conn_tcd, "SELECT DISTINCT Fylke_nummer FROM cln_lau") %>
 path_tcd <- "/data/P-Prosjekter2/412413_2023_no_egd/git_data/TCD_Copernicus"
 path_tcd_list <- dir(path_tcd, recursive = FALSE, full.names = TRUE)
 yrs_tcd <- str_sub(path_tcd_list, start = -4)
-file_tcd <- map_vec(seq_along(path_tcd_list), function(i){paste0(path_tcd_list[i], "/TCD_", yrs_tcd[i], ".vrt")})
+file_tcd <- map_vec(seq_along(path_tcd_list), function(i){paste0(path_tcd_list[i], "/TCD_", yrs_tcd[i], ".tif")})
 
 
 ## Retrieve IMD per year and fylke
@@ -1488,7 +1510,7 @@ datatable(res_national, filter = "top") %>%
 ```
 
 ### Municipality level
-Træna and Røst are missing rom TCCD_001.
+Træna and Røst are missing from TCCD_001.
 ```{r}
 #| eval: true
 #| message: false
@@ -1500,8 +1522,7 @@ res_municipal <- bind_rows(tccd_001_mun,
                            tccd_100_mun,
                            tccd_101_mun,
                            tccd_102_mun,
-                           tccd_103_mun,
-                           tccd_104_mun)
+                           tccd_103_mun)
 
 # Close duckdb connection
 ddbs_stop_conn(conn_tcd)
@@ -1523,12 +1544,12 @@ Finally we present a sample code which can export the results into csv or xlsx f
 #| code-summary: "Code to export the result tables above"
 
 #CSV
-write.table(res_national, "TCCD_NO_national_2018_2023.csv")
-write.table(res_municip, "TCCD_NO_regional_2018_2023.csv")
+write.table(res_national, "TCCD_NO_national_2018_2024.csv")
+write.table(res_municipal, "TCCD_NO_regional_2018_2024.csv")
 
 #Excel
-write_xlsx(res_national, "TCCD_NO_national_2018_2021.xlsx")
-write_xlsx(res_municip, "TCCD_NO_regional_2018_2021.xlsx")
+write_xlsx(res_national, "TCCD_NO_national_2018_2024.xlsx")
+write_xlsx(res_municipal, "TCCD_NO_regional_2018_2024.xlsx")
 
 ```
 
