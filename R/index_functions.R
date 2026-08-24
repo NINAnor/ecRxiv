@@ -99,7 +99,6 @@ indicator_catalog <- function() {
     "NO_BEAR_001", "Brown bear", "NO_BAER_001", "forest",
     "NO_LYNX_001", "Lynx", "NO_LYNX_001", "forest",
     "NO_WOLF_001", "Wolf", "NO_WOLF_001", "forest",
-    "NO_AIFH_001", "Clear-cutting", "NO_AIFH_001", "forest",
     "NO_AIVS_001", "Ditching", "NO_AIVS_001", "forest",
     "NO_BLAA_001", "Bilberry cover", "NO_BLAA_001", "forest",
     "NO_BGSK_001", "Old forest", "NO_BGSK_001", "forest",
@@ -114,7 +113,6 @@ indicator_catalog <- function() {
 name_to_id_overrides <- function() {
   c(
     "Ditching" = "NO_AIVS_001",
-    "Clear-cutting" = "NO_AIFH_001",
     "Moisture impacts on vegetation" = "NO_FUMO_004",
     "Nitrogen impacts on vegetation" = "NO_FUNI_004",
     "Butterflies" = "NO_BFLY_002",
