@@ -215,6 +215,11 @@ registry_status_table <- function(registry, caption) {
         .data$match_status == "matched" ~ "Included",
         .data$match_status == "no_results" ~ "No results yet",
         TRUE ~ "Missing ID"
+      ),
+      `Results file` = dplyr::if_else(
+        .data$match_status == "matched" & !is.na(.data$results_path),
+        basename(.data$results_path),
+        ""
       )
     ) |>
     dplyr::arrange(.data$ECT, .data$Status, .data$Indicator) |>
