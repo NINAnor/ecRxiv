@@ -118,6 +118,7 @@ name_to_id_overrides <- function() {
     "Butterflies" = "NO_BFLY_002",
     "Bumblebees" = "NO_BUMB_002",
     "Dead wood volume" = "NO_DTVS_001",
+    "Total deadwood" = "NO_DTVS_001",
     "Dead wood share" = "NO_DWTO_001",
     "Trampling disturbance" = "NO_SLIT_001",
     "Erosive disturbance" = "NO_SLIT_001",
@@ -1433,16 +1434,82 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
 #
 # `national_only = TRUE` drops the five regions and shows a single national
 # ("Norway") value per row instead, with no region colour/shape legend.
-plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", national_only = FALSE) {
-  part_labels <- c(
-    Norway = "Norway",
-    C = "Central",
-    E = "East",
-    N = "North",
-    S = "South",
-    W = "West"
-  )
-  region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+plot_index_detailed <- function(
+    index_result,
+    year,
+    title = "NO_IDEX_001",
+    national_only = FALSE,
+    lang = c("en", "nb"),
+    registry = NULL) {
+  lang <- rlang::arg_match(lang)
+
+  if (lang == "nb") {
+    part_labels <- c(
+      Norway = "Norge",
+      C = "Midt",
+      E = "\u00d8st",
+      N = "Nord",
+      S = "S\u00f8r",
+      W = "Vest"
+    )
+    region_levels <- c("Norge", "Midt", "\u00d8st", "Nord", "S\u00f8r", "Vest")
+    total_labels <- c(
+      "Index" = "Indeks",
+      "Index (direct)" = "Indeks (direkte)"
+    )
+    x_lab <- "Indeksverdi"
+    norway_tag <- "Norge"
+  } else {
+    part_labels <- c(
+      Norway = "Norway",
+      C = "Central",
+      E = "East",
+      N = "North",
+      S = "South",
+      W = "West"
+    )
+    region_levels <- c("Norway", "Central", "East", "North", "South", "West")
+    total_labels <- c(
+      "Index" = "Index",
+      "Index (direct)" = "Index (direct)"
+    )
+    x_lab <- "Index value"
+    norway_tag <- "Norway"
+  }
+
+  # Indicator display names: English from draws; Norwegian from registry
+  # `verbatimeName` when available.
+  indicator_name_lookup <- NULL
+  ect_name_lookup <- NULL
+  if (!is.null(registry) && lang == "nb") {
+    ind_map <- registry |>
+      dplyr::filter(
+        !is.na(.data$indicatorID),
+        .data$indicatorID != ""
+      ) |>
+      dplyr::mutate(
+        id = as.character(.data$indicatorID),
+        nb = stringr::str_squish(as.character(.data$verbatimeName)),
+        en = stringr::str_squish(as.character(.data$indicatorName)),
+        label = dplyr::if_else(
+          is.na(.data$nb) | .data$nb == "" | .data$nb == .data$en,
+          .data$en,
+          .data$nb
+        )
+      ) |>
+      dplyr::distinct(.data$id, .keep_all = TRUE)
+    indicator_name_lookup <- stats::setNames(ind_map$label, ind_map$id)
+
+    ect_map <- registry |>
+      dplyr::mutate(
+        ect_code = parse_ect(.data$ECT),
+        ect_label = stringr::str_squish(as.character(.data$ECT))
+      ) |>
+      dplyr::filter(!is.na(.data$ect_code), !is.na(.data$ect_label)) |>
+      dplyr::distinct(.data$ect_code, .keep_all = TRUE)
+    ect_name_lookup <- stats::setNames(ect_map$ect_label, ect_map$ect_code)
+  }
+
   region_cols <- if (requireNamespace("MetBrewer", quietly = TRUE)) {
     stats::setNames(
       MetBrewer::met.brewer("Archambault", n = length(region_levels)),
@@ -1455,7 +1522,7 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
     )
   }
   region_shapes <- c(
-    Norway = 19, Central = 17, East = 17, North = 17, South = 17, West = 17
+    stats::setNames(c(19, 17, 17, 17, 17, 17), region_levels)
   )
 
   ect_order <- c("A1", "A2", "B1", "B2", "B3", "C1")
@@ -1471,60 +1538,69 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
   indicator_summary <- index_result$indicator_draws |>
     dplyr::filter(.data$year == .env$year) |>
     dplyr::group_by(
-      .data$part, 
-      .data$indicator_id, 
+      .data$part,
+      .data$indicator_id,
       .data$indicator_name,
-      .data$ect) |>
+      .data$ect
+    ) |>
     dplyr::summarise(
       median = stats::median(.data$value, na.rm = TRUE),
       q025 = stats::quantile(.data$value, 0.025, na.rm = TRUE),
       q975 = stats::quantile(.data$value, 0.975, na.rm = TRUE),
       .groups = "drop"
     ) |>
-    dplyr::transmute(
-      part = .data$part,
+    dplyr::mutate(
       level = "Indicator",
       indicator_id = as.character(.data$indicator_id),
-      label = .data$indicator_name,
       ect = as.character(.data$ect),
-      row_key = paste0("Indicator::", .data$indicator_id),
-      median = .data$median,
-      q025 = .data$q025,
-      q975 = .data$q975
+      label = if (!is.null(indicator_name_lookup)) {
+        dplyr::coalesce(
+          unname(indicator_name_lookup[.data$indicator_id]),
+          .data$indicator_name
+        )
+      } else {
+        .data$indicator_name
+      },
+      row_key = paste0("Indicator::", .data$indicator_id)
+    ) |>
+    dplyr::select(
+      "part", "level", "indicator_id", "label", "ect", "row_key",
+      "median", "q025", "q975"
     )
 
   agg_summary <- index_result$summaries |>
     dplyr::filter(.data$year == .env$year) |>
     dplyr::select("part", "level", "id", "median", "q025", "q975")
-  
+
   ect_summary <- agg_summary |>
     dplyr::filter(.data$level == "ECT") |>
-    dplyr::transmute(
-      part = .data$part,
-      level = "ECT",
+    dplyr::mutate(
       indicator_id = NA_character_,
-      label = as.character(.data$id),
       ect = as.character(.data$id),
-      row_key = paste0("ECT::", .data$id),
-      median = .data$median,
-      q025 = .data$q025,
-      q975 = .data$q975
+      label = if (!is.null(ect_name_lookup)) {
+        dplyr::coalesce(unname(ect_name_lookup[.data$ect]), .data$ect)
+      } else {
+        .data$ect
+      },
+      row_key = paste0("ECT::", .data$id)
+    ) |>
+    dplyr::select(
+      "part", "level", "indicator_id", "label", "ect", "row_key",
+      "median", "q025", "q975"
     )
 
   total_summary <- agg_summary |>
-    dplyr::filter(
-      .data$id %in% c("Index", "Index (direct)")
-    ) |>
-    dplyr::transmute(
-      part = .data$part,
+    dplyr::filter(.data$id %in% c("Index", "Index (direct)")) |>
+    dplyr::mutate(
       level = "Total",
       indicator_id = NA_character_,
-      label = as.character(.data$id),
+      label = unname(total_labels[as.character(.data$id)]),
       ect = NA_character_,
-      row_key = paste0("Total::", .data$id),
-      median = .data$median,
-      q025 = .data$q025,
-      q975 = .data$q975
+      row_key = paste0("Total::", .data$id)
+    ) |>
+    dplyr::select(
+      "part", "level", "indicator_id", "label", "ect", "row_key",
+      "median", "q025", "q975"
     )
 
   indicator_rows <- indicator_summary |>
@@ -1553,7 +1629,7 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
   total_keys <- paste0(
     "Total::",
     total_order[
-      total_order %in% unique(total_summary$label)
+      total_order %in% sub("^Total::", "", unique(total_summary$row_key))
     ])
   top_to_bottom <- c(
     total_keys,
@@ -1606,7 +1682,7 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
     dplyr::filter(!is.na(.data$row_key), !is.na(.data$region))
 
   if (national_only) {
-    plot_dat <- plot_dat |> dplyr::filter(.data$region == "Norway")
+    plot_dat <- plot_dat |> dplyr::filter(.data$region == norway_tag)
   }
 
   # Boundaries between indicators/ECT and ECT/totals blocks.
@@ -1643,8 +1719,11 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
     ggplot2::scale_y_discrete(
       labels = label_lookup) +
     ggplot2::labs(
-      title = paste0(title, " \u2014 ", year, if (national_only) " (Norway)" else ""),
-      x = "Index value",
+      title = paste0(
+        title, " \u2014 ", year,
+        if (national_only) paste0(" (", norway_tag, ")") else ""
+      ),
+      x = x_lab,
       y = NULL
     ) +
     ggplot2::theme_bw(base_size = 10) +
@@ -1662,7 +1741,7 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
   if (national_only) {
     p +
       ggplot2::geom_pointrange(
-        colour = unname(region_cols["Norway"]),
+        colour = unname(region_cols[norway_tag]),
         size = 0.45,
         linewidth = 0.35
       ) +
@@ -1680,6 +1759,80 @@ plot_index_detailed <- function(index_result, year, title = "NO_IDEX_001", natio
       ggplot2::theme(legend.position = "bottom") 
       
   }
+}
+
+# Save regional + national detailed index figures (English and Norwegian).
+# Does not print; writes PNGs under `out_dir`.
+save_index_detailed_figures <- function(
+    index_result,
+    ecosystem,
+    years,
+    registry = NULL,
+    out_dir = here::here("img"),
+    width_regional = 9,
+    height_regional = 11,
+    width_national = 7,
+    height_national = 7) {
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE)
+  }
+
+  titles <- list(
+    en = list(
+      forest = "NO_IDEX_001 \u2014 forest",
+      mountain = "NO_IDEX_001 \u2014 mountain"
+    ),
+    nb = list(
+      forest = "NO_IDEX_001 \u2014 skog",
+      mountain = "NO_IDEX_001 \u2014 fjell"
+    )
+  )
+
+  eco_slug <- list(en = ecosystem, nb = c(forest = "skog", mountain = "fjell")[[ecosystem]])
+
+  for (lang in c("en", "nb")) {
+    title <- titles[[lang]][[ecosystem]]
+    slug <- eco_slug[[lang]]
+    for (yr in years) {
+      p_reg <- plot_index_detailed(
+        index_result, yr,
+        title = title,
+        national_only = FALSE,
+        lang = lang,
+        registry = registry
+      )
+      ggplot2::ggsave(
+        filename = file.path(
+          out_dir,
+          glue::glue("NO_IDEX_001_{slug}_{yr}_regional_{lang}.png")
+        ),
+        plot = p_reg,
+        width = width_regional,
+        height = height_regional,
+        dpi = 150
+      )
+
+      p_nat <- plot_index_detailed(
+        index_result, yr,
+        title = title,
+        national_only = TRUE,
+        lang = lang,
+        registry = registry
+      )
+      ggplot2::ggsave(
+        filename = file.path(
+          out_dir,
+          glue::glue("NO_IDEX_001_{slug}_{yr}_national_{lang}.png")
+        ),
+        plot = p_nat,
+        width = width_national,
+        height = height_national,
+        dpi = 150
+      )
+    }
+  }
+
+  invisible(TRUE)
 }
 
 # Write MC distributions to CSV.
