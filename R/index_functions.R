@@ -75,7 +75,7 @@ indicator_catalog <- function() {
     "NO_BBCA_001", "Bilberry cover by area", "NO_BBCA_001", "forest",
     "NO_CONN_002", "Connectivity", "NO_CONN_002", "forest",
     "NO_DEER_001", "Red deer", "NO_DEER_001", "forest",
-    "NO_DTVS_001", "Dead trees by volume as share of volume of all trees in productive forests", "NO_DTVS_001", "forest",
+    "NO_DTVS_001", "Dead wood share", "NO_DTVS_001", "forest",
     "NO_FUMO_004", "Moisture impact on vegetation", "NO_FUMO_004", "forest",
     "NO_FUNI_004", "Nitrogen impact on vegetation", "NO_FUNI_004", "forest",
     "NO_FUNI_002", "Nitrogen impact on vegetation", "NO_FUNI_002", "grassland",
@@ -104,52 +104,8 @@ indicator_catalog <- function() {
     "NO_BGSK_001", "Old forest", "NO_BGSK_001", "forest",
     "NO_ROSE_001", "Rowan, aspen, and goat willow", "NO_ROSE_001", "forest",
     "NO_DLTA_001", "Large trees", "NO_DLTA_001", "forest",
-    "NO_DWTO_001", "Dead wood share", "NO_DWTO_001", "forest",
+    "NO_DWTO_001", "Total deadwood", "NO_DWTO_001", "forest",
     "NO_ALIE_004", "Alien plant species", "NO_ALIE_004", "forest"
-  )
-}
-
-# Map registry display names to indicator IDs.
-name_to_id_overrides <- function() {
-  c(
-    "Ditching" = "NO_AIVS_001",
-    "Moisture impacts on vegetation" = "NO_FUMO_004",
-    "Nitrogen impacts on vegetation" = "NO_FUNI_004",
-    "Butterflies" = "NO_BFLY_002",
-    "Bumblebees" = "NO_BUMB_002",
-    "Dead wood volume" = "NO_DTVS_001",
-    "Total deadwood" = "NO_DTVS_001",
-    "Dead wood share" = "NO_DWTO_001",
-    "Trampling disturbance" = "NO_SLIT_001",
-    "Erosive disturbance" = "NO_SLIT_001",
-    "Warming impact on vegetation" = "NO_FUHR_002",
-    "Vegetation functional indicators" = "NO_FUHR_002",
-    "Alien plantspecies" = "NO_ALIE_004",
-    "Alien conifers" = "NO_AATS_002",
-    "Rowan, aspen and goat willow" = "NO_ROSE_001",
-    "Multi-layered forest" = "NO_MLFA_001",
-    "Large trees" = "NO_DLTA_001",
-    "Old forest" = "NO_BGSK_001",
-    "Moose" = "NO_MOOS_001",
-    "Red deer" = "NO_DEER_001",
-    "Roe deer" = "NO_ROED_001",
-    "Bilberry cover" = "NO_BLAA_001",
-    "Connected low-infrastructure forest habitat" = "NO_CONN_002",
-    "Glaciers" = "NO_GLAC_001",
-    "Glacier area" = "NO_GLAC_001",
-    "Snow depth" = "NO_SNOW_001",
-    "Snow cover" = "NO_SNOW_001",
-    "Alien plant species" = "NO_ALIE_002",
-    "Lichen biomass" = "NO_LAVH_001",
-    "Arctic fox" = "NO_AFOX_001",
-    "Ptarmigan" = "NO_PTAR_001",
-    "Small rodents" = "NO_RODE_001",
-    "Wolverine" = "NO_JERV_001",
-    "Golden eagle" = "NO_GOLD_001",
-    "Connectivity" = "NO_CONN_002",
-    "Brown bear" = "NO_BAER_001",
-    "Lynx" = "NO_LYNX_001",
-    "Wolf" = "NO_WOLF_001"
   )
 }
 
@@ -842,18 +798,13 @@ build_indicator_registry <- function(
     check_remote = TRUE) {
   ecosystem <- rlang::arg_match(ecosystem)
   registry_in <- readr::read_csv(csv_path, show_col_types = FALSE)
-  overrides <- name_to_id_overrides()
   catalog <- indicator_catalog()
 
   registry <- registry_in |>
     dplyr::mutate(
       ecosystem = dplyr::coalesce(.data$ecosystem, ecosystem),
       ect = parse_ect(.data$ECT),
-      indicatorID = dplyr::if_else(
-        !is.na(.data$indicatorID) & .data$indicatorID != "",
-        .data$indicatorID,
-        overrides[.data$indicatorName]
-      )
+      indicatorID = dplyr::na_if(as.character(.data$indicatorID), "")
     )
 
   registry <- registry |>
@@ -1477,11 +1428,11 @@ plot_index_detailed <- function(
     norway_tag <- "Norway"
   }
 
-  # Indicator display names: English from draws; Norwegian from registry
-  # `verbatimeName` when available.
+  # Indicator / ECT display names from the registry when provided
+  # (keeps saved figures in sync with indicators_*.csv without recalculating).
   indicator_name_lookup <- NULL
   ect_name_lookup <- NULL
-  if (!is.null(registry) && lang == "nb") {
+  if (!is.null(registry)) {
     ind_map <- registry |>
       dplyr::filter(
         !is.na(.data$indicatorID),
@@ -1491,23 +1442,33 @@ plot_index_detailed <- function(
         id = as.character(.data$indicatorID),
         nb = stringr::str_squish(as.character(.data$verbatimeName)),
         en = stringr::str_squish(as.character(.data$indicatorName)),
-        label = dplyr::if_else(
-          is.na(.data$nb) | .data$nb == "" | .data$nb == .data$en,
-          .data$en,
-          .data$nb
-        )
+        label = if (lang == "nb") {
+          dplyr::if_else(
+            is.na(.data$nb) | .data$nb == "" | .data$nb == .data$en,
+            .data$en,
+            .data$nb
+          )
+        } else {
+          dplyr::if_else(
+            is.na(.data$en) | .data$en == "",
+            .data$nb,
+            .data$en
+          )
+        }
       ) |>
       dplyr::distinct(.data$id, .keep_all = TRUE)
     indicator_name_lookup <- stats::setNames(ind_map$label, ind_map$id)
 
-    ect_map <- registry |>
-      dplyr::mutate(
-        ect_code = parse_ect(.data$ECT),
-        ect_label = stringr::str_squish(as.character(.data$ECT))
-      ) |>
-      dplyr::filter(!is.na(.data$ect_code), !is.na(.data$ect_label)) |>
-      dplyr::distinct(.data$ect_code, .keep_all = TRUE)
-    ect_name_lookup <- stats::setNames(ect_map$ect_label, ect_map$ect_code)
+    if (lang == "nb") {
+      ect_map <- registry |>
+        dplyr::mutate(
+          ect_code = parse_ect(.data$ECT),
+          ect_label = stringr::str_squish(as.character(.data$ECT))
+        ) |>
+        dplyr::filter(!is.na(.data$ect_code), !is.na(.data$ect_label)) |>
+        dplyr::distinct(.data$ect_code, .keep_all = TRUE)
+      ect_name_lookup <- stats::setNames(ect_map$ect_label, ect_map$ect_code)
+    }
   }
 
   region_cols <- if (requireNamespace("MetBrewer", quietly = TRUE)) {
