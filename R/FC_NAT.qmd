@@ -23,7 +23,7 @@ verbatimName:
   - Strukturell konnektivitet og naturnaerhet # the indicator name that us used in the native language
 folderName: XXX_YYY_ZZZ # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
 # If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
-# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
+# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-.
 country: Norway
 continent: Europe
 ECT: C1 - Landscape and seascape characteristics # e.g. A2 - Chemical State characteristics
@@ -67,7 +67,7 @@ author:
   - name: Rannveig Margrete Jacobsen              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
-  - name: Jenni Nordén              #  Enter subsequent authors like this, or remove if not relevant
+  - name: Jenni Nord�n              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
   - name: Yennie Katarina Bredin              #  Enter subsequent authors like this, or remove if not relevant
@@ -76,7 +76,7 @@ author:
   - name: Manuela Panzacchi              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
-AuthorList: Van Moorter, B. and Asplund, U.J. and Jacobsen, R.M. and Nordén, J. and Bredin, Y.K. and Panzacchi, M.   
+AuthorList: Van Moorter, B. and Asplund, U.J. and Jacobsen, R.M. and Nord�n, J. and Bredin, Y.K. and Panzacchi, M.   
 date: June 1, 2026 # Enter date
 data_availability: gold
 code_reproducibility: bronze
@@ -124,6 +124,7 @@ library(viridis)
 ```{r source}
 #| echo: false
 #| cache: false
+
 source(here::here("_common.R"))
 ```
 
@@ -253,7 +254,7 @@ The dominant tree species is derived from the forest resources map (Skogressursk
 
 #### Forest naturalness
 
-Forest naturalness is derived from the 'similarity to natural forest' (naturskogsnærhet-layer of [Naturskog](https://kartkatalog.geonorge.no/metadata/naturskog-v1/a0062ac4-8ee0-408f-9373-4c8b8c3088d8)). The map 'natural forest similarity' maps the degree of naturalness of forests on a 1-7 scale [@hauglin2025naturskogkart]. Forest naturalness is expressed through a combination of the three NiN 3.0 variables: deadwood proportion (KM-DA), deadwood variation (KM-DV) and succession on wooded land (AD-ST). Forest naturalness is divided into seven classes, where increasing values indicate increasing degrees of forest naturalness. In the training data for 'similarity to natural forest' the values were also adjusted based on additional variables recorded in the Norwegian National Forest Inventory (NFI). The presence of ditches for drainage or non-native tree species resulted in a value of 1 on the 1-7 scale, regardless of the three NiN3.0-variables. Evidence of systematic forest management ('previous treatment') resulted in a downward adjustment of three classes, whereas plots where the only recorded previous treatment was 'miscellaneous harvesting' were downgraded by one class. These adjustments influence the modelled map of  'similarity to natural forest' and thereby also the connectivity indicator presented here.
+Forest naturalness is derived from the 'similarity to natural forest' (naturskogsnÃÂ¦rhet-layer of [Naturskog](https://kartkatalog.geonorge.no/metadata/naturskog-v1/a0062ac4-8ee0-408f-9373-4c8b8c3088d8)). The map 'natural forest similarity' maps the degree of naturalness of forests on a 1-7 scale [@hauglin2025naturskogkart]. Forest naturalness is expressed through a combination of the three NiN 3.0 variables: deadwood proportion (KM-DA), deadwood variation (KM-DV) and succession on wooded land (AD-ST). Forest naturalness is divided into seven classes, where increasing values indicate increasing degrees of forest naturalness. In the training data for 'similarity to natural forest' the values were also adjusted based on additional variables recorded in the Norwegian National Forest Inventory (NFI). The presence of ditches for drainage or non-native tree species resulted in a value of 1 on the 1-7 scale, regardless of the three NiN3.0-variables. Evidence of systematic forest management ('previous treatment') resulted in a downward adjustment of three classes, whereas plots where the only recorded previous treatment was 'miscellaneous harvesting' were downgraded by one class. These adjustments influence the modelled map of  'similarity to natural forest' and thereby also the connectivity indicator presented here.
 
 
 ### 2.1 Spatial and temporal resolution and extent
@@ -1016,6 +1017,25 @@ plot(county_shp["indicator"])
 ```
 
 ```{r}
+#| label: compute - region account
+#| echo: true
+#| warning: false
+#| message: false
+#| results: 'hide'
+
+region_shp <- readRDS(here("data/harmonised/", "reg_helperfile.RDS"))
+
+tmp <- terra::extract(func, region_shp, fun="sum", na.rm=T)
+region_shp$variable_km4 <- tmp[,2]/(conversion_factor^2)
+
+tmp <- terra::extract(ref, region_shp, fun="sum", na.rm=T)
+region_shp$ref_km4 <- tmp[,2]/(conversion_factor^2)
+
+region_shp$indicator <- sqrt(region_shp$variable_km4/region_shp$ref_km4)
+plot(region_shp["indicator"])
+```
+
+```{r}
 #| label: compute - national account
 #| echo: true
 
@@ -1023,10 +1043,11 @@ variable_km4 <- global(func, "sum", na.rm=T)[1,1]
 ref_km4 <- global(ref, "sum", na.rm=T)[1,1]
 indicator <- sqrt(variable_km4/ref_km4)
 
-national_df <- data.frame(objtype="norge", variable_km4=variable_km4, ref_km4=ref_km4, indicator=sqrt(indicator))
+national_df <- data.frame(objtype="norge", variable_km4=variable_km4, ref_km4=ref_km4, indicator=indicator)
 
 knitr::kable(national_df, digits = 2)
 ```
+
 
 
 ## 10. Results
@@ -1038,6 +1059,35 @@ Repeat the final results here. Typically this is a map or table of indicator val
 This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
 
 -->
+
+Load complete Norwegian data, if precomputed:
+
+```{r}
+#| label: load if exists
+#| echo: true
+#| message: false
+#| warning: false
+
+if (file.exists(here("data/outputs/", "municipality_account.shp"))){
+  municipality_shp <- sf::st_read(here("data/outputs/", "municipality_account.shp"))
+  names(municipality_shp)[c(1,11,12,16,17,18)] <- c("objtype", "kommunenummer", "kommunenavn", "variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "county_account.shp"))){
+  county_shp <- sf::st_read(here("data/outputs/", "county_account.shp"))
+  names(county_shp)[c(1,11,12,16,17,18)] <- c("objtype", "fylkesnummer", "fylkesnavn", "variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "region_account.shp"))){
+  region_shp <- sf::st_read(here("data/outputs/", "region_account.shp"))
+  names(region_shp)[c(6,7,8)] <- c("variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "national_account.csv"))){
+  national_df <- read.csv2(here("data/outputs/", "national_account.csv"))
+} 
+```
+
 
 Municipal account:
 
@@ -1078,6 +1128,23 @@ gt::gt(df) |>
   )
 ```
 
+Regional account:
+```{r}
+#| echo: true
+
+df <- st_drop_geometry(region_shp)[,c("id", "region", "variable_km4", "ref_km4", "indicator")]
+df$variable_km2 <- sqrt(df$variable_km4)
+df$ref_km2 <- sqrt(df$ref_km4)
+df <- df[,c("id", "region", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+
+gt::gt(df) |>
+  gt::tab_options(
+    container.height = "400px",
+    container.overflow.y = TRUE,
+    container.overflow.x = TRUE
+  )
+```
+
 National account:
 ```{r}
 #| label: results - national account
@@ -1088,7 +1155,7 @@ df$variable_km2 <- sqrt(df$variable_km4)
 df$ref_km2 <- sqrt(df$ref_km4)
 df <- df[,c("objtype", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
 
-knitr::kable(national_df, digits = 2)
+knitr::kable(df, digits = 2)
 ```
 
 
@@ -1103,9 +1170,10 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 ```{r export}
 #| eval: false
 
-st_write(municipality_shp, file=paste0("data/outputs/", "municipality_account.shp"), append=F)
-st_write(county_shp, file=paste0("data/outputs/", "county_account.shp"), append=F)
-write.csv2(national_df, paste0("data/outputs/", "national_account.csv"), row.names = F)
+st_write(municipality_shp, dsn=here("data/outputs/", "municipality_account.shp"), append=F)
+st_write(county_shp, dsn=here("data/outputs/", "county_account.shp"), append=F)
+st_write(region_shp, dsn=here("data/outputs/", "region_account.shp"), append=F)
+write.csv2(national_df, here("data/outputs/", "national_account.csv"), row.names = F)
 ```
 
 
@@ -1115,20 +1183,15 @@ write.csv2(national_df, paste0("data/outputs/", "national_account.csv"), row.nam
 
 **CRediT statement**
 
-* Conceptualization: [Initials]
-* Methodology: [Initials]
-* Data curation: [Initials]
-* Formal analysis: [Initials]
-* Investigation: [Initials]
-* Software: [Initials]
-* Validation: [Initials]
-* Visualization: [Initials]
-* Resources: [Initials]
-* Writing original draft: [Initials]
-* Writing review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+* Conceptualization: BvM, UJA, RMJ, JN, YKB, MP
+* Methodology: BvM
+* Data curation: BvM, AK, VB
+* Formal analysis: BvM
+* Code review: AK
+* Writing original draft: BvM
+* Writing review & editing: BvM, UJA, RMJ, JN, YKB, MP
+* Project administration: EB, MP
+* Funding acquisition: EB, MP
 
 
 **MeRIT attribution**
@@ -1136,25 +1199,19 @@ write.csv2(national_df, paste0("data/outputs/", "national_account.csv"), row.nam
 This part supplements the CRediT statement with more granularity for method section.
 
 **Study design**
-The study was designed by [AB, CD].
-
-**Data collection / fieldwork**
-Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
-
-**Laboratory procedures**
-DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
+The study was designed by [BvM, UJA, RMJ, JN, YKB, MP].
 
 **Data processing**
-Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
+Data were curated and processed [BvM].
 
 **Statistical analysis**
-All analyses were conducted by [CD] using [software], with verification by [AB].
+All analyses were conducted by [BvM] using [R, Julia].
 
 **Visualization**
-Figures were produced by [KL], with input from [CD].
+Figures were produced by [BvM].
 
 **Reproducibility**
-All code was reviewed and validated by [AB, CD].
+All code was reviewed and validated by [AK].
 
 
 
