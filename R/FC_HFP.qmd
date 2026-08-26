@@ -854,6 +854,7 @@ conversion_factor <-  (1000/50)*(1000/50)
 For the county account:
 
 ```{r}
+#| label: compute - municipal account
 #| echo: true
 #| warning: false
 #| message: false
@@ -873,9 +874,10 @@ plot(municipality_shp["indicator"])
 ```
 
 
-For the national account:
+For the county account:
 
 ```{r}
+#| label: compute - county account
 #| echo: true
 #| warning: false
 #| message: false
@@ -894,7 +896,31 @@ county_shp$indicator <- sqrt(county_shp$variable_km4/county_shp$ref_km4)
 plot(county_shp["indicator"])
 ```
 
+For the regional account:
+
 ```{r}
+#| label: compute - region account
+#| echo: true
+#| warning: false
+#| message: false
+#| results: 'hide'
+
+region_shp <- readRDS(here("data/harmonised/", "reg_helperfile.RDS"))
+
+tmp <- terra::extract(func, region_shp, fun="sum", na.rm=T)
+region_shp$variable_km4 <- tmp[,2]/(conversion_factor^2)
+
+tmp <- terra::extract(ref, region_shp, fun="sum", na.rm=T)
+region_shp$ref_km4 <- tmp[,2]/(conversion_factor^2)
+
+region_shp$indicator <- sqrt(region_shp$variable_km4/region_shp$ref_km4)
+plot(region_shp["indicator"])
+```
+
+For the national account:
+
+```{r}
+#| label: compute - national account
 #| echo: true
 
 variable_km4 <- global(func, "sum", na.rm=T)[1,1]
@@ -916,9 +942,39 @@ This is typically where people will harvest data from, so make sure to include a
 
 -->
 
+Load complete Norwegian data, if precomputed:
+
+```{r}
+#| label: load if exists
+#| echo: true
+#| message: false
+#| warning: false
+
+if (file.exists(here("data/outputs/", "municipality_account.shp"))){
+  municipality_shp <- sf::st_read(here("data/outputs/", "municipality_account.shp"))
+  names(municipality_shp)[c(1,11,12,16,17,18)] <- c("objtype", "kommunenummer", "kommunenavn", "variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "county_account.shp"))){
+  county_shp <- sf::st_read(here("data/outputs/", "county_account.shp"))
+  names(county_shp)[c(1,11,12,16,17,18)] <- c("objtype", "fylkesnummer", "fylkesnavn", "variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "region_account.shp"))){
+  region_shp <- sf::st_read(here("data/outputs/", "region_account.shp"))
+  names(region_shp)[c(6,7,8)] <- c("variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "national_account.csv"))){
+  national_df <- read.csv2(here("data/outputs/", "national_account.csv"))
+} 
+```
+
+
 Municipal account:
 
 ```{r}
+#| label: show - municipal account
 #| echo: true
 
 library(gt)
@@ -938,6 +994,7 @@ gt::gt(df) |>
 
 County account:
 ```{r}
+#| label: show - county account
 #| echo: true
 
 df <- st_drop_geometry(county_shp)[,c("objtype", "fylkesnummer", "fylkesnavn", "variable_km4", "ref_km4", "indicator")]
@@ -953,8 +1010,27 @@ gt::gt(df) |>
   )
 ```
 
+Regional account:
+```{r}
+#| label: show - regional account
+#| echo: true
+
+df <- st_drop_geometry(region_shp)[,c("id", "region", "variable_km4", "ref_km4", "indicator")]
+df$variable_km2 <- sqrt(df$variable_km4)
+df$ref_km2 <- sqrt(df$ref_km4)
+df <- df[,c("id", "region", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+
+gt::gt(df) |>
+  gt::tab_options(
+    container.height = "400px",
+    container.overflow.y = TRUE,
+    container.overflow.x = TRUE
+  )
+```
+
 National account:
 ```{r}
+#| label: show - national account
 #| echo: true
 
 df <- national_df
@@ -962,7 +1038,7 @@ df$variable_km2 <- sqrt(df$variable_km4)
 df$ref_km2 <- sqrt(df$ref_km4)
 df <- df[,c("objtype", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
 
-knitr::kable(national_df, digits = 2)
+knitr::kable(df, digits = 2)
 ```
 
 The national indicator value for connected forest habitat with human footprint is shown above. This value is the ratio between current equivalent connected habitat and reference equivalent connected habitat. The reference condition keeps the current mapped forest extent but removes the LUI effect by setting LUI to zero.
@@ -977,10 +1053,12 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 -->
 
 ```{r export}
+#| label: save accounts
 #| eval: false
 
 st_write(municipality_shp, file=paste0("data/outputs/", "municipality_account.shp"), append=F)
 st_write(county_shp, file=paste0("data/outputs/", "county_account.shp"), append=F)
+st_write(region_shp, file=paste0("data/outputs/", "region_account.shp"), append=F)
 write.csv2(national_df, paste0("data/outputs/", "national_account.csv"), row.names = F)
 ```
 
