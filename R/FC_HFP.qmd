@@ -1,0 +1,1116 @@
+---
+title: "Connected low-infrastructure forest habitat"
+subtitle: |
+  NO_CONN_002 (Forest)  
+# delete the line with the second indicatorID (line 5) 
+# if it's not relevant for you.
+# In the parentheses you can add a word to distinguish multiple indicators 
+# from each other, for example the ecosystem type that they cover
+indicatorID: 
+  - NO_CONN_002
+# If you are presenting multiple indicators, and have multiple 
+# indicator IDs, then add them as a list here, and make sure you add
+# the same number of list entries, 
+# and in the same order that corresponds to the indicator IDs,  
+# to the meta data fields where the indicators differ. 
+# For example, if the indicators cover different ecosystem types, 
+# add the ecosystems as a list under 'Ecosystems', but if they are in the
+# same realm, same country etc., then you only need to write the realm and
+# country once. 
+indicatorName: 
+  - Connected low-infrastructure forest habitat # add more by adding another line starting '-'
+verbatimName: 
+  - Strukturell konnektivitet og arealbruksintensitet # the indicator name that us used in the native language
+folderName: XXX_YYY_ZZZ # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
+# If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
+# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
+country: Norway
+continent: Europe
+ECT: C1 - Landscape and seascape characteristics # e.g. A2 - Chemical State characteristics
+Realm: # Please copy and paste Realms, Biomes and Ecostsem names from here: https://github.com/NINAnor/ecRxiv/wiki#ecosystem-typology 
+  - Terrestrial (T) # e.g. Freshwater (F)
+Biome: 
+  - T2 Temperate-boreal forests and woodlands biome # e.g. F1 Rivers and streams biome
+Ecosystem: 
+  - T2.1 Boreal/montane forests
+  - T2.2 Deciduous temperate forests # e.g. F1.3 Freeze-thaw streams
+verbatimEcosystem: skog # add name of the ecosystem or naturetype according to any relevant local or national typology. E.g. fjell, skog, ... 
+yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
+yearLastUpdate: 2026
+status: complete # options are complete, incomplete, or deprecated
+Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+VersionComment: First draft # Describe briefly how this version differs from earlier versions 
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
+# To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
+Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
+SpatialAggregationPathway: Aggregate - Transform - Scale # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Uncertainties: No uncertainty estimates have been produced for this indicator # What kind of quantitative unceratinties are reported alongside the point estimates. Can be either inferrential (i.e. bootstrapped confidence intervals or standard errors) or descriptive (variation, standard deviation or percentiles from the distribution of the raw indicator values).
+format: 
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute: 
+  cache: false
+author:
+  - name: Bram Van Moorter              # Enter name
+    email: bram.van.moorter@nina.no  # Enter email
+    affiliations:
+      - id: myID
+        name: Norwegian Institute for Nature Research # Enter affiliations
+  - name: Eirin Bjørkvoll              #  Enter subsequent authors like this, or remove if not relevant
+    affiliations:
+      - ref: myID               # To reuse affiliations reference the id like this
+  - name: Anders Kolstad              #  Enter subsequent authors like this, or remove if not relevant
+    affiliations:
+      - ref: myID               # To reuse affiliations reference the id like this
+  - name: Vegar Bakkestuen              #  Enter subsequent authors like this, or remove if not relevant
+    affiliations:
+      - ref: myID               # To reuse affiliations reference the id like this
+  - name: Manuela Panzacchi              #  Enter subsequent authors like this, or remove if not relevant
+    affiliations:
+      - ref: myID               # To reuse affiliations reference the id like this
+AuthorList: Van Moorter, B. and Bjørkvoll, E. and Kolstad, A. and Bakkestuen, V. and Panzacchi, M.  
+date: June 1, 2026 # Enter date
+data_availability: bronze
+code_reproducibility: bronze
+open_science_badge: bronze
+callout-icon: false
+lightbox: true
+css: ../../../style.css
+code-links:
+      - text: Add a review
+        icon: github
+        href: https://github.com/NINAnor/ecRxiv
+hide: TRUE # Change to FALSE
+bibliography: references.bib
+---
+
+<!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
+
+<!--# Load all you dependencies here -->
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+# weird workarounds for cache issues
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull<-dplyr::pull
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(terra)
+library(ggplot2)
+library(viridis)
+
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+source(here::here("_common.R"))
+```
+
+
+
+<!--# The following parts are autogenerated. Do not edit. -->
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+# The following inserts a badge specifying the GPL GNU version 3 license. ecRxiv recommends using this license, but you can decide to use another. Contact ecRxiv for help in insert a badge for a different license
+license_badge()
+```
+
+
+::: 
+ 
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+
+
+::: {.callout-tip collapse="true"}
+## Metadata
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID",
+    "Indicator Name",
+    "Continent",
+    "Country",
+    "Ecosystem Condition Typology Class", 
+    "Realm",
+    "Biome",
+    "Ecosystem",
+    "Year added", 
+    "Last update",
+    "Version",
+    "Version comment",
+    "Normalised",
+    "Spatial aggregation pathway")) |>   
+  kable()
+
+```
+:::
+
+::: {.callout-tip collapse="true"}
+
+## Log
+
+<!--# Update this logg with short messages for each update -->
+- 01 Jun. 2026 - Original PR
+:::
+
+
+<hr />
+
+<!--# Document you work below.  -->
+
+## 1. Summary
+
+<!--# 
+With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. Follow the four numbers sub-headers below. under point 2, it is possible under  include a bullet point list of the specific steps in the workflow. 
+ -->
+
+1. **Background and rationale**:
+<!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
+What are the main anthropogenic impact factors? -->
+Connected low-infrastructure forest habitat is a suggested ecosystem condition indicator for forest. It represents how much forest habitat remains connected across the landscape when current local anthropogenic infrastructure (or human footprint) and low-permeability aquatic areas are taken into account. The indicator is intended for broad forest-associated species communities that can use forest habitat in general, rather than for species that depend on forest condition. Validation against forest generalist species, such as moose, may be relevant for comparison -- but the indicator is not a single-species movement or population model.
+
+
+2. **Methods**:
+<!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
+The indicator uses the GreenPlan-approach [@panzacchi2024nasjonal] with publicly available spatial datasets describing forest extent, water cover, and land-use intensity (i.e. human footprint). Forest extent defines where habitat is present. Land-use intensity reduces both local habitat quality and movement permeability, while water cover reduces permeability for ground-dwelling organisms. Habitat quality is calculated as forest extent multiplied by one minus land-use intensity. Permeability is calculated from forest extent, a baseline matrix permeability for non-forest land, land-use intensity and water cover. Connectivity is calculated using ConScape in Julia. This is done on a high-performance cluster, and this workflow only shows the code and exemplifies the input and output data layers within a smaller geographical extent (Oslo municipality). Equivalent connected habitat is calculated by summing connected habitat within each reporting unit and taking the square root of the sum. Current equivalent connected habitat is divided by reference equivalent connected habitat to obtain the normalised indicator.
+
+3. **Interpretation**:
+<!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
+An indicator value of 1 signifies that the currently mapped forest landscape has the same equivalent connected forest habitat as the reference condition, where land-use intensity is set to zero. Values decreasing toward zero reflect loss of connected forest habitat caused by land-use intensity and reduced permeability. The indicator does not measure loss of forest extent, because forest extent is fixed in the reference condition. Thus, historical land-changes are not accounted for, which means that current open areas that used to be forest (such as agricultural land or urban areas) are not considered as forest in the reference state.
+
+4. **Results and development needs**:
+<!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
+In the current national aggregation, the indicator value for connected low-infrastructure forest habitat is 0.719. This means that current equivalent connected low-infrastructure forest habitat is approximately 72% of the modeled reference value under the current assumptions. The indicator is still incomplete, as uncertainty is not represented and the indicator has not yet been ecologically validated.
+
+
+## 2. About the underlying data
+
+<!--# Give a general introduction the datasets you have used, and provide more specific details in the sub-chapters.  -->
+
+The indicator is based on publicly available spatial datasets describing forest extent, aquatic areas and land-use intensity. These datasets are combined into harmonised raster inputs used to calculate habitat quality, permeability and connected habitat. The full workflow from original vector and raster source data to harmonised analysis rasters is not rerun in this document. Some source datasets require computationally intensive rasterisation and alignment before they can be used in the connectivity model. This document therefore treats the harmonised rasters as input layers and documents how they are used in the indicator calculation.
+
+#### Forest extent
+
+The forest extent is derived from the National base-map for area accounting (i.e. [Nasjonalt grunnkart for arealanalyse](https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d)). This base-map has been developed in collaboration between NIBIO, Statistics Norway, the Norwegian Mapping Authority and the Norwegian Environment Agency, and is intended as a common data basis for various types of area analyses. The base-map is based on existing data from the public map basis (DOK), which shows land resource and land use data, and does not involve new mapping. For forest extent, we selected the polygons from the base-map with `okosystemtype_1 == "Forest and woodlands"`. 
+
+#### Water cover
+
+Water cover is derived from the same base-map for area accounting, using the ecosystem categories `okosystemtype_1 IN ('Lakes and reservoirs', 'Marine ecosystems', 'Rivers and canals')`. Water-covered areas are not assigned forest habitat, but they reduce permeability for ground-dwelling organisms in the connectivity model.
+
+#### Land-use intensity
+
+The land-use intensity (LUI) layer is based on the land-use-intensity index described by @erikstad2023index. The LUI index represents local human footprint and land-use pressure. The LUI consists of two main components: buildings (e.g. buildings, power lines, main roads and railways, technical facilities, wind turbines) and built-up areas (e.g. urban fabric, industry areas, airports, mines, sports areas), which represent major anthropogenic infrastructures. Not included here are impacts from for, instance, agriculture or forestry [see Table 1 in @erikstad2023index]. In this workflow, LUI was resampled to the same 50-by-50 m raster grid as the other analysis layers and scaled to a 0-to-1 range before being used in the habitat-quality and permeability calculations.
+
+
+### 2.1 Spatial and temporal resolution and extent
+
+<!--# Describe the temporal and spatial resolution and extent of the data used -->
+
+The analysis was conducted on a 50-by-50 m grid aligned with Statistics Norway (Statistisk sentralbyra - SSB), all original data sources were aggregated to this resolution. We used the most recent data available in 2026.     
+
+For **forest extent**, the base-map is a vector map and is rasterised as the proportion of each 50-by-50 m pixel covered by forest.
+
+For **water cover**, the base-map is a vector map and is rasterised as the proportion of each 50-by-50 m pixel covered by lakes, reservoirs, rivers, canals or marine ecosystems.
+
+For **land-use intensity**, the source raster is resampled from its original 100-by-100 m resolution to the 50-by-50 m analysis grid and scaled to a 0-to-1 index for use in the model.
+
+
+### 2.2 Sampling design
+
+<!-- How was the data sampled? Describe potential sampling biases -->
+
+For **forest extent**, the vector base-map is rasterized as the proportion of each 50-by-50 m pixel covered by forest.
+
+For **water cover**, the vector base-map is rasterized as the proportion of each 50-by-50 m pixel covered by water.
+
+For **land-use intensity**, the raster layer is resampled to the analysis grid. LUI is treated as a continuous local-pressure variable that affects both habitat quality and movement permeability.
+
+
+### 2.3 Original units
+
+<!--# What are the original units for the most relevant  variables in the data-->
+
+For **forest extent**, we selected polygons from the base-map with `okosystemtype_1 == "Forest and woodlands"`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by forest.
+
+For **water cover**, we selected polygons from the base-map where `okosystemtype_1` is `Lakes and reservoirs`, `Marine ecosystems`, or `Rivers and canals`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by water.
+
+For **land-use intensity**, the original index ranges from zero to around 13. During harmonization, the layer is divided by 13, and stored on a 0-to-200 integer scale. Conceptually, the indicator uses a 0-to-1 scaled LUI layer, where 0 means no land-use-intensity effect and higher values mean stronger reduction of habitat quality and permeability.
+
+
+### 2.4 Instructions for citing, using and accessing data
+
+<!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
+
+These data are publicly accessible:
+
+The base-map used for **forest extent** and **water cover** is available here: https://kartkatalog.geonorge.no/metadata/nasjonalt-grunnkart-for-arealanalyse-wms-aarsversjon-2025/c7dc425b-60cd-42f7-a84e-202c7d7b912a
+
+The **land-use intensity** index is described in @erikstad2023index: https://www.mdpi.com/2673-7418/3/1/10, and is available here: https://kartkatalog.miljodirektoratet.no/MapService/Details/nin_landskapstyper?lang=en-us
+
+### 2.5 Additional comments about the dataset
+
+<!--# Optional. Text here -->
+
+While the source data are publicly available (see above), this document takes the harmonised 50-by-50 m rasters aligned with the Statistics Norway grid as its direct input. The harmonisation steps are relatively straightforward but time consuming at the national scale.
+
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+<!--# Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
+This doesnt need to be very long. Maybe just a single sentence. -->
+
+C1 - Landscape and seascape characteristics. This indicator fits here because it describes spatial and structural properties of the forest landscape, specifically how forest habitat is connected when human footprint and permeability are taken into account.
+
+<!--#
+### 3.1.1 Other condition typologies
+
+ Optional: Add text about other standards or typologies, such as alternative national condition typologies, and how the indicator relates to these -->
+
+
+### 3.2 Ecosystem condition characteristic
+
+<!--# 
+
+Describe the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
+For example, and indicator called 'Trenching in mires' could be made to represent an ecosystem characteristic 'Intact hydrology'. The term 'characteristic' is used similar to the term 'criteria' in Multiple Criteria Decision Making.  
+
+-->
+
+Landscape-level abundance and connectivity of forest habitat with low human infrastructure footprint.
+
+### 3.3 Collinearities with other indicators
+
+<!--# Describe known collinearities with other metrics (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
+
+The indicator is expected to be collinear with indicators based directly on land-use intensity, infrastructure density, built-up area, road density or other human-footprint metrics. It may also partly overlap with other indicators of connected forest habitat based on somewhat different representations of structural or functional connectivity.
+
+
+### 3.4 Impact factors
+
+<!--# Describe the main natural and anthropogenic factors that affecst the metric -->
+
+The main anthropogenic impact factor is land-use intensity in and around forest areas. This affects both habitat quality and movement permeability. Water bodies are treated as natural low-permeability features for ground-dwelling organisms, but are not interpreted as anthropogenic pressures.
+
+### 3.5 Spatial aggregation
+
+<!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
+
+The 'connected habitat' raster is aggregated at the different administrative levels (e.g. municipal, county, national) -- **aggregation**. These aggregated values are square-root transformed to obtain the 'equivalent connected habitat/area' [ECH; @saura2011network; @vanmoorter2023habitat] for the different administrative units -- **transformation**. The ECH is then normalized on a 0-1 scale using the ECH from the reference condition -- **scaling**.
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+<!--# Define the reference condition (or refer to where it is defined). Note the distinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
+
+The reference condition is the current mapped forest landscape with land-use intensity set to zero. Forest extent is held constant, and water continues to reduce permeability. The reference condition therefore represents the connectet habitat expected if the mapped forest landscape was not reduced by the human-footprint effect represented by LUI [see: @bjoerkvoll2025report]. Since historical land changes are not accounted for, the anthropogenic ecosystem classes agricultural areas and built-up areas are treated the same way as other land-based ecosystem classes in the reference condition.
+
+### 4.2 Reference levels
+
+<!--# 
+
+If relevant (i.e. if you have normalised a variable), describe the reference levels used to normalise the variable. 
+
+Use the terminology where X~0~ refers to the reference level (the variable value) denoting the worst possible condition; X~100~denotes the optimum or best possible condition; and X~*n*~, where in is between 0 and 100, denotes any other anchoring points linking the variable scale to the indicator scale (e.g. the threshold value between good and bad condition X~60^). 
+
+Why was the current option chosen and how were the reference levels quantified? If the reference values are calculated as part of the analyses further down, please repeat the main information here.
+
+ -->
+
+The optimum reference level is the equivalent connected habitat calculated from the reference-condition habitat quality and permeability rasters. In the reference condition, LUI is set to 0, so habitat quality is equal to forest cover and permeability is not reduced by LUI. The indicator is calculated as current ECH divided by reference ECH.
+
+
+#### 4.2.1 Spatial resolution and validity
+
+<!--# 
+
+Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
+
+ -->
+
+The reference connected-habitat raster is calculated on the same 50-by-50 m grid as the current-condition raster. The reference level is valid after aggregation to the selected accounting unit, because ECH is calculated as the square root of summed connected habitat within that unit. The cell-level current/reference ratio shown later in the document is only a diagnostic map and should not be interpreted as the accounting indicator itself.
+
+## 5. Uncertainties
+### 5.1 General uncertainties
+<!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
+
+There are two main sources of uncertainty: uncertainty in the input data and uncertainty stemming from modelling choices. Input uncertainty includes errors in the forest mask, the water mask and the land-use-intensity layer, as well as uncertainties introduced by resampling and harmonisation to the 50-by-50 m analysis grid. Modelling uncertainty includes the choice of matrix permeability, the functional relationship between LUI and habitat quality/permeability, the treatment of water as low permeability, the distance-decay parameter and the connectivity model itself [@vanmoorter2021defining]. These choices affect the absolute and relative indicator values.
+
+### 5.2 Reported uncertainties
+<!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
+However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
+
+Quantitative uncertainty is not yet reported. The uncertainties from input data and modelling choices will affect the indicator, but a sensitivity analysis to quantify and propagate these uncertainties has not yet been developed.
+
+## 6. References
+
+<!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
+
+## 7. Import and prepare datasets
+
+<!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| results: 'hide'
+
+library(here)
+library(terra)
+terra::terraOptions(progress = 0)
+library(sf)
+
+write_rasters <- F
+
+focal_municipality <- NA # set NA for whole of Norway
+focal_municipality <- c("0301") # e.g. Oslo: "0301"
+
+if (grepl("/data/", getwd())){
+  pth <- "/data/R/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/"
+}else{
+  pth <-  "R:/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/"
+}
+
+if (is.na(focal_municipality[1])){
+    msk <- st_read(paste0(pth, "Processed/Norge_land.shp"))
+}else{
+    msk <- st_read(paste0(pth, "/Converted/Norway_Municipalities/Norge_Kommuner_2023.shp"))
+    msk <- msk[msk$kommunenum %in% focal_municipality,]
+}
+
+focus <- function(x){
+  mask(crop(x, msk), msk)
+}
+```
+
+The model is built from three main input layers: forest extent, water cover and land-use intensity. Together, these layers define where the model considers forest habitat to be present, what the local human footprint is and how aquatic areas affect movement permeability.
+
+The forest extent defines the spatial extent of the habitat. Habitat quality is only assigned within areas classified as forest or woodland in the base-map. Areas outside this forest mask are not treated as habitat, although they still receive a baseline matrix permeability in the movement model.
+
+### 7.1 Forest extent
+
+<!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
+
+First, habitat quality is only defined within the forest and woodland ecosystem type from the base-map for area accounting (`okosystemtype_1 == "Forest and woodlands"`). The raster represents the proportion of each 50-by-50 m pixel covered by forest.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+forest_ext <- rast(here("data/harmonised", "forest_pct_NO.tif"))
+forest_ext <- focus(ifel(forest_ext>0, 1, 0))
+plot(forest_ext, main="Forest extent")
+```
+
+This mask is important because it separates habitat assignment from movement through the broader landscape. Only cells inside the forest mask receive habitat quality, while cells outside the mask can still contribute to movement through the baseline matrix permeability described below.
+
+### 7.2 Water cover
+
+Water does not reduce habitat quality directly, except that water-covered areas are outside the forest mask and therefore are not assigned forest habitat. However, water bodies have lower permeability for ground-dwelling organisms than other matrix elements.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+water_mask <- focus(rast(here("data/harmonised", "water_pct_NO.tif"))) / 100
+plot(water_mask, main = "Water cover")
+```
+
+### 7.3 Land-use intensity
+
+The value of the forest both for habitat quality and permeability is affected by land-use intensity (LUI). The source LUI raster was resampled to the 50-by-50 m raster grid used in this analysis. In the model calculation below, LUI is scaled to a 0-to-1 effect layer.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+lui <- focus(rast(here("data/harmonised", "LUI_NO.tif"))) / 200
+plot(lui, main = "Land-use intensity", legend = TRUE)
+```
+
+
+## 8. Spatial units
+
+<!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+
+We used a spatial resolution of 50-by-50 m aligned with the grid from Statistics Norway for our analysis.
+
+The spatial accounting units are administrative units: municipalities, counties and the national level for Norway. The same connected-habitat rasters can also be aggregated to other reporting units, provided that the connected-habitat values are summed before taking the square root to calculate ECH.
+
+## 9. Analyses
+
+<!--# 
+
+Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+
+Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
+
+Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
+
+-->
+
+The analysis consists of five components: (1) computation of the habitat quality, (2) computation of the habitat permeability, (3) computation of the reference conditions, (4) network computation on high-performance cluster, and (5) computation of indicators for different administrative units. We describe these individual steps in detail below.
+
+### 9.1 Habitat quality
+
+Habitat quality describes how suitable each cell is as habitat for the forest network. In this model, habitat quality depends on forest extent and land-use intensity.
+
+Land-use intensity modifies the forest contribution. A forest cell with low LUI receives a higher quality value than a similar forest cell with high LUI.
+
+Thus, habitat quality is calculated as:
+
+$$Q_i = F_i \times (1 - LUI_i)$$
+
+where $Q_i$ is the habitat quality in pixel $i$, $F_i$ is the proportion of the pixel covered by forest, and $LUI_i$ is the scaled land-use intensity. This means that a cell must have both forest and sufficiently low LUI to receive high habitat quality.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+quality <- forest_ext * (1 - lui)
+plot(quality, main = "Habitat quality", legend = TRUE)
+
+if (write_rasters){
+  writeRaster(quality, file=here("data/inputs_julia", "forest_lui_quality.tif"))
+}
+```
+
+### 9.2 Habitat permeability
+
+Habitat permeability describes how easily organisms can move through each cell. It is related to habitat quality, but it represents a different ecological role. Habitat quality describes how suitable a cell is as habitat, while permeability describes how much the cell facilitates movement through the landscape.
+
+In the model, permeability for ground-dwelling organisms is negatively affected by both LUI and water bodies. Furthermore, while non-forested land areas do not contribute any habitat, they can still contribute to connectivity. we therefore start with a baseline matrix permeability for this non-forest matrix: $B = 0.25$.
+
+```{r}
+#| echo: true
+
+matrix_perm <- 0.25
+```
+
+This value means that areas outside the forest habitat mask are not treated as completely impermeable. They still allow some movement, but less than forested areas.
+
+The habitat permeability is calculated as:
+
+$$P_i = [(F_i \times (1 - B)) + B] \times (1 - LUI_i) \times (1 - \min(0.99, W_i))$$
+
+where $P_i$ is the habitat permeability in pixel $i$, $F_i$ is the proportion of the pixel covered by forest, $B$ is the permeability of the matrix, $LUI_i$ is the scaled land-use intensity, and $W_i$ is the proportion of the pixel covered by water. By capping the proportion of water to 0.99, even fully covered water pixels retain a small permeability, allowing species to cross water bodies with low likelihood.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+perm <- (1 - ifel(water_mask > 0.99, 0.99, water_mask)) * ((forest_ext * (1 - matrix_perm)) + matrix_perm) * (1 - lui)
+perm <- focus(ifel(is.na(perm), matrix_perm, perm))
+perm <- ifel(perm > 0.99, 0.99, perm)
+plot(perm, main = "Habitat permeability")
+
+if (write_rasters){
+  writeRaster(perm, file=here("data/inputs_julia", "forest_lui_permeability.tif"))
+}
+```
+
+### 9.3 Reference condition
+
+For ecosystem accounting, the current condition of an ecosystem is usually interpreted relative to a reference condition. In this analysis, the reference condition is defined as a landscape where the land-use intensity index equals zero.
+
+To compute the reference condition, habitat quality and permeability are recreated without reducing them by current LUI. For habitat quality, this means:
+
+$$Q_{ref,i} = F_i$$
+
+because LUI = 0 in the reference condition.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+quality_ref <- forest_ext
+plot(quality_ref, main = "Reference habitat quality", legend = TRUE)
+
+if (write_rasters){
+  writeRaster(quality_ref, file=here("data/inputs_julia", "forest_lui_quality_ref.tif"))
+}
+```
+
+For permeability, the reference condition is:
+
+$$P_{ref,i} = [(F_i \times (1 - B)) + B] \times (1 - \min(0.99, W_i))$$
+
+again because LUI = 0.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+perm_ref <- (1 - ifel(water_mask > 0.99, 0.99, water_mask)) * ((forest_ext * (1 - matrix_perm)) + matrix_perm)
+perm_ref <- focus(ifel(is.na(perm_ref), matrix_perm, perm_ref))
+perm_ref <- ifel(perm_ref > 0.99, 0.99, perm_ref)
+plot(perm_ref, main = "Reference habitat permeability")
+
+if (write_rasters){
+  writeRaster(perm_ref, file=here("data/inputs_julia", "forest_lui_permeability_ref.tif"))
+}
+```
+
+The reference-condition connectivity output is not intended as a prediction of a realistic future landscape. It is a model-based benchmark. It represents the connectivity that would be expected if there was no anthropogenic land use as represented by the LUI layer.
+
+### 9.4 Network computation
+
+ConScape was used to compute the connectivity outputs from the habitat-quality and permeability layers. ConScape is a Julia library for landscape connectivity modelling that can compute connected-habitat and movement-flow-related metrics for large raster landscapes [@vanmoorter2023accelerating].
+
+#### Distance calibration
+
+The distance-decay parameter should be interpreted as a generic connectivity assumption for broad forest-associated communities. It is not calibrated to a specific species.
+
+#### Distance decay
+
+ConScape uses ecological distance to describe how strongly cells are connected through the permeability surface. For the connected-habitat computation, this distance is transformed into a proximity value between 0 and 1. In this analysis, a simple exponential distance-decay function was used:
+
+$$k(d) = exp(-\alpha \times d)$$
+
+where $k(d)$ is the proximity, or remaining connection strength, at ecological distance $d$, and $\alpha$ controls how quickly connection strength declines with distance.
+
+```{r}
+#| echo: false
+
+alpha = 1 / 1000
+df <- data.frame(d=c(0:5000))
+df$k <- exp(-alpha*df$d)
+
+ggplot(data=df, aes(x=d, y=k)) +
+  geom_line(linewidth=2)+ 
+  labs(x="Equivalent Euclidean distance (m)", y="Proximity (k)")+
+  theme_classic()
+```
+
+The decay is applied to ecological distance rather than simple Euclidean distance. This means that the effective connection between two cells depends both on how far apart they are and on the permeability of the landscape between them. High-permeability areas maintain stronger connections over distance, while low-permeability areas reduce connection strength more quickly.
+
+#### Run on high-performance cluster
+
+We run the equivalent to the following code outside this document on a high-performance computing cluster.
+
+```julia
+using ConScape#fix/threaded-window-channel-pool
+using Rasters, ArchGDAL
+using GLMakie
+
+# 0. Preamble  -------------------
+nothing
+
+using Pkg
+Pkg.activate(@__DIR__) 
+Pkg.instantiate()
+
+indir = "data/inputs_julia/"
+
+# 1. Parameters  -------------------
+# weighing of cost and number of paths:
+theta = 1.0
+
+# distance decay
+optimal_r = 0.659 # ecological distance to Euclidean distance equivalent
+alpha = 1 / 1000
+Alpha = alpha .* optimal_r
+
+# size of the moving window
+res = 50
+radius = Int(5_000 / res)
+
+centersize = 20
+
+### * Load raster files
+steplikelihood = Raster(joinpath(indir, "forest_lui_permeability.tif"), missingval=NaN)
+quality = Raster(joinpath(indir, "forest_lui_quality.tif"), missingval=NaN)
+
+rast = RasterStack((; steplikelihood, quality))
+# Make sure all missing values are shared between steplikelihood and quality
+mask!(rast; with=rast)
+Rasters.rplot(rast)
+
+### * Set up
+movement = RandomisedShortestPath(;
+    theta=theta,
+    proximity_measure=ExpectedCost(),
+    distance_transformation=ExpMinusAlpha(Alpha)
+);
+
+measures = (; ch=FunctionalHabitat(),
+            betk=Betweenness(QualityAndProximityWeighted()),
+            )
+
+### * Run
+#Threads.nthreads()
+
+problem = ConScapeProblem(; measures, movement)
+windowed_problem = WindowedProblem(problem; 
+    centersize=centersize, buffer=radius, threaded=true
+)
+
+result = solve(windowed_problem, rast)
+
+write(("outputs_julia/" * "forest_lui_functionality.tif"), result["ch"]; force=true)
+write(("outputs_julia/" * "forest_lui_corridors.tif"), result["betk"]; force=true)
+
+### * Load raster files - reference
+steplikelihood = Raster(joinpath(indir, "forest_lui_permeability_ref.tif"), missingval=NaN)
+quality = Raster(joinpath(indir, "forest_lui_quality_ref.tif"), missingval=NaN)
+rast = RasterStack((; steplikelihood, quality))
+mask!(rast; with=rast)
+measures = (; ch=FunctionalHabitat(),)
+problem = ConScapeProblem(; measures, movement)
+windowed_problem = WindowedProblem(problem; centersize=centersize, buffer=radius, threaded=true)
+result = solve(windowed_problem, rast)
+write(("outputs_julia/" * "forest_lui_functionality_ref.tif"), result["ch"]; force=true)
+```
+
+These national-scale ConScape computations were run outside this document on a high-performance computing cluster. This document loads the resulting connected-habitat and corridor rasters and shows how they are interpreted and aggregated.
+
+
+### 9.5 Connectivity indicators
+
+#### Model outputs
+
+ConScape produces several connectivity outputs. In this document, the main outputs are connected habitat, corridors and reference-condition connected habitat for ecosystem accounting.
+
+Connected habitat describes where habitat contributes to the broader connected network. A cell with high connected habitat is not only suitable habitat locally, but is also well connected to other suitable habitat through the surrounding landscape.
+
+Corridors describe areas that are important for movement between habitat areas. These areas may or may not be high-quality habitat themselves. Their importance comes from their role in linking other parts of the network.
+
+First, load the connected-habitat map:
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+func <- focus(rast(here("data/outputs_julia", "forest_lui_functionality.tif")))
+plot(sqrt(func), col = viridis(100, option = "viridis"), main = "Connected habitat")
+```
+
+This layer should be interpreted as an indicator of connected forest habitat, when all forest is equal except for the anthropocentric infrastructure footprint.
+
+The corridor output for the forest network is loaded in the same way:
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+corridors <- focus(rast(here("data/outputs_julia", "forest_lui_corridors.tif")))
+plot(corridors, col = viridis(100, option = "magma"), main = "Corridors")
+```
+
+These maps show where the forest network depends on movement through the landscape. A high corridor value does not necessarily mean that the cell is high-quality habitat. It means that the cell contributes to connecting habitat elsewhere. These areas are useful to distinguish from connected habitat, because they may represent connective landscape rather than habitat nodes.
+
+#### Connectivity indicator
+
+The reference condition allows the current connectivity output to be expressed as a condition indicator. We calculate this by comparing connected habitat under the current condition with connected habitat under the reference condition.
+
+The connected habitat under the reference condition is:
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+ref <- focus(rast(here("data/outputs_julia", "forest_lui_functionality_ref.tif")))
+plot(sqrt(ref), col = viridis(100, option = "viridis"), main = "Root-transformed reference connected habitat")
+```
+
+This map shows the square root of the cell-level connected-habitat raster. It is a diagnostic visualization, not a map of ECH. ECH is calculated only after summing connected habitat across the accounting area.
+
+For the summary indicator, we use equivalent connected habitat (ECH) rather than raw connected habitat [@saura2011network; @vanmoorter2023habitat]. ECH is a summary statistic for an area, not a cell-level raster quantity. It is calculated from the total connected habitat within the area:
+
+$$ECH = \sqrt{\sum H}$$
+
+where H is the connected habitat metric, also known as habitat functionality [@vanmoorter2023habitat].
+
+Because ECH is calculated after aggregation, it cannot be mapped directly at the pixel level. However, we often plot the square root of the connected-habitat raster as a visual transformation. This root-transformed map is not ECH, because $\sqrt{\sum H}$ is not the same as $\sum \sqrt{H}$. It is only a diagnostic visualization that puts the cell-level connected-habitat values on a scale that is closer to the area units of ECH and is easier to visually interpret.
+
+The connectivity condition indicator is calculated as the ratio between current and reference ECH:
+
+$$I_{ECH} = \frac{ECH_{current}}{ECH_{reference}}$$
+
+or equivalently:
+
+$$I_{ECH} = \frac{\sqrt{\sum H_{current}}}{\sqrt{\sum H_{reference}}}$$
+
+Values close to 1 indicate that current equivalent connected habitat is close to the reference condition. Lower values indicate that current land-use intensity reduces connected habitat relative to the reference.
+
+```{r}
+#| echo: true
+
+EAI <- sqrt(global(func, "sum", na.rm = TRUE)[1, 1]) / sqrt(global(ref, "sum", na.rm = TRUE)[1, 1])
+print(paste0("I_ECH = ", round(EAI, 2)))
+```
+
+The equivalent connected habitat transformation is mainly used for the summary indicator, because it gives a value in area units.
+
+For spatial diagnosis, we map the cell-wise ratio between root-transformed current and reference connected habitat:
+
+$$I_{cell} = \frac{\sqrt{H_{current}}}{\sqrt{H_{reference}}}$$
+
+This map is not the ecosystem-accounting indicator itself. The accounting indicator is calculated after aggregating connected habitat across the accounting area. However, the root-transformed ratio is visually closer to the ECH logic than the raw connected-habitat ratio, because ECH is also based on a square-root transformation. The map should therefore be interpreted as a diagnostic layer showing where current connected habitat is low relative to the reference condition, not as a pixel-level ECH indicator.
+
+```{r}
+#| echo: true
+
+rindicator <- (sqrt(func) + 0.001) / (sqrt(ref) + 0.001)
+rindicator <- mask(rindicator, forest_ext, maskvalues=0) # compute the indicator only within the forest extent
+
+plot(
+  ifel(rindicator > 1, 1, rindicator),
+  col = rev(viridis(100, option = "turbo")),
+  main = "Cell-wise root-transformed current/reference ratio"
+)
+
+if (write_rasters){
+  writeRaster(rindicator, file=here("data/outputs", "forest_lui_indicator.tif"))
+}
+```
+
+A small constant is added in the code to avoid undefined values where the reference layer is zero or very close to zero.
+
+#### Aggregation across administrative units
+
+For the municipal account:
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+if (grepl("/data/", getwd())){
+  data_folder <- "/data/R/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/"
+}else{
+  data_folder <- "R:/GeoSpatialData/AdministrativeUnits/Norway_AdministrativeUnits/"
+}
+
+# conversion from 50-by-50 m pixels to 1000-by-1000 m
+conversion_factor <-  (1000/50)*(1000/50)
+```
+
+
+For the county account:
+
+```{r}
+#| label: compute - municipal account
+#| echo: true
+#| warning: false
+#| message: false
+#| results: 'hide'
+
+municipality_shp <- sf::st_read(paste0(data_folder, "Original/Norway_Municipalities/Basisdata_0000_Norge_25833_Kommuner_FGDB/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb"),
+  layer = "kommune", quiet = TRUE)
+
+tmp <- terra::extract(func, municipality_shp, fun="sum", na.rm=T)
+municipality_shp$variable_km4 <- tmp[,2]/(conversion_factor^2)
+
+tmp <- terra::extract(ref, municipality_shp, fun="sum", na.rm=T)
+municipality_shp$ref_km4 <- tmp[,2]/(conversion_factor^2)
+
+municipality_shp$indicator <- sqrt(municipality_shp$variable_km4/municipality_shp$ref_km4)
+plot(municipality_shp["indicator"])
+```
+
+
+For the county account:
+
+```{r}
+#| label: compute - county account
+#| echo: true
+#| warning: false
+#| message: false
+#| results: 'hide'
+
+county_shp <- sf::st_read(paste0(data_folder, "Original/Norway_County/Basisdata_0000_Norge_25833_Fylker_FGDB/Basisdata_0000_Norge_25833_Fylker_FGDB.gdb"),
+                   layer = "fylke", quiet = TRUE)
+
+tmp <- terra::extract(func, county_shp, fun="sum", na.rm=T)
+county_shp$variable_km4 <- tmp[,2]/(conversion_factor^2)
+
+tmp <- terra::extract(ref, county_shp, fun="sum", na.rm=T)
+county_shp$ref_km4 <- tmp[,2]/(conversion_factor^2)
+
+county_shp$indicator <- sqrt(county_shp$variable_km4/county_shp$ref_km4)
+plot(county_shp["indicator"])
+```
+
+For the regional account:
+
+```{r}
+#| label: compute - region account
+#| echo: true
+#| warning: false
+#| message: false
+#| results: 'hide'
+
+region_shp <- readRDS(here("data/harmonised/", "reg_helperfile.RDS"))
+
+tmp <- terra::extract(func, region_shp, fun="sum", na.rm=T)
+region_shp$variable_km4 <- tmp[,2]/(conversion_factor^2)
+
+tmp <- terra::extract(ref, region_shp, fun="sum", na.rm=T)
+region_shp$ref_km4 <- tmp[,2]/(conversion_factor^2)
+
+region_shp$indicator <- sqrt(region_shp$variable_km4/region_shp$ref_km4)
+plot(region_shp["indicator"])
+```
+
+For the national account:
+
+```{r}
+#| label: compute - national account
+#| echo: true
+
+variable_km4 <- global(func, "sum", na.rm=T)[1,1]
+ref_km4 <- global(ref, "sum", na.rm=T)[1,1]
+indicator <- sqrt(variable_km4/ref_km4)
+
+national_df <- data.frame(objtype="norge", variable_km4=variable_km4, ref_km4=ref_km4, indicator=sqrt(indicator))
+
+knitr::kable(national_df, digits = 2)
+```
+
+## 10. Results
+
+<!--# 
+
+Repeat the final results here. Typically this is a map or table of indicator values.
+
+This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+
+-->
+
+Load complete Norwegian data, if precomputed:
+
+```{r}
+#| label: load if exists
+#| echo: true
+#| message: false
+#| warning: false
+
+if (file.exists(here("data/outputs/", "municipality_account.shp"))){
+  municipality_shp <- sf::st_read(here("data/outputs/", "municipality_account.shp"))
+  names(municipality_shp)[c(1,11,12,16,17,18)] <- c("objtype", "kommunenummer", "kommunenavn", "variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "county_account.shp"))){
+  county_shp <- sf::st_read(here("data/outputs/", "county_account.shp"))
+  names(county_shp)[c(1,11,12,16,17,18)] <- c("objtype", "fylkesnummer", "fylkesnavn", "variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "region_account.shp"))){
+  region_shp <- sf::st_read(here("data/outputs/", "region_account.shp"))
+  names(region_shp)[c(6,7,8)] <- c("variable_km4", "ref_km4", "indicator")
+} 
+
+if (file.exists(here("data/outputs/", "national_account.csv"))){
+  national_df <- read.csv2(here("data/outputs/", "national_account.csv"))
+} 
+```
+
+
+Municipal account:
+
+```{r}
+#| label: show - municipal account
+#| echo: true
+
+library(gt)
+
+df <- st_drop_geometry(municipality_shp)[,c("objtype", "kommunenummer", "kommunenavn", "variable_km4", "ref_km4", "indicator")]
+df$variable_km2 <- sqrt(df$variable_km4)
+df$ref_km2 <- sqrt(df$ref_km4)
+df <- df[,c("objtype", "kommunenummer", "kommunenavn", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+
+gt::gt(df) |>
+  gt::tab_options(
+    container.height = "400px",
+    container.overflow.y = TRUE,
+    container.overflow.x = TRUE
+  )
+```
+
+County account:
+```{r}
+#| label: show - county account
+#| echo: true
+
+df <- st_drop_geometry(county_shp)[,c("objtype", "fylkesnummer", "fylkesnavn", "variable_km4", "ref_km4", "indicator")]
+df$variable_km2 <- sqrt(df$variable_km4)
+df$ref_km2 <- sqrt(df$ref_km4)
+df <- df[,c("objtype", "fylkesnummer", "fylkesnavn", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+
+gt::gt(df) |>
+  gt::tab_options(
+    container.height = "400px",
+    container.overflow.y = TRUE,
+    container.overflow.x = TRUE
+  )
+```
+
+Regional account:
+```{r}
+#| label: show - regional account
+#| echo: true
+
+df <- st_drop_geometry(region_shp)[,c("id", "region", "variable_km4", "ref_km4", "indicator")]
+df$variable_km2 <- sqrt(df$variable_km4)
+df$ref_km2 <- sqrt(df$ref_km4)
+df <- df[,c("id", "region", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+
+gt::gt(df) |>
+  gt::tab_options(
+    container.height = "400px",
+    container.overflow.y = TRUE,
+    container.overflow.x = TRUE
+  )
+```
+
+National account:
+```{r}
+#| label: show - national account
+#| echo: true
+
+df <- national_df
+df$variable_km2 <- sqrt(df$variable_km4)
+df$ref_km2 <- sqrt(df$ref_km4)
+df <- df[,c("objtype", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+
+knitr::kable(df, digits = 2)
+```
+
+The national indicator value for connected forest habitat with human footprint is shown above. This value is the ratio between current equivalent connected habitat and reference equivalent connected habitat. The reference condition keeps the current mapped forest extent but removes the LUI effect by setting LUI to zero.
+
+
+## 11. Export file
+
+<!--# 
+
+Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
+
+-->
+
+```{r export}
+#| label: save accounts
+#| eval: false
+
+st_write(municipality_shp, file=paste0("data/outputs/", "municipality_account.shp"), append=F)
+st_write(county_shp, file=paste0("data/outputs/", "county_account.shp"), append=F)
+st_write(region_shp, file=paste0("data/outputs/", "region_account.shp"), append=F)
+write.csv2(national_df, paste0("data/outputs/", "national_account.csv"), row.names = F)
+```
+
+
+
+## 12. Author contributions
+
+<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+
+**CRediT statement**
+
+* Conceptualization: BvM, EB, AK
+* Methodology: BvM
+* Data curation: BvM, AK, VB
+* Formal analysis: BvM
+* Code review: AK
+* Writing original draft: BvM
+* Writing review & editing: BvM, EB, AK, MP
+* Project administration: EB, MP
+* Funding acquisition: EB, MP
+
+
+**MeRIT attribution**
+
+This part supplements the CRediT statement with more granularity for method section.
+
+**Study design**
+The study was designed by [BvM, EB, AK].
+
+**Data processing**
+Data were curated and processed [BvM, AK, VB].
+
+**Statistical analysis**
+All analyses were conducted by [BvM] using [R, Julia].
+
+**Visualization**
+Figures were produced by [BvM], with input from [AK].
+
+**Reproducibility**
+All code was reviewed and validated by [AK].
+
+
+::: {.callout-tip collapse="true"}
+## Session Info
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+
+:::
