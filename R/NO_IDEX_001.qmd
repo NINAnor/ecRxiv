@@ -145,24 +145,24 @@ license_badge()
 <!--# Update this log with short messages for each update -->
 - 1 July 2026 - First draft of calculation
 - 14 August 2026 - Renamed to NO_IDEX_001, update indicator list, imputation of missing reporting years, direct national aggregation, and update figures
-- 31 August 2026 - Regenerated forest index cache after correcting deadwood indicator IDs (NO_DWTO_001 in B1, NO_DTVS_001 in B2)
+- 31 August 2026 - Finalize results and figures for forest and mountain index
 :::
 
 <hr />
 
 ## 1. Aim
 
-NO_IDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices. Version 1.0.0 contains indices for **forest** and **mountain** ecosystems, for year 2024, separately by region, for Norway, and for ECT classes.
+NO_IDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices. Version 1.0.0 contains indices for **forest** and **mountain** ecosystems, for year 2024, separately by region, for Norway, and for ECT (Ecosystem Condition Typology) classes.
 Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
 
 ## 2. Datasets {#sec-datasets}
 
 First, we check which indicators are included in each index and where their results can be found on ecRxiv.
+The overview tables at the end of this section list every matched indicator with its national (Norway) value for 2024 (median and approximate 95% interval).
+Indicators without published uncertainty show the point estimate only.
 
 **Indicator lists.** Forest indicators are listed in `data/indicators_2026.csv`; mountain indicators follow [ECA_2026 #104](https://github.com/NINAnor/ECA_2026/issues/104) in `data/indicators_mountain.csv`.
 Each row specifies the indicator name, ecRxiv ID, and ECT class assignment.
-
-
 
 **Source manifest.** `scan_git_indicator_sources()` searches the local `upstream` git remote (main and `submission-*` branches) for published result files (CSV, RDS, parquet) and writes `data/indicator_sources.csv`.
 Optional manual or fork entries can be added in `data/indicator_sources_extra.csv` if results are not yet on `upstream`.
@@ -178,9 +178,10 @@ invisible(tryCatch(
 ))
 ```
 
-**Registry.** `build_indicator_registry()` joins the indicator lists with the manifest, probes each candidate URL or local path, and records whether results are available (`match_status`: `matched` or `no_results`).
-The tables below show the outcome for forest and mountain.
+**Registry.** `build_indicator_registry()` joins the indicator lists with the manifest and probes each candidate URL or local path.
 Only `matched` indicators proceed to the analysis in @sec-analyses.
+The tables below give an overview of matched indicators and their national (Norway) values for 2024.
+Full index results are reported in @sec-results-forest and @sec-results-mountain.
 
 ```{r registry}
 #| cache: false
@@ -202,38 +203,43 @@ registry_mountain <- build_indicator_registry(
 )
 ```
 
-```{r registry-status}
+```{r readForestCache}
+#| include: false
 #| cache: false
-#| code-summary: "Create forest table"
-# Compact included / not-included overview (instead of long coverage lists)
-registry_status_table <- function(registry, caption) {
-  registry |>
-    dplyr::transmute(
-      ECT = .data$ect,
-      Indicator = .data$indicatorName,
-      ID = .data$indicatorID,
-      Status = dplyr::case_when(
-        .data$match_status == "matched" ~ "Included",
-        .data$match_status == "no_results" ~ "No results yet",
-        TRUE ~ "Missing ID"
-      ),
-      `Results file` = dplyr::if_else(
-        .data$match_status == "matched" & !is.na(.data$results_path),
-        basename(.data$results_path),
-        ""
-      )
-    ) |>
-    dplyr::arrange(.data$ECT, .data$Status, .data$Indicator) |>
-    knitr::kable(caption = caption)
-}
-
-registry_status_table(registry_forest, "Forest indicators — inclusion status")
+forest_index <- readRDS(here::here("data/forest_index_170826.rds"))
 ```
 
-```{r registry-status-mountain}
+```{r readMountainCache}
+#| include: false
 #| cache: false
-#| code-summary: "Create mountaintable"
-registry_status_table(registry_mountain, "Mountain indicators — inclusion status")
+mountain_index <- readRDS(here::here("data/mountain_index_170826.rds"))
+```
+
+```{r target-years}
+#| include: false
+target_years <- tail(sort(report_years), n_years)
+```
+
+```{r registry-indicator-overview-forest}
+#| cache: false
+#| dependson: ["readForestCache"]
+registry_indicator_table(
+  registry_forest,
+  forest_index,
+  year = 2024,
+  caption = "Forest indicators included in NO_IDEX_001 — Norway 2024"
+)
+```
+
+```{r registry-indicator-overview-mountain}
+#| cache: false
+#| dependson: ["readMountainCache"]
+registry_indicator_table(
+  registry_mountain,
+  mountain_index,
+  year = 2024,
+  caption = "Mountain indicators included in NO_IDEX_001 — Norway 2024"
+)
 ```
 
 ## 3. Analyses {#sec-analyses}
@@ -322,11 +328,6 @@ forest_index <- calculate_index(
 saveRDS(forest_index, here::here("data/forest_index_170826.rds"))
 ```
 
-```{r readForestCache}
-#| include: true
-forest_index <- readRDS(here::here("data/forest_index_170826.rds"))
-```
-
 
 ```{r run-mountain}
 #| cache: true
@@ -343,11 +344,6 @@ mountain_index <- calculate_index(
 )
 
 saveRDS(mountain_index, here::here("data/mountain_index_170826.rds"))
-```
-
-```{r readMountainCache}
-#| include: false
-mountain_index <- readRDS(here::here("data/mountain_index_170826.rds"))
 ```
 
 ```{r tbl-checkForest}
@@ -382,35 +378,26 @@ if (sum(registry_mountain$match_status == "matched") >= 1) {
 
 ## 4. Results
 
-Summary tables report ECT classes, the overall (ECT-based) index, and the direct-aggregation index for Norway only.
-Regional indices (`C`, `E`, `S`, `W`, `N`) are calculated for all of the above and included in the export files in @sec-export.
+Forest and mountain indices are reported separately below.
+Each subsection gives a full summary table (all indicators, ECT classes, and index totals for every area and reporting year) followed by figures.
 
-```{r forest-summary}
+### 4.1 Forest {#sec-results-forest}
+
+```{r forest-summary-full}
 #| cache: false
-forest_index$summaries |>
-  filter(part == "Norway") |>
-  arrange(year, level, id) |>
-  select(year, level, id, median, q025, q975) |>
-  kable(digits = 3, caption = "Forest index — Norway")
+#| dependson: ["readForestCache", "target-years"]
+index_figure_summary_table(
+  forest_index,
+  registry_forest,
+  years = target_years,
+  caption = "Forest index — all areas and reporting years"
+)
 ```
-
-```{r mountain-summary}
-#| cache: false
-mountain_index$summaries |>
-  filter(part == "Norway") |>
-  arrange(year, level, id) |>
-  select(year, level, id, median, q025, q975) |>
-  kable(digits = 3, caption = "Mountain index — Norway")
-```
-
-The figures below show every matched indicator individually, followed by the ECT classes and the overall totals.
-Horizontal lines separate these three groups.
 
 ```{r forest-plot-detailed}
 #| cache: false
 #| fig-height: 11
 #| fig-width: 9
-target_years <- tail(sort(report_years), n_years)
 for (yr in target_years) {
   print(plot_index_detailed(
     forest_index, yr,
@@ -419,21 +406,6 @@ for (yr in target_years) {
   ))
 }
 ```
-
-```{r mountain-plot-detailed}
-#| cache: false
-#| fig-height: 8
-#| fig-width: 9
-for (yr in target_years) {
-  print(plot_index_detailed(
-    mountain_index, yr,
-    title = "NO_IDEX_001 — mountain",
-    registry = registry_mountain
-  ))
-}
-```
-
-The same figures below show the **national (Norway) value only** for each indicator, ECT class, and total, without the five regions.
 
 ```{r forest-plot-detailed-national}
 #| cache: false
@@ -445,6 +417,32 @@ for (yr in target_years) {
     title = "NO_IDEX_001 — forest",
     national_only = TRUE,
     registry = registry_forest
+  ))
+}
+```
+
+### 4.2 Mountain {#sec-results-mountain}
+
+```{r mountain-summary-full}
+#| cache: false
+#| dependson: ["readMountainCache", "target-years"]
+index_figure_summary_table(
+  mountain_index,
+  registry_mountain,
+  years = target_years,
+  caption = "Mountain index — all areas and reporting years"
+)
+```
+
+```{r mountain-plot-detailed}
+#| cache: false
+#| fig-height: 8
+#| fig-width: 9
+for (yr in target_years) {
+  print(plot_index_detailed(
+    mountain_index, yr,
+    title = "NO_IDEX_001 — mountain",
+    registry = registry_mountain
   ))
 }
 ```

@@ -17,6 +17,69 @@ parse_ect <- function(x) {
   stringr::str_extract(stringr::str_squish(x), "^[ABC][0-9]")
 }
 
+# Canonical full ECT class labels for figure display.
+ect_canonical_names <- function(lang = c("en", "nb")) {
+  lang <- rlang::arg_match(lang)
+  if (lang == "nb") {
+    c(
+      A1 = "A1 Fysiske egenskaper",
+      A2 = "A2 Kjemiske egenskaper",
+      B1 = "B1 Biologisk mangfold",
+      B2 = "B2 Strukturelle egenskaper",
+      B3 = "B3 Funksjonelle egenskaper",
+      C1 = "C1 Landskapsegenskaper"
+    )
+  } else {
+    c(
+      A1 = "A1 Physical state characteristics",
+      A2 = "A2 Chemical state characteristics",
+      B1 = "B1 Compositional state characteristics",
+      B2 = "B2 Structural state characteristics",
+      B3 = "B3 Functional state characteristics",
+      C1 = "C1 Landscape and seascape characteristics"
+    )
+  }
+}
+
+# Build ECT code -> display label lookup (Norwegian registry strings override defaults).
+build_ect_name_lookup <- function(registry = NULL, lang = c("en", "nb")) {
+  lang <- rlang::arg_match(lang)
+  out <- ect_canonical_names(lang)
+
+  if (!is.null(registry) && lang == "nb" && "ECT" %in% names(registry)) {
+    from_reg <- registry |>
+      dplyr::mutate(
+        ect_code = parse_ect(.data$ECT),
+        ect_label = stringr::str_squish(
+          stringr::str_replace_all(as.character(.data$ECT), "\u00a0", " ")
+        )
+      ) |>
+      dplyr::filter(!is.na(.data$ect_code), .data$ect_label != "") |>
+      dplyr::distinct(.data$ect_code, .keep_all = TRUE)
+
+    if (nrow(from_reg) > 0) {
+      out[from_reg$ect_code] <- from_reg$ect_label
+    }
+  }
+
+  out
+}
+
+# Soft-wrap long axis labels for detailed index figures.
+wrap_axis_label <- function(x, width = 42) {
+  vapply(
+    x,
+    function(s) {
+      if (is.na(s) || !nzchar(s)) {
+        return(s)
+      }
+      stringr::str_wrap(s, width = width)
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+}
+
 # Load alias → part lookup table.
 load_region_lookup <- function(path = here::here("data/region_lookup.csv")) {
   lookup <- readr::read_csv(path, show_col_types = FALSE)
@@ -873,6 +936,307 @@ build_indicator_registry <- function(
   registry
 }
 
+# Registry table with national indicator summaries for one reporting year.
+registry_indicator_table <- function(
+    registry,
+    index_result,
+    year = 2024,
+    part = "Norway",
+    caption) {
+  summarise_indicator_stats <- function(draws) {
+    draws |>
+      dplyr::group_by(.data$indicator_id) |>
+      dplyr::summarise(
+        median = stats::median(.data$value, na.rm = TRUE),
+        q025 = as.numeric(stats::quantile(
+          .data$value,
+          0.025,
+          na.rm = TRUE,
+          names = FALSE
+        )),
+        q975 = as.numeric(stats::quantile(
+          .data$value,
+          0.975,
+          na.rm = TRUE,
+          names = FALSE
+        )),
+        n = dplyr::n(),
+        .groups = "drop"
+      ) |>
+      dplyr::mutate(
+        q025 = dplyr::if_else(.data$n < 2L, NA_real_, .data$q025),
+        q975 = dplyr::if_else(.data$n < 2L, NA_real_, .data$q975)
+      )
+  }
+
+  stats <- index_result$indicator_draws |>
+    dplyr::filter(.data$year == .env$year, .data$part == .env$part) |>
+    summarise_indicator_stats()
+
+  missing <- registry |>
+    dplyr::filter(
+      .data$match_status == "matched",
+      !is.na(.data$indicatorID),
+      .data$indicatorID != "",
+      !.data$indicatorID %in% stats$indicator_id
+    )
+
+  if (nrow(missing) > 0) {
+    fallback_draws <- purrr::map_dfr(seq_len(nrow(missing)), function(i) {
+      row <- missing[i, ]
+      path <- if (
+        "results_url" %in% names(row) &&
+          !is.na(row$results_url) &&
+          row$results_url != ""
+      ) {
+        row$results_url
+      } else {
+        src <- resolve_indicator_source(row$indicatorID, row$folder)
+        if (is.null(src)) {
+          return(NULL)
+        }
+        src$results_url
+      }
+
+      read_indicator_results(path, indicator_id = row$indicatorID)
+    })
+
+    fallback_draws <- fallback_draws |>
+      dplyr::filter(.data$year == .env$year, .data$part == .env$part)
+
+    if (nrow(fallback_draws) > 0) {
+      stats <- dplyr::bind_rows(
+        stats,
+        summarise_indicator_stats(fallback_draws)
+      )
+    }
+  }
+
+  registry |>
+    dplyr::mutate(indicatorID = as.character(.data$indicatorID)) |>
+    dplyr::left_join(stats, by = c("indicatorID" = "indicator_id")) |>
+    dplyr::transmute(
+      ECT = .data$ect,
+      Indicator = .data$indicatorName,
+      ID = .data$indicatorID,
+      Median = .data$median,
+      `2.5%` = .data$q025,
+      `97.5%` = .data$q975
+    ) |>
+    dplyr::arrange(.data$ECT, .data$Indicator) |>
+    knitr::kable(digits = 3, caption = caption, na = "")
+}
+
+# Summarise MC draws to median and 95% interval.
+summarise_draw_stats <- function(draws) {
+  draws |>
+    dplyr::summarise(
+      median = stats::median(.data$value, na.rm = TRUE),
+      q025 = as.numeric(stats::quantile(
+        .data$value,
+        0.025,
+        na.rm = TRUE,
+        names = FALSE
+      )),
+      q975 = as.numeric(stats::quantile(
+        .data$value,
+        0.975,
+        na.rm = TRUE,
+        names = FALSE
+      )),
+      n = dplyr::n(),
+      .groups = "drop"
+    ) |>
+    dplyr::mutate(
+      q025 = dplyr::if_else(.data$n < 2L, NA_real_, .data$q025),
+      q975 = dplyr::if_else(.data$n < 2L, NA_real_, .data$q975)
+    )
+}
+
+# Long results table mirroring detailed figure content (all areas and years).
+index_figure_summary_table <- function(
+    index_result,
+    registry,
+    years,
+    lang = c("en", "nb"),
+    include_indicators = TRUE,
+    caption = NULL) {
+  lang <- rlang::arg_match(lang)
+  years <- sort(unique(as.integer(years)))
+  part_order <- CANONICAL_PARTS
+
+  ect_name_lookup <- build_ect_name_lookup(registry, lang = lang)
+  total_labels <- if (lang == "nb") {
+    c("Index" = "Indeks", "Index (direct)" = "Indeks (direkte)")
+  } else {
+    c("Index" = "Index", "Index (direct)" = "Index (direct)")
+  }
+
+  indicator_name_lookup <- NULL
+  indicator_ect_lookup <- NULL
+  if (!is.null(registry)) {
+    ind_map <- registry |>
+      dplyr::filter(
+        !is.na(.data$indicatorID),
+        .data$indicatorID != ""
+      ) |>
+      dplyr::mutate(
+        id = as.character(.data$indicatorID),
+        nb = stringr::str_squish(as.character(.data$verbatimeName)),
+        en = stringr::str_squish(as.character(.data$indicatorName)),
+        label = if (lang == "nb") {
+          dplyr::if_else(
+            is.na(.data$nb) | .data$nb == "" | .data$nb == .data$en,
+            .data$en,
+            .data$nb
+          )
+        } else {
+          dplyr::if_else(
+            is.na(.data$en) | .data$en == "",
+            .data$nb,
+            .data$en
+          )
+        }
+      ) |>
+      dplyr::distinct(.data$id, .keep_all = TRUE)
+    indicator_name_lookup <- stats::setNames(ind_map$label, ind_map$id)
+    indicator_ect_lookup <- registry |>
+      dplyr::filter(
+        !is.na(.data$indicatorID),
+        .data$indicatorID != "",
+        !is.na(.data$ect)
+      ) |>
+      dplyr::mutate(
+        id = as.character(.data$indicatorID),
+        ect = as.character(.data$ect)
+      ) |>
+      dplyr::distinct(.data$id, .keep_all = TRUE) |>
+      (\(x) stats::setNames(x$ect, x$id))()
+  }
+
+  level_order <- c("Indicator", "ECT", "Index", "Index (direct)")
+
+  indicator_stats <- if (include_indicators) {
+    index_result$indicator_draws |>
+      dplyr::filter(.data$year %in% years) |>
+      dplyr::group_by(
+        .data$year,
+        .data$part,
+        .data$indicator_id,
+        .data$indicator_name,
+        .data$ect
+      ) |>
+      dplyr::group_modify(~ summarise_draw_stats(.x)) |>
+      dplyr::ungroup() |>
+      dplyr::mutate(
+        level = "Indicator",
+        id = as.character(.data$indicator_id),
+        ect = if (!is.null(indicator_ect_lookup)) {
+          dplyr::coalesce(
+            unname(indicator_ect_lookup[.data$indicator_id]),
+            as.character(.data$ect)
+          )
+        } else {
+          as.character(.data$ect)
+        },
+        label = if (!is.null(indicator_name_lookup)) {
+          dplyr::coalesce(
+            unname(indicator_name_lookup[.data$indicator_id]),
+            .data$indicator_name
+          )
+        } else {
+          .data$indicator_name
+        }
+      )
+  } else {
+    NULL
+  }
+
+  aggregate_stats <- index_result$summaries |>
+    dplyr::filter(.data$year %in% years) |>
+    dplyr::mutate(
+      level = dplyr::if_else(
+        .data$level == "Index (direct)",
+        "Index (direct)",
+        as.character(.data$level)
+      ),
+      id = as.character(.data$id),
+      label = dplyr::case_when(
+        .data$level == "ECT" ~ dplyr::coalesce(
+          unname(ect_name_lookup[.data$id]),
+          .data$id
+        ),
+        .data$level == "Index" ~ unname(total_labels["Index"]),
+        .data$level == "Index (direct)" ~ unname(total_labels["Index (direct)"]),
+        TRUE ~ .data$id
+      ),
+      ect = dplyr::if_else(.data$level == "ECT", .data$id, NA_character_)
+    )
+
+  out <- dplyr::bind_rows(
+    if (!is.null(indicator_stats)) {
+      indicator_stats |>
+        dplyr::select(
+          "year",
+          "part",
+          "level",
+          "ect",
+          "id",
+          "label",
+          "median",
+          "q025",
+          "q975"
+        )
+    },
+    aggregate_stats |>
+      dplyr::select(
+        "year",
+        "part",
+        "level",
+        "ect",
+        "id",
+        "label",
+        "median",
+        "q025",
+        "q975"
+      )
+  ) |>
+    dplyr::mutate(
+      level = factor(.data$level, levels = level_order),
+      part = factor(.data$part, levels = part_order),
+      ect = factor(.data$ect, levels = names(ect_name_lookup))
+    ) |>
+    dplyr::arrange(.data$year, .data$part, .data$level, .data$ect, .data$label) |>
+    dplyr::mutate(
+      level = as.character(.data$level),
+      part = as.character(.data$part),
+      ect = as.character(.data$ect)
+    ) |>
+    dplyr::transmute(
+      Year = .data$year,
+      Area = .data$part,
+      Level = .data$level,
+      ECT = dplyr::if_else(is.na(.data$ect), "", .data$ect),
+      ID = .data$id,
+      Name = .data$label,
+      Median = .data$median,
+      `2.5%` = .data$q025,
+      `97.5%` = .data$q975
+    )
+
+  tbl <- knitr::kable(out, digits = 3, caption = caption, na = "", row.names = FALSE)
+  if (requireNamespace("kableExtra", quietly = TRUE)) {
+    tbl <- kableExtra::kable_styling(
+      tbl,
+      bootstrap_options = c("striped", "hover", "condensed"),
+      full_width = FALSE,
+      position = "left"
+    ) |>
+      kableExtra::scroll_box(width = "100%", height = "500px")
+  }
+  tbl
+}
+
 # =============================================================================
 # 6. Loading draws for the index
 # =============================================================================
@@ -1472,16 +1836,9 @@ plot_index_detailed <- function(
       dplyr::distinct(.data$id, .keep_all = TRUE) |>
       (\(x) stats::setNames(x$ect, x$id))()
 
-    if (lang == "nb") {
-      ect_map <- registry |>
-        dplyr::mutate(
-          ect_code = parse_ect(.data$ECT),
-          ect_label = stringr::str_squish(as.character(.data$ECT))
-        ) |>
-        dplyr::filter(!is.na(.data$ect_code), !is.na(.data$ect_label)) |>
-        dplyr::distinct(.data$ect_code, .keep_all = TRUE)
-      ect_name_lookup <- stats::setNames(ect_map$ect_label, ect_map$ect_code)
-    }
+    ect_name_lookup <- build_ect_name_lookup(registry, lang = lang)
+  } else {
+    ect_name_lookup <- build_ect_name_lookup(lang = lang)
   }
 
   region_cols <- if (requireNamespace("MetBrewer", quietly = TRUE)) {
@@ -1629,6 +1986,17 @@ plot_index_detailed <- function(
   )
 
   label_lookup <- label_lookup[!duplicated(names(label_lookup))]
+  label_lookup <- stats::setNames(
+    wrap_axis_label(unname(label_lookup)),
+    names(label_lookup)
+  )
+
+  # Y-axis uses full ECT names; shape legend keeps short codes only.
+  shape_legend_labels <- c(
+    stats::setNames(names(ect_shapes), names(ect_shapes)),
+    Total = if (lang == "nb") "Totalt" else "Total"
+  )
+  shape_legend_name <- if (lang == "nb") "ECT" else "ECT"
 
   plot_dat <- dplyr::bind_rows(
     indicator_summary,
@@ -1710,7 +2078,8 @@ plot_index_detailed <- function(
     ggplot2::theme_bw(base_size = 10) +
     ggplot2::theme(
       panel.grid.minor = ggplot2::element_blank(),
-      plot.margin = ggplot2::margin(5, 5, 5, 5)
+      plot.margin = ggplot2::margin(5, 5, 5, 5),
+      axis.text.y = ggplot2::element_text(size = 8.5)
     )
 
   # Add one extra shape for the total index rows.
@@ -1726,7 +2095,11 @@ plot_index_detailed <- function(
         size = 0.45,
         linewidth = 0.35
       ) +
-      ggplot2::scale_shape_manual(values = shape_values, name = "ECT") +
+      ggplot2::scale_shape_manual(
+        values = shape_values,
+        name = shape_legend_name,
+        labels = unname(shape_legend_labels[names(shape_values)])
+      ) +
       ggplot2::theme(legend.position = "bottom")
   } else {
     p +
@@ -1736,8 +2109,12 @@ plot_index_detailed <- function(
         linewidth = 0.35
       ) +
       ggplot2::scale_colour_manual(values = region_cols, name = NULL) +
-      ggplot2::scale_shape_manual(values = shape_values, name = "ECT") +
-      ggplot2::theme(legend.position = "bottom") 
+      ggplot2::scale_shape_manual(
+        values = shape_values,
+        name = shape_legend_name,
+        labels = unname(shape_legend_labels[names(shape_values)])
+      ) +
+      ggplot2::theme(legend.position = "bottom")
       
   }
 }
