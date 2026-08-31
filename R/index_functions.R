@@ -194,12 +194,12 @@ harmonise_indicator_draws <- function(
 
   name_map <- stats::setNames(names(dat), tolower(names(dat)))
   part_key <- intersect(
-    c("part", "reg", "region", "region_code", "nation"),
+    c("part", "area", "reg", "region", "region_code", "nation"),
     names(name_map)
   )[1]
   if (is.na(part_key)) {
     stop(
-      "Results must contain part, reg, region, region_code, or nation column.",
+      "Results must contain part, area, reg, region, region_code, or nation column.",
       call. = FALSE
     )
   }
