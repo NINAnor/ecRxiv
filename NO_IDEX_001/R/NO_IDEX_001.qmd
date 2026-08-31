@@ -18,10 +18,10 @@ Ecosystem:
   - NA
 yearAdded: 2026
 yearLastUpdate: 2026
-status: incomplete
+status: complete
 Version: "1.0.0"
 VersionComment: Phase 1 equal-weight composite index from published indicator MC distributions
-url: https://github.com/NINAnor/ecRxiv
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_IDEX_001
 Normalised: NA
 SpatialAggregationPathway: Resample - Aggregate (equal-weight mean) - Summarise
 format:
@@ -76,7 +76,7 @@ library(kableExtra)
 library(here)
 library(anybadger)
 library(conflicted)
-
+library(DT)
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
 conflicts_prefer(dplyr::select)
@@ -100,6 +100,29 @@ knitr::opts_chunk$set(echo = TRUE)
 #| cache: false
 source(here::here("_common.R"))
 source(here("R/index_functions.R"))
+```
+
+```{r}
+#| echo: false
+#| results: asis
+
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default">
+       <div class="quarto-title-meta">
+         <div>
+           <div class="quarto-title-meta-heading">Reviewed by</div>
+           <div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div>
+         </div>
+       </div>
+     </div>',
+    sep = ""
+  ))
+}
 ```
 
 ::: {layout-ncol="6"}

@@ -1224,16 +1224,29 @@ index_figure_summary_table <- function(
       `97.5%` = .data$q975
     )
 
-  tbl <- knitr::kable(out, digits = 3, caption = caption, na = "", row.names = FALSE)
-  if (requireNamespace("kableExtra", quietly = TRUE)) {
-    tbl <- kableExtra::kable_styling(
-      tbl,
-      bootstrap_options = c("striped", "hover", "condensed"),
-      full_width = FALSE,
-      position = "left"
+  #tbl <- knitr::kable(out, digits = 3, caption = caption, na = "", #row.names = FALSE)
+  #if (requireNamespace("kableExtra", quietly = TRUE)) {
+  #  tbl <- kableExtra::kable_styling(
+  #    tbl,
+  #    bootstrap_options = c("striped", "hover", "condensed"),
+  #    full_width = FALSE,
+  #    position = "left"
+  #  ) |>
+  #    kableExtra::scroll_box(width = "100%", height = "500px")
+  #}
+
+  tbl <- out |>
+    DT::datatable(
+      options = list(
+        scrollX = TRUE,
+        scrollY=T,
+        pageLength = 8
+      ),
+      caption = caption,
+      filter = "top",
+      rownames = FALSE
     ) |>
-      kableExtra::scroll_box(width = "100%", height = "500px")
-  }
+    DT::formatRound(columns = c("Median", "2.5%", "97.5%"), digits = 3)
   tbl
 }
 
