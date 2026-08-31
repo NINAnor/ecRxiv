@@ -1431,6 +1431,7 @@ plot_index_detailed <- function(
   # Indicator / ECT display names from the registry when provided
   # (keeps saved figures in sync with indicators_*.csv without recalculating).
   indicator_name_lookup <- NULL
+  indicator_ect_lookup <- NULL
   ect_name_lookup <- NULL
   if (!is.null(registry)) {
     ind_map <- registry |>
@@ -1458,6 +1459,18 @@ plot_index_detailed <- function(
       ) |>
       dplyr::distinct(.data$id, .keep_all = TRUE)
     indicator_name_lookup <- stats::setNames(ind_map$label, ind_map$id)
+    indicator_ect_lookup <- registry |>
+      dplyr::filter(
+        !is.na(.data$indicatorID),
+        .data$indicatorID != "",
+        !is.na(.data$ect)
+      ) |>
+      dplyr::mutate(
+        id = as.character(.data$indicatorID),
+        ect = as.character(.data$ect)
+      ) |>
+      dplyr::distinct(.data$id, .keep_all = TRUE) |>
+      (\(x) stats::setNames(x$ect, x$id))()
 
     if (lang == "nb") {
       ect_map <- registry |>
@@ -1513,7 +1526,14 @@ plot_index_detailed <- function(
     dplyr::mutate(
       level = "Indicator",
       indicator_id = as.character(.data$indicator_id),
-      ect = as.character(.data$ect),
+      ect = if (!is.null(indicator_ect_lookup)) {
+        dplyr::coalesce(
+          unname(indicator_ect_lookup[.data$indicator_id]),
+          as.character(.data$ect)
+        )
+      } else {
+        as.character(.data$ect)
+      },
       label = if (!is.null(indicator_name_lookup)) {
         dplyr::coalesce(
           unname(indicator_name_lookup[.data$indicator_id]),
