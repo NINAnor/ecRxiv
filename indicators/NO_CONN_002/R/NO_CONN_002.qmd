@@ -1105,16 +1105,16 @@ results <- national_df |>
   bind_rows(region_shp |>
     select(
       area = region,
-      value = indictr
+      value = indicator
     ) |>
       add_column(year = 2024)) |>
       as_tibble() |>
       select(-geometry)
 
-
-write.csv2(results, paste0("data/outputs/", "results_NO_CONN_002.csv"), row.names = F)
-
-
+readr::write_csv(
+  results |> select(year, area, value),
+  here("data/results_NO_CONN_002.csv")
+)
 ```
 
 
