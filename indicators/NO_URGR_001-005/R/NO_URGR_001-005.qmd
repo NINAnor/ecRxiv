@@ -454,11 +454,11 @@ walk(gk_list, function(x){
   dbExecute(conn_ug, 
       sprintf("
         CREATE TABLE '%s' AS
-        SELECT okosystemtype_1, geom
+        SELECT okosystemtype1_name, geom
         FROM ST_Read('%s')
-        WHERE okosystemtype_1 IS DISTINCT FROM 'Settlements and other artificial areas'
+        WHERE okosystemtype1_name IS DISTINCT FROM 'Settlements and other artificial areas'
       ", 
-paste0("gk_", str_extract(x, "(?<=UTM33_).{2}")),
+paste0("gk_", str_extract(x, "(?<=UTM33_f).{2}")),
 x))
   
 })
@@ -475,7 +475,7 @@ walk(tbl_list, function(tbl){
 ddbs_transform(tbl, imd_crs, conn = conn_ug) %>% 
 
     # make valid
-    ddbs_make_valid(conn = conn_ug, name = paste0("cln_gk_not_et01", str_extract(tbl, "(?<=gk_).{2}")), overwrite = TRUE)
+    ddbs_make_valid(conn = conn_ug, name = paste0("cln_gk_not_et01_", str_extract(tbl, "(?<=gk_).{2}")), overwrite = TRUE)
   
 })
 
@@ -512,15 +512,15 @@ for(tbl in tables){
 }
 
 # # Write the intermidaite product in case of crash
-# path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URGR_tmp_layers/GK_not_et01_3035_")
-# tables <- grep('^cln_gk_', dbListTables(conn_ug), value = TRUE)
-# 
-# walk(tables, function(x){
-#   
-#   as_duckspatial_df(x, conn = conn_ug) %>%
-#   ddbs_collect() %>%
-#   st_write(paste0(path_gpkg, str_extract(x, "(?<=cln_gk_33_).{2}"), ".gpkg"))
-# })
+path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URGR_tmp_layers/GK_not_et01_3035_")
+tables <- grep('^cln_gk_', dbListTables(conn_ug), value = TRUE)
+
+walk(tables, function(x){
+
+  as_duckspatial_df(x, conn = conn_ug) %>%
+  ddbs_collect() %>%
+  st_write(paste0(path_gpkg, str_extract(x, "(?<=cln_gk_not_et01_).{2}"), ".gpkg"))
+})
 
 # Read intermediate layer (if necessary)
 # path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URGR_tmp_layers")
@@ -585,11 +585,11 @@ walk(gk_list, function(x){
   dbExecute(conn_ug, 
       sprintf("
         CREATE TABLE '%s' AS
-        SELECT okosystemtype_1, geom
+        SELECT okosystemtype1_name, geom
         FROM ST_Read('%s')
-        WHERE okosystemtype_1 = 'Settlements and other artificial areas'
+        WHERE okosystemtype1_name = 'Settlements and other artificial areas'
       ", 
-paste0("gk_et01_", str_extract(x, "(?<=UTM33_).{2}")),
+paste0("gk_et01_", str_extract(x, "(?<=UTM33_f).{2}")),
 x))
   
 })
@@ -644,16 +644,16 @@ for(tbl in tables){
 }
 
 # # Write the intermediate product in case of crash
-# path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URGR_tmp_layers/GK_et01_3035_")
-# tables <- grep('^cln_gk_et', dbListTables(conn_ug), value = TRUE)
-# 
-# walk(tables, function(x){
-# 
-#   as_duckspatial_df(x, conn = conn_ug) %>%
-#   ddbs_collect() %>%
-#   st_write(paste0(path_gpkg, str_extract(x, "(?<=et01_).{2}"), ".gpkg"))
-# })
-# 
+path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URGR_tmp_layers/GK_et01_3035_")
+tables <- grep('^cln_gk_et', dbListTables(conn_ug), value = TRUE)
+
+walk(tables, function(x){
+
+  as_duckspatial_df(x, conn = conn_ug) %>%
+  ddbs_collect() %>%
+  st_write(paste0(path_gpkg, str_extract(x, "(?<=et01_).{2}"), ".gpkg"))
+})
+
 # Read intermediate layer (if necessary)
 # path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URGR_tmp_layers")
 # gk_list <- dir(path_gpkg, recursive = FALSE, pattern = "GK_et01", full.names = TRUE)
@@ -1039,8 +1039,7 @@ as_duckspatial_df(paste0("lau_et01_", lyr), conn = conn_ug) %>%
 ## Clean duckdb database
 tables <- dbListTables(conn_ug)
 
-tables <- tables[!tables %in% c(keep(tables, startsWith(tables, "cln_")),
-                               keep(tables, startsWith(tables,"lau_et01")))]
+tables <- keep(tables, startsWith(tables, "temp_"))
 
 for (tbl in tables) {
 
@@ -1082,14 +1081,15 @@ lau_et01_all <- map(tables, function(tbl) {
   as_duckspatial_df(tbl, conn = conn_ug) %>%
     ddbs_collect()}) %>%
   bind_rows() %>%
-  #select(!c(fid))
-  rename(fid_original = fid)
+  select(!c(fid)) # if from intermediate layer
 
 
 ## Fylke number for parallelisation
 fylke_nb <- dbGetQuery(conn_ug, "SELECT DISTINCT Fylke_nummer FROM cln_lau") %>%
               unname() %>%
               unlist()
+
+yrs_imd <- str_extract(file_imd, ".{4}(?=.tif)")
 
 ## Retrieve IMD per year and fylke
 daemons(5)
@@ -1658,7 +1658,7 @@ lau_area <- as_duckspatial_df("lau_urgr5", conn = conn_ug) %>%
 urgr_005_nat <-  data.frame(`Indicator` = "Urban green areas",
                             `ID` = "URGR_005",
                             `Accounting area` = "Norway",
-                            `Accounting period` = 2024, # We assume GK is from 2024
+                            `Accounting period` = "2024", # We assume GK is from 2024
                             `Share of urban green/blue spaces (%)` = round2(sum(urgr_005_data$area_m2)/sum(lau_area$area_m2)*100, digits = 2),
                             check.names = FALSE)
        
