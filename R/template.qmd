@@ -254,7 +254,8 @@ The indicator integrates spatial predictions of plant hosts ($50$ plant species)
 - Obtaining spatial predictions of plant hosts and pollinating insects (hereafter called "pollinators") occurrence probabilities,
 - Linking pollinators to their interacting plant species using a plant–pollinator interaction matrix,
 - Weighting pollinator occurrence probabilities by the occurrence probabilities of their interacting plants,
-- Summing interaction-supported probabilities across pollinator species to estimate pollinator potential,
+- Summing interaction-supported probabilities across pollinator species to estimate expected pollinator richness ,
+- Calibrating the expected pollinator richness with detected/observed richness from survey and monitoring data (referred to as pollination potential), 
 - Establishing minimum and maximum reference values from reference locations representing relatively stable ecosystem conditions, and
 - Scaling the resulting indicator to a 0–1 range, using either region-specific or common reference values.
 
@@ -262,7 +263,7 @@ The indicator integrates spatial predictions of plant hosts ($50$ plant species)
 3. **Interpretation**:
 <!-- Add a very short description of how the indicator values should be interpreted. Here's an example for a bumblebee indicator: An indicator value of 1 signifies an intact bumblebee community. Values decreasing toward zero reflect negative ecological change, specifically the decline of species expected to be present. This metric does not account for potentially positive changes, such as increases in species' abundance or the arrival of new species. Tip: Add text on the line directly following the subheader, and don't introduce blank lines. This way the whole paragraph renders as a block quote. -->
 
-An indicator value of $1$ represents the upper reference level of pollinator potential, whereas values approaching zero indicate lower pollinator potential relative to the reference condition. The indicator reflects the potential occurrence of pollinators and their plant resources rather than directly measuring population abundance or demographic performance.
+An indicator value of $1$ represents the upper reference level of pollinator potential, whereas values approaching $0$ indicate lower pollinator potential relative to the reference condition. The indicator reflects the potential occurrence of pollinators and their plant resources rather than directly measuring population abundance or demographic performance.
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
@@ -281,13 +282,19 @@ Here, we also access data from biodiversity programs including the Overvåking a
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
 
-The underlying biodiversity data consist primarily of spatially referenced species occurrence records covering Norway. Records from 2012 onwards were retained for model fitting. The occurrence data originate from heterogeneous observation and monitoring programmes and therefore do not have a single standardized sampling interval. Spatial resolution is consequently determined by the geographic coordinates of individual observations and by the spatial resolution used to generate model predictions and the resulting indicator layers. The covariates used in the modelling framework are available at a 1 km² resolution, and the resulting indicator is therefore reported at this spatial resolution. The study area encompasses the entire country of Norway, including mainland and islands.
+The underlying biodiversity data comprise spatially referenced species occurrence records covering Norway. Records from 2012 onwards were retained for model fitting to ensure temporal consistency with the environmental covariates and the period used for indicator estimation. Because the occurrence data originate from heterogeneous monitoring and observation programmes, sampling frequency and temporal coverage vary among species and locations. Spatial resolution is determined by the geographic precision of individual observations and, at the prediction stage, by the resolution of the environmental covariates. The environmental predictors used in the species distribution models are available at a spatial resolution of 1 km², and predicted occurrence probabilities for plant and pollinator species were therefore initially generated at this resolution. Details of the environmental covariates and their spatial resolution are provided in @perrin2026addressing.
+
+A 1 km² prediction grid may, however, obscure fine-scale habitat heterogeneity within open lowland areas, where suitable vegetation and pollinator habitat can occur as relatively small or spatially fragmented patches. We therefore downscale and calibrate the indicator estimates from @perrin2026addressing by integrating information on vegetation types and elevation available at 50 m resolution. Specifically, the 1 km² model predictions are combined with fine-resolution habitat information to distinguish areas within each prediction cell that are more likely to represent suitable open lowland conditions. This approach reduces the potential bias associated with spatial aggregation and ensures that fine-scale habitat heterogeneity is retained when deriving the final indicator. The resulting indicator is therefore reported at a 50 m spatial resolution, providing a finer representation of the spatial distribution and configuration of open lowland habitats than the original 1 km² model predictions.
+
+The assessment encompasses both natural and culturally influenced semi-natural habitats. Cultural habitats are ecosystems whose structure and ecological characteristics have been shaped and maintained through long-term, traditional human land use and management. In open lowland landscapes, continued management is often required to maintain these habitats and prevent succession towards alternative vegetation states. The spatial extent of open lowland areas is delineated using classes 6 (permantly herbaceous) and 7 (periodically herbaceous) from @eea2025_clcplus_backbone, which define the geographical domain within which the indicator is estimated.
 
 ### 2.2 Sampling design
 
 <!-- How was the data sampled? Describe potential sampling biases -->
 
-The underlying occurrence data were compiled from biodiversity observations rather than from a single standardized sampling design. Consequently, sampling intensity is spatially and taxonomically heterogeneous and may reflect differences in observer effort, accessibility, geographic coverage, and monitoring activity. These characteristics can introduce spatial and temporal sampling biases into the occurrence data. The modelling framework therefore uses environmental covariates and spatially explicit predictions to estimate insect richness across locations beyond the individual occurrence records.
+The underlying occurrence data used for the models by @perrin2026addressing were compiled from several biodiversity programs (including citizen science and structured surveys) rather than from a single standardized sampling design. Consequently, sampling intensity is spatially and taxonomically heterogeneous and may reflect differences in observer effort, accessibility, geographic coverage, and monitoring activity. These characteristics can introduce spatial and temporal sampling biases into the occurrence data. The sampling bias was accounted for in @perrin2026addressing by using a bias-corrected modelling framework that incorporates environmental covariates and spatially explicit sampling effort to generate more reliable occurrence predictions. The resulting modelled occurrence probabilities are therefore less sensitive to the underlying sampling biases than the raw occurrence data.
+
+The validation data were all from structured surveys, including the Overvåking av semi-naturlig eng (ASO) survey [@asoDataset], Ano [@anoDataOccurrence], and the Norwegian Insect Monitoring Program [@norwegianInsectMonitoring]. These surveys were designed to provide representative coverage of open lowland habitats and were conducted using standardized sampling protocols. The validation data are therefore less affected by sampling biases than the underlying occurrence data used for model fitting.
 
 
 ### 2.3 Original units
@@ -311,9 +318,8 @@ The data are therefore traceable through the corresponding GBIF download records
 
 <!--# Optional. Text here -->
 
-The insect indicator is derived from a modelling framework that relates insect occurrence and richness to environmental conditions. The model uses environmental covariates to generate spatially explicit predictions of insect richness, which are subsequently compared with regional reference conditions. Separate regional and global scaling approaches are used to account for geographic variation in reference richness. The indicator can also be calculated with and without interaction terms among environmental covariates, allowing the contribution of interactions to the resulting indicator to be evaluated.
+The insect indicator is derived from a modelling framework that relates insect occurrence and richness to environmental conditions. The model uses environmental covariates to generate spatially explicit predictions of insect richness, which are subsequently compared with regional reference conditions. Separate regional and national scaling approaches are used to account for geographic variation in reference richness. The indicator can also be calculated with and without interaction terms among environmental covariates, allowing the contribution of interactions to the resulting indicator to be evaluated.
 
-For the current documentation, the preprint should be used as the reference for the model description and environmental covariates, as the associated scientific manuscript is currently under submission. The relevant preprint is available at bioRxiv, DOI 10.64898/2026.05.19.721053. The final publication should replace the preprint citation once available.
 
 ## 3. Indicator properties
 
@@ -342,6 +348,8 @@ The term 'characteristic' is used in a similar way  to the term 'criteria' in Mu
 
 -->
 
+**Need help with this**
+
 ### 3.3 Collinearities with other indicators
 
 <!--# Describe known collinearities with other metrics (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
@@ -352,13 +360,19 @@ The pollinator potential indicator is expected to be correlated with indicators 
 
 <!--# Describe the main natural and anthropogenic factors that affecst the metric -->
 
-The indicator is influenced by both natural environmental variation and anthropogenic pressures. Important anthropogenic impact factors include land-use change, habitat loss and fragmentation, agricultural intensification, changes in vegetation management, urbanisation, and climate change. Changes in plant community composition and availability can indirectly affect the indicator through changes in the predicted availability of pollinator host plants. Natural variation in climate, topography, vegetation, and biogeographic region also influences pollinator and plant occurrence.
+The indicator responds to interacting climatic, land-use, and habitat pressures that influence the condition and availability of open lowland habitats and their plant and pollinator communities.
+
+Key anthropogenic pressures include land-use change, agricultural intensification, habitat loss and fragmentation, urbanisation, infrastructure development, and changes in vegetation management. These pressures can reduce habitat availability and quality, alter plant community composition, and reduce the availability of floral resources and host plants for pollinators. Pesticide exposure and other chemical pressures may additionally affect pollinator survival and reproduction.
+
+Climate change, including changes in temperature, precipitation, seasonality, snow cover, and climatic extremes, can directly affect plant and pollinator phenology, survival, reproduction, and distribution, as well as indirectly modify habitat conditions and resource availability.
+
+Natural gradients in topography, elevation, soil properties, water availability, and vegetation determine baseline habitat suitability and mediate the response of plant and pollinator communities to these pressures. The indicator therefore reflects both the direct effects of environmental change and their indirect effects through altered habitat quality and resource availability.
 
 ### 3.5 Spatial aggregation
 
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
-Pollinator occurrence probabilities are first combined with the predicted occurrence probabilities of their interacting plant species to produce an interaction-supported probability for each pollinator species at each raster cell. These probabilities are then summed across pollinator species to obtain cell-level pollinator potential. The resulting values are scaled to 0–1 using reference minimum and maximum values. For the regional indicator, scaling is performed using reference levels specific to each of the five nature regions; for the global indicator, common reference levels are applied across all regions. The final indicator is masked to the study area and constrained to the 0–1 range.
+Pollinator occurrence probabilities are first combined with the predicted occurrence probabilities of their interacting plant species to produce an interaction-supported probability for each pollinator species at each raster cell. These probabilities are then summed across pollinator species to obtain cell-level pollinator potential. We then calibrate these cell-level values using observed pollinator richness from survey and monitoring data. The resulting calibrated pollinator potential are scaled to 0–1 using reference minimum and maximum values. For the regional indicator, scaling is performed using reference levels specific to each of the five nature regions; for the global indicator, common reference levels are applied across all regions. Values less than 0 were truncated to 0, and values greater than 1 were truncated to 1, resulting in a final indicator value bounded between 0 and 1.
 
 ## 4. Reference condition and levels
 
@@ -366,7 +380,10 @@ Pollinator occurrence probabilities are first combined with the predicted occurr
 
 <!--# Define the reference condition (or refer to where it is defined). Note the distinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
 
-The reference condition represents relatively stable ecosystem conditions at the reference locations (seminatural meadows and grassland polygons in good condition from [**Natur i Norge** (NIN)](https://artsdatabanken.no/naturtyper/natur-i-norge) maps), based on the observed spatial distribution of reference locations used to characterise the plant–pollinator system. Reference locations are assigned to one of five nature regions: Central, East, North, South, and West. The reference condition is therefore intended to represent the range of pollinator potential expected under relatively favourable or stable conditions within each region rather than an absolute historical pristine state.
+The reference condition represents the ecological state of relatively well-preserved and stable semi-natural meadows and grasslands used as reference sites. These sites are identified from polygons classified as being in good condition in the [**Natur i Norge** (NIN)](https://artsdatabanken.no/naturtyper/natur-i-norge) mapping system. The spatial distribution of these reference sites is used to characterise the expected plant–pollinator system under relatively favourable conditions.
+
+To account for regional differences in environmental conditions and species composition, reference sites are stratified into five biogeographic regions: Central, East, North, South, and West. The reference condition therefore represents the range of pollinator potential expected under relatively favourable and stable conditions within each region, rather than an assumed historical or pristine baseline.
+
 
 ### 4.2 Reference levels
 
@@ -380,15 +397,15 @@ Why was the current option chosen and how were the reference levels quantified? 
 
  -->
 
-The indicator is normalised using the observed distribution of interaction-supported pollinator richness at the reference locations. For each nature region, the minimum and maximum observed richness values among the reference locations define the lower and upper reference levels:
+The indicator is normalised using the distribution of pollinator potential at the reference locations. For each nature region, the minimum and maximum observed richness values among the reference locations define the lower and upper reference levels:
 $$
 I = \frac{X - X_0}{X_{100} - X_0}
 $$
-where $I$ is the normalised indicator value, $X$ is is the cell-level pollinator potential, $X_0$ is the minimum reference level (worst condition), and $X_{100}$ is the maximum reference level (best condition). 
+where $I$ is the normalised indicator value, $X$ is the cell-level pollinator potential, $X_0$ is the minimum reference level (worst condition), and $X_{100}$ is the maximum reference level (best condition). 
 
 The study region was divided into five nature regions: Central, East, North, South, and West, similar to the classification used by [NaturIndex](https://www.naturindeks.no/Ecosystems/aapent_lavland). We estimate normalised indicator values for each region using the respective reference levels, which we refer to as **regional indicators**. The regional approach accounts for differences in baseline pollinator potential among Norway's biogeographic regions.
 
-Additionally, we also estimate indicator values for the entire country using common reference levels are applied across all regions and we refer to it as the **global indicator**. For the regional indicator, these reference levels are calculated separately for each nature region, while for the global indicator, common reference levels are applied across all regions. This provides a common national scale and allows spatial differences among regions to be retained rather than being normalised away.
+Additionally, we also estimate indicator values for the entire country using common reference levels are applied across all regions and we refer to it as the **national indicator**. For the regional indicator, these reference levels are calculated separately for each nature region, while for the national indicator, common reference levels are applied across all regions. This provides a common national scale and allows spatial differences among regions to be retained rather than being normalised away.
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -398,7 +415,7 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
  -->
 
- The reference levels have regional resolution for the regional indicator and are therefore intended to scale cell-level pollinator potential according to the reference range of the corresponding nature region. The regional reference levels are valid for locations within their respective nature regions. The global reference levels provide a common national scaling and can be applied across the entire study area.
+ The reference levels have regional resolution for the regional indicator and are therefore intended to scale cell-level pollinator potential according to the reference range of the corresponding nature region. The regional reference levels are valid for locations within their respective nature regions. The national reference levels provide a common national scaling and can be applied across the entire study area.
 
 Because the reference levels are estimated from a finite set of reference locations, they represent the observed reference range rather than the theoretical minimum and maximum possible pollinator potential. Predicted values can therefore exceed the reference range before truncation; such values are constrained to 0–1 in the final indicator.
 
@@ -406,9 +423,9 @@ Because the reference levels are estimated from a finite set of reference locati
 ### 5.1 General uncertainties
 <!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
 
-Several sources of uncertainty affect the indicator. First, uncertainty in the underlying plant and pollinator occurrence models propagates into the interaction-supported pollinator potential. The indicator also depends on the completeness and accuracy of the plant–pollinator interaction matrix. Interactions that are not documented may be incorrectly treated as absent or assigned a small probability, potentially affecting the estimated support available to pollinators.
+Several sources of uncertainty affect the indicator. First, uncertainty in the underlying plant and pollinator occurrence models propagates into the interaction-supported pollinator potential. The indicator also depends on the completeness and accuracy of the plant–pollinator interaction matrix. Interactions that are not documented may be incorrectly treated as absent, potentially affecting the estimated support available to pollinators.
 
-The indicator is also sensitive to the selection and spatial distribution of reference locations. The reference sites may not capture the full spatial range of stable ecosystem conditions within each region, meaning that predicted values can exceed the observed reference maximum. Regional differences in the number and spatial distribution of reference locations may further affect the estimated reference ranges. In addition, the choice of scaling method—regional versus global—affects the resulting indicator values.
+The indicator is also sensitive to the selection and spatial distribution of reference locations. The reference sites may not capture the full spatial range of stable ecosystem conditions within each region, meaning that predicted values can exceed the observed reference maximum. Regional differences in the number and spatial distribution of reference locations may further affect the estimated reference ranges.
 
 Finally, the indicator represents potential occurrence and interaction support, rather than directly measured abundance, demographic performance, or realised pollination rates. Consequently, high pollinator potential does not necessarily imply high pollinator population size or pollination service delivery.
 
@@ -416,9 +433,9 @@ Finally, the indicator represents potential occurrence and interaction support, 
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
 However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
 
-The current indicator primarily reports a point estimate of interaction-supported pollinator potential and its scaled value. Uncertainty in this point estimate should be interpreted as inferential uncertainty arising from the underlying species distribution predictions and interaction-based calculations, rather than as a direct measure of spatial variation in pollinator potential.
+The current indicator is summarised by the mean pollinator potential and its standard deviation (SD), together with the corresponding scaled indicator value. The mean represents the average pollinator potential across the assessment area, while the SD describes the spatial variability of pollinator potential around this mean. The SD should therefore be interpreted as a measure of spatial heterogeneity, rather than as statistical uncertainty in the indicator estimate.
 
-At present, uncertainty associated with the plant and pollinator prediction models, the interaction matrix, and the reference levels is not fully propagated into a single uncertainty interval for the final indicator. Development of a formal uncertainty propagation framework, including posterior or prediction intervals from the underlying species distribution models and sensitivity to uncertain or missing interactions, is therefore an important next step toward operationalising the indicator.
+Uncertainty associated with the plant and pollinator prediction models, the interaction matrix, and the reference levels is not currently propagated into a formal uncertainty interval for the final indicator. Developing a comprehensive uncertainty propagation framework, incorporating uncertainty in the underlying species distribution predictions, interaction strengths, and reference levels, is therefore an important next step for improving the reliability and interpretability of the indicator.
 
 
 
