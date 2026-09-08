@@ -22,9 +22,9 @@ Ecosystem:
 verbatimEcosystem: Fjell
 yearAdded: 2026
 yearLastUpdate: 2026
-status: complete # options are complete, incomplete, or deprecated
+status: incomplete # options are complete, incomplete, or deprecated
 Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: First version
+VersionComment: This is a pre-released version of this workflow and it has not yet been code-reviewed. 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_ABIN_001
 Normalised: No
 SpatialAggregationPathway: Aggregate (geographic regions)
@@ -38,7 +38,7 @@ format:
     toc-depth: 3
     smooth-scroll: true
 execute: 
-  cache: true
+  cache: false
 author:
   - name: Anders Kolstad
     email: anders.kolstad@nina.no
@@ -48,7 +48,7 @@ author:
 AuthorList: Kolstad, A.
 date: September 4, 2026
 data_availability: bronze
-code_reproducibility: gold
+code_reproducibility: silver
 open_science_badge: bronze
 callout-icon: false
 lightbox: true
@@ -59,18 +59,13 @@ code-links:
 hide: TRUE # Change to FALSE
 bibliography: references.bib
 codeReviewers:
-  - name: Jane Smith
+  - name: Pre-published version - No code review performed
     email: jane.smith@example.no
     affiliations:
       - id: reviewerInst
         name: Example Institute
     reviewType: code review
     github: janesmith
-  - name: John Doe
-    affiliations:
-      - ref: myID
-    reviewType: reproducibility check
-    github: johndoe
 ---
 
 ```{r setup}
@@ -84,6 +79,8 @@ library(anybadger)
 library(yaml)
 library(tibble)
 library(conflicted)
+library(terra)
+library(stars)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -221,49 +218,51 @@ The underlying dataset is called land-use intensity index, or ABI in the Norwegi
 High values represenet higher presence of human infrastructure and land-use related disturbances, than smaller values do. The absolute value of the variable can be compared between regions. Within a region, the development over time tells us if human-cause fragmentation is increasing or decreasing in that area.
 
 4. **Results and development needs**:
+The land use intensity index in Norwegian mountains has risen slightly between 2017 and 2025, but it is difficult to asses how severe this trend is. The index values are highest in western Norway, and lowest in central Norway. The workflow and cpondition variable would benefit from better temporal resolution, and a copmparison against other ecosystems.
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
 
 
 ## 2. About the underlying data
 
+This workflow used the land use intensity index for Norway [@erikstad_index_2023]. In Norwegian it is called *arealbruksintensitet*; hance the abbreviation ABI. The data is slightly different than the version reported in Erikstad et al. [-@erikstad_index_2023]. It is range-normalised to values between 0 and 1. It also includes in its calculations the presence of agriculture and regulated lakes. 
+
+
 <!--# Give a general introduction the datasets you have used, and provide more specific details in the sub-chapters.  -->
 
 ### 2.1 Spatial and temporal resolution and extent
 
-<!--# Describe the temporal and spatial resolution and extent of the data used -->
+The data is available from 2017 and 2025 but there is considerable time lag in how the raw, underlying data is updates.
 
 ### 2.2 Sampling design
 
-<!-- How was the data sampled? Describe potential sampling biases -->
+The sampling is complete, wall-to-wall, but to speed up calculations I have resampled a certain number of raster cells to calculate area statistics from.
 
 ### 2.3 Original units
 
-<!--# What are the original units for the most relevant  variables in the data-->
-
+The units are arbitrary.
 
 ### 2.4 Instructions for citing, using and accessing data
 
-<!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
+the method and data can be sited as Erikstad et al. [-@erikstad_index_2023]. The data will be made available upon request.
 
 ### 2.5 Additional comments about the dataset
 
-<!--# Optional. Text here -->
+Many version exist of this dataset, with different resolutions and different human interventions being included in the index calculations.
 
 ## 3. Indicator properties
 
 ### 3.1 Ecosystem Condition Typology Class (ECT)
+This is an ecosystem condition variable or a proxy of such, and belong in  the C1 - landscape characteristics class.
 
 <!--# Describe the rationale for assigning the indicator to the ECT class. See https://oneecosystem.pensoft.net/article/58218/
 This doesnt need to be very long. Maybe just a single sentence. -->
 
-### 3.1.1 Other condition typologies
-
-<!--# Optional: Add text about other standards or typologies, such as alternative national condition typologies, and how the indicator relates to these -->
 
 
 ### 3.2 Ecosystem condition characteristic
 
+The variable represents landscape fragmentation, or i works as a coarse proxy for landscape connectivity.
 <!--# 
 
 A short (one to three word) tag or name for the ecosystem condition characteristic represented in the indicator. See 10.3897/oneeco.6.e58218 for information on what these characteristics might be.
@@ -276,25 +275,23 @@ The term 'characteristic' is used in a similar way  to the term 'criteria' in Mu
 
 ### 3.3 Collinearities with other indicators
 
-<!--# Describe known collinearities with other metrics (indicators or variables) that could become problematic if they were also included in the same Ecosystem Condition Assessment as the indicator described here. -->
-
+None.
 
 ### 3.4 Impact factors
 
-<!--# Describe the main natural and anthropogenic factors that affecst the metric -->
+The variable (index) is sensitive to any human infrastructure or activity that is captured in the index, such as roads, buildings and agriculture.
 
 ### 3.5 Spatial aggregation
-
-<!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
+The data is aggregated with an arithmetic mean for each region.
 
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
-
+Not relevant
 <!--# Define the reference condition (or refer to where it is defined). Note the distinction between reference condition and reference levels 10.3897/oneeco.5.e58216  -->
 
 ### 4.2 Reference levels
-
+Not relevant
 <!--# 
 
 If relevant (i.e. if you have normalised a variable), describe the reference levels used to normalise the variable. 
@@ -307,7 +304,7 @@ Why was the current option chosen and how were the reference levels quantified? 
 
 
 #### 4.2.1 Spatial resolution and validity
-
+Iinterprettable at the scale of geographic regions (as is reported).
 <!--# 
 
 Describe the spatial resolution of the reference levels. E.g. is it defined as a fixed value for all areas, or does it vary. Also, at what spatial scale are the reference levels valid? For example, if the reference levels have a regional resolution (varies between regions), it might mean that it is only valid and correct to use for normalising local variable values that are first aggregated to regional scale. However, sometimes the reference levels are insensitive to this and can be used to scale variables at the local (e.g. plot) scale. 
@@ -316,9 +313,11 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
+Not assessed.
 <!--# Describe the main reasons why you might not trust 100% the final value to represent the given ecosystem characteristic for the give ecosystem type. What aspects of this condition metric are most sensitive to subjective decitions? Is the spatial sampling sufficient? Does the choice of modeling framework affect the values? Is the metric relevant do describe ecosystem condition for the give ecosystem type?  -->
 
 ### 5.2 Reported uncertainties
+No uncertainties are reported for this variable.
 <!-- Describe the nature of the errors you (hopefully) provide alongside the point estimate for the condition metric. It is especially important to clarify if the errors are inferential (referring to the uncertainty of the point estimate) or descriptive (referreing to the data itself). Here' an example text: "What we report as uncertainties in @tbl-finalTable are inferential and refer to the uncertainty around the point estimates. It does not directly describe variation in the data itself. 
 However, the variation in the mean is defined by the spatial variation only, and quartiles are obtained by bootstrapping the set of localities within a region, and calculating the indicator for each of 9999 such samples".   -->
 
@@ -329,61 +328,271 @@ However, the variation in the mean is defined by the spatial variation only, and
 <!--# You can add references manually or use a citation manager and add intext citations as with crossreferencing and hyperlinks. See https://quarto.org/docs/authoring/footnotes-and-citations.html -->
 
 ## 7. Import and prepare datasets
+Importing the ABI data, an ecosystem delineatoiun mask, and a deliminatior file for the five geographical regions.
 
-<!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
+```{r paths}
+if (grepl("/data/", getwd())){
+  root <- "/data/P-Prosjekter2/172520_utvikling_av_forstyrrelsesindeks/ABI/Jenny/ABI/output/abi_exports/"
+}else{
+  root <-  "P:/172520_utvikling_av_forstyrrelsesindeks/ABI/Jenny/ABI/output/abi_exports/"
+}
 
-### 7.1 Dataset A
+pathReg <- here::here("data/regions.rds")
+path17 <- paste0(root, "2017/ABI_2017_enkel_v1_norm.tif")
+path25 <- paste0(root, "2025/ABI_2025_enkel_v1_norm.tif")
+pathMask <- here::here("data/fjellmasken.tif")
 
-<!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
+```
 
-### 7.2. Dataset B
+```{r readData}
+#| eval: false
+reg <- readRDS(pathReg)
+data17t <- terra::rast(path17)
+data25t <- terra::rast(path25)
+theMask <- terra::rast(pathMask)
+```
 
-<!--# Repeat the process for each dataset -->
 
 ## 8. Spatial units
 
-<!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
+The data is a wall-to-wall raster og 25m resolution, but i resample it to make it manageable, but still representative.
 
 ## 9. Analyses
 
-<!--# 
+Workflow:
 
-Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+1. Aligning rasters and masking the ABI data against an ecosystem mask
+2. Sampling the masked ABI data and retaining 1 mill cells
+3. Vectorize sampled data
+4. Intersect with geographic region dataset
+5. Summarise
+6. Repeat for the other time step and combine 
 
-Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
+```{r mainAnalyses}
+#| eval: false
 
-Caching is also activated (from the top YAML), meaning that rendering to html will be quicker the second time you do it. This will create a folder inside you project folder (called INDICATORID_cache). Sometimes caching created problems because some operations are not rerun when they should be rerun. Try deleting the cash folder and try again.
+# align the data
+theMask2 <- resample(
+  theMask,
+  data17t,
+  method = "near"
+)
+writeRaster(theMask2, here::here("data/theMask2.tif"), overwrite = TRUE)
 
--->
+
+# mask against ecosystem 
+data17t_masked <- mask(
+  data17t,
+  theMask2,
+  maskvalues = 0
+)
+
+writeRaster(data17t_masked, here::here("data/data17t_masked.tif"), overwrite = TRUE)
+
+data17t_masked <- terra::rast(here::here("data/data17t_masked.tif"))
+
+# draw 500k random samples
+# This takes 20 ish minutes
+samp <- spatSample(
+  data17t_masked,
+  size = 5e5,
+  method = "random",
+  na.rm = TRUE,
+  xy = TRUE,
+  as.df = TRUE
+)
+
+# make into points
+samp_sf <- sf::st_as_sf(
+  samp,
+  coords = c("x", "y"),
+  crs = crs(data17t_masked)
+)
+
+# join with region data
+samp_sf <- sf::st_join(
+  samp_sf,
+  reg["region"],
+  left = TRUE
+)
+
+# drop geometry to speed up calculations
+samp_df <- samp_sf |>
+  sf::st_drop_geometry() |>
+  tidyr::drop_na()
+
+# check sample size
+samp_df |>
+  count(region)
+
+saveRDS(samp_df, here::here("data/samp_df.rds"))
+
+# It's maybe a bit low for southern Norway with < 20k points
+names(samp_df)
+samp_tbl <- samp_df |>
+  rename(ABI = file127fc4846f8db) |>
+  group_by(region) |>
+  summarise(mean_2017 = mean(ABI))
+
+samp_tblNat <- samp_df |>
+  rename(ABI = file127fc4846f8db) |>
+  summarise(mean_2017 = mean(ABI)) |>
+  add_column(region = "Norge") |>
+  bind_rows(samp_tbl)
+
+saveRDS(samp_tblNat, here::here("data/samp_tbl.rds"))
+
+# same for 2025
+theMask2 <- resample(
+  theMask,
+  data25t,
+  method = "near"
+)
+data25t_masked <- mask(
+  data25t,
+  theMask2,
+  maskvalues = 0
+)
+writeRaster(data25t_masked, here::here("data/data25t_masked.tif"), overwrite = TRUE)
+# data25t_masked <- terra::rast(here::here("data/data25t_masked.tif"))
+
+# draw random sample
+# This takes 20 ish minutes
+samp2 <- spatSample(
+  data25t_masked,
+  size = 5e5,
+  method = "random",
+  na.rm = TRUE,
+  xy = TRUE,
+  as.df = TRUE
+)
+
+# make into points
+samp2_sf <- sf::st_as_sf(
+  samp2,
+  coords = c("x", "y"),
+  crs = crs(data25t_masked)
+)
+
+# join with region data
+samp2_sf <- sf::st_join(
+  samp2_sf,
+  reg["region"],
+  left = TRUE
+)
+
+# drop geometry to speed up calculations
+samp2_df <- samp2_sf |>
+  sf::st_drop_geometry()
+
+# check sample size
+samp2_df |>
+  dplyr::count(region)
+
+names(samp2_df)[1] <- "ABI"
+
+samp2_tbl <- samp2_df |>
+  tidyr::drop_na() |>
+  group_by(region) |>
+  summarise(mean_2025 = mean(ABI))
+
+samp2_tblNat <- samp2_df |>
+  tidyr::drop_na() |>
+  summarise(mean_2025 = mean(ABI)) |>
+  add_column(region = "Norge") |>
+  bind_rows(samp2_tbl)
+
+
+saveRDS(samp2_tblNat, here::here("data/samp2_tbl.rds"))
+
+
+```
+
+```{r rasterizeRegions}
+#| eval: true
+
+abi17 <- readRDS(here::here("data/samp_tbl.rds"))
+abi25 <- readRDS(here::here("data/samp2_tbl.rds"))
+
+abi17 <- abi17 |>
+  select(area = region, value = mean_2017) |>
+  add_column(year = 2017)
+
+
+abi25 <- abi25 |>
+  select(area = region, value = mean_2025) |>
+  add_column(year = 2025)
+
+abi <- abi17 |>
+  bind_rows(abi25)
+```
 
 ## 10. Results
 
-<!--# 
 
-Repeat the final results here. Typically this is a map or table of indicator values.
 
-This is typically where people will harvest data from, so make sure to include all relevant output here, but don't clutter this section with too much output either.
+```{r fig-plot}
+#| fig-cap: 'Time series of spatially aggregeed human infrastructure or land use intensity index.'
+region_labels <- c(
+  "1" = "Østlandet", "2" = "Sørlandet", "3" = "Vestlandet",
+  "4" = "Midt-Norge", "5" = "Nord-Norge", "Norge" = "Norge"
+)
+region_levels <- c("Norge", "Midt-Norge", "Nord-Norge", "Østlandet", "Sørlandet", "Vestlandet")
 
--->
+region_cols <- setNames(
+  MetBrewer::met.brewer("Archambault", n = length(region_levels)),
+  region_levels
+)
+
+plot_data <- abi |>
+  dplyr::mutate(
+    region_name = dplyr::recode(area, !!!region_labels),
+    series_type = dplyr::if_else(area == "Norge", "Norge", "Region")
+  ) |>
+  dplyr::group_by(year, area, series_type) |>
+  dplyr::mutate(region_name = factor(area, levels = region_levels))
+
+ggplot2::ggplot(
+  plot_data,
+  ggplot2::aes(x = year, y = value, colour = region_name, group = region_name)
+) +
+  ggplot2::geom_line(
+    ggplot2::aes(linewidth = series_type)
+  ) +
+  ggplot2::scale_colour_manual(values = region_cols, name = NULL) +
+  ggplot2::scale_linewidth_manual(values = c(Norge = 3, Region = 1), guide = "none") +
+  ggplot2::scale_x_continuous(breaks = c(2017, 2025))+
+  ggplot2::theme_bw(base_size = 12) +
+  ggplot2::theme(
+    legend.position    = "bottom",
+    legend.box         = "horizontal",
+    panel.grid.minor   = ggplot2::element_blank(),
+    panel.grid.major.x = ggplot2::element_blank()
+  ) +
+  ggplot2::guides(
+    colour = ggplot2::guide_legend(
+      nrow = 2,
+      override.aes = list(size = 0.7, linewidth = 2)
+    )) +
+  ggplot2::labs(y = "Gj. ABI", x = "")
+
+```
 
 ## 11. Export file
 
-<!--# 
-
-Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a separate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) 
-
--->
-
-```{r export}
+```{r exportFigure}
 #| eval: false
+ggsave(here::here("img/ABI.png"))
 ```
+
 
 
 ## 12. Author contributions
 
-<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+This workflow is the work of a single author, but I would like to acknowledge the help from Erik Stange in providing and explaining the datasets.
+<!-- Fill in CReDIT and MeRIT statements to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
 
-**CRediT statement**
+<!-- **CRediT statement**
 
 * Conceptualization: [Initials]
 * Methodology: [Initials]
@@ -424,7 +633,7 @@ All analyses were conducted by [CD] using [software], with verification by [AB].
 Figures were produced by [KL], with input from [CD].
 
 **Reproducibility**
-All code was reviewed and validated by [AB, CD].
+All code was reviewed and validated by [AB, CD]. -->
 
 
 
