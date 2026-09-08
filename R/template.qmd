@@ -2468,12 +2468,222 @@ national_monitoring_insect_richness <- sf::st_read(
 ```
 
 
-```{r fig-calibrationRichness}
-#| fig-cap: 'The reference polygons of semi-natural grasslands in good condition from the Natur i Norge (NiN) database.'
-#| fig-width: 100
+
+
+```{r}
+#| label: fig-national-insect-richness-map
+#| fig-cap: "Spatial distribution of insect richness at national monitoring sites."
 #| echo: false
 #| warning: false
-knitr::include_graphics("../img/good_seminatural_grassland_nin.png")
+#| message: false
+
+library(sf)
+library(dplyr)
+library(leaflet)
+library(viridis)
+library(htmltools)
+
+
+# -------------------------------------------------------------------------------
+# Prepare data
+# -------------------------------------------------------------------------------
+
+  national_monitoring_insect_richness <- sf::st_read( "../data/ninaInsect_monitoring_with_richness_for_all.shp",
+    quiet = TRUE
+  )
+
+insect_map <- national_monitoring_insect_richness %>%
+  st_transform(4326)
+
+# Explicitly extract longitude and latitude
+coords <- st_coordinates(insect_map)
+
+insect_map <- insect_map %>%
+  mutate(
+    longitude = coords[, 1],
+    latitude  = coords[, 2]
+  )
+
+
+# ==============================================================================
+# 2. Colour palette
+# ==============================================================================
+
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = insect_map$insct_r,
+  na.color = "transparent"
+)
+
+
+# ==============================================================================
+# 3. Hover and popup information
+# ==============================================================================
+
+insect_map <- insect_map %>%
+  mutate(
+    
+    # Information shown when hovering over a point
+    hover = paste0(
+      "<strong>",
+      local,
+      "</strong><br>",
+      "Insect richness: ",
+      ifelse(is.na(insct_r), "NA", insct_r),
+      "<br>",
+      "Year: ",
+      ifelse(is.na(year), "NA", year)
+    ),
+    
+    
+    # Information shown when clicking a point
+    popup = paste0(
+      
+      "<div style='font-size:14px; line-height:1.5;'>",
+      
+      "<strong style='font-size:16px;'>",
+      local,
+      "</strong>",
+      
+      "<hr>",
+      
+      "<strong>Insect richness:</strong> ",
+      ifelse(is.na(insct_r), "NA", insct_r),
+      
+      "<br>",
+      
+      "<strong>Year:</strong> ",
+      ifelse(is.na(year), "NA", year),
+      
+      "<br>",
+      
+      "<strong>Minimum temperature:</strong> ",
+      ifelse(
+        is.na(min_temp),
+        "NA",
+        paste0(round(min_temp, 2), " °C")
+      ),
+      
+      "<br>",
+      
+      "<strong>Maximum temperature:</strong> ",
+      ifelse(
+        is.na(max_temp),
+        "NA",
+        paste0(round(max_temp, 2), " °C")
+      ),
+      
+      "<br>",
+      
+      "<strong>Sampling duration:</strong> ",
+      ifelse(is.na(samp_dur), "NA", samp_dur),
+      
+      "<br>",
+      
+      "<strong>Weight:</strong> ",
+      ifelse(is.na(weight), "NA", round(weight, 2)),
+      
+      "<br>",
+      
+      "<strong>Dataset:</strong> ",
+      ifelse(is.na(dataset), "NA", dataset),
+      
+      "</div>"
+    )
+  )
+
+
+# ==============================================================================
+# 4. Map extent
+# ==============================================================================
+
+xmin <- min(insect_map$longitude, na.rm = TRUE)
+xmax <- max(insect_map$longitude, na.rm = TRUE)
+ymin <- min(insect_map$latitude, na.rm = TRUE)
+ymax <- max(insect_map$latitude, na.rm = TRUE)
+
+
+# ==============================================================================
+# 5. Create interactive map
+# ==============================================================================
+
+leaflet() %>%
+  
+  # --------------------------------------------------------------------------
+  # OpenStreetMap basemap
+  #
+  # No API key required
+  # --------------------------------------------------------------------------
+  
+  addTiles(
+    group = "OpenStreetMap"
+  ) %>%
+  
+  
+  # --------------------------------------------------------------------------
+  # Monitoring points
+  # --------------------------------------------------------------------------
+  
+  addCircleMarkers(
+    
+    lng = insect_map$longitude,
+    lat = insect_map$latitude,
+    
+    radius = 7,
+    
+    stroke = TRUE,
+    weight = 1,
+    color = "#333333",
+    
+    fillColor = pal(insect_map$insct_r),
+    fillOpacity = 0.85,
+    
+    # Hover information
+    label = lapply(
+      insect_map$hover,
+      HTML
+    ),
+    
+    labelOptions = labelOptions(
+      direction = "auto",
+      textsize = "13px",
+      style = list(
+        "font-weight" = "normal",
+        "padding" = "6px 8px"
+      )
+    ),
+    
+    # Click information
+    popup = lapply(
+      insect_map$popup,
+      HTML
+    )
+  ) %>%
+  
+  
+  # --------------------------------------------------------------------------
+  # Legend
+  # --------------------------------------------------------------------------
+  
+  addLegend(
+    position = "bottomright",
+    pal = pal,
+    values = insect_map$insct_r,
+    title = "Insect richness",
+    opacity = 1
+  ) %>%
+  
+  
+  # --------------------------------------------------------------------------
+  # Fit map to monitoring points
+  # --------------------------------------------------------------------------
+  
+  fitBounds(
+    lng1 = xmin,
+    lat1 = ymin,
+    lng2 = xmax,
+    lat2 = ymax
+  )
 ```
 
 
