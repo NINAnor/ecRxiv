@@ -450,7 +450,291 @@ Uncertainty associated with the plant and pollinator prediction models, the inte
 
 <!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
 
-### 7.1 Pollinator and plant occurrence predictions
+
+### 7.1. Spatial mask
+
+```{r spatialMask}
+#| eval: false
+
+if(useCLCForLowlandBoundary){
+  
+  if(!file.exists(file.path(
+    resultFolder,
+    "polygons",
+    "openlowland_mask_50m.tif"
+  ))){
+    project_dir <- "C:/Users/KWAKU~1.ADJ/ONEDRI~1/222608~1"
+    CLCplus10m <- rast(file.path(project_dir, "CLC+/104035/Results/CLCplus_2018_010m/CLCplus_2018_010m/CLCplus_2018_010m.tif"))
+    #CLCplus10m[CLCplus10m == 254] <- NA
+    
+    openlowland_binary <- ifel(
+      CLCplus10m %in% c(6, 7),
+      1,
+      NA
+    )
+    
+    openlowland_50m <- project(
+      openlowland_binary,
+      allCalibrationRaster[[1]],
+      method = "near",
+      filename = file.path(
+        resultFolder,
+        "polygons",
+        "openlowland_mask_50m.tif"
+      ),
+      overwrite = TRUE
+    )
+    
+  }
+  
+  openlowland_binary <- terra::rast(file.path(
+    resultFolder,
+    "polygons",
+    "openlowland_mask_50m.tif"
+  ))
+  
+}
+
+
+if(!useCLCForLowlandBoundary){
+  openlowland_mask_file <- file.path(
+    "C:/terra_tmp",
+    paste0(
+      "openlowland_mask_",
+      openlowland_threshold,
+      "pct.tif"
+    )
+  )
+  
+  
+  if (!file.exists(openlowland_mask_file)) {
+    
+    ## ----------------------------------------------------------------
+    ## Load open-lowland percentage raster
+    ## ----------------------------------------------------------------
+    
+    openlowland_boundary <- terra::rast(
+      file.path(
+        resultFolder,
+        "openlow_pct_NO.tif"
+      )
+    )
+    
+    
+    ## ----------------------------------------------------------------
+    ## Project to the plant/insect prediction grid
+    ## ----------------------------------------------------------------
+    
+    openlowland_projected <- terra::project(
+      openlowland_boundary,
+      plants,
+      method = "bilinear"
+    )
+    
+    
+    ## ----------------------------------------------------------------
+    ## Apply threshold
+    ## ----------------------------------------------------------------
+    
+    openlowland_mask <-
+      openlowland_projected >= openlowland_threshold
+    
+    
+    ## ----------------------------------------------------------------
+    ## Save mask
+    ## ----------------------------------------------------------------
+    
+    terra::writeRaster(
+      openlowland_mask,
+      openlowland_mask_file,
+      overwrite = FALSE
+    )
+    
+  } else {
+    
+    ## ----------------------------------------------------------------
+    ## Load existing mask
+    ## ----------------------------------------------------------------
+    
+    openlowland_mask <- terra::rast(
+      openlowland_mask_file
+    )
+  }
+  
+  
+  openlowland_binary <- terra::ifel(
+    openlowland_mask == 1,
+    1,
+    NA
+  )
+}
+
+
+## --------------------------------------------------------
+## Save open-lowland mask plot
+## --------------------------------------------------------
+
+plot_file <- file.path(
+  resultFolder, "figures",
+  "openlowland_mask"
+)
+
+## PDF
+pdf(
+  paste0(plot_file, ".pdf"),
+  width = 8,
+  height = 7
+)
+
+terra::plot(
+  openlowland_binary,
+  col = "black",
+  legend = FALSE,
+  axes = TRUE,
+  main = "Open-lowland area"
+)
+
+dev.off()
+
+
+## PNG
+png(
+  filename = paste0(plot_file, ".png"),
+  width = 8,
+  height = 7,
+  units = "in",
+  res = 600
+)
+
+terra::plot(
+  openlowland_binary,
+  col = "#000000",
+  alpha = 1,
+  legend = FALSE,
+  axes = TRUE,
+  main = "Open-lowland area"
+)
+
+dev.off()
+```
+
+We created a spatial mask to delineate the open-lowland ecosystem area in Norway (see @fig-opnlowlandMask), which constitutes the relevant Ecosystem Asset (EA) domain for the indicator. The mask was generated using land-cover data and ecological criteria to identify areas that are representative of open lowland habitats, such as semi-natural grasslands, meadows, and other open habitats. The mask is applied to the raster grid to restrict the analysis to the defined EA domain, ensuring that indicator values are calculated only for locations within the relevant ecosystem type.
+
+```{r fig-opnlowlandMask}
+#| fig-cap: 'The open-lowland ecosystem area in Norway.'
+#| fig-width: 100
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/openlowland_mask.png")
+```
+
+
+### 7.2. Regional classification
+
+The EA domain were assigned to five biogeographic (nature) regions based on the spatial distribution of Norwegian county boundaries. County polygons were obtained from the Norwegian administrative-unit dataset and grouped into South, East, West, Central, and North regions according to predefined county classifications. The resulting county groups were dissolved to create five spatially contiguous regional units. Each reference location was then assigned to the corresponding nature region based on its spatial location. These regional classifications were used to derive region-specific reference levels and indicator values, allowing the reference condition to vary among the five nature regions.
+
+```{r regionalClassification}
+#| eval: false
+
+# ==============================================================================
+#  DEFINE BIOGEOGRAPHIC CLASSIFICATION REGIONS
+# ==============================================================================
+
+## ------------------------------------------------------------------
+## Path to Norwegian county geodatabase
+## ------------------------------------------------------------------
+
+gdb <- "path/to/norwegian_county_geodatabase.gdb"
+
+
+## ------------------------------------------------------------------
+## Read county polygons
+## ------------------------------------------------------------------
+
+counties <- sf::st_read(
+  gdb,
+  layer = "fylke"
+)
+
+
+## ------------------------------------------------------------------
+## Assign counties to nature regions
+## ------------------------------------------------------------------
+
+nature_regions <- counties %>%
+  
+  dplyr::mutate(
+    
+    fylkesnummer = as.character(
+      fylkesnummer
+    ),
+    
+    nature_region = dplyr::case_when(
+      
+      ## South
+      fylkesnummer %in% c(
+        "40",
+        "42"
+      ) ~ "South",
+      
+      ## East
+      fylkesnummer %in% c(
+        "31",
+        "32",
+        "03",
+        "39",
+        "33",
+        "34"
+      ) ~ "East",
+      
+      ## West
+      fylkesnummer %in% c(
+        "46",
+        "11"
+      ) ~ "West",
+      
+      ## Central
+      fylkesnummer %in% c(
+        "50",
+        "15"
+      ) ~ "Central",
+      
+      ## North
+      fylkesnummer %in% c(
+        "18",
+        "55",
+        "56"
+      ) ~ "North",
+      
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  
+  dplyr::filter(
+    !is.na(nature_region)
+  ) %>%
+  
+  dplyr::group_by(
+    nature_region
+  ) %>%
+  
+  dplyr::summarise(
+    .groups = "drop"
+  )
+
+
+```
+
+
+```{r fig-natureRegions}
+#| fig-cap: 'The classification of nature regions in Norway used in this study. The classification were done as follows: South (counties 40 and 42), East (counties 31, 32, 03, 39, 33, and 34), West (counties 46 and 11), Central (counties 50 and 15), and North (counties 18, 55, and 56).'
+#| fig-width: 100
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/nature_regions.png")
+```
+
+### 7.3 Pollinator and plant occurrence predictions
 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
 
@@ -464,7 +748,7 @@ We obtained spatial predictions of pollinator and plant host occurrence prbabili
 
 resultFolder <- "path/to/hotspot/output"
 # ==============================================================================
-# 7. LOAD SPECIES DISTRIBUTION RASTERS
+# LOAD SPECIES DISTRIBUTION RASTERS
 # ==============================================================================
 
 ## ------------------------------------------------------------------
@@ -511,11 +795,11 @@ names(plant_expected_richness) <-
 
 ```
 
-### 7.2. Interrraction matrix
+### 7.4. Interrraction matrix
 
 <!--# Repeat the process for each dataset -->
 
-We compiled plant–pollinator interaction data for hoverflies [@rasmussen2021evaluating], butterflies and wild bees [@robinson2023hosts]. These data were used to construct plant–pollinator interaction networks with the *frame2webs* function from the *_bipartite_* R package [@dormann2008introducing]. Because the available data contained relatively few pollinator species within individual genera, interactions were aggregated at the pollinator genus level. The resulting interaction matrix records the presence or absence of a documented interaction between each pollinator genus and plant host species, with $1$ indicating a documented interaction and $0$ indicating no documented interaction. For pollinator genera not represented in the available interaction data, interactions with plant host species were assigned a small value, $\epsilon$, rather than zero. This value represents uncertainty about the interaction rather than evidence that the interaction is absent. In the indicator calculation, $\epsilon$ was set to $0.25$, giving undocumented interactions a lower weight than confirmed interactions while retaining a small contribution to pollinator–plant association. The resulting matrix was then used to link predicted pollinator occurrence with the predicted occurrence of their potential plant hosts.
+We compiled plant–pollinator interaction data for hoverflies [@rasmussen2021evaluating], butterflies and wild bees [@robinson2023hosts]. These data were used to construct plant–pollinator interaction networks with the *frame2webs* function from the *_bipartite_* R package [@dormann2008introducing]. Because the available data contained relatively few pollinator species within individual genera, interactions were aggregated at the pollinator genus level. The resulting interaction matrix records the presence or absence of a documented interaction between each pollinator genus and plant host species, with $1$ indicating a documented interaction and $0$ indicating no documented interaction. The resulting matrix was then used to link predicted pollinator occurrence with the predicted occurrence of their potential plant hosts.
 
 ```{r}
 #| eval: false
@@ -664,7 +948,1526 @@ interractionProb <- interractionMatrix %>%
 ```
 
 
-### 7.3. Reference locations
+### 7.4. Calibration datasets
+
+As we have already mentioned, the pollinators and plant-host predictions at $1 \times 1$ km resolution may not capture the habitat heterogeneity and landscape features that influence pollinator occurrence at finer scales. To address this, we calibrated the pollinator potential using land-cover data from the CORINE Land Cover (CLC) dataset. We load the Corine Land Cover (CLC) at 100 m [@EEA2019CLC2018] and Corine Land Cover Plus (CLC+) at 10 m [@eea2025_clcplus_backbone] resolution. For each of the datasets, we calculate the proportion of each land-cover class within each 1km grid cell of the pollinator and plant-host predictions. Next, we harmonise the CLC classes to the CLC+ backbone classification and aggregate the CLC100 class frequencies to the CLC+ classes. We then calculate the differences in class proportions between CLC+ and CLC for common classes, standardise the landscape heterogeneity variables, and combine all covariates for modelling. 
+
+```{r}
+#| eval: false
+
+################################################################################
+# CLC calibration / downscaling covariates (saved in the Rscript: 00A_get_CLC_raster.R)
+#
+# This script:
+#
+#   1. Loads CLC100 and CLC+10 1-km class-frequency rasters.
+#   2. Loads landscape heterogeneity rasters for both map products.
+#   3. Harmonises CLC100 classes to the CLC+ backbone classification.
+#   4. Aggregates CLC100 class frequencies to the CLC+ classes.
+#   5. Calculates CLC+10 - CLC100 differences for common classes.
+#   6. Standardises landscape heterogeneity variables.
+#   7. Standardises the CLC class-difference variables.
+#   8. Calculates the difference in standardised landscape heterogeneity.
+#   9. Combines all modelling covariates.
+#  10. Writes the final raster to disk.
+#
+# Interpretation of CLC difference variables:
+#
+#   CLC_diffs = CLC+10 - CLC100
+#
+#   Positive values:
+#       CLC+10 has a greater proportion of the class.
+#
+#   Negative values:
+#       CLC100 has a greater proportion of the class.
+#
+# The differences are subsequently standardised for modelling.
+################################################################################
+
+
+## ============================================================================
+## 1. Packages
+## ============================================================================
+
+
+if(!file.exists(file.path(
+  resultFolder,
+  "polygons",
+  "CLC_calibration_downscaling_covariates_scaled.tif"
+))){
+## ============================================================================
+## 2. Project directory
+##
+## Use the Windows short path to avoid problems with the Norwegian "å" in
+## "åpent" when accessed through R on Windows/OneDrive.
+## ============================================================================
+
+project_dir <- "path/to/CLC data"
+
+
+## ============================================================================
+## 3. Input files
+## ============================================================================
+
+CLC100_file <- file.path(
+  project_dir,
+  "r CLC100 1km class freq.tif"
+)
+
+CLCplus10_file <- file.path(
+  project_dir,
+  "r CLC10m 1km class freq.tif"
+)
+
+CLC100_heterogeneity_file <- file.path(
+  project_dir,
+  "r CLC100 1km Landscape.heterogeneity.tif"
+)
+
+CLCplus_heterogeneity_file <- file.path(
+  project_dir,
+  "r CLC10Plus 1km Landscape.heterogeneity.tif"
+)
+
+
+## ============================================================================
+## 4. Check input files
+## ============================================================================
+
+input_files <- c(
+  CLC100_file,
+  CLCplus10_file,
+  CLC100_heterogeneity_file,
+  CLCplus_heterogeneity_file
+)
+
+missing_files <- input_files[!file.exists(input_files)]
+
+if (length(missing_files) > 0L) {
+  stop(
+    "The following input files could not be found:\n",
+    paste(missing_files, collapse = "\n")
+  )
+}
+
+
+## ============================================================================
+## 5. Load rasters
+## ============================================================================
+
+r.CLC100 <- terra::rast(CLC100_file)
+
+r.CLC10 <- terra::rast(CLCplus10_file)
+
+CLC_heterogeneity <- terra::rast(
+  CLC100_heterogeneity_file
+)
+
+CLCplus_heterogeneity <- terra::rast(
+  CLCplus_heterogeneity_file
+)
+
+
+## ============================================================================
+## 6. Name landscape heterogeneity layers
+## ============================================================================
+
+names(CLC_heterogeneity) <- "CLC_heterogeneity"
+
+names(CLCplus_heterogeneity) <- "CLCplus_heterogeneity"
+
+
+## ============================================================================
+## 7. Inspect input rasters
+## ============================================================================
+
+print(r.CLC100)
+print(r.CLC10)
+
+print(CLC_heterogeneity)
+print(CLCplus_heterogeneity)
+
+
+## ============================================================================
+## 8. Check raster geometry
+##
+## CLC100 and CLC+10 must be on the same grid because their class frequencies
+## are compared pixel-by-pixel.
+## ============================================================================
+
+if (!terra::compareGeom(
+  r.CLC100,
+  r.CLC10,
+  stopOnError = FALSE
+)) {
+  
+  stop(
+    "CLC100 and CLC+10 rasters do not have identical geometry. ",
+    "Check CRS, extent, resolution and origin before calculating differences."
+  )
+}
+
+
+## ============================================================================
+## 9. Check landscape heterogeneity geometry
+## ============================================================================
+
+if (!terra::compareGeom(
+  CLC_heterogeneity,
+  CLCplus_heterogeneity,
+  stopOnError = FALSE
+)) {
+  
+  stop(
+    "CLC100 and CLC+10 landscape heterogeneity rasters do not have ",
+    "identical geometry."
+  )
+}
+
+
+## ============================================================================
+## 10. CLC100 -> CLC+ crosswalk
+##
+## CLC100 classes are mapped to the corresponding CLC+ backbone class.
+##
+## CLC+ backbone:
+##
+##   1  Sealed
+##   2  Woody - needle leaved trees
+##   3  Woody - Broadleaved deciduous trees
+##   4  Woody - Broadleaved evergreen trees
+##   5  Low-growing woody plants
+##   6  Permanent herbaceous
+##   7  Periodically herbaceous
+##   8  Lichens and mosses
+##   9  Non- and sparsely-vegetated
+##   10 Water
+##   11 Snow and ice
+##
+## CLC100 mixed forest (25) is not assigned because there is no defensible
+## allocation among the CLC+ forest classes in the current crosswalk.
+## ============================================================================
+
+CLC100_to_CLCplus <- c(
+  
+  ## --------------------------------------------------------------------------
+  ## Sealed
+  ## --------------------------------------------------------------------------
+  
+  `1` = 1,
+  `2` = 1,
+  `3` = 1,
+  `4` = 1,
+  `5` = 1,
+  `6` = 1,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Non- and sparsely-vegetated
+  ## --------------------------------------------------------------------------
+  
+  `7` = 9,
+  `8` = 9,
+  `9` = 9,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Permanent herbaceous
+  ## --------------------------------------------------------------------------
+  
+  `10` = 6,
+  `11` = 6,
+  `18` = 6,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Periodically herbaceous
+  ## --------------------------------------------------------------------------
+  
+  `12` = 7,
+  `20` = 7,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Agriculture / herbaceous vegetation
+  ## --------------------------------------------------------------------------
+  
+  `21` = 6,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Forest
+  ## --------------------------------------------------------------------------
+  
+  `23` = 3,
+  `24` = 2,
+  
+  ## Mixed forest deliberately left unassigned
+  `25` = NA,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Permanent herbaceous
+  ## --------------------------------------------------------------------------
+  
+  `26` = 6,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Low-growing woody plants
+  ## --------------------------------------------------------------------------
+  
+  `27` = 5,
+  `29` = 5,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Non- and sparsely-vegetated
+  ## --------------------------------------------------------------------------
+  
+  `30` = 9,
+  `31` = 9,
+  `32` = 9,
+  `33` = 9,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Snow and ice
+  ## --------------------------------------------------------------------------
+  
+  `34` = 11,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Permanent herbaceous
+  ## --------------------------------------------------------------------------
+  
+  `35` = 6,
+  `36` = 6,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Non- and sparsely-vegetated
+  ## --------------------------------------------------------------------------
+  
+  `39` = 9,
+  
+  
+  ## --------------------------------------------------------------------------
+  ## Water
+  ## --------------------------------------------------------------------------
+  
+  `40` = 10,
+  `41` = 10,
+  `43` = 10,
+  `44` = 10
+)
+
+
+## ============================================================================
+## 11. Extract CLC100 class numbers
+## ============================================================================
+
+CLC100_classes <- as.integer(
+  sub(
+    "^CLC100_",
+    "",
+    names(r.CLC100)
+  )
+)
+
+
+## ============================================================================
+## 12. Translate CLC100 classes to CLC+ classes
+## ============================================================================
+
+CLCplus_classes_from_CLC100 <- unname(
+  CLC100_to_CLCplus[
+    as.character(CLC100_classes)
+  ]
+)
+
+
+## ============================================================================
+## 13. Identify CLC100 layers that can be harmonised
+## ============================================================================
+
+keep <- !is.na(
+  CLCplus_classes_from_CLC100
+)
+
+target_classes <- sort(
+  unique(
+    CLCplus_classes_from_CLC100[keep]
+  )
+)
+
+
+## ============================================================================
+## 14. Aggregate CLC100 frequencies to the CLC+ backbone
+##
+## Because the input raster contains class frequencies within each 1-km cell,
+## aggregation is performed by summing the frequencies of all CLC100 classes
+## belonging to the same CLC+ class.
+## ============================================================================
+
+r.CLC100.to.CLCplus <- terra::tapp(
+  r.CLC100[[which(keep)]],
+  index = CLCplus_classes_from_CLC100[keep],
+  fun = sum,
+  na.rm = TRUE
+)
+
+
+## ============================================================================
+## 15. Name aggregated CLC100 layers
+## ============================================================================
+
+names(r.CLC100.to.CLCplus) <- paste0(
+  "CLCplus_",
+  target_classes
+)
+
+
+## ============================================================================
+## 16. Extract CLC+10 class numbers
+## ============================================================================
+
+CLC10_classes <- as.integer(
+  sub(
+    "^CLCPlus10_",
+    "",
+    names(r.CLC10)
+  )
+)
+
+
+## ============================================================================
+## 17. Identify common CLC+ classes
+##
+## Only classes represented in both:
+##
+##   - CLC+10
+##   - harmonised CLC100
+##
+## can be directly compared.
+## ============================================================================
+
+common_classes <- intersect(
+  CLC10_classes,
+  target_classes
+)
+
+
+if (length(common_classes) == 0L) {
+  
+  stop(
+    "No common CLC+ classes were found between CLC+10 and the ",
+    "harmonised CLC100 raster."
+  )
+}
+
+
+## ============================================================================
+## 18. Match layer positions
+## ============================================================================
+
+CLC10_idx <- match(
+  common_classes,
+  CLC10_classes
+)
+
+CLC100_idx <- match(
+  common_classes,
+  target_classes
+)
+
+
+## ============================================================================
+## 19. Calculate CLC class differences
+##
+## Difference = CLC+10 - CLC100
+## ============================================================================
+
+CLC_diffs <- (
+  r.CLC10[[CLC10_idx]] -
+    r.CLC100.to.CLCplus[[CLC100_idx]]
+)
+
+
+## ============================================================================
+## 20. Name raw difference layers
+## ============================================================================
+
+names(CLC_diffs) <- paste0(
+  "CLC_",
+  common_classes,
+  "_diff"
+)
+
+
+## ============================================================================
+## 21. Function for raster standardisation
+##
+## Each raster layer is transformed as:
+##
+##              x - mean(x)
+##      z = -------------------
+##              sd(x)
+##
+## This makes each modelling covariate approximately mean = 0 and SD = 1.
+## ============================================================================
+
+scale_raster <- function(x) {
+  
+  ## Calculate mean for each layer
+  raster_mean <- terra::global(
+    x,
+    fun = "mean",
+    na.rm = TRUE
+  )[, 1]
+  
+  
+  ## Calculate standard deviation for each layer
+  raster_sd <- terra::global(
+    x,
+    fun = "sd",
+    na.rm = TRUE
+  )[, 1]
+  
+  
+  ## Check for layers with zero variance
+  if (any(
+    is.na(raster_sd) |
+    raster_sd == 0
+  )) {
+    
+    bad_layers <- names(x)[
+      is.na(raster_sd) |
+        raster_sd == 0
+    ]
+    
+    stop(
+      "Cannot standardise raster layer(s) with zero/undefined SD: ",
+      paste(bad_layers, collapse = ", ")
+    )
+  }
+  
+  
+  ## Standardise each layer
+  x_scaled <- (x - raster_mean) / raster_sd
+  
+  
+  ## Preserve original layer names
+  names(x_scaled) <- names(x)
+  
+  
+  return(x_scaled)
+}
+
+
+## ============================================================================
+## 22. Scale CLC100 landscape heterogeneity
+## ============================================================================
+
+CLC_heterogeneity_scaled <- scale_raster(
+  CLC_heterogeneity
+)
+
+names(CLC_heterogeneity_scaled) <- (
+  "CLC_heterogeneity_scaled"
+)
+
+
+## ============================================================================
+## 23. Scale CLC+10 landscape heterogeneity
+## ============================================================================
+
+CLCplus_heterogeneity_scaled <- scale_raster(
+  CLCplus_heterogeneity
+)
+
+names(CLCplus_heterogeneity_scaled) <- (
+  "CLCplus_heterogeneity_scaled"
+)
+
+
+## ============================================================================
+## 24. Calculate difference in standardised landscape heterogeneity
+##
+## This represents the difference between the two map products after
+## standardising their respective heterogeneity measures.
+## ============================================================================
+
+landscape_heterogeneity_difference <- (
+  CLCplus_heterogeneity_scaled -
+    CLC_heterogeneity_scaled
+)
+
+names(
+  landscape_heterogeneity_difference
+) <- "landscape_heterogeneity_difference"
+
+
+## ============================================================================
+## 25. Scale CLC class differences
+##
+## The raw CLC differences remain available as `CLC_diffs`.
+##
+## For modelling, however, each difference is standardised to mean = 0 and
+## SD = 1.
+## ============================================================================
+
+CLC_diffs_scaled <- scale_raster(
+  CLC_diffs
+)
+
+
+## ============================================================================
+## 26. Rename scaled CLC difference layers
+## ============================================================================
+
+names(CLC_diffs_scaled) <- paste0(
+  names(CLC_diffs),
+  "_scaled"
+)
+
+
+## ============================================================================
+## 27. Combine all modelling covariates
+##
+## Final layers:
+##
+##   1. CLC100 landscape heterogeneity
+##   2. CLC+10 landscape heterogeneity
+##   3. Difference in landscape heterogeneity
+##   4+. Standardised CLC class differences
+## ============================================================================
+
+allCalibrationRaster <- c(
+  CLC_heterogeneity_scaled,
+  CLCplus_heterogeneity_scaled,
+  landscape_heterogeneity_difference,
+  CLC_diffs_scaled
+)
+
+allCalibrationRaster_withoutScale <- c(
+  CLC_heterogeneity,
+  CLCplus_heterogeneity,
+  landscape_heterogeneity_difference,
+  CLC_diffs
+)
+
+
+## ============================================================================
+## 28. Check final raster
+## ============================================================================
+
+print(allCalibrationRaster)
+
+print(
+  names(allCalibrationRaster)
+)
+
+
+## ============================================================================
+## 29. Check dimensions and geometry
+## ============================================================================
+
+cat("\nNumber of modelling covariates:", nlyr(allCalibrationRaster), "\n")
+
+cat(
+  "Rows:",
+  nrow(allCalibrationRaster),
+  "\n"
+)
+
+cat(
+  "Columns:",
+  ncol(allCalibrationRaster),
+  "\n"
+)
+
+cat(
+  "Resolution:",
+  paste(res(allCalibrationRaster), collapse = " x "),
+  "\n"
+)
+
+cat(
+  "CRS:\n",
+  crs(allCalibrationRaster),
+  "\n"
+)
+
+
+## ============================================================================
+## 30. Check summary statistics
+##
+## This provides a quick check that the scaled variables have approximately
+## mean = 0 and SD = 1.
+## ============================================================================
+
+calibration_summary <- data.frame(
+  variable = names(allCalibrationRaster),
+  mean = terra::global(
+    allCalibrationRaster,
+    "mean",
+    na.rm = TRUE
+  )[, 1],
+  sd = terra::global(
+    allCalibrationRaster,
+    "sd",
+    na.rm = TRUE
+  )[, 1],
+  min = terra::global(
+    allCalibrationRaster,
+    "min",
+    na.rm = TRUE
+  )[, 1],
+  max = terra::global(
+    allCalibrationRaster,
+    "max",
+    na.rm = TRUE
+  )[, 1]
+)
+
+print(calibration_summary)
+
+
+## ============================================================================
+## 31. Output file
+## ============================================================================
+
+output_file <- file.path(
+  resultFolder,
+  "polygons",
+  "CLC_calibration_downscaling_covariates_scaled.tif"
+)
+
+
+
+## ============================================================================
+## 32. Write final modelling raster
+## ============================================================================
+
+target_crs <- "EPSG:25833"
+
+allCalibrationRaster_25833 <- terra::project(
+  allCalibrationRaster,
+  target_crs,
+  method = "bilinear"
+)
+
+allCalibrationRaster_withoutScale_25833 <- terra::project(
+  allCalibrationRaster_withoutScale,
+  target_crs,
+  method = "bilinear"
+)
+
+terra::writeRaster(
+  allCalibrationRaster_25833,
+  output_file,
+  overwrite = TRUE
+)
+
+terra::writeRaster(
+  allCalibrationRaster_withoutScale_25833,
+  file.path(
+    resultFolder,
+    "polygons",
+    "CLC_calibration_downscaling_covariates.tif"
+  ),
+  overwrite = TRUE
+)
+
+
+## ============================================================================
+## 33. Confirm output
+## ============================================================================
+
+cat(
+  "\nFinal calibration/downscaling raster written to:\n",
+  output_file,
+  "\n"
+)
+
+cat(
+  "\nFile exists:",
+  file.exists(output_file),
+  "\n"
+)
+
+
+## ============================================================================
+## 34. Optional: save the raw CLC differences separately
+##
+## This is useful because the raw differences retain their direct ecological
+## interpretation and can be used for maps/reporting.
+## ============================================================================
+
+raw_difference_file <- file.path(
+  resultFolder,
+  "polygons",
+  "CLC_class_differences_raw.tif"
+)
+
+terra::writeRaster(
+  CLC_diffs,
+  raw_difference_file,
+  overwrite = TRUE
+)
+
+
+## ============================================================================
+## 35. Optional: save the harmonised CLC100 raster
+##
+## This allows the intermediate harmonisation product to be inspected later.
+## ============================================================================
+
+harmonised_CLC100_file <- file.path(
+  resultFolder,
+  "polygons",
+  "CLC100_harmonised_to_CLCplus.tif"
+)
+
+terra::writeRaster(
+  r.CLC100.to.CLCplus,
+  harmonised_CLC100_file,
+  overwrite = TRUE
+)
+
+
+## ============================================================================
+## 36. Final objects available in the R session
+##
+## allCalibrationRaster
+##     Final standardised modelling covariates.
+##
+## CLC_diffs
+##     Raw CLC+10 - CLC100 class differences.
+##
+## CLC_diffs_scaled
+##     Standardised CLC class differences used for modelling.
+##
+## r.CLC100.to.CLCplus
+##     CLC100 class frequencies harmonised to the CLC+ backbone.
+##
+## calibration_summary
+##     Summary statistics for the final modelling covariates.
+## ============================================================================
+} else {
+  allCalibrationRaster <- terra::rast(file.path(
+    resultFolder,
+    "polygons",
+    "CLC_calibration_downscaling_covariates_scaled.tif"
+    #"CLC_calibration_downscaling_covariates.tif"
+  ))
+}
+
+
+```
+
+Additionally, we obtained a 50-m digital terrain model (DTM) from the Norwegian Mapping Authority (Kartverket) and calculated the difference between the 10-m and 1-km elevation rasters. The elevation difference is important for capturing local topographic variation that may influence pollinator occurrence.
+
+```{r}
+#| eval: false
+
+if(!file.exists(file.path(
+  resultFolder,
+  "elevation_UTM33_difference_10m_1km.tif"
+))){
+
+if(!file.existsfile.path(
+  resultFolder,
+  "DTM50_UTM33_merged.tif"
+)){
+nin_gdb <- "path/to/gdb/DTM50_UTM33.gdb"
+zip_files <- list.files(
+  nin_gdb,
+  pattern = "\\.tif$",
+  full.names = TRUE,
+  ignore.case = TRUE
+)
+
+
+tmp_dtm <- file.path(
+  "C:/terra_tmp",
+  "dtm50_UTM33_tiles"
+)
+
+dir.create(
+  tmp_dtm,
+  recursive = TRUE,
+  showWarnings = FALSE
+)
+
+tmp_dtm
+
+dtm50_vrt <- file.path(
+  tmp_dtm,
+  "DTM50_UTM33_mosaic.vrt"
+)
+
+dtm50 <- terra::vrt(
+  zip_files,
+  filename = dtm50_vrt,
+  overwrite = TRUE
+)
+
+dtm50
+
+# ------------------------------------------------
+# 7. Optional: write physical GeoTIFF
+# ------------------------------------------------
+
+dtm_merged <- terra::writeRaster(
+  dtm50,
+  filename = file.path(
+    resultFolder,
+    "DTM50_UTM33_merged.tif"
+  ),
+  overwrite = TRUE,
+  wopt = list(
+    datatype = "FLT4S",
+    gdal = c("COMPRESS=LZW")
+  )
+)
+}
+
+
+dtm_merged <- terra::rast(file.path(
+  resultFolder,
+  "DTM50_UTM33_merged.tif"
+))
+
+# 1. Aggregate 50-m DTM to 1-km mean
+dtm_1km <- aggregate(
+  dtm_merged,
+  fact = 20,
+  fun = mean,
+  na.rm = TRUE
+)
+
+# 2. Put the 1-km mean onto the 50-m grid
+dtm_1km_50m <- resample(
+  dtm_1km,
+  dtm_merged,
+  method = "near"
+)
+
+# 3. Calculate elevation difference
+elevation_difference <- dtm_merged - dtm_1km_50m
+
+writeRaster(
+  elevation_difference,
+  filename = file.path(
+    resultFolder,
+    "elevation_UTM33_difference_10m_1km.tif"
+  ),
+  overwrite = TRUE,
+  wopt = list(
+    datatype = "FLT4S",
+    gdal = "COMPRESS=LZW"
+  )
+)
+
+}
+
+elevation_difference <- terra::rast(file.path(
+  resultFolder,
+  "elevation_UTM33_difference_10m_1km.tif"
+))
+```
+
+
+We put together all the CLC raster and elevation rasters together for the calibration of the pollinator potential. The rasters were resampled to a 50 m resolution and combined into a single raster stack. The elevation raster was additionally scaled to have a mean of 0 and standard deviation of 1, which is important for the calibration model to ensure that all covariates are on a comparable scale.
+
+```{r}
+#| eval: false
+
+if(!file.exists(file.path(
+  resultFolder,
+  "polygons",
+  "calibration_preds_50m.tif"
+))){
+source("00A_get_CLC_raster.R")
+
+source("01_codeForEnvAgency/00C_get_elevation_raster.R")
+
+
+# Create a 50 m template
+template_50m <- rast(
+  extent = ext(allCalibrationRaster),
+  resolution = 50,
+  crs = crs(allCalibrationRaster)
+)
+
+# Resample all layers to 50 m
+allCalibrationRaster_50m <- resample(
+  allCalibrationRaster,
+  template_50m,
+  method = "bilinear"
+)
+
+plot(allCalibrationRaster_50m)
+
+elevation_difference_50m <- resample(
+  elevation_difference,
+  template_50m,
+  method = "bilinear"
+)
+
+elevation_difference_50m_25833 <- project(
+  elevation_difference_50m,
+  allCalibrationRaster_50m,
+  method = "bilinear"
+)
+
+ elevation_difference_50m_scaled <- elevation_difference_50m_25833 %>%
+   scale()
+
+
+all_calibration_pred <- c(allCalibrationRaster_50m,
+                          elevation_difference_50m_scaled)
+
+writeRaster(
+  all_calibration_pred,
+  filename = file.path(
+    resultFolder,
+    "polygons",
+    "calibration_preds_50m_scaled.tif"
+  ),
+  overwrite = TRUE,
+  wopt = list(
+    datatype = "FLT4S",
+    gdal = "COMPRESS=LZW"
+  )
+)
+
+}
+
+allCalibrationRaster <- terra::rast(file.path(
+  resultFolder,
+  "polygons",
+  "calibration_preds_50m_scaled.tif"
+))
+
+names(allCalibrationRaster)[13] <- "elevation"
+
+```
+
+Following the [tutorial](https://github.com/NINAnor/national_insect_monitoring/blob/main/GBIF_export/NorIns_GBIF_export.qmd) on obtaining and processing the Norwegian Insect Monitoring data, we downloaded the data from GBIF and processed it to extract the relevant information for our analysis. The data includes number of species detected (species richness), identifications, sampling traps, locality sampling, and year locality information. 
+
+```{r}
+#| eval: false
+
+if(!file.exists(file.path(
+  resultFolder, "polygons",
+  paste0("ninaInsect_monitoring_with_richness_for_",var_of_interest,".shp")
+))){
+
+if(!file.exists("out/nationalInsectMonitoring.csv")){
+# Check the data formatting here: 
+#https://github.com/NINAnor/national_insect_monitoring/blob/main/GBIF_export/NorIns_GBIF_export.qmd
+
+suppressPackageStartupMessages({
+  require(tidyverse)
+  require(tidyjson)
+  require(xml2)
+})
+
+
+dataset_id <- "19fe96b0-0cf3-4a2e-90a5-7c1c19ac94ee" ##From the webpage URL
+# Suggested citation: Take the citation as from downloaded from GBIF website, replace "via GBIF.org" by endpoint url. 
+tmp <- tempfile()
+download.file(paste0("http://api.gbif.org/v1/dataset/",dataset_id,"/document"),tmp) # get medatadata from gbif api
+meta <- read_xml(tmp) %>% as_list() # create list from xml schema
+gbif_citation <- meta$eml$additionalMetadata$metadata$gbif$citation[[1]] # extract citation
+
+
+
+dataset_url <-  paste0("http://api.gbif.org/v1/dataset/",dataset_id,"/endpoint")
+dataset <- RJSONIO::fromJSON(dataset_url)
+endpoint_url <- dataset[[1]]$url # extracting URL from API call result
+
+dir.create(
+  "GBIF_data",
+  showWarnings = FALSE,
+  recursive = TRUE
+)
+
+options(timeout = 600)  # 10 minutes
+
+download.file(
+  url = endpoint_url,
+  destfile = "GBIF_data/gbif_download.zip",
+  mode = "wb",
+  method = "libcurl"
+)
+
+unzip("GBIF_data/gbif_download.zip",
+      exdir = "GBIF_data")
+
+
+event_raw <- read_delim("GBIF_data/event.txt", 
+                        delim = "\t",
+                        locale = locale(encoding = "UTF-8"),
+                        progress = FALSE,
+                        show_col_types = FALSE,
+                        guess_max = 10000
+)
+
+occurrence_raw <- read_delim("GBIF_data/occurrence.txt", 
+                             delim = "\t",
+                             locale = locale(encoding = "UTF-8"),
+                             progress = FALSE,
+                             show_col_types = FALSE,
+                             guess_max = 10000
+)
+
+
+identifications_raw <- event_raw %>% 
+  filter(samplingProtocol == "Level_1")
+
+sampling_trap_raw <- event_raw %>% 
+  filter(samplingProtocol == "Level_2")
+
+locality_sampling_raw <- event_raw %>% 
+  filter(samplingProtocol == "Level_3")
+
+year_locality_raw <- event_raw %>% 
+  filter(samplingProtocol == "Level_4")
+
+
+
+identifications <- identifications_raw %>% 
+  #collect() %>% 
+  select(-dynamicProperties)
+
+tempDynamic <- identifications_raw %>% 
+  #head() %>% 
+  select(dyn = dynamicProperties) %>% 
+  #collect() %>% 
+  unlist() %>% 
+  spread_all()  %>% 
+  as_tibble() %>% 
+  select(-document.id)
+
+identifications <- identifications %>% 
+  left_join(tempDynamic,
+            by = c("id" = "id"))
+
+if(!nrow(identifications) == nrow(identifications_raw) & nrow(identifications) == nrow(tempDynamic)) stop("Identification rows don't match!")
+
+
+identifications <- identifications %>% 
+  select(identification_id = eventID,
+         sampling_trap_id = parentEventID,
+         identification_name,
+         identification_comment,
+         read_abundance,
+         ekstraksjonsdato,
+         ekstraksjonskit,
+         ekstraksjonskommentar)
+
+sampling_trap <- sampling_trap_raw %>% 
+  mutate(trap_name = stringr::str_split_i(locationRemarks, ": ", 2)) %>% 
+  select(-dynamicProperties) 
+
+tempDynamic <- sampling_trap_raw %>% 
+  select(dyn = dynamicProperties) %>% 
+  unlist() %>% 
+  spread_all()  %>% 
+  as_tibble() %>% 
+  select(-document.id)
+
+sampling_trap <- sampling_trap %>% 
+  left_join(tempDynamic,
+            by = c("id" = "id"))
+
+if(!nrow(sampling_trap) == nrow(sampling_trap_raw) & nrow(sampling_trap) == nrow(tempDynamic)) stop("Sampling trap rows don't match!")
+
+sampling_trap <- sampling_trap %>% 
+  select(sampling_trap_id = eventID,
+         locality_sampling_id = parentEventID,
+         trap_name,
+         sample_size_value = sampleSizeValue,
+         sample_size_unit = sampleSizeUnit,
+         trap_type,
+         trap_model,
+         liquid_name,
+         ethanol_prc_at_lab,
+         net_wet_weight,
+         point_latitude = decimalLatitude,
+         point_longitude = decimalLongitude,
+         point_wkt = footprintWKT,
+         coord_unc_in_meters = coordinateUncertaintyInMeters,
+         coordinate_system = geodeticDatum)
+
+
+locality_sampling <- locality_sampling_raw %>% 
+  mutate(sampling_event = stringr::str_split_i(locationRemarks, ": ", 2)) %>% 
+  select(-dynamicProperties) 
+
+tempDynamic <- locality_sampling_raw %>% 
+  select(dyn = dynamicProperties) %>% 
+  unlist() %>% 
+  spread_all()  %>% 
+  as_tibble() %>% 
+  select(-document.id)
+
+locality_sampling <- locality_sampling %>% 
+  left_join(tempDynamic,
+            by = c("id" = "id"))
+
+if(!nrow(locality_sampling) == nrow(locality_sampling_raw) & nrow(locality_sampling) == nrow(tempDynamic)) stop("Locality sampling rows don't match!")
+
+
+locality_sampling <- locality_sampling %>% 
+  separate(eventTime, 
+           c("start_time", "end_time"), 
+           sep = "/") %>% 
+  mutate(start_time = as.POSIXct(start_time),
+         end_time = as.POSIXct(end_time))
+
+locality_sampling %>% 
+  select(start_time,
+         end_time)
+
+
+locality_sampling <- locality_sampling %>% 
+  select(locality_sampling_id = eventID,
+         year_locality_id = parentEventID,
+         sampling_event,
+         sample_size_value = sampleSizeValue,
+         sample_size_unit = sampleSizeUnit,
+         start_time,
+         end_time,
+         sampling_min_temp,
+         sampling_max_temp,
+         sampling_avg_temp)
+
+year_locality <- year_locality_raw %>% 
+  select(locality_vernacular_name = locality,
+         everything()) %>% 
+  select(-dynamicProperties)
+
+tempDynamic <- year_locality_raw %>% 
+  select(dyn = dynamicProperties) %>% 
+  unlist() %>% 
+  spread_all()  %>% 
+  as_tibble() %>% 
+  select(-document.id)
+
+
+year_locality <- year_locality %>% 
+  left_join(tempDynamic,
+            by = c("id" = "id"))
+
+if(!nrow(year_locality) == nrow(year_locality_raw) & nrow(year_locality) == nrow(tempDynamic)) stop("Year locality rows don't match!")
+
+year_locality <- year_locality %>% 
+  separate(eventTime, 
+           c("start_time", "end_time"), 
+           sep = "/") %>% 
+  mutate(season_start_time = as.POSIXct(start_time),
+         season_end_time = as.POSIXct(end_time)) %>%  
+  mutate(ssbid = as.character(ssbid)) 
+
+year_locality %>% 
+  select(start_time,
+         end_time)
+
+year_locality <- year_locality %>% 
+  select(year_locality_id = eventID,
+         season_sample_size_value = sampleSizeValue,
+         season_sample_size_unit = sampleSizeUnit,
+         season_start_time,
+         season_end_time,
+         locality,
+         year,
+         habitat_type,
+         region_name,
+         ssbid,
+         ano_flate_id,
+         no_herb_spec,
+         avg_prc_cov_herb_species,
+         no_tree_spec,
+         dom_tree_spec,
+         avg_dom_tree_age,
+         centroid_latitude = decimalLatitude,
+         centroid_longitude = decimalLongitude,
+         polygon_wkt = footprintWKT,
+         coordinate_system = geodeticDatum
+  )
+
+occurrence <- occurrence_raw %>% 
+  select(occurrence_id = occurrenceID,
+         identification_id = eventID,
+         quantity = organismQuantity,
+         quantity_type = organismQuantityType,
+         scientific_name = scientificName,
+         vernacular_name = vernacularName,
+         scientific_name_id = taxonID,
+         class,
+         order,
+         family,
+         genus,
+         specific_epithet = specificEpithet)
+
+
+system("mkdir -p 'out'")
+
+write_csv(occurrence,
+          file = "out/occurrence.csv")
+write_csv(identifications,
+          file = "out/identifications.csv")
+write_csv(sampling_trap,
+          file = "out/sampling_trap.csv")
+write_csv(locality_sampling,
+          file = "out/locality_sampling.csv")
+write_csv(year_locality,
+          file = "out/year_locality.csv")
+
+spec_join <- occurrence %>% 
+  left_join(identifications,
+            by = c("identification_id" = "identification_id")) %>% 
+  left_join(sampling_trap,
+            by = c("sampling_trap_id" = "sampling_trap_id")) %>% 
+  left_join(locality_sampling,
+            by = c("locality_sampling_id" = "locality_sampling_id")) %>%
+  left_join(year_locality,
+            by = c("year_locality_id" = "year_locality_id")) %>% 
+  #filter(trap_type == "Malaise") %>% 
+  mutate(julian_day = lubridate::yday(end_time),
+         year = forcats::as_factor(year))
+
+write_csv(spec_join,
+          file = "out/nationalInsectMonitoring.csv")
+
+nationalInsectMonitoring <- spec_join
+} else {
+  nationalInsectMonitoring <- readr::read_csv(
+    "out/nationalInsectMonitoring.csv",
+    show_col_types = FALSE
+  )
+}
+
+insectData <- nationalInsectMonitoring %>%
+  sf::st_as_sf(
+    coords = c(
+      "point_longitude",
+      "point_latitude"
+    ),
+    crs = 4326
+  ) %>%
+  st_transform(
+    crs
+  ) %>%
+  mutate(
+    simpleScientificName = coalesce(
+      str_extract(
+        scientific_name,
+        "^[A-Za-z]+\\s+[a-z]+"
+      )
+    )
+  )
+
+
+## ========================================================
+## 2. Insect species represented in the SDM
+## ========================================================
+
+
+## ========================================================
+## 3. Keep only ASO records for species in plants
+## ========================================================
+
+nina_insects <- insectData %>%
+  mutate(
+    insect_name = gsub(
+      " ",
+      "_",
+      simpleScientificName
+    )
+  ) %>%
+  filter(
+    insect_name %in% species_names
+  )
+
+## --------------------------------------------------------
+## 1. Filter semi-natural records
+## --------------------------------------------------------
+
+nina_seminat <- nina_insects %>%
+  dplyr::filter(
+    habitat_type == "Semi-nat"
+  )
+
+
+## --------------------------------------------------------
+## 2. Calculate species richness
+## --------------------------------------------------------
+
+richness <- nina_seminat %>%
+  sf::st_drop_geometry() %>%
+  dplyr::group_by(
+    locality,#_sampling_id
+    year
+  ) %>%
+  dplyr::summarise(
+    insect_richness = n_distinct(scientific_name),
+    
+    mean_sampling_min_temp = mean(
+      sampling_min_temp,
+      na.rm = TRUE
+    ),
+    
+    mean_sampling_max_temp = mean(
+      sampling_max_temp,
+      na.rm = TRUE
+    ),
+    
+    mean_weight = mean(
+      net_wet_weight,
+      na.rm = TRUE
+    ),
+    
+    sampling_duration_hours = as.numeric(
+      difftime(
+        max(end_time, na.rm = TRUE),
+        min(start_time, na.rm = TRUE),
+        units = "hours"
+      )
+    ),
+    
+    .groups = "drop"
+  )
+
+
+# richness <- nina_seminat %>%
+#   sf::st_drop_geometry() %>%
+#   dplyr::group_by(
+#     locality_sampling_id
+#   ) %>%
+#   dplyr::summarise(
+#     insect_richness = n_distinct(scientific_name),
+#     mean_sampling_min_temp = mean(
+#       sampling_min_temp,
+#       na.rm = TRUE
+#     ),
+#     mean_sampling_max_temp = mean(
+#       sampling_max_temp,
+#       na.rm = TRUE
+#     ),
+#     mean_weight = mean(net_wet_weight,
+#                        na.rm = TRUE),
+#     # season_sample_size_value = mean(season_sample_size_value,
+#     #                                 na.rm = TRUE),
+#     .groups = "drop"
+#   )
+
+
+## --------------------------------------------------------
+## 3. Keep ONE spatial record per locality
+## --------------------------------------------------------
+
+locations <- nina_seminat %>%
+  dplyr::select(
+    locality,#_sampling_id,
+    geometry
+  ) %>%
+  dplyr::distinct(
+    locality,#_sampling_id,
+    .keep_all = TRUE
+  )
+
+
+## --------------------------------------------------------
+## 4. Join richness to the spatial locations
+## --------------------------------------------------------
+
+national_monitoring_insect_richness <- locations %>%
+  dplyr::left_join(
+    richness,
+    by = "locality"#"locality_sampling_id"
+  ) %>%
+  dplyr::mutate(
+    dataset = "national_insect_monitoring"
+  )
+
+library(ggplot2)
+
+ggplot(
+  national_monitoring_insect_richness
+) +
+  geom_sf(
+    aes(
+      colour = insect_richness
+    ),
+    size = 1.5,
+    alpha = 0.7
+  ) +
+  scale_colour_viridis_c(
+    name = "Insect richness"
+  ) +
+  labs(
+    title = "Observed insect richness",
+    subtitle = "National insect monitoring"
+  ) +
+  theme_bw()
+
+
+## ========================================================
+## Result
+## ========================================================
+
+shapefile_path <- file.path(
+  resultFolder, "polygons",
+  paste0("ninaInsect_monitoring_with_richness_for_",var_of_interest,".shp")
+)
+
+national_monitoring_insect_richness_shp <- 
+  national_monitoring_insect_richness %>%
+  dplyr::rename(
+    local = locality, #_sampling_id,
+    insct_r = insect_richness,
+    min_temp = mean_sampling_min_temp,
+    max_temp = mean_sampling_max_temp,
+    weight = mean_weight,
+    samp_dur = sampling_duration_hours
+  )
+
+sf::st_write(
+  national_monitoring_insect_richness_shp,
+  shapefile_path,
+  delete_layer = TRUE,
+  quiet = FALSE
+)
+
+national_monitoring_insect_richness <- sf::st_read(
+  file.path(
+    resultFolder, "polygons",
+    paste0("ninaInsect_monitoring_with_richness_for_",var_of_interest,".shp")
+  ),
+  quiet = TRUE
+)
+
+} else {
+  national_monitoring_insect_richness <- sf::st_read(
+    file.path(
+      resultFolder, "polygons",
+      paste0("ninaInsect_monitoring_with_richness_for_",var_of_interest,".shp")
+    ),
+    quiet = TRUE
+  )
+}
+
+
+```
+
+### 7.5. Reference locations
 
 We extracted reference locations from the [**Natur i Norge** (NiN)](https://artsdatabanken.no/naturtyper/natur-i-norge) polygons with good conditions for semi-natural grasslands. We assume that these semi-natural meadows represent relatively stable ecosystem conditions for pollinator communities and their plant resources. This is because these semi-natural meadows are typically managed or protected areas where ecological processes are less disturbed and thus biodiversity-rich habitats in Norway. The reference locations (diplayed in @fig-referenceLocations) are used to establish the observed minimum and maximum values of interaction-supported pollinator potential, which define the lower and upper reference levels for normalising the indicator.
 
@@ -791,9 +2594,14 @@ knitr::include_graphics("../img/good_seminatural_grassland_nin.png")
 ```
 
 
-### 7.4. Evaluation of reference locations
+### 7.6. Evaluation of plant-host availability on the indicator
 
-We also obtained sampling event datasets from GBIF to evaluate the effect of plant-host availability on pollinator indicator values. Specifically, we try to answer the questions: (i)"Do pollinator indicator values differ between regions with and without plant hosts?" and (ii) "Do predictedplant occurrence probabilities match the observed plant richness in the field?" To address these questions, we used two area representative datasets: the Overvåking av semi-naturlig eng (ASO)survey dataset [@asoDataset], which contains plant and pollinator occurrence records from semi-natural meadows and the Ano dataset [@anoDataOccurrence], which includes plant and pollinator occurrence records from agricultural landscapes. We present the ASO and ANO sampling locations in @fig-plantEvaluationLocs, along with a background map showing the observed plant-host richness across the study area. 
+We also obtained sampling event datasets from GBIF to evaluate the effect of plant-host availability on pollinator indicator values. Specifically, we try to answer the questions: 
+
+  - Do predicted plant occurrence probabilities match the observed plant richness in the field? and 
+  - Do locations with higher plant-host richness support higher pollinator indicator values than locations with lower plant-host richness?
+  
+To address these questions, we used two area representative datasets: the Overvåking av semi-naturlig eng (ASO) survey dataset [@asoDataset], which contains plant occurrence records from semi-natural meadows and the Ano dataset [@anoDataOccurrence], which includes plant occurrence records from agricultural landscapes. We present the ASO and ANO sampling locations in @fig-plantEvaluationLocs, along the observed/detected plant-host richness across the study area. 
 
 ```{r}
 #| eval: false
@@ -807,236 +2615,31 @@ source("01_codeForEnvAgency/04_process_ANO_data.R")
 ```
 
 ```{r fig-plantEvaluationLocs}
-#| fig-cap: 'The ASO and ANO sampling locations used to evaluate the effect of plant-host availability on pollinator indicator values. The ASO dataset represents semi-natural meadows, while the ANO dataset represents agricultural landscapes that are within the study area. The background map shows the observed plant-host richness.'
+#| fig-cap: 'The ASO and ANO sampling locations used to evaluate the effect of plant-host availability on pollinator indicator values. The ASO dataset represents semi-natural meadows, while the ANO dataset represents agricultural landscapes that are within the study area. The background map shows the observed/detected plant-host richness out the 50 plant species under consideration.'
 #| fig-width: 100
 #| echo: false
 #| warning: false
 knitr::include_graphics("../img/evaluation_locations_with_richness.png")
 ```
 
-Additionally, we also obtained pollinator occurrence records from GBIF to evaluate how well the indicator captures the observed distribution of pollinators in relation to plant-host availability. We used the NINA insect database [@ninaInsectDataset] which includes findings of pollinators from research- and monitoring projects conducted by the Norwegian Institute for Nature Research and the Norwegian Insect Monitoring Scheme (NINA) dataset [@norwegianInsectMonitoring] which conducts a general monitoring of terrestrial insects in Norway since 2020, on behalf of the [Norwegian Environmental Agency](https://www.miljodirektoratet.no/). We aim to answer the questions: (i) "Do indicator values differ between with and wothout plant host interractions?" and (ii) "Do predicted pollinator occurrence probabilities match the observed pollinator richness in the field?"
+
+### 7.7. Validation of pollinator potential against observed pollinator richness
+
+Additionally, we also obtained pollinator occurrence records from GBIF to evaluate how well the indicator captures the observed distribution of pollinators in relation to plant-host availability. We used the Norwegian Insect Monitoring Scheme (NINA) dataset [@norwegianInsectMonitoring] which conducts a general monitoring of terrestrial insects in Norway since 2020, on behalf of the [Norwegian Environmental Agency](https://www.miljodirektoratet.no/). We aim to answer the questions: 
+
+  - Do indicator values differ between with and wothout plant host interractions? 
+  - Do pollinator potential match the observed/detected pollinator richness in the field?
 
 **Put the locations of ninaInsect Dataset and norwegianInsectMonitoring Dataset here.**
 
-These are the downloaded datasets from GBIF: 
-
-- the ANO dataset [@anoDataOccurrence],
-
-- the ASO survey dataset [@asoDataOccurrence], 
-
-- the Norwegian Insect Monitoring Scheme (NINA) dataset [@ninaInsectOccurrence]
-
-- the Nina insect dataset [@ninaInsectOccurrence]
 
 
-### 7.4. Spatial mask
-
-```{r spatialMask}
-#| eval: false
-
-# ==============================================================================
-# 8. CREATE OPEN-LOWLAND MASK
-# ==============================================================================
-
-openlowland_mask_file <- file.path(
-  "C:/terra_tmp",
-  paste0(
-    "openlowland_mask_",
-    openlowland_threshold,
-    "pct.tif"
-  )
-)
-
-
-if (!file.exists(openlowland_mask_file)) {
-  
-  ## ----------------------------------------------------------------
-  ## Load open-lowland percentage raster
-  ## ----------------------------------------------------------------
-  
-  openlowland_boundary <- terra::rast(
-    file.path(
-      resultFolder,
-      "openlow_pct_NO.tif"
-    )
-  )
-  
-  
-  ## ----------------------------------------------------------------
-  ## Project to the plant/insect prediction grid
-  ## ----------------------------------------------------------------
-  
-  openlowland_projected <- terra::project(
-    openlowland_boundary,
-    plants,
-    method = "bilinear"
-  )
-  
-  
-  ## ----------------------------------------------------------------
-  ## Apply threshold
-  ## ----------------------------------------------------------------
-  
-  openlowland_mask <-
-    openlowland_projected >= openlowland_threshold
-  
-  
-  ## ----------------------------------------------------------------
-  ## Save mask
-  ## ----------------------------------------------------------------
-  
-  terra::writeRaster(
-    openlowland_mask,
-    openlowland_mask_file,
-    overwrite = FALSE
-  )
-  
-} else {
-  
-  ## ----------------------------------------------------------------
-  ## Load existing mask
-  ## ----------------------------------------------------------------
-  
-  openlowland_mask <- terra::rast(
-    openlowland_mask_file
-  )
-}
-
-```
-
-We created a spatial mask to delineate the open-lowland ecosystem area in Norway (see @fig-opnlowlandMask), which constitutes the relevant Ecosystem Asset (EA) domain for the indicator. The mask was generated using land-cover data and ecological criteria to identify areas that are representative of open lowland habitats, such as semi-natural grasslands, meadows, and other open habitats. The mask is applied to the raster grid to restrict the analysis to the defined EA domain, ensuring that indicator values are calculated only for locations within the relevant ecosystem type.
-
-```{r fig-opnlowlandMask}
-#| fig-cap: 'The open-lowland ecosystem area in Norway.'
-#| fig-width: 100
-#| echo: false
-#| warning: false
-knitr::include_graphics("../img/openlowland_mask.png")
-```
-
-### 7.5. Regional classification
-
-The reference locations were assigned to five biogeographic (nature) regions based on the spatial distribution of Norwegian county boundaries. County polygons were obtained from the Norwegian administrative-unit dataset and grouped into South, East, West, Central, and North regions according to predefined county classifications. The resulting county groups were dissolved to create five spatially contiguous regional units. Each reference location was then assigned to the corresponding nature region based on its spatial location. These regional classifications were used to derive region-specific reference levels for the indicator, allowing the reference condition to vary among the five biogeographic regions.
-
-```{r regionalClassification}
-#| eval: false
-
-)
-
-# ==============================================================================
-# 10. DEFINE BIOGEOGRAPHIC CLASSIFICATION REGIONS
-# ==============================================================================
-
-## ------------------------------------------------------------------
-## Path to Norwegian county geodatabase
-## ------------------------------------------------------------------
-
-gdb <- "path/to/norwegian_county_geodatabase.gdb"
-
-
-## ------------------------------------------------------------------
-## Read county polygons
-## ------------------------------------------------------------------
-
-counties <- sf::st_read(
-  gdb,
-  layer = "fylke"
-)
-
-
-## ------------------------------------------------------------------
-## Assign counties to nature regions
-## ------------------------------------------------------------------
-
-nature_regions <- counties %>%
-  
-  dplyr::mutate(
-    
-    fylkesnummer = as.character(
-      fylkesnummer
-    ),
-    
-    nature_region = dplyr::case_when(
-      
-      ## South
-      fylkesnummer %in% c(
-        "40",
-        "42"
-      ) ~ "South",
-      
-      ## East
-      fylkesnummer %in% c(
-        "31",
-        "32",
-        "03",
-        "39",
-        "33",
-        "34"
-      ) ~ "East",
-      
-      ## West
-      fylkesnummer %in% c(
-        "46",
-        "11"
-      ) ~ "West",
-      
-      ## Central
-      fylkesnummer %in% c(
-        "50",
-        "15"
-      ) ~ "Central",
-      
-      ## North
-      fylkesnummer %in% c(
-        "18",
-        "55",
-        "56"
-      ) ~ "North",
-      
-      TRUE ~ NA_character_
-    )
-  ) %>%
-  
-  dplyr::filter(
-    !is.na(nature_region)
-  ) %>%
-  
-  dplyr::group_by(
-    nature_region
-  ) %>%
-  
-  dplyr::summarise(
-    .groups = "drop"
-  )
-
-
-```
-
-The classification was defined as follows:
-
-  - *South*: counties 40 and 42
-
-  - *East*: counties 31, 32, 03, 39, 33, and 34
-  
-  - *West*: counties 46 and 11
-
-  - *Central*: counties 50 and 15
-
-  - *North*: counties 18, 55, and 56
-
-```{r fig-natureRegions}
-#| fig-cap: 'The classification of nature regions in Norway used in this study.'
-#| fig-width: 100
-#| echo: false
-#| warning: false
-knitr::include_graphics("../img/nature_regions.png")
-```
 
 ## 8. Spatial units
 
 <!--# Describe the spatial units that you rely on in your analyses. Highlight the spatial units (the resolution) that the indicator values should be interpreted at. Potential spatial delineation data (maksing layers etc.) should be introduced under chapert 7. We recommend using the SEEA EA terminology of Basic Spatial Units (BSU), Ecosystem Asses (EA) and Ecosystem Accounting Area (EAA). -->
 
-The indicator is calculated using a regular $1 \times 1$ km raster grid, with each grid cell representing a Basic Spatial Unit (BSU). Plant and pollinator occurrence probabilities are estimated for each BSU, and interaction-supported pollinator potential is calculated at the same spatial resolution. The BSU is therefore the primary spatial unit at which the indicator values are interpreted.
+The indicator is calculated using a regular $50 \times 50$ km raster grid, with each grid cell representing a Basic Spatial Unit (BSU). Plant and pollinator occurrence probabilities are estimated for each BSU, and interaction-supported pollinator potential is calculated at the same spatial resolution. The BSU is therefore the primary spatial unit at which the indicator values are interpreted.
 
 The Ecosystem Accounting Area (EAA) is Norway, within which the indicator is assessed. The analysis is restricted to the defined open-lowland ecosystem area, which constitutes the relevant Ecosystem Asset (EA) domain for the indicator. The open-lowland area is delineated using the spatial mask described in Chapter 7.
 
@@ -1046,7 +2649,7 @@ Thus, the spatial hierarchy is:
 
   - Ecosystem Accounting Area (EAA): Norway
   - Ecosystem Asset (EA): Open-lowland ecosystems
-  - Basic Spatial Units (BSUs): $1 \times 1$ km raster cells
+  - Basic Spatial Units (BSUs): $50 \times 50$ m raster cells
 
 The final indicator should consequently be interpreted primarily at the 1 km × 1 km BSU level, while the nature regions provide the spatial framework for regional reference conditions.
 
