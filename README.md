@@ -2,6 +2,8 @@
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](docs/code_of_conduct.md)
 
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21802603-1682D4.svg)](https://doi.org/10.5281/zenodo.21802603)
+
 ## To browse ecosystem condition indicators, please visit the [ecRxiv web app](https://ecRxiv.com). 
 
 ## Browse source files, please switch to the [main branch](https://github.com/NINAnor/ecRxiv/tree/main/indicators).
@@ -18,6 +20,20 @@
 To browse ecosystem condition indicators, please visit the [ecRxiv web app](https://ecRxiv.com). 
 Or, to browse source files (raw data files or scripts), please switch to the [main branch](https://github.com/NINAnor/ecRxiv/tree/main/indicators).
 You can also look up the histories for published indicators, such as code reviews and comments, by going to the [issues tab](https://github.com/NINAnor/ecRxiv/issues) and in the _Labels_ filter, search and select for indicatorID's. 
+
+## License
+
+ecRxiv is open-source software released under the GPL-3.0 license. You are welcome to use, modify, and redistribute the templates and code in accordance with the terms of that license.
+Note that individual indicator workflows might be labeled with a different license, in which case this is the one that should take effect. 
+
+## Use of the ecRxiv name
+
+The name *ecRxiv* refers to the official publication platform operated by NINAnor.
+
+You are welcome to reuse the ecRxiv templates and software in your own projects. However, only indicators that have completed the official ecRxiv publication workflow may be described as being "published on ecRxiv" or "reviewed by ecRxiv".
+
+Forks or derivative works should not imply endorsement by, affiliation with, or publication on ecRxiv unless they have gone through the official workflow.
+
 
 ### How to submit indicator documentation to ecRxiv
 
