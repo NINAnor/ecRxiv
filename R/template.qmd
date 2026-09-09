@@ -37,8 +37,8 @@ Ecosystem:
 verbatimEcosystem: # add name of the ecosystem or naturetype according to any relevant local or national typology. E.g. fjell, skog, ... 
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
-Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+status: complete # options are complete, incomplete, or deprecated
+Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: We are updating the indicator to include more recent data and improve the methodology. # Describe briefly how this version differs from earlier versions 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
 # To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
@@ -6330,488 +6330,488 @@ ggsave(
 
 ### 9.4. Evaluation of the indicator against plant resources
 
-**Re-write this section after the validation**
+We also evaluated our (scaled) indicator values against the expected plant richness at the evaluation locations. This evaluation provides insight into how well the indicator reflects the availability of plant resources, which are crucial for pollinator populations. Specifically, we extracted the indicator values at the evaluation locations and calculated correlation coefficients between the expected plant richness and the scaled indicator values. The results of this evaluation are visualized in scatter plots, with separate panels for the global and regional indicators. The following four assessments were conducted:
 
-We did the same evaluation for the plant richness indicator, comparing the expected plant richness with the scaled pollinator richness indicator. The correlation between these two measures provides insight into how well the pollinator indicator reflects the availability of plant resources in different nature regions.
+- The correlation between the expected plant richness and the observed/detected plant richness from the ASO and ANO surveys.
+- The correlation between the expected plant richness and the regional scaled indicator.
+- The correlation between the expected plant richness and the pollinator potential.
+- The correlation between the expected plant richness and the expected pollinator richness (the uncalibrated version).
+
+Like the previous evaluation, we also assesses whether the calibration change the magnitude of the regional and global pollination-potential indicators, and does the magnitude of this change vary among nature regions. We quantify the differences between the calibrated and uncalibrated indicators, and test whether these differences are statistically significant across nature regions. The results of this analysis are visualized in error plots, with separate panels for the regional and national indicators.
+
 ```{r evaluate-plant-indicator}
 #| eval: false
 
+
+################################################################################
+# Plant indicator evaluation
+#
+# Purpose:
+#   1. Extract indicator predictions and expected plant richness at evaluation
+#      locations.
+#   2. Compare observed plant richness with the plant and pollinator indicators.
+#   3. Quantify correlations between expected plant richness and each indicator.
+#   4. Evaluate the effect of calibration on the regional and global indicators.
+#
+# Main outputs:
+#   - plant_indicator_evaluation.pdf
+#   - plant_indicator_evaluation.png
+#   - plant_calibration_difference_tests.csv
+#   - plant_calibration_difference_effect.pdf
+#   - plant_calibration_difference_effect.png
+################################################################################
+
+# Colours used to distinguish the two datasets throughout the analysis.
 dataset_colours <- c(
   "ASO" = "#0072B2",
   "ANO" = "#D55E00"
 )
 
-## ========================================================
-## 1. Extract indicator values
-## ========================================================
 
-## Extract all indicator rasters
+# ==============================================================================
+# 1. Extract indicator predictions at evaluation locations
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1.1 Load the raster containing all indicator predictions
+# ------------------------------------------------------------------------------
+
+allRasts <- terra::rast(
+  file.path(
+    plotFolder,
+    "all_indicator_raster.tif"
+  )
+)
+
+
+# ------------------------------------------------------------------------------
+# 1.2 Extract indicator values at evaluation locations
+# ------------------------------------------------------------------------------
+
+# Convert evaluation locations from sf to SpatVector and extract the values
+# from every indicator layer.
 indicator_values <- terra::extract(
-  indicator_results$allRasts,
+  allRasts,
   terra::vect(evaluation_locs)
 )
 
-## Extract expected plant richness
+
+# ------------------------------------------------------------------------------
+# 1.3 Extract expected plant richness
+# ------------------------------------------------------------------------------
+
+# Extract the expected plant richness surface at the same evaluation
+# locations. This provides the reference quantity against which the
+# indicators are evaluated.
 plant_richness_values <- terra::extract(
-  plant_expected_richness,
+  plant_expected_richness_50m,
   terra::vect(evaluation_locs)
 )
 
-## Combine with evaluation-location information
+
+# ------------------------------------------------------------------------------
+# 1.4 Assign nature regions to evaluation locations
+# ------------------------------------------------------------------------------
+
+# Spatially join each evaluation location to its corresponding nature region.
+# Only the nature_region variable is retained because the remaining spatial
+# attributes are not required for the subsequent analyses.
+regions_eval_locs <- sf::st_join(
+  evaluation_locs,
+  nature_regions %>%
+    dplyr::select(nature_region),
+  join = sf::st_within
+)
+
+
+# ==============================================================================
+# 2. Construct the evaluation dataset
+# ==============================================================================
+
+# Combine:
+#   - indicator predictions,
+#   - expected plant richness,
+#   - evaluation-location metadata, and
+#   - nature-region information.
+#
+# Only variables required for the analyses below are retained.
+
 rt <- indicator_values %>%
+  
+  # Add expected plant richness.
   bind_cols(
     plant_richness_values %>%
       select(-ID)
   ) %>%
+  
+  # Add evaluation-location metadata and nature region.
   bind_cols(
-    evaluation_locs %>%
-      sf::st_drop_geometry()
+    regions_eval_locs
   ) %>%
+  
+  # Retain only variables required for evaluation.
   select(
     richness,
+    calibrated_richness,
     richness_without_interaction,
-    region_id,
     regional_clamped,
+    calibrated_regional_clamped,
     regional_clamped_without_interaction,
     global_clamped,
+    calibrated_global_clamped,
     global_clamped_without_interaction,
     plnt_rc,
     plant_expected_richness,
+    dataset,
+    nature_region
+  ) %>%
+  
+  # Remove locations with missing values from the evaluation dataset.
+  na.omit()
+
+
+# ==============================================================================
+# 3. Prepare data for indicator–plant richness comparisons
+# ==============================================================================
+
+# Remove geometry if rt is an sf object. Geometry is not required for the
+# correlation analysis or scatter plots.
+plot_data <- rt %>%
+  sf::st_drop_geometry() %>%
+  
+  select(
+    plant_expected_richness,
+    plnt_rc,
+    calibrated_regional_clamped,
+    calibrated_richness,
+    richness,
     dataset
-  )
-
-
-## ========================================================
-## 2. Reshape to long format
-## ========================================================
-
-rt_long <- rt %>%
-  pivot_longer(
-    cols = c(
-      richness,
-      regional_clamped,
-      global_clamped,
-      plant_expected_richness
-    ),
-    names_to = "indicator_type",
-    values_to = "indicator"
   ) %>%
-  mutate(
-    indicator_type = recode(
-      indicator_type,
-      
-      global_clamped =
-        "Global indicator",
-      
-      regional_clamped =
-        "Regional indicator",
-      
-      richness =
-        "Estimated pollinator richness",
-      
-      plant_expected_richness =
-        "Expected plant richness"
-    )
-  ) %>%
+  
   filter(
-    !is.na(plnt_rc),
-    !is.na(indicator)
+    !is.na(plant_expected_richness),
+    !is.na(dataset)
   )
 
 
-## ========================================================
-## 3. Define indicator order
-## ========================================================
+# ==============================================================================
+# 4. Calculate correlations between plant richness and indicators
+# ==============================================================================
 
-indicator_levels <- c(
-  "Global indicator",
-  "Regional indicator",
-  "Estimated pollinator richness",
-  "Expected plant richness"
+# ------------------------------------------------------------------------------
+# Function: get_correlations()
+#
+# Calculates Pearson's correlation coefficient separately for each dataset.
+#
+# Arguments:
+#   data  - data frame containing the variables
+#   y_var - name of the indicator variable being evaluated
+#
+# Returns:
+#   A data frame containing the correlation coefficient and a formatted label.
+# ------------------------------------------------------------------------------
+
+get_correlations <- function(data, y_var) {
+  
+  data %>%
+    
+    # Keep only complete observations for the variables being correlated.
+    filter(
+      !is.na(plant_expected_richness),
+      !is.na(.data[[y_var]])
+    ) %>%
+    
+    # Calculate the correlation independently for ASO and ANO.
+    group_by(dataset) %>%
+    
+    summarise(
+      r = cor(
+        plant_expected_richness,
+        .data[[y_var]],
+        method = "pearson"
+      ),
+      .groups = "drop"
+    ) %>%
+    
+    # Create a label for displaying the correlation on the plot.
+    mutate(
+      label = paste0(
+        dataset,
+        ": r = ",
+        sprintf("%.2f", r)
+      )
+    )
+}
+
+
+# ==============================================================================
+# 5. Function for generating indicator scatter plots
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Function: make_scatter()
+#
+# Produces a standardised scatter plot showing the relationship between
+# expected plant richness and an indicator.
+#
+# The plot includes:
+#   - observations coloured by dataset,
+#   - dataset-specific linear regression lines,
+#   - Pearson correlation coefficients, and
+#   - a panel label (A–D).
+# ------------------------------------------------------------------------------
+
+make_scatter <- function(
+    data,
+    y_var,
+    y_label,
+    panel_label
+) {
+  
+  # Calculate dataset-specific Pearson correlations.
+  correlations <- get_correlations(
+    data,
+    y_var
+  )
+  
+  
+  ggplot(
+    data,
+    aes(
+      x = plant_expected_richness,
+      y = .data[[y_var]],
+      colour = dataset
+    )
+  ) +
+    
+    # --------------------------------------------------------------------------
+  # Observed/predicted locations
+  # --------------------------------------------------------------------------
+  geom_point(
+    alpha = 0.6,
+    size = 1.8
+  ) +
+    
+    # --------------------------------------------------------------------------
+  # Dataset-specific linear relationships
+  # --------------------------------------------------------------------------
+  geom_smooth(
+    method = "lm",
+    se = FALSE,
+    linewidth = 0.8
+  ) +
+    
+    # --------------------------------------------------------------------------
+  # Pearson correlation coefficients
+  # --------------------------------------------------------------------------
+  #
+  # Inf places the labels in the upper-right corner. The vertical position
+  # is varied so that ASO and ANO labels do not overlap.
+  geom_text(
+    data = correlations,
+    aes(
+      x = Inf,
+      y = Inf,
+      label = label,
+      colour = dataset
+    ),
+    hjust = 1.1,
+    vjust = seq(
+      from = 1.2,
+      to = 2.4,
+      length.out = nrow(correlations)
+    ),
+    inherit.aes = FALSE,
+    fontface = "bold",
+    size = 3.5
+  ) +
+    
+    # --------------------------------------------------------------------------
+  # Panel label
+  # --------------------------------------------------------------------------
+  annotate(
+    "text",
+    x = -Inf,
+    y = Inf,
+    label = panel_label,
+    hjust = -0.5,
+    vjust = 1.5,
+    fontface = "bold",
+    size = 5
+  ) +
+    
+    # --------------------------------------------------------------------------
+  # Dataset colours and axis labels
+  # --------------------------------------------------------------------------
+  scale_colour_manual(
+    values = dataset_colours
+  ) +
+    
+    labs(
+      x = "Expected plant richness",
+      y = y_label,
+      colour = "Dataset"
+    ) +
+    
+    # --------------------------------------------------------------------------
+  # Plot theme
+  # --------------------------------------------------------------------------
+  theme_classic(
+    base_size = 12
+  ) +
+    
+    theme(
+      legend.position = "bottom",
+      axis.title = element_text(face = "bold"),
+      panel.border = element_rect(
+        colour = "black",
+        fill = NA,
+        linewidth = 0.5
+      )
+    )
+}
+
+
+# ==============================================================================
+# 6. Generate the four indicator evaluation plots
+# ==============================================================================
+
+# A: Comparison with observed plant richness.
+pA <- make_scatter(
+  plot_data,
+  y_var = "plnt_rc",
+  y_label = "Observed plant richness",
+  panel_label = "A"
 )
 
-rt_long <- rt_long %>%
-  mutate(
-    indicator_type = factor(
-      indicator_type,
-      levels = indicator_levels
-    )
-  )
+
+# B: Relationship with the calibrated regional indicator.
+pB <- make_scatter(
+  plot_data,
+  y_var = "calibrated_regional_clamped",
+  y_label = "Scaled indicator",
+  panel_label = "B"
+)
 
 
-## ========================================================
-## 4. Calculate correlation coefficients
-## ========================================================
-
-cor_labels <- rt_long %>%
-  group_by(
-    indicator_type,
-    dataset
-  ) %>%
-  summarise(
-    r = cor(
-      plnt_rc,
-      indicator,
-      method = "pearson",
-      use = "complete.obs"
-    ),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    label = paste0(
-      dataset,
-      ": r = ",
-      sprintf(
-        "%.2f",
-        r
-      )
-    )
-  )
+# C: Relationship with pollination potential.
+pC <- make_scatter(
+  plot_data,
+  y_var = "calibrated_richness",
+  y_label = "Pollination potential",
+  panel_label = "C"
+)
 
 
-## ========================================================
-## 5. Common plotting theme
-## ========================================================
-
-common_theme <- theme_bw() +
-  
-  theme(
-    
-    ## Remove grid
-    panel.grid = element_blank(),
-    
-    ## Facet strips
-    strip.text = element_text(
-      face = "bold",
-      size = 12
-    ),
-    
-    strip.background = element_rect(
-      fill = "grey90",
-      colour = "black"
-    ),
-    
-    ## Consistent axes
-    axis.title = element_text(
-      size = 11
-    ),
-    
-    axis.text = element_text(
-      size = 9
-    ),
-    
-    ## Consistent legend
-    legend.position = "right",
-    
-    legend.title = element_text(
-      face = "bold"
-    ),
-    
-    legend.text = element_text(
-      size = 9
-    )
-  )
+# D: Relationship with expected pollinator richness.
+pD <- make_scatter(
+  plot_data,
+  y_var = "richness",
+  y_label = "Expected pollinator richness",
+  panel_label = "D"
+)
 
 
-## ========================================================
-## 6. Scaled indicator plot
-## ========================================================
+# ==============================================================================
+# 7. Combine indicator evaluation plots
+# ==============================================================================
 
-indicator_cor_labels <- cor_labels %>%
-  filter(
-    indicator_type %in% c(
-      "Global indicator",
-      "Regional indicator"
-    )
-  ) %>%
-  group_by(
-    indicator_type
-  ) %>%
-  arrange(
-    dataset
-  ) %>%
-  mutate(
-    vjust_position = seq(
-      1.5,
-      by = 1.5,
-      length.out = n()
-    )
-  ) %>%
-  ungroup()
-
-
-indicator_plot <- rt_long %>%
-  filter(
-    indicator_type %in% c(
-      "Global indicator",
-      "Regional indicator"
-    )
-  ) %>%
-  dplyr::mutate(plnt_rc = plnt_rc/length(names(plants))) %>%
-  
-  ggplot(
-    aes(
-      x = plnt_rc,
-      y = indicator,
-      colour = dataset
-    )
-  ) +
-  
-  ## Points
-  geom_point(
-    position = position_jitter(
-      width = 0.15,
-      height = 0
-    ),
-    alpha = 0.6,
-    size = 1.5
-  ) +
-  
-  ## Linear relationship
-  geom_smooth(
-    method = "lm",
-    se = TRUE,
-    linewidth = 0.8
-  ) +
-  
-  ## Correlations
-  geom_text(
-    data = indicator_cor_labels,
-    aes(
-      x = Inf,
-      y = Inf,
-      label = label,
-      colour = dataset,
-      vjust = vjust_position
-    ),
-    hjust = 1.1,
-    inherit.aes = FALSE,
-    size = 3.5
-  ) +
-  
-  ## Facets
-  facet_wrap(
-    ~ indicator_type,
-    nrow = 1
-  ) +
-  
-  ## Common 0–1 scale
-  scale_y_continuous(
-    limits = c(0, 1),
-    breaks = seq(
-      0,
-      1,
-      0.25
-    )
-  ) +
-  scale_colour_manual(
-    values = dataset_colours,
-    name = "Dataset"
-  ) +
-  labs(
-    x = "Observed proportion of plant hosts detected",
-    y = "Scaled indicator",
-    colour = "Dataset",
-    title = "A)"
-  ) +
-  
-  common_theme
-
-
-## ========================================================
-## 7. Modelled richness correlation labels
-## ========================================================
-
-richness_cor_labels <- cor_labels %>%
-  filter(
-    indicator_type %in% c(
-      "Estimated pollinator richness",
-      "Expected plant richness"
-    )
-  ) %>%
-  group_by(
-    indicator_type
-  ) %>%
-  arrange(
-    dataset
-  ) %>%
-  mutate(
-    vjust_position = seq(
-      1.5,
-      by = 1.5,
-      length.out = n()
-    )
-  ) %>%
-  ungroup()
-
-
-## ========================================================
-## 8. Modelled richness plot
-## ========================================================
-
-richness_plot <- rt_long %>%
-  filter(
-    indicator_type %in% c(
-      "Estimated pollinator richness",
-      "Expected plant richness"
-    )
-  ) %>%
-  
-  ggplot(
-    aes(
-      x = plnt_rc,
-      y = indicator,
-      colour = dataset
-    )
-  ) +
-  
-  ## Points
-  geom_point(
-    position = position_jitter(
-      width = 0.15,
-      height = 0
-    ),
-    alpha = 0.6,
-    size = 1.5
-  )+
-  
-  ## Linear relationship
-  geom_smooth(
-    method = "lm",
-    se = TRUE,
-    linewidth = 0.8
-  ) +
-  
-  ## Correlations
-  geom_text(
-    data = richness_cor_labels,
-    aes(
-      x = Inf,
-      y = Inf,
-      label = label,
-      colour = dataset,
-      vjust = vjust_position
-    ),
-    hjust = 1.1,
-    inherit.aes = FALSE,
-    size = 3.5
-  ) +
-  
-  ## Facets
-  facet_wrap(
-    ~ indicator_type,
-    nrow = 1,
-    scales = "free_y"
-  ) +
-  
-  ## Same visual scale across richness facets
-  scale_y_continuous(
-    expand = expansion(
-      mult = c(
-        0.05,
-        0.15
-      )
-    )
-  ) +
-  scale_colour_manual(
-    values = dataset_colours,
-    name = "Dataset"
-  ) +
-  
-  labs(
-    x = "Observed plant host richness",
-    y = "Estimated richness",
-    colour = "Dataset",
-    title = "B)"
-  ) +
-  
-  common_theme
-
-
-## ========================================================
-## 9. Combine plots
-## ========================================================
-library(patchwork)
-
-p <- indicator_plot /
-  richness_plot +
-  
+# Arrange the four panels in a 2 × 2 layout.
+#
+# guides = "collect" ensures that only one shared legend is displayed.
+combined_plot <- (pA | pB) /
+  (pC | pD) +
   plot_layout(
-    heights = c(
-      1,
-      1
-    ),
     guides = "collect"
   ) &
-  
   theme(
-    legend.position = "right"
+    legend.position = "bottom"
   )
 
 
-## ========================================================
-## 10. Display
-## ========================================================
-
-p
+# Display the combined figure.
+combined_plot
 
 
-## ========================================================
-## 11. Save PDF
-## ========================================================
+# ==============================================================================
+# 8. Save indicator evaluation figure
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# PDF
+# ------------------------------------------------------------------------------
 
 ggsave(
   filename = file.path(
     plotFolder,
     "plant_indicator_evaluation.pdf"
   ),
-  plot = p,
+  plot = combined_plot,
   width = 12,
-  height = 8,
+  height = 12,
   units = "in",
   device = "pdf"
 )
 
 
-## ========================================================
-## 12. Save PNG
-## ========================================================
+# ------------------------------------------------------------------------------
+# PNG
+# ------------------------------------------------------------------------------
 
 ggsave(
   filename = file.path(
     plotFolder,
     "plant_indicator_evaluation.png"
   ),
-  plot = p,
+  plot = combined_plot,
   width = 12,
-  height = 8,
+  height = 12,
   units = "in",
   dpi = 600,
   device = "png"
 )
 
 
+# ==============================================================================
+# 9. Evaluate the effect of calibration
+# ==============================================================================
+
+# The following analysis compares the uncalibrated and calibrated versions
+# of the regional and global indicators.
+#
+# Positive difference:
+#     uncalibrated indicator > calibrated indicator
+#
+# Negative difference:
+#     calibrated indicator > uncalibrated indicator
+#
+# A difference of zero indicates no effect of calibration.
+
+
+# ------------------------------------------------------------------------------
+# 9.1 Calculate calibration-induced differences
+# ------------------------------------------------------------------------------
+
 indicator_difference <- rt %>%
-  left_join(
-    indicator_results$region_lookup %>%
-      select(
-        region_id,
-        nature_region
-      ),
-    by = "region_id"
-  ) %>%
+  
   transmute(
     nature_region,
     dataset,
     
+    # Regional indicator:
+    # uncalibrated - calibrated
     regional_difference =
       regional_clamped -
-      regional_clamped_without_interaction,
+      calibrated_regional_clamped,
     
+    # Global indicator:
+    # uncalibrated - calibrated
     global_difference =
       global_clamped -
-      global_clamped_without_interaction
+      calibrated_global_clamped
   ) %>%
+  
+  # Convert regional and global differences into a single long-format column.
   pivot_longer(
     cols = c(
       regional_difference,
@@ -6820,77 +6820,169 @@ indicator_difference <- rt %>%
     names_to = "indicator_type",
     values_to = "difference"
   ) %>%
+  
+  # Replace technical variable names with readable labels.
   mutate(
     indicator_type = recode(
       indicator_type,
       regional_difference = "Regional",
       global_difference = "Global"
+    ),
+    
+    # Explicitly define the desired plotting/model order.
+    indicator_type = factor(
+      indicator_type,
+      levels = c(
+        "Regional",
+        "Global"
+      )
     )
   )
 
-regional_tests <- indicator_difference %>%
+
+# ==============================================================================
+# 10. Statistical tests of calibration effects
+# ==============================================================================
+
+# For each indicator type × nature-region combination:
+#
+#   1. Calculate sample size.
+#   2. Calculate the mean calibration-induced difference.
+#   3. Calculate the standard deviation.
+#   4. Test whether the mean difference differs from zero.
+#
+# P-values are subsequently adjusted using the Benjamini–Hochberg procedure
+# to account for multiple comparisons.
+
+calibration_tests <- indicator_difference %>%
+  
   group_by(
     indicator_type,
     nature_region
   ) %>%
+  
   summarise(
-    n = sum(!is.na(difference)),
+    
+    # Number of non-missing observations.
+    n = sum(
+      !is.na(difference)
+    ),
+    
+    # Mean difference between uncalibrated and calibrated indicators.
     mean_difference = mean(
       difference,
       na.rm = TRUE
     ),
+    
+    # Standard deviation of the difference.
     sd_difference = sd(
       difference,
       na.rm = TRUE
     ),
+    
+    # One-sample t-test:
+    # H0: mean difference = 0
     p_value = t.test(
       difference,
       mu = 0
     )$p.value,
+    
     .groups = "drop"
   ) %>%
+  
+  # Control the false discovery rate across the statistical tests.
   mutate(
     p_adjusted = p.adjust(
       p_value,
       method = "BH"
     ),
+    
+    # Identify statistically significant calibration effects.
     significant = p_adjusted < 0.05
   )
 
-write_csv(regional_tests,
-          file.path(
-            plotFolder,
-            "significant_interraction_effect.csv"
-          ))
+
+# ------------------------------------------------------------------------------
+# 10.1 Save statistical results
+# ------------------------------------------------------------------------------
+
+write_csv(
+  calibration_tests,
+  file.path(
+    plotFolder,
+    "plant_calibration_difference_tests.csv"
+  )
+)
 
 
+# ==============================================================================
+# 11. Mixed-effects model of calibration effects
+# ==============================================================================
 
+# Model:
+#
+# difference ~ indicator type × nature region + random effect of dataset
+#
+# Fixed effects:
+#   indicator_type
+#       Tests whether calibration effects differ between regional and global
+#       indicators.
+#
+#   nature_region
+#       Tests whether calibration effects differ among nature regions.
+#
+#   indicator_type × nature_region
+#       Tests whether the difference between regional and global calibration
+#       effects depends on nature region.
+#
+# Random effect:
+#   dataset
+#       Accounts for systematic differences between the ASO and ANO datasets.
 
 difference_model <- lmer(
-  difference ~ indicator_type * factor(nature_region) +
+  difference ~
+    indicator_type * factor(nature_region) +
     (1 | dataset),
   data = indicator_difference,
   REML = TRUE
 )
 
 
+# ==============================================================================
+# 12. Estimated marginal means
+# ==============================================================================
 
-## Estimated effects for each indicator × region combination
+# Calculate the model-estimated mean calibration effect for each combination
+# of indicator type and nature region.
 emm <- emmeans(
   difference_model,
-  ~ indicator_type | nature_region#,
-  #pbkrtest.limit = 5190
+  ~ indicator_type | nature_region
 )
 
+
+# Convert the emmeans object into a data frame and identify whether the
+# confidence interval excludes zero.
 emm_df <- as.data.frame(emm) %>%
+  
   mutate(
-    significant = asymp.LCL > 0 | asymp.UCL < 0,
+    
+    # Significant effect if the confidence interval does not overlap zero.
+    significant =
+      asymp.LCL > 0 |
+      asymp.UCL < 0,
+    
+    # Human-readable significance label.
     effect_label = if_else(
       significant,
       "Significant",
       "Not significant"
     )
   )
+
+
+# ==============================================================================
+# 13. Plot estimated calibration effects
+# ==============================================================================
 
 p_effects <- ggplot(
   emm_df,
@@ -6901,34 +6993,42 @@ p_effects <- ggplot(
   )
 ) +
   
+  # Reference line representing zero calibration effect.
   geom_hline(
     yintercept = 0,
     linetype = "dashed",
     linewidth = 0.6
   ) +
   
+  # 95% confidence intervals around the estimated marginal means.
   geom_errorbar(
     aes(
       ymin = asymp.LCL,
       ymax = asymp.UCL
     ),
-    position = position_dodge(width = 0.5),
+    position = position_dodge(
+      width = 0.6
+    ),
     width = 0.15,
     linewidth = 0.7
   ) +
   
+  # Estimated marginal means.
   geom_point(
-    position = position_dodge(width = 0.5),
+    position = position_dodge(
+      width = 0.6
+    ),
     size = 3
   ) +
   
   labs(
     x = "Nature region",
-    y = "Difference in scaled indicator\n(with interaction − without interaction)",
+    y = "Uncalibrated − calibrated indicator",
     colour = "Indicator"
   ) +
   
   theme_bw() +
+  
   theme(
     panel.grid = element_blank(),
     legend.position = "bottom",
@@ -6936,42 +7036,48 @@ p_effects <- ggplot(
     legend.title = element_text(face = "bold")
   )
 
+
+# Display the calibration-effect plot.
 p_effects
 
-## ========================================================
-## 11. Save PDF
-## ========================================================
+
+# ==============================================================================
+# 14. Save calibration-effect figure
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# PDF
+# ------------------------------------------------------------------------------
 
 ggsave(
   filename = file.path(
     plotFolder,
-    "interraction_difference_effect.pdf"
+    "plant_calibration_difference_effect.pdf"
   ),
   plot = p_effects,
-  width = 12,
-  height = 8,
+  width = 10,
+  height = 7,
   units = "in",
   device = "pdf"
 )
 
 
-## ========================================================
-## 12. Save PNG
-## ========================================================
+# ------------------------------------------------------------------------------
+# PNG
+# ------------------------------------------------------------------------------
 
 ggsave(
   filename = file.path(
     plotFolder,
-    "interraction_difference_effect.png"
+    "plant_calibration_difference_effect.png"
   ),
   plot = p_effects,
-  width = 12,
-  height = 8,
+  width = 10,
+  height = 7,
   units = "in",
   dpi = 600,
   device = "png"
 )
-
 
 ```
 
