@@ -12,6 +12,8 @@ indicatorID:
   - NO_TCCD_104
 indicatorName: 
   - Tree Canopy Cover Density
+verbatimName: 
+  - Kronedekke
 folderName: NO_TCCD_001_104
 country: Norway
 continent: Europe
@@ -33,7 +35,7 @@ Ecosystem:
   - T7.4 Urban and industrial
   - T7.4 Urban and industrial
 verbatimEcosystem: 
-- Bebygd og opparbeidet areal
+- Skog
 - Bebygd og opparbeidet areal
 yearAdded: 2025 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
@@ -424,9 +426,15 @@ We used the following four datasets:
 We downloaded, cleaned and formatted the data prior to compiling URGR indicators. Section 7 only presents how to load the cleaned data. In the data analyses, we will use a mix of `duckspatial` and `terra` packages. The first one is faster at handling big vector data than `sf` but raster operations are not part of it, so we use `sf` and `terra` to handle vector-raster operations. Hence vector datasets are written in a duckdb database whose connection is set below:
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Create a DuckDB connection"
-conn_tcd <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 30)
+
+# # For users who don't have a set up duckdb database
+# conn_tcd <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 30)
+
+# If users already have a duckdb database they want to use
+conn_tcd <- ddbs_create_conn(dbdir = paste0(str_remove(tempdir(), "Rtmp\\w*"), "duckdb_conn/tccd.duckdb"), threads = 10, memory_limit_gb = 30)
 
 ```
 
@@ -434,7 +442,7 @@ conn_tcd <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 
 We just load the virtual rasters we created for the years 2018 to 2021. These virtual rasters were previously built from different TCD tiles for each year. The only cleaning steps were to apply a mask for Norway (to select the relevant tiles) and re-classify the value 255 as NA (outside area).
 
 ```{r}
-#| eval: false
+#| eval: true
 #| code-summary: "Load Copernicus IMD"
 
 # Path to the Copernicus IMD data
@@ -818,20 +826,20 @@ for(tbl in tables){
 # }
 
 # ## Read intermediate layer (if needed)
-path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "TCCD_tmp_layers/ET014_LAU_3035.gpkg")
-layers <- st_layers(path_gpkg)$name
-
-walk(layers, function(lyr) {
-
-  ddbs_data <- ddbs_open_dataset(path_gpkg, layer = lyr, conn = conn_tcd)
-
-  ddbs_write_table(data = ddbs_data,
-                   conn = conn_tcd,
-                   name = paste0("lau_et014_", lyr),
-                   overwrite = TRUE)
-
-  message("Wrote layer: ", lyr)
-})
+# path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "TCCD_tmp_layers/ET014_LAU_3035.gpkg")
+# layers <- st_layers(path_gpkg)$name
+# 
+# walk(layers, function(lyr) {
+# 
+#   ddbs_data <- ddbs_open_dataset(path_gpkg, layer = lyr, conn = conn_tcd)
+# 
+#   ddbs_write_table(data = ddbs_data,
+#                    conn = conn_tcd,
+#                    name = paste0("lau_et014_", lyr),
+#                    overwrite = TRUE)
+# 
+#   message("Wrote layer: ", lyr)
+# })
 
 
 ## Clean duckdb database
@@ -866,7 +874,9 @@ rm(list = setdiff(ls(),
 Now we can use `exact_extract()` to retrieve the tree cover density overlapping the ET04 polygons.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| results: false
+#| message: false
 #| code-summary: "Spatial intersection ET04-LAU and TCD data"
 #| 
 
@@ -951,8 +961,10 @@ rm(list = setdiff(ls(),
 
 We do the same with ET01 polygons.
 ```{r}
-#| eval: false
-#| code-summary: "Spatial intersection ET04-LAU and TCD data"
+#| eval: true
+#| results: false
+#| message: false
+#| code-summary: "Spatial intersection ET01-LAU and TCD data"
 #| 
 
 ## Merge then back together and store them in R environment for parallel processing at the next step
@@ -1036,8 +1048,9 @@ rm(list = setdiff(ls(),
 
 Finally, we do the extract the tree cover density with the LAU classified as "cities" (`DEGURBA = 1`) 
 ```{r}
-#| eval: false
-#| code-summary: "Spatial intersection ET04-LAU and TCD data"
+#| eval: true
+#| message: false
+#| code-summary: "Spatial intersection LAU and TCD data"
 #| 
 
 ## Merge then back together and store them in R environment for parallel processing at the next step
@@ -1119,7 +1132,8 @@ rm(list = setdiff(ls(),
 
 #### TCCD_001
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile TCCD_001"
 
 ## TCCD national level - area-weighted mean
@@ -1177,7 +1191,8 @@ rm(list = setdiff(ls(),
 
 #### TCCD_100
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile TCCD_100"
 
 # Compile LAUs area
@@ -1241,7 +1256,8 @@ rm(list = setdiff(ls(),
 
 #### TCCD_101-104
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile TCCD_101"
 
 ## TCCD national level - area-weighted mean
@@ -1298,7 +1314,8 @@ rm(list = setdiff(ls(),
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile TCCD_102"
 
 ## TCCD national level - area-weighted mean
@@ -1357,7 +1374,8 @@ rm(list = setdiff(ls(),
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile TCCD_103"
 
 ## TCCD national level - area-weighted mean
@@ -1419,7 +1437,8 @@ rm(list = setdiff(ls(),
 
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile TCCD_104"
 
 ## TCCD national level - area-weighted mean
@@ -1528,7 +1547,10 @@ res_municipal <- bind_rows(tccd_001_mun,
 ddbs_stop_conn(conn_tcd)
 
 # Clean R environment
-rm(list = ls())
+rm(list = setdiff(ls(), 
+                  c("pull",
+                    "res_municipal",
+                    "res_national")))
 
 # Show table
 datatable(res_municipal, filter = "top") %>%
