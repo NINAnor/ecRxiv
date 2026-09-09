@@ -61,10 +61,13 @@ author:
     affiliations:
       - id: myID
         name: Norwegian institute for Nature Research # Enter affiliations
+  - name: Anders Kolstad              #  Enter subsequent authors like this, or remove if not relevant
+    affiliations:
+      - ref: myID               # To reuse affiliations reference the id like this
   - name: Markus A.K. Sydenham              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
-AuthorList: Adjei, K. P. and Sydenham, M.A.K.  
+AuthorList: Adjei, K. P., Kolstad, A. and Sydenham, M.A.K.  
 date: September 10, 2026 # Enter date
 data_availability: none
 code_reproducibility: none
@@ -227,6 +230,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - 18.08.2026 - Original PR
 - 24.08.2026 - First draft of the indicator documentation completed
+- 09.09.2026 - Revision of first draft with comments and validation 
 :::
 
 
@@ -244,7 +248,7 @@ With a maximum of 300 words, describe the indicator in general terms as you woul
 <!-- What does the metric represent? Why is this relevant for describing ecosystem condition in this ecosystem?
 What are the main anthropogenic impact factors? -->
 
-The pollinator potential indicator describes the potential condition of terrestrial pollinator communities in open lowland areas. It combines the predicted occurrence of pollinating insects with the availability of the plant hosts they interact with, thereby capturing an important ecological relationship underlying pollinator communities. The indicator is relevant because pollinators contribute to ecosystem functioning and depend on suitable plant resources [REF]. 
+The pollinator potential indicator describes the potential condition of terrestrial pollinator communities in open lowland areas. It combines the predicted occurrence of pollinating insects with the availability of the plant hosts they interact with, thereby capturing an important ecological relationship underlying pollinator communities. The indicator is relevant because pollinators contribute to ecosystem functioning and depend on suitable plant resources [@kral2021meta; @orford2016modest; @loy2022effects]. 
 
 2. **Methods**:
 <!-- What kind of data is used? How is the data customized (modified, estimated, integrated) to fit its purpose as an indicator? -->
@@ -255,7 +259,7 @@ The indicator integrates spatial predictions of plant hosts ($50$ plant species)
 - Linking pollinators to their interacting plant species using a plant–pollinator interaction matrix,
 - Weighting pollinator occurrence probabilities by the occurrence probabilities of their interacting plants,
 - Summing interaction-supported probabilities across pollinator species to estimate expected pollinator richness ,
-- Calibrating the expected pollinator richness with detected/observed richness from survey and monitoring data (referred to as pollination potential), 
+- Calibrating the expected pollinator richness with detected/observed richness from survey and monitoring data (referred to as pollinator potential), 
 - Establishing minimum and maximum reference values from reference locations representing relatively stable ecosystem conditions, and
 - Scaling the resulting indicator to a 0–1 range, using either region-specific or common reference values.
 
@@ -372,7 +376,7 @@ Natural gradients in topography, elevation, soil properties, water availability,
 
 <!-- Describe in word the same aggregation pathway presented in the top yaml (the metadata). If you have scaled against the reference value, it is especially important to know if you did any avergaing or summations etc. beforehand. An example text for a rather simple case could be: "The variable is scaled at the initial polygon level and the point estimate is a area-weighted arithmetic mean of all polygins. There is no transformation, and truncation is not needed as the indicator becomes naturally bound between 0 and 1".  -->
 
-Pollinator occurrence probabilities are first combined with the predicted occurrence probabilities of their interacting plant species to produce an interaction-supported probability for each pollinator species at each raster cell. These probabilities are then summed across pollinator species to obtain cell-level pollinator potential. We then calibrate these cell-level values using observed pollinator richness from survey and monitoring data. The resulting calibrated pollinator potential are scaled to 0–1 using reference minimum and maximum values. For the regional indicator, scaling is performed using reference levels specific to each of the five nature regions; for the global indicator, common reference levels are applied across all regions. Values less than 0 were truncated to 0, and values greater than 1 were truncated to 1, resulting in a final indicator value bounded between 0 and 1.
+Pollinator occurrence probabilities are first combined with the predicted occurrence probabilities of their interacting plant species to produce an interaction-supported probability for each pollinator species at each raster cell. These probabilities are then summed across pollinator species to obtain cell-level pollinator potential. We then calibrate these cell-level values using observed pollinator richness from survey and monitoring data. The resulting calibrated pollinator potential are scaled to 0–1 using reference minimum and maximum values. For the regional indicator, scaling is performed using reference levels specific to each of the five nature regions; for the national indicator, common reference levels are applied across all regions. Values less than 0 were truncated to 0, and values greater than 1 were truncated to 1, resulting in a final indicator value bounded between 0 and 1.
 
 ## 4. Reference condition and levels
 
@@ -5868,476 +5872,885 @@ saveRDS(
 
 ### 9.3. Evaluation of the indicator against plant resources
 
-**Re-write this section after the validation**
-We then evaluate the indicator values against the evaluation locations to assess how well the calculated indicators align with observed pollinator richness in the field. This evaluation provides insight into the accuracy and reliability of the indicator across different nature regions.
+We evaluate the insect indicator against observed insect richness, expected plant richness, and expected pollinator richness. This evaluation allows us to assess the performance of the indicator in capturing the insect richness patterns in the field. We extracted the indicator predictions at the NorIns locations and compared them with the observed insect richness and expected plant richness. The following relationships were evaluated:
 
-To evaluate the performance of the indicator using sampling insect data from the NINA insect dataset and the national insect monitoring dataset, we extracted the indicator values at the evaluation locations and calculated correlation coefficients between the observed pollinator richness and the scaled indicator values. The results of this evaluation are visualized in scatter plots, with separate panels for the global and regional indicators.
+  - Pollination potential vs expected plant richness
+  - Pollination potential vs observed insect richness
+  - Scaled indicator vs observed insect richness  
+  - Pollination potential vs expected pollinator richness (uncalibrated pollinator richness).
+
+Then we assessed the effect of calibration on the regional and national indicators by comparing the calibrated and uncalibrated versions of the indicator. The evaluation also quantifies the effect of calibration on regional and national indicators. We used statistical tests to determine whether the calibration significantly improved the indicator's performance in capturing the observed insect richness patterns.
 
 ```{r evaluate-insect-indicator}
 #| eval: false
 
+################################################################################
+# Insect indicator evaluation
+#
+# Purpose:
+#
+#   1. Prepare observed insect richness from the insect monitoring data.
+#   2. Extract indicator predictions at insect monitoring locations.
+#   3. Compare indicator values with:
+#        - expected plant richness,
+#        - observed insect richness, and
+#        - expected pollinator richness.
+#   4. Quantify the effect of calibration on regional and global indicators.
+#
+# Main outputs:
+#
+#   - richness_calibration_relationships.pdf
+#   - richness_calibration_relationships.png
+#   - insect_calibration_difference_tests.csv
+#   - insect_calibration_difference_effect.pdf
+#   - insect_calibration_difference_effect.png
+################################################################################
+
+# ==============================================================================
+# 1. Define dataset colours
+# ==============================================================================
+
+# Colours used to distinguish the two insect datasets in figures.
 dataset_colours <- c(
   "NINA_insect" = "#0072B2",
   "national_insect_monitoring" = "#D55E00"
 )
 
-# --------------------------------
-# Load the observed richness data
-# --------------------------------
-source("01_codeForEnvAgency/04_process_NINA_insect_data.R")
-source("01_codeForEnvAgency/04_process_national_insect_monitoring_data.R")
 
-observed_richness <- bind_rows(nina_insect_richness,
-                                national_monitoring_insect_richness)
+# ==============================================================================
+# 2. Load and prepare observed insect richness
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 2.1 Load insect monitoring data
+# ------------------------------------------------------------------------------
+
+# NINA insect monitoring data can also be loaded here if required.
+#
+# source("01_codeForEnvAgency/04_process_NINA_insect_data.R")
+
+# Load the national insect monitoring data.
+source(
+  "01_codeForEnvAgency/04_process_national_insect_monitoring_data.R"
+)
 
 
-## ========================================================
-## 1. Extract indicator values
-## ========================================================
+# ------------------------------------------------------------------------------
+# 2.2 Calculate mean observed insect richness per location
+# ------------------------------------------------------------------------------
 
-## Extract all indicator rasters
+# Multiple observations may occur at the same local location.
+#
+# We therefore calculate the mean observed insect richness for each location
+# before extracting raster-based indicator predictions.
+
+observed_richness <- bind_rows(
+  national_monitoring_insect_richness
+) %>%
+  
+  group_by(local) %>%
+  
+  summarise(
+    insct_r = mean(insct_r),
+    .groups = "drop"
+  )
+
+
+# ==============================================================================
+# 3. Extract indicator predictions at insect monitoring locations
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 3.1 Extract all indicator predictions
+# ------------------------------------------------------------------------------
+
+# Extract the values of every indicator raster at the observed insect
+# monitoring locations.
+#
+# The resulting object contains one row per monitoring location and one
+# column for each indicator raster layer.
+
 indicator_values <- terra::extract(
-  indicator_results$allRasts,
+  allRasts,
   terra::vect(observed_richness)
 )
 
 
-## Combine with evaluation-location information
-rt <- indicator_values  %>%
-  bind_cols(
-    observed_richness %>%
-      sf::st_drop_geometry()
-  ) %>%
-  select(
-    richness,
-    richness_without_interaction,
-    region_id,
-    regional_clamped,
-    regional_clamped_without_interaction,
-    global_clamped,
-    global_clamped_without_interaction,
-    insct_r,
-    dataset
-  )
+# ------------------------------------------------------------------------------
+# 3.2 Extract expected plant richness
+# ------------------------------------------------------------------------------
 
+# Extract expected plant richness from the 50-m prediction raster at the same
+# insect monitoring locations.
+#
+# This allows us to evaluate whether plant-based information is associated
+# with observed insect richness and the resulting pollination indicators.
 
-## ========================================================
-## 2. Reshape to long format
-## ========================================================
-
-rt_long <- rt %>%
-  pivot_longer(
-    cols = c(
-      richness,
-      regional_clamped,
-      global_clamped,
-      richness_without_interaction
-    ),
-    names_to = "indicator_type",
-    values_to = "indicator"
-  ) %>%
-  mutate(
-    indicator_type = recode(
-      indicator_type,
-      
-      global_clamped =
-        "Global indicator",
-      
-      regional_clamped =
-        "Regional indicator",
-      
-      richness =
-        "Estimated pollinator richness",
-      
-      richness_without_interaction =
-        "Estimated pollinator richness (without interraction)"
-    )
-  ) %>%
-na.omit()
-
-
-## ========================================================
-## 3. Define indicator order
-## ========================================================
-
-indicator_levels <- c(
-  "Global indicator",
-  "Regional indicator",
-  "Estimated pollinator richness",
-  "Estimated pollinator richness (without interraction)"
+plant_richness_values <- terra::extract(
+  plant_expected_richness_50m,
+  terra::vect(observed_richness)
 )
 
-rt_long <- rt_long %>%
-  mutate(
-    indicator_type = factor(
-      indicator_type,
-      levels = indicator_levels
-    )
-  )
 
+# ------------------------------------------------------------------------------
+# 3.3 Assign nature regions to monitoring locations
+# ------------------------------------------------------------------------------
 
-## ========================================================
-## 4. Calculate correlation coefficients
-## ========================================================
+# Spatially join each monitoring location to its corresponding nature region.
+#
+# Only the nature_region variable is retained because this is the regional
+# grouping required for the calibration-effect analysis.
 
-cor_labels <- rt_long %>%
-  group_by(
-    indicator_type,
-    dataset
-  ) %>%
-  summarise(
-    r = cor(
-      insct_r,
-      indicator,
-      method = "pearson",
-      use = "complete.obs"
-    ),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    label = paste0(
-      dataset,
-      ": r = ",
-      sprintf(
-        "%.2f",
-        r
-      )
-    )
-  )
-
-
-## ========================================================
-## 5. Common plotting theme
-## ========================================================
-
-common_theme <- theme_bw() +
+regions_eval_locs <- sf::st_join(
+  observed_richness,
   
-  theme(
+  nature_regions %>%
+    dplyr::select(nature_region),
+  
+  join = sf::st_within
+)
+
+
+# ==============================================================================
+# 4. Construct the insect indicator evaluation dataset
+# ==============================================================================
+
+# Combine:
+#
+#   - indicator predictions,
+#   - expected plant richness,
+#   - observed insect richness, and
+#   - nature-region information.
+#
+# The resulting object, `rt`, is the main analysis dataset used throughout
+# the remainder of the script.
+
+rt <- indicator_values %>%
+  
+  # Add expected plant richness.
+  bind_cols(
+    plant_richness_values %>%
+      select(-ID)
+  ) %>%
+  
+  # Add monitoring-location information and nature region.
+  bind_cols(
+    regions_eval_locs
+  ) %>%
+  
+  # Retain only variables required for the evaluation.
+  select(
     
-    ## Remove grid
-    panel.grid = element_blank(),
+    # Expected pollinator richness.
+    richness,
     
-    ## Facet strips
-    strip.text = element_text(
-      face = "bold",
-      size = 12
-    ),
+    # Calibrated expected pollinator richness.
+    calibrated_richness,
     
-    strip.background = element_rect(
-      fill = "grey90",
-      colour = "black"
-    ),
+    # Expected pollinator richness without interaction.
+    richness_without_interaction,
     
-    ## Consistent axes
-    axis.title = element_text(
-      size = 11
-    ),
+    # Regional indicator.
+    regional_clamped,
     
-    axis.text = element_text(
-      size = 9
-    ),
+    # Calibrated regional indicator.
+    calibrated_regional_clamped,
     
-    ## Consistent legend
-    legend.position = "right",
+    # Regional indicator without interaction.
+    regional_clamped_without_interaction,
     
-    legend.title = element_text(
-      face = "bold"
-    ),
+    # Global indicator.
+    global_clamped,
     
-    legend.text = element_text(
-      size = 9
-    )
+    # Calibrated global indicator.
+    calibrated_global_clamped,
+    
+    # Global indicator without interaction.
+    global_clamped_without_interaction,
+    
+    # Observed insect richness.
+    insct_r,
+    
+    # Expected plant richness.
+    plant_expected_richness,
+    
+    # Nature region.
+    nature_region
+  ) %>%
+  
+  # Remove locations containing missing values.
+  na.omit()
+
+
+# ==============================================================================
+# 5. Prepare data for richness relationship plots
+# ==============================================================================
+
+# The four scatter plots evaluate the following relationships:
+#
+#   A. Pollination potential vs expected plant richness
+#   B. Pollination potential vs observed insect richness
+#   C. Scaled indicator vs observed insect richness
+#   D. Pollination potential vs expected pollinator richness
+#
+# In each case, the variable being evaluated is plotted against the relevant
+# ecological richness measure.
+
+plot_data <- rt %>%
+  
+  # Geometry is not required for these statistical/graphical comparisons.
+  sf::st_drop_geometry() %>%
+  
+  select(
+    plant_expected_richness,
+    calibrated_richness,
+    insct_r,
+    calibrated_regional_clamped,
+    richness
   )
 
 
-## ========================================================
-## 6. Scaled indicator plot
-## ========================================================
+# ==============================================================================
+# 6. Calculate Pearson correlations
+# ==============================================================================
 
-indicator_cor_labels <- cor_labels %>%
-  filter(
-    indicator_type %in% c(
-      "Global indicator",
-      "Regional indicator"
+# ------------------------------------------------------------------------------
+# Function: get_correlation()
+#
+# Calculates Pearson's correlation coefficient between two variables.
+#
+# Arguments:
+#
+#   data  - data frame containing the variables
+#   x_var - name of the x-axis variable
+#   y_var - name of the y-axis variable
+#
+# Returns:
+#
+#   A formatted text label containing Pearson's correlation coefficient.
+# ------------------------------------------------------------------------------
+
+get_correlation <- function(
+    data,
+    x_var,
+    y_var
+) {
+  
+  # Keep only complete observations for the two variables.
+  dat <- data %>%
+    filter(
+      !is.na(.data[[x_var]]),
+      !is.na(.data[[y_var]])
     )
-  ) %>%
-  group_by(
-    indicator_type
-  ) %>%
-  arrange(
-    dataset
-  ) %>%
-  mutate(
-    vjust_position = seq(
-      1.5,
-      by = 1.5,
-      length.out = n()
-    )
-  ) %>%
-  ungroup()
+  
+  
+  # Calculate Pearson's correlation coefficient.
+  cor_value <- cor(
+    dat[[x_var]],
+    dat[[y_var]],
+    method = "pearson"
+  )
+  
+  
+  # Format the correlation for display on the figure.
+  paste0(
+    "Pearson r = ",
+    sprintf("%.2f", cor_value)
+  )
+}
 
 
-indicator_plot <- rt_long %>%
-  filter(
-    indicator_type %in% c(
-      "Global indicator",
-      "Regional indicator"
-    )
-  ) %>%
-  dplyr::mutate(insct_r = insct_r/length(species_names)) %>%
+# ==============================================================================
+# 7. Function for creating standardised scatter plots
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Function: make_scatter()
+#
+# Creates a standardised scatter plot containing:
+#
+#   - individual observations,
+#   - a linear regression line,
+#   - its 95% confidence interval,
+#   - Pearson's correlation coefficient, and
+#   - a panel label.
+#
+# Arguments:
+#
+#   data        - plotting data
+#   x_var       - variable plotted on the x-axis
+#   y_var       - variable plotted on the y-axis
+#   x_label     - x-axis label
+#   y_label     - y-axis label
+#   panel_label - panel identifier (A, B, C, D)
+# ------------------------------------------------------------------------------
+
+make_scatter <- function(
+    data,
+    x_var,
+    y_var,
+    x_label,
+    y_label,
+    panel_label
+) {
+  
+  # Calculate Pearson's correlation for this relationship.
+  cor_label <- get_correlation(
+    data = data,
+    x_var = x_var,
+    y_var = y_var
+  )
+  
+  
   ggplot(
+    data,
     aes(
-      x = insct_r,
-      y = indicator,
-      colour = dataset
+      x = .data[[x_var]],
+      y = .data[[y_var]]
     )
   ) +
-  
-  ## Points
+    
+    # --------------------------------------------------------------------------
+  # Monitoring locations
+  # --------------------------------------------------------------------------
   geom_point(
-    position = position_jitter(
-      width = 0.15,
-      height = 0
-    ),
     alpha = 0.6,
-    size = 1.5
+    size = 2
   ) +
-  
-  ## Linear relationship
+    
+    # --------------------------------------------------------------------------
+  # Linear relationship
+  #
+  # The shaded region represents the 95% confidence interval around the
+  # estimated regression line.
+  # --------------------------------------------------------------------------
   geom_smooth(
     method = "lm",
     se = TRUE,
     linewidth = 0.8
   ) +
-  
-  ## Correlations
-  geom_text(
-    data = indicator_cor_labels,
-    aes(
-      x = Inf,
-      y = Inf,
-      label = label,
-      colour = dataset,
-      vjust = vjust_position
-    ),
+    
+    # --------------------------------------------------------------------------
+  # Pearson correlation
+  #
+  # Position the correlation coefficient in the upper-right corner.
+  # --------------------------------------------------------------------------
+  annotate(
+    "text",
+    x = Inf,
+    y = Inf,
+    label = cor_label,
     hjust = 1.1,
-    inherit.aes = FALSE,
-    size = 3.5
+    vjust = 1.5,
+    fontface = "bold",
+    size = 4
   ) +
-  
-  ## Facets
-  facet_wrap(
-    ~ indicator_type,
-    nrow = 1
+    
+    # --------------------------------------------------------------------------
+  # Panel label
+  # --------------------------------------------------------------------------
+  annotate(
+    "text",
+    x = -Inf,
+    y = Inf,
+    label = panel_label,
+    hjust = -0.5,
+    vjust = 1.5,
+    fontface = "bold",
+    size = 5
   ) +
-  
-  ## Common 0–1 scale
-  scale_y_continuous(
-    limits = c(0, 1),
-    breaks = seq(
-      0,
-      1,
-      0.25
-    )
-  ) +
-  scale_colour_manual(
-    values = dataset_colours,
-    name = "Dataset"
-  ) +
+    
+    # --------------------------------------------------------------------------
+  # Axis labels
+  # --------------------------------------------------------------------------
   labs(
-    x = "Proportion of pollinator richness",
-    y = "Scaled indicator",
-    colour = "Dataset",
-    title = "A)"
+    x = x_label,
+    y = y_label
   ) +
-  
-  common_theme
-
-
-## ========================================================
-## 7. Modelled richness correlation labels
-## ========================================================
-
-richness_cor_labels <- cor_labels %>%
-  filter(
-    indicator_type %in% c(
-      "Estimated pollinator richness",
-      "Estimated pollinator richness (without interraction)"
-    )
-  ) %>%
-  group_by(
-    indicator_type
-  ) %>%
-  arrange(
-    dataset
-  ) %>%
-  mutate(
-    vjust_position = seq(
-      1.5,
-      by = 1.5,
-      length.out = n()
-    )
-  ) %>%
-  ungroup()
-
-
-## ========================================================
-## 8. Modelled richness plot
-## ========================================================
-
-richness_plot <- rt_long %>%
-  filter(
-    indicator_type %in% c(
-      "Estimated pollinator richness",
-      "Estimated pollinator richness (without interraction)"
-    )
-  ) %>%
-  
-  ggplot(
-    aes(
-      x = insct_r,
-      y = indicator,
-      colour = dataset
-    )
+    
+    # --------------------------------------------------------------------------
+  # Plot theme
+  # --------------------------------------------------------------------------
+  theme_classic(
+    base_size = 12
   ) +
-  
-  ## Points
-  geom_point(
-    position = position_jitter(
-      width = 0.15,
-      height = 0
-    ),
-    alpha = 0.6,
-    size = 1.5
-  )+
-  
-  ## Linear relationship
-  geom_smooth(
-    method = "lm",
-    se = TRUE,
-    linewidth = 0.8
-  ) +
-  
-  ## Correlations
-  geom_text(
-    data = richness_cor_labels,
-    aes(
-      x = Inf,
-      y = Inf,
-      label = label,
-      colour = dataset,
-      vjust = vjust_position
-    ),
-    hjust = 1.1,
-    inherit.aes = FALSE,
-    size = 3.5
-  ) +
-  
-  ## Facets
-  facet_wrap(
-    ~ indicator_type,
-    nrow = 1,
-    scales = "free_y"
-  ) +
-  
-  ## Same visual scale across richness facets
-  scale_y_continuous(
-    expand = expansion(
-      mult = c(
-        0.05,
-        0.15
+    
+    theme(
+      
+      axis.title = element_text(
+        face = "bold"
+      ),
+      
+      axis.text = element_text(
+        colour = "black"
+      ),
+      
+      panel.border = element_rect(
+        colour = "black",
+        fill = NA,
+        linewidth = 0.5
       )
     )
-  ) +
-  scale_colour_manual(
-    values = dataset_colours,
-    name = "Dataset"
-  ) +
-  
-  labs(
-    x = "Observed pollinator richness",
-    y = "Estimated richness",
-    colour = "Dataset",
-    title = "B)"
-  ) +
-  
-  common_theme
+}
 
 
-## ========================================================
-## 9. Combine plots
-## ========================================================
-library(patchwork)
-p <- indicator_plot /
-  richness_plot +
-  
-  plot_layout(
-    heights = c(
-      1,
-      1
-    ),
-    guides = "collect"
-  ) &
-  
-  theme(
-    legend.position = "right"
+# ==============================================================================
+# 8. Generate the four richness relationship plots
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Panel A
+#
+# Question:
+#   Is pollination potential associated with expected plant richness?
+# ------------------------------------------------------------------------------
+
+pA <- make_scatter(
+  data = plot_data,
+  x_var = "calibrated_richness",
+  y_var = "plant_expected_richness",
+  x_label = "Pollination potential",
+  y_label = "Expected plant richness",
+  panel_label = "A"
+)
+
+
+# ------------------------------------------------------------------------------
+# Panel B
+#
+# Question:
+#   Is pollination potential associated with observed insect richness?
+# ------------------------------------------------------------------------------
+
+pB <- make_scatter(
+  data = plot_data,
+  x_var = "calibrated_richness",
+  y_var = "insct_r",
+  x_label = "Pollination potential",
+  y_label = "Observed insect richness",
+  panel_label = "B"
+)
+
+
+# ------------------------------------------------------------------------------
+# Panel C
+#
+# Question:
+#   Is the calibrated regional indicator associated with observed insect
+#   richness?
+# ------------------------------------------------------------------------------
+
+pC <- make_scatter(
+  data = plot_data,
+  x_var = "calibrated_regional_clamped",
+  y_var = "insct_r",
+  x_label = "Scaled indicator",
+  y_label = "Observed insect richness",
+  panel_label = "C"
+)
+
+
+# ------------------------------------------------------------------------------
+# Panel D
+#
+# Question:
+#   How strongly does pollination potential track the underlying expected
+#   pollinator richness surface?
+# ------------------------------------------------------------------------------
+
+pD <- make_scatter(
+  data = plot_data,
+  x_var = "calibrated_richness",
+  y_var = "richness",
+  x_label = "Pollination potential",
+  y_label = "Expected pollinator richness",
+  panel_label = "D"
+)
+
+
+# ==============================================================================
+# 9. Combine the four plots
+# ==============================================================================
+
+# Arrange the four panels in a 2 × 2 layout.
+p_combined <- (
+  pA | pB
+) /
+  (
+    pC | pD
   )
 
 
-## ========================================================
-## 10. Display
-## ========================================================
-
-p
+# Display the combined figure.
+p_combined
 
 
-## ========================================================
-## 11. Save PDF
-## ========================================================
+# ==============================================================================
+# 10. Save richness relationship figure
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# PDF
+# ------------------------------------------------------------------------------
 
 ggsave(
   filename = file.path(
     plotFolder,
-    "insect_indicator_evaluation.pdf"
+    "richness_calibration_relationships.pdf"
   ),
-  plot = p,
+  plot = p_combined,
   width = 12,
-  height = 8,
+  height = 10,
+  units = "in"
+)
+
+
+# ------------------------------------------------------------------------------
+# High-resolution PNG
+# ------------------------------------------------------------------------------
+
+ggsave(
+  filename = file.path(
+    plotFolder,
+    "richness_calibration_relationships.png"
+  ),
+  plot = p_combined,
+  width = 12,
+  height = 10,
+  units = "in",
+  dpi = 600
+)
+
+
+# ==============================================================================
+# 11. Evaluate the effect of calibration
+# ==============================================================================
+
+# The second part of the analysis evaluates how much calibration changes
+# the regional and global indicators.
+#
+# Difference is defined as:
+#
+#     uncalibrated indicator - calibrated indicator
+#
+# Therefore:
+#
+#   positive difference  -> calibration decreases the indicator
+#   negative difference  -> calibration increases the indicator
+#   difference = 0       -> no effect of calibration
+
+
+# ------------------------------------------------------------------------------
+# 11.1 Calculate calibration-induced differences
+# ------------------------------------------------------------------------------
+
+indicator_difference <- rt %>%
+  
+  transmute(
+    nature_region,
+    
+    # --------------------------------------------------------------------------
+    # Regional indicator
+    # --------------------------------------------------------------------------
+    regional_difference =
+      regional_clamped -
+      calibrated_regional_clamped,
+    
+    # --------------------------------------------------------------------------
+    # Global indicator
+    # --------------------------------------------------------------------------
+    global_difference =
+      global_clamped -
+      calibrated_global_clamped
+  ) %>%
+  
+  # Convert regional and global differences into long format.
+  pivot_longer(
+    cols = c(
+      regional_difference,
+      global_difference
+    ),
+    names_to = "indicator_type",
+    values_to = "difference"
+  ) %>%
+  
+  # Replace technical variable names with readable labels.
+  mutate(
+    indicator_type = recode(
+      indicator_type,
+      regional_difference = "Regional",
+      global_difference = "National"
+    ),
+    
+    # Define the plotting/model order.
+    indicator_type = factor(
+      indicator_type,
+      levels = c(
+        "Regional",
+        "National"
+      )
+    )
+  )
+
+
+# ==============================================================================
+# 12. Statistical tests of calibration effects
+# ==============================================================================
+
+# For every indicator type × nature-region combination, calculate:
+#
+#   - sample size,
+#   - mean calibration-induced difference,
+#   - standard deviation,
+#   - one-sample t-test against zero.
+#
+# The null hypothesis is:
+#
+#     H0: mean calibration difference = 0
+#
+# P-values are adjusted using the Benjamini–Hochberg procedure to control the
+# false discovery rate across the multiple regional comparisons.
+
+calibration_tests <- indicator_difference %>%
+  
+  group_by(
+    indicator_type,
+    nature_region
+  ) %>%
+  
+  summarise(
+    
+    # Number of observations.
+    n = sum(
+      !is.na(difference)
+    ),
+    
+    # Mean difference between uncalibrated and calibrated indicators.
+    mean_difference = mean(
+      difference,
+      na.rm = TRUE
+    ),
+    
+    # Standard deviation of the calibration-induced difference.
+    sd_difference = sd(
+      difference,
+      na.rm = TRUE
+    ),
+    
+    # Test whether the mean difference differs from zero.
+    p_value = t.test(
+      difference,
+      mu = 0
+    )$p.value,
+    
+    .groups = "drop"
+  ) %>%
+  
+  # Adjust p-values for multiple comparisons.
+  mutate(
+    p_adjusted = p.adjust(
+      p_value,
+      method = "BH"
+    ),
+    
+    # Flag statistically significant calibration effects.
+    significant = p_adjusted < 0.05
+  )
+
+
+# ==============================================================================
+# 13. Save calibration test results
+# ==============================================================================
+
+write_csv(
+  calibration_tests,
+  file.path(
+    plotFolder,
+    "insect_calibration_difference_tests.csv"
+  )
+)
+
+
+# ==============================================================================
+# 14. Model calibration effects
+# ==============================================================================
+
+# Fit a linear model to test whether calibration effects differ according to:
+#
+#   1. indicator type (Regional vs Global),
+#   2. nature region, and
+#   3. their interaction.
+#
+# Model:
+#
+#   difference ~ indicator_type × nature_region
+#
+# The interaction tests whether the difference between Regional and Global
+# calibration effects changes among nature regions.
+
+difference_model <- lm(
+  difference ~
+    indicator_type *
+    factor(nature_region),
+  data = indicator_difference
+)
+
+
+# ==============================================================================
+# 15. Calculate estimated marginal means
+# ==============================================================================
+
+# Estimate the model-adjusted mean calibration effect for each
+# indicator type × nature-region combination.
+
+emm <- emmeans(
+  difference_model,
+  ~ indicator_type | nature_region
+)
+
+
+# ==============================================================================
+# 16. Prepare estimated effects for plotting
+# ==============================================================================
+
+emm_df <- as.data.frame(emm) %>%
+  
+  mutate(
+    
+    # A calibration effect is considered significant when its confidence
+    # interval does not include zero.
+    significant =
+      lower.CL > 0 |
+      upper.CL < 0,
+    
+    # Create a readable significance label.
+    effect_label = if_else(
+      significant,
+      "Significant",
+      "Not significant"
+    )
+  )
+
+
+# Inspect estimated marginal means.
+emm_df
+
+
+# ==============================================================================
+# 17. Plot estimated calibration effects
+# ==============================================================================
+
+p_effects <- ggplot(
+  emm_df,
+  aes(
+    x = factor(nature_region),
+    y = emmean,
+    colour = indicator_type
+  )
+) +
+  
+  # Zero represents no change due to calibration.
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    linewidth = 0.6
+  ) +
+  
+  # 95% confidence intervals around the estimated marginal means.
+  geom_errorbar(
+    aes(
+      ymin = lower.CL,
+      ymax = upper.CL
+    ),
+    position = position_dodge(
+      width = 0.6
+    ),
+    width = 0.15,
+    linewidth = 0.7
+  ) +
+  
+  # Estimated mean calibration effects.
+  geom_point(
+    position = position_dodge(
+      width = 0.6
+    ),
+    size = 3
+  ) +
+  
+  labs(
+    x = "Nature region",
+    y = "Uncalibrated − calibrated indicator",
+    colour = "Indicator"
+  ) +
+  
+  theme_bw() +
+  
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "bottom",
+    axis.title = element_text(
+      face = "bold"
+    ),
+    legend.title = element_text(
+      face = "bold"
+    )
+  )
+
+
+# Display the calibration-effect plot.
+p_effects
+
+
+# ==============================================================================
+# 18. Save calibration-effect figure
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# PDF
+# ------------------------------------------------------------------------------
+
+ggsave(
+  filename = file.path(
+    plotFolder,
+    "insect_calibration_difference_effect.pdf"
+  ),
+  plot = p_effects,
+  width = 10,
+  height = 7,
   units = "in",
   device = "pdf"
 )
 
 
-## ========================================================
-## 12. Save PNG
-## ========================================================
+# ------------------------------------------------------------------------------
+# High-resolution PNG
+# ------------------------------------------------------------------------------
 
 ggsave(
   filename = file.path(
     plotFolder,
-    "insect_indicator_evaluation.png"
+    "insect_calibration_difference_effect.png"
   ),
-  plot = p,
-  width = 12,
-  height = 8,
+  plot = p_effects,
+  width = 10,
+  height = 7,
   units = "in",
   dpi = 600,
   device = "png"
 )
-
 ```
 
 
 ### 9.4. Evaluation of the indicator against plant resources
 
-We also evaluated our (scaled) indicator values against the expected plant richness at the evaluation locations. This evaluation provides insight into how well the indicator reflects the availability of plant resources, which are crucial for pollinator populations. Specifically, we extracted the indicator values at the evaluation locations and calculated correlation coefficients between the expected plant richness and the scaled indicator values. The results of this evaluation are visualized in scatter plots, with separate panels for the global and regional indicators. The following four assessments were conducted:
+We also evaluated our (scaled) indicator values against the expected plant richness at the evaluation locations. This evaluation provides insight into how well the indicator reflects the availability of plant resources, which are crucial for pollinator populations. Specifically, we extracted the indicator values at the evaluation locations and calculated correlation coefficients between the expected plant richness and the scaled indicator values. The results of this evaluation are visualized in scatter plots, with separate panels for the national and regional indicators. The following four assessments were conducted:
 
 - The correlation between the expected plant richness and the observed/detected plant richness from the ASO and ANO surveys.
 - The correlation between the expected plant richness and the regional scaled indicator.
 - The correlation between the expected plant richness and the pollinator potential.
 - The correlation between the expected plant richness and the expected pollinator richness (the uncalibrated version).
 
-Like the previous evaluation, we also assesses whether the calibration change the magnitude of the regional and global pollination-potential indicators, and does the magnitude of this change vary among nature regions. We quantify the differences between the calibrated and uncalibrated indicators, and test whether these differences are statistically significant across nature regions. The results of this analysis are visualized in error plots, with separate panels for the regional and national indicators.
+Like the previous evaluation, we also assesses whether the calibration change the magnitude of the regional and national pollinator potential indicators, and does the magnitude of this change vary among nature regions. We quantify the differences between the calibrated and uncalibrated indicators, and test whether these differences are statistically significant across nature regions. The results of this analysis are visualized in error plots, with separate panels for the regional and national indicators.
 
 ```{r evaluate-plant-indicator}
 #| eval: false
@@ -6826,7 +7239,7 @@ indicator_difference <- rt %>%
     indicator_type = recode(
       indicator_type,
       regional_difference = "Regional",
-      global_difference = "Global"
+      global_difference = "National"
     ),
     
     # Explicitly define the desired plotting/model order.
@@ -6834,7 +7247,7 @@ indicator_difference <- rt %>%
       indicator_type,
       levels = c(
         "Regional",
-        "Global"
+        "National"
       )
     )
   )
@@ -7092,13 +7505,27 @@ This is typically where people will harvest data from, so make sure to include a
 
 -->
 
-### 10.1 Spatial patterns and regional reference conditions
+### 10.1. Calibrated model
 
-The pollinator potential indicator provides two complementary measures of biodiversity condition. The regional indicator evaluates predicted insect richness relative to the reference condition of each nature region, whereas the global indicator evaluates richness against a common national reference scale. Both are scaled from 0 to 1, with values approaching 0 and 1 representing the lower ($X_0$) and upper ($X_{100}$) reference conditions, respectively. 
+From the candidate model, the GAM model was the best performing model with the lowest RMSE values from the validation data, and capturing the observed patterns better as displayed in @fig-best_model_performance.
+
+```{r fig-best_model_performance}
+#| fig-cap: 'Scatter plot showinng the relationship between the observed and predicted pollinator richness from the three candidate models fitted. The blue line shows the fitted regression line, while the dashed black line shows the 1:1 relationship.'
+#| fig-width: 100
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/validation_plots.png")
+```
+
+### 10.2. Reference levels
+
+The reference levels varied substantially among the five nature regions, with the highest values in East and the lowest in North [@tbl-insect-indicator-reference-levels]. The upper reference level ($X_{100}$) ranged from $63$ in North to $145$ in East, whereas the lower reference level ($X_0$) ranged from $14$ to $25$. The resulting reference range therefore varied from $49$ units in North to $120$ units in East. The number of reference locations also differed among regions, ranging from $473$ in North to $1184$ in West.
 
 ```{r}
 #| echo: false
 #| label: tbl-insect-indicator-reference-levels
+#| warning: false
+#| message: false
 
 tbl_refs <- readRDS(
   "../data/insect_indicator_reference_values.rds"
@@ -7106,105 +7533,513 @@ tbl_refs <- readRDS(
 
 names(tbl_refs) <- c(
   "Nature region",
-  "Mean richness",
-  "$X_0$",
-  "$X_{100}$",
+  "Mean richness (uncalibrated)",
+  "$X_0$ (uncalibrated)",
+  "$X_{100}$ (uncalibrated)",
   "Mean richness (no interaction)",
   "$X_0$ (no interaction)",
   "$X_{100}$ (no interaction)",
+  "Mean richness",
+  "$X_0$",
+  "$X_{100}$",
   "Reference locations"
 )
 
 knitr::kable(
-  tbl_refs %>% dplyr::select(-c("Mean richness (no interaction)", "Mean richness")),
+  tbl_refs %>% dplyr::select("Nature region", "$X_0$", "$X_{100}$", "Reference locations"),
   format = "markdown",
-  digits = 2,
-    caption = paste(
-    "Regional reference levels used to scale the insect indicator.",
-    "Mean richness and the lower ($X_0$) and upper ($X_{100}$)",
-    "reference levels are shown for each nature region, together",
-    "with the corresponding values calculated without interaction effects.",
-    "Reference locations indicate the number of locations used to",
-    "derive the regional reference levels."
-  )
+  digits = 0,
+    caption = "Regional reference levels for the pollinator potential indicator. For each nature region, the table reports the lower ($X_0$) and upper ($X_{100}$) reference levels and the number of reference locations used in their estimation. Reference locations were derived from NiN polygons located within the open lowlands boundary. All the reference levels have been rounded to the nearest whole number."
 )
 ```
 
-Under the interaction-supported model, regional reference levels varied substantially: $X_0$ ranged from 1.79 species in West to 29.05 in East, while $X_{100}$ ranged from 212.04 in North to 323.97 in West [@tbl-insect-indicator-reference-levels]. This variation means that the same absolute richness value can represent different ecological conditions among regions, supporting the use of region-specific reference levels for regional assessment.
 
-Accounting for plant–pollinator interactions substantially altered the reference levels. Without interactions, $X_0$ and $X_{100}$ were increased to 75.35–252.82 species and $X_{100}$ to 464.83–639.75 species across regions, compared with 1.79–29.05 and 212.04–323.97 species, respectively, when interactions were included [@tbl-insect-indicator-reference-levels]. Thus, excluding plant–pollinator interactions produces considerably higher reference richness and consequently a more optimistic assessment of insect condition. The results demonstrate that plant–pollinator relationships influence not only predicted insect richness but also the reference conditions against which ecological condition is evaluated.
+### 10.3. Scaled indicator values
 
-### 10.2 Effect of plant-pollinator interractions
+We present the regional scaled indicator values for each nature region in @fig-scaledIndicatorPlot and @tbl-scaledIndicatorValues. 
 
-The reference levels [@tbl-insect-indicator-reference-levels] also help explain the strong differences between the interaction and no-interaction indicators. Including plant–pollinator interactions resulted in substantially lower indicator values across all five nature regions. The estimated difference between the interaction and no-interaction formulations was negative in every region, with $95\%$ confidence intervals excluding zero [@fig-interraction_effects].
-
-```{r fig-interraction_effects}
-#| fig-cap: 'Difference in scaled pollinator richness indicators with and without interaction effects at the ANO and ASO survey locations.'
+```{r fig-scaledIndicatorPlot}
+#| fig-cap: 'Scaled indicator values for each nature region. Left:The mean of the scaled indicator values for each nature region. Right: The standard deviation of the scaled indicator values for each nature region.'
 #| fig-width: 100
 #| echo: false
 #| warning: false
-knitr::include_graphics("../img/interraction_difference_effect.png")
+################################################################################
+# Interactive maps of the calibrated regional indicator
+#
+# Maps:
+#   A. Mean calibrated regional indicator
+#   B. Standard deviation of the calibrated regional indicator
+#
+# Each nature-region polygon is coloured according to the corresponding
+# statistic. Hovering over a polygon displays its value, while clicking
+# provides additional information.
+################################################################################
+
+
+# ==============================================================================
+# 1. Load packages
+# ==============================================================================
+
+library(sf)
+library(dplyr)
+library(leaflet)
+library(htmltools)
+
+
+# ==============================================================================
+# 2. Read and prepare data
+# ==============================================================================
+
+region_map <- sf::st_read(
+  "../data/region_map.shp",
+  quiet = TRUE
+)
+
+
+calibrated_region_map <- region_map %>%
+  
+  # Keep only the calibrated regional indicator.
+  filter(
+    indictr == "Calibrated regional indicator"
+  ) %>%
+  
+  # Keep variables required for mapping.
+  select(
+    ntr_rgn,
+    indictr,
+    mean,
+    sd,
+    geometry
+  ) %>%
+  
+  # Repair invalid geometries.
+  st_make_valid() %>%
+  
+  # Transform to WGS84 for Leaflet.
+  st_transform(4326)
+
+
+# ==============================================================================
+# 3. Colour palettes
+# ==============================================================================
+
+mean_palette <- leaflet::colorNumeric(
+  palette = "viridis",
+  domain = calibrated_region_map$mean,
+  na.color = "transparent"
+)
+
+
+sd_palette <- leaflet::colorNumeric(
+  palette = "viridis",
+  domain = calibrated_region_map$sd,
+  na.color = "transparent"
+)
+
+
+# ==============================================================================
+# 4. Determine map extent
+# ==============================================================================
+
+bbox <- st_bbox(
+  calibrated_region_map
+)
+
+xmin <- as.numeric(bbox["xmin"])
+xmax <- as.numeric(bbox["xmax"])
+ymin <- as.numeric(bbox["ymin"])
+ymax <- as.numeric(bbox["ymax"])
+
+
+# ==============================================================================
+# 5. Create mean map
+# ==============================================================================
+
+map_mean <- leaflet::leaflet(
+  
+  # IMPORTANT:
+  # Give this widget its own unique HTML element ID.
+  elementId = "calibrated_indicator_mean_map",
+  
+  width = "100%",
+  height = "600px"
+) %>%
+  
+  # --------------------------------------------------------------------------
+  # OpenStreetMap basemap
+  # --------------------------------------------------------------------------
+  addTiles(
+    urlTemplate =
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution =
+      "&copy; OpenStreetMap contributors"
+  ) %>%
+  
+  # --------------------------------------------------------------------------
+  # Nature-region polygons
+  # --------------------------------------------------------------------------
+  addPolygons(
+    
+    data = calibrated_region_map,
+    
+    # Colour represents mean calibrated indicator.
+    fillColor = ~mean_palette(mean),
+    fillOpacity = 0.8,
+    
+    # Complete polygon boundary.
+    color = "black",
+    weight = 1.5,
+    opacity = 1,
+    
+    # Information displayed on hover.
+    label = ~paste0(
+      ntr_rgn,
+      " | Mean = ",
+      sprintf("%.3f", mean)
+    ),
+    
+    # Information displayed on click.
+    popup = ~paste0(
+      "<strong>Nature region:</strong> ",
+      ntr_rgn,
+      "<br><strong>Mean:</strong> ",
+      sprintf("%.3f", mean),
+      "<br><strong>SD:</strong> ",
+      sprintf("%.3f", sd)
+    ),
+    
+    # Highlight the polygon under the mouse.
+    highlightOptions = highlightOptions(
+      weight = 3,
+      color = "white",
+      fillOpacity = 0.9,
+      bringToFront = TRUE
+    )
+  ) %>%
+  
+  # --------------------------------------------------------------------------
+  # Legend
+  # --------------------------------------------------------------------------
+  addLegend(
+    position = "bottomright",
+    pal = mean_palette,
+    values = calibrated_region_map$mean,
+    title = "Mean",
+    opacity = 0.9
+  ) %>%
+  
+  # --------------------------------------------------------------------------
+  # Zoom to nature regions
+  # --------------------------------------------------------------------------
+  fitBounds(
+    lng1 = xmin,
+    lat1 = ymin,
+    lng2 = xmax,
+    lat2 = ymax
+  )
+
+
+# ==============================================================================
+# 6. Create SD map
+# ==============================================================================
+
+map_sd <- leaflet::leaflet(
+  
+  # IMPORTANT:
+  # Different HTML element ID from the mean map.
+  elementId = "calibrated_indicator_sd_map",
+  
+  width = "100%",
+  height = "600px"
+) %>%
+  
+  # --------------------------------------------------------------------------
+  # OpenStreetMap basemap
+  # --------------------------------------------------------------------------
+  addTiles(
+    urlTemplate =
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution =
+      "&copy; OpenStreetMap contributors"
+  ) %>%
+  
+  # --------------------------------------------------------------------------
+  # Nature-region polygons
+  # --------------------------------------------------------------------------
+  addPolygons(
+    
+    data = calibrated_region_map,
+    
+    # Colour represents standard deviation.
+    fillColor = ~sd_palette(sd),
+    fillOpacity = 0.8,
+    
+    # Complete polygon boundary.
+    color = "black",
+    weight = 1.5,
+    opacity = 1,
+    
+    # Information displayed on hover.
+    label = ~paste0(
+      ntr_rgn,
+      " | SD = ",
+      sprintf("%.3f", sd)
+    ),
+    
+    # Information displayed on click.
+    popup = ~paste0(
+      "<strong>Nature region:</strong> ",
+      ntr_rgn,
+      "<br><strong>Mean:</strong> ",
+      sprintf("%.3f", mean),
+      "<br><strong>SD:</strong> ",
+      sprintf("%.3f", sd)
+    ),
+    
+    # Highlight polygon under the mouse.
+    highlightOptions = highlightOptions(
+      weight = 3,
+      color = "white",
+      fillOpacity = 0.9,
+      bringToFront = TRUE
+    )
+  ) %>%
+  
+  # --------------------------------------------------------------------------
+  # Legend
+  # --------------------------------------------------------------------------
+  addLegend(
+    position = "bottomright",
+    pal = sd_palette,
+    values = calibrated_region_map$sd,
+    title = "SD",
+    opacity = 0.9
+  ) %>%
+  
+  # --------------------------------------------------------------------------
+  # Zoom to nature regions
+  # --------------------------------------------------------------------------
+  fitBounds(
+    lng1 = xmin,
+    lat1 = ymin,
+    lng2 = xmax,
+    lat2 = ymax
+  )
+
+
+# ==============================================================================
+# 7. Create titles
+# ==============================================================================
+
+mean_title <- htmltools::div(
+  style = "
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  ",
+  "Scaled indicator"
+)
+
+
+sd_title <- htmltools::div(
+  style = "
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  ",
+  "Standard deviation"
+)
+
+
+# ==============================================================================
+# 8. Create side-by-side panels
+# ==============================================================================
+
+mean_panel <- htmltools::div(
+  
+  style = "
+    width: 50%;
+    padding-right: 5px;
+    box-sizing: border-box;
+  ",
+  
+  mean_title,
+  map_mean
+)
+
+
+sd_panel <- htmltools::div(
+  
+  style = "
+    width: 50%;
+    padding-left: 5px;
+    box-sizing: border-box;
+  ",
+  
+  sd_title,
+  map_sd
+)
+
+
+# ==============================================================================
+# 9. Combine maps
+# ==============================================================================
+
+combined_map <- htmltools::div(
+  
+  style = "
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    align-items: flex-start;
+  ",
+  
+  mean_panel,
+  sd_panel
+)
+
+
+# ==============================================================================
+# 10. Display
+# ==============================================================================
+
+htmltools::browsable(
+  combined_map
+)
+
 ```
 
-For the regional indicator, the estimated reductions were approximately $−0.20$ in Central, $−0.11$ in East, $−0.24$ in North, $−0.26$ in South, and $−0.28$ in West. For the global indicator, the corresponding reductions were approximately $−0.29$, $−0.22$, $−0.26$, $−0.27$, and $−0.20$, respectively. Thus, incorporating plant–pollinator relationships has a substantial effect relative to the $0–1$ indicator scale.
+Pollinator potential differed among the five nature regions. East had the highest mean scaled indicator value (0.33), while Central had the lowest (0.27). South (0.32) also had a relatively high mean value, whereas West had a value closer to the national average. Across all open lowland areas, the national mean was 0.30 (SD = 0.20).
 
-The reference levels show why this difference is ecologically meaningful. When interactions are excluded, the upper reference level increases from $240.07$ to $518.22$ in Central, from $306.18$ to $639.75$ in East, from $212.04$ to $464.83$ in North, from $252.36$ to $592.80$ in South, and from $323.97$ to $530.80$ in West. In other words, the no-interaction model defines a considerably richer ecosystem as representing the upper reference condition. The interaction-supported model therefore provides a more constrained estimate of the richness that can be expected when pollinator distributions are evaluated in relation to their plant hosts.
+These values are relative indicator scores rather than percentages or measures of the number of pollinators. A higher score represents greater estimated pollinator potential relative to the reference conditions used to scale the indicator. The indicator is therefore most useful for identifying differences in pollinator potential among regions and for tracking changes over time.
 
-```{r fig-scaledIndicator}
-#| fig-cap: 'Regional and global scaled pollinator richness indicators, with and without interaction effects. The left panel shows the regional scaled indicator, while the right panel shows the global scaled indicator. The top row includes interaction effects, while the bottom row excludes them.'
+The standard deviations indicate how much pollinator potential varies among locations within each region. Variation was greatest in South (SD = 0.24) and lowest in North (SD = 0.17). This means that South contains a wider range of local indicator values, whereas the values in North are more closely clustered around its regional mean. Consequently, regional averages should be interpreted alongside their variability, since areas within the same nature region can have substantially different levels of estimated pollinator potential.
+
+```{r tbl-scaledIndicatorValues}
+#| echo: false
+#| warning: false
+#| message: false
+
+tbl_refs <- readRDS(
+  "../data/region_results.rds"
+) %>%
+  
+  filter(
+    indicator == "Calibrated regional indicator"
+  ) %>%
+  
+  select(
+    nature_region,
+    mean,
+    sd
+  ) %>%
+  
+  mutate(
+    nature_region = if_else(
+      nature_region == "national",
+      "National",
+      nature_region
+    ),
+    
+    # Set the desired order explicitly, with National last.
+    nature_region = factor(
+      nature_region,
+      levels = c(
+        "Central",
+        "East",
+        "North",
+        "South",
+        "West",
+        "National"
+      )
+    )
+  ) %>%
+  
+  arrange(
+    nature_region
+  )
+
+
+names(tbl_refs) <- c(
+  "Region",
+  "Indicator value",
+  "Standard deviation"
+)
+
+knitr::kable(
+  tbl_refs,
+  format = "markdown",
+  digits = 4,
+    caption = "Regional mean and standard deviation of the scaled pollinator potential indicator across open lowland areas. Values are shown for each nature region and for the national level. Higher indicator values represent greater estimated pollinator potential relative to the reference conditions used for calibration. Standard deviation indicates the spatial variation in indicator values among locations within each region."
+)
+```
+
+### 10.4 Evaluation of indicator against independent observations
+
+#### 10.4.1 Evaluation against observed pollinator richness
+
+At the Norwegian insect survey locations, pollinator potential showed positive relationships with both plant and insect richness. The relationship with expected plant richness was moderate ($r = 0.32$; @fig-insectEvaluationPlot A), indicating that areas with greater predicted plant richness tended to have higher pollinator potential, although the relationship was relatively weak. This suggests that plant resource availability contributes to the spatial pattern of pollinator potential, but does not fully explain it. The relationship with observed insect richness was considerably stronger ($r = 0.78$; @fig-insectEvaluationPlot B), indicating that pollinator potential captures a substantial component of the spatial variation in insect richness recorded in the field. Pollinator potential was also moderately correlated with uncalibrated expected pollinator richness ($r = 0.41$; @fig-insectEvaluationPlot D), providing further support for its ecological interpretation.
+
+```{r fig-insectEvaluationPlot}
+#| fig-cap: 'Relationships between pollinator potential and observed and expected species richness. Scatterplots show the relationships between pollinator potential and (A) expected plant richness, (B) observed insect richness, (C) the scaled pollinator potential indicator, and (D) expected pollinator richness. Blue lines represent fitted linear relationships and grey bands indicate 95% confidence intervals. Pearson correlation coefficients are shown in each panel.'
 #| fig-width: 100
 #| echo: false
 #| warning: false
-knitr::include_graphics("../img/scaled_insect_indicators_with_without_interaction.png")
+knitr::include_graphics("../img/richness_calibration_relationships.png")
 ```
 
 
-This also explains why the no-interaction maps show substantially more areas with moderate-to-high indicator values [@fig-scaledIndicator]. Without plant–pollinator interactions, environmental conditions can support relatively high predicted pollinator richness even where the associated plant resources provide less support for the pollinator community. Including plant–pollinator relationships reduces these predictions and produces a more spatially heterogeneous representation of pollinator condition.
+After scaling to regional reference conditions, the relationship with observed insect richness was weaker but remained positive ($r = 0.41$; @fig-insectEvaluationPlot C). Some locations with relatively low observed richness nevertheless had relatively high scaled indicator values, reflecting the use of region-specific reference levels. Overall, the results indicate that the underlying pollinator-potential estimates are reasonably well aligned with field observations and respond, in part, to the availability of plant resources, while also capturing variation not explained by plant richness alone. The calibrated indicator should therefore be interpreted primarily as a measure of pollinator potential relative to regional reference conditions, rather than as a direct representation of either plant or insect richness.
 
-
-### 10.3 Evaluation against independent observations
-
-The independent evaluation provides an important qualification to these results. The modelled indicators showed weak relationships with observed pollinator richness [@fig-insectEvaluation]. For the NINA insect dataset [@ninaInsectDataset], correlations between proportion of observed/detected pollinator species (calculated as the observed detected pollinators divided by the total pollinators under study) and the global and regional indicators were $r=−0.14$ and $r=−0.17$, respectively, while the national insect monitoring dataset [@norwegianInsectMonitoring] produced correlations of $r=0.09$ and $r=0.03$ [@fig-insectEvaluation A)]. The underlying modelled pollinator richness showed similarly weak relationships with observed richness ($r=−0.14$ for NINA insect and $r=0.09$ for national insect monitoring; @fig-insectEvaluation B)).
-
-```{r fig-insectEvaluation}
-#| fig-cap: 'Evaluation of the scaled pollinator richness indicators against observed pollinator richness from the NINA insect dataset and the national insect monitoring dataset. The left panel shows the regional scaled indicator, while the right panel shows the global scaled indicator. The top row includes interaction effects, while the bottom row excludes them.'
+```{r fig-interraction_effects_difference}
+#| fig-cap: 'Differences between uncalibrated and calibrated pollinator potential indicators across nature regions. Points show the estimated mean difference between the uncalibrated and calibrated indicators, calculated as uncalibrated minus calibrated values, with error bars representing 95% confidence intervals. The dashed horizontal line indicates no difference between the two approaches. Regional and national (scaled the minimum and maximum reference values from the entire study region) indicators are shown separately.'
 #| fig-width: 100
 #| echo: false
 #| warning: false
-knitr::include_graphics("../img/insect_indicator_evaluation.png")
+knitr::include_graphics("../img/insect_calibration_difference_effect.png")
 ```
 
-Excluding plant–insect interactions did not substantially improve these relationships: correlations between observed and modelled pollinator richness were $r=−0.13$ and $r=−0.02$, respectively [@fig-insectEvaluation B)]. Thus, the interaction component should not be justified on the basis of improved point-level correlation with observed insect richness alone.
+Calibration had different effects across nature regions and between the regional and national approaches (@fig-interraction_effects_difference). For the regional indicator, calibration generally increased the indicator value, as indicated by negative differences, with the largest effect in the South (approximately $−0.31$) and a smaller effect in the West (approximately $−0.17$). In the Central, East and North regions, the differences were comparatively small, although the Central and East estimates were close to zero. For the national indicator, calibration increased values in the South (approximately $−0.27$), had little effect in the West, but reduced values in the Central and North regions, where the differences were positive (approximately $0.06$ and $0.12$, respectively). Overall, the results show that calibration does not produce a uniform shift in indicator values; its effect depends on both the reference framework (regional versus national) and the nature region. This is expected because calibration adjusts values relative to the distribution of reference conditions, and therefore can alter the relative position of locations differently among regions.
 
-The plant-based evaluation provides somewhat stronger ecological support [@fig-plantEvaluation]. Observed plant-host occurrence was positively related to the pollinator-potential indicators, with correlations of $r=0.12–0.16$ for ANO and $r=0.10–0.14$ for ASO [@fig-plantEvaluation A)]. Observed plant-host richness was also positively related to modelled pollinator richness ($r=0.17$ for ANO and $r=0.14$ for ASO; @fig-plantEvaluation B)). The strongest relationships were between observed plant-host richness and expected plant richness, with $r=0.20$ for ANO and $r=0.21$ for ASO [@fig-plantEvaluation B) second column].
+### 10.4 Evaluation against plant-host availablity
 
-```{r fig-plantEvaluation}
-#| fig-cap: 'Evaluation of the scaled pollinator richness indicators against observed pollinator richness from the plant-based dataset. The left panel shows the regional scaled indicator, while the right panel shows the global scaled indicator. The top row includes interaction effects, while the bottom row excludes them.'
+The plant-host evaluation provides an additional ecological assessment of the pollinator potential indicator by examining its relationship with plant richness. Expected plant richness showed only a weak positive relationship with observed plant richness ($r < 0.18$; @fig-plantHostEvaluationPlot A), indicating limited correspondence between the modelled and observed plant richness at the survey locations. In contrast, expected plant richness was positively associated with the scaled pollinator potential indicator, with a stronger relationship in the ANO than in the ASO survey dataset (@fig-plantHostEvaluationPlot B). A similar pattern was observed for pollinator potential, with a stronger positive relationship with expected plant richness in the ANO dataset than in the ASO dataset (@fig-plantHostEvaluationPlot C).
+
+```{r fig-plantHostEvaluationPlot}
+#| fig-cap: 'Comparison of the relationship between expected plant richness and the scaled pollinator potential indicator in the ANO and ASO datasets. Each point represents a survey location, with fitted linear relationships shown separately for the two datasets. Panels A–D show the relationships with observed plant richness, the scaled indicator, pollinator potential, and expected pollinator richness, respectively'
 #| fig-width: 100
 #| echo: false
 #| warning: false
 knitr::include_graphics("../img/plant_indicator_evaluation.png")
 ```
 
-These relationships are modest but ecologically consistent with the expected role of plant resources in structuring pollinator communities. They provide supporting evidence that the plant component captures meaningful spatial variation in plant diversity and that this information is relevant to the modelled insect community.
+The strongest relationship was observed between expected plant richness and uncalibrated expected pollinator richness ($r > 0.94$; @fig-plantHostEvaluationPlot D). This strong association is consistent with the construction of the pollinator richness measure, which incorporates plant-host availability into the estimation of pollinator potential. Overall, the results indicate that plant resource availability is an important component of the modelled pollinator potential, while the weaker relationship with observed plant richness suggests that the indicator should not be expected to directly reproduce field-measured plant richness.
 
-### 10.4 Implications for ecologists and managers
+At the plant survey locations, calibration generally resulted in lower scaled indicator values than the corresponding uncalibrated values, as indicated by negative differences across most nature regions. This pattern was consistent for both the regional and national calibration approaches. The reduction was largest in the South, where the mean difference was approximately $−0.20$ for the regional indicator and $−0.17$ for the national indicator. In contrast, the effect was relatively small in the Central region and moderate in the East and West. The North was the only region where the national indicator showed a positive difference, indicating that calibration increased the scaled indicator relative to the uncalibrated value. Overall, the figure shows that the effect of calibration varies geographically rather than producing a uniform adjustment across the survey locations.
 
-The results demonstrate that the pollinator potentialindicator should be interpreted as a measure of biodiversity condition relative to a defined reference state, rather than as a direct estimate of the number of insect species that would be recorded at a particular site. The regional reference levels make the ecological meaning of the indicator explicit: a value of $0$ represents the lower reference condition ($X_0$)​, while a value of 1 represents the upper reference condition ($X_{100}$)​ for the relevant reference framework.
+```{r fig-plant_interraction_effects_difference}
+#| fig-cap: 'Effect of calibration on the pollinator potential indicator at ANO and ASO survey locations. Points show the mean difference between the uncalibrated and calibrated scaled indicator, calculated as uncalibrated minus calibrated values, across the five nature regions. Error bars represent 95% confidence intervals, and the dashed line indicates no difference between uncalibrated and calibrated values. Results are shown separately for the regional and national calibration approaches. Negative values indicate that calibration increased the indicator value relative to the uncalibrated value, whereas positive values indicate a decrease following calibration.'
+#| fig-width: 100
+#| echo: false
+#| warning: false
+knitr::include_graphics("../img/plant_calibration_difference_effect.png")
+```
 
-For ecologists, the regional reference ranges highlight substantial geographic differences in the expected richness of pollinator communities. These differences justify using region-specific reference levels rather than applying a single national richness threshold to all locations. At the same time, the global indicator provides a complementary measure that retains the national richness gradient.
-
-For managers, the regional indicator can be interpreted as a measure of how far pollinator biodiversity has departed from the condition expected within its own region. This makes it particularly useful for identifying areas where management or restoration may be required relative to regional expectations. The global indicator can then be used to identify areas that are relatively rich or poor in pollinators on a national scale.
-
-The plant–insect interaction results add an important ecological dimension. The substantially higher $X_{100}$ values under the no-interaction formulation — for example, $518$ versus $240$ species in Central and $640$ versus $306$ species in East — show that excluding plant–insect relationships changes the definition of what constitutes high pollinator richness. Combined with the lower interaction-supported indicator values, this suggests that models without host-plant relationships can provide a substantially more optimistic assessment of pollinator condition.
-
-Consequently, the interaction-supported regional indicator is arguably the most directly relevant measure for regional ecological condition assessment, because it combines regionally appropriate reference conditions with the ecological constraint imposed by plant–insect relationships. The interaction-supported global indicator provides a complementary national-scale measure for comparing biodiversity patterns across Norway. Both should be interpreted alongside direct biodiversity monitoring, particularly because the independent validation datasets showed only weak point-level correlations with observed pollinator richness.
-
-Overall, the results support a framework in which pollinator biodiversity is assessed not simply by asking how many species are present, but by asking how predicted pollinator richness compares with an ecologically appropriate reference condition and whether the predicted richness is supported by the plant community on which pollinators depend. This provides a more informative basis for ecological assessment, conservation prioritisation and management than a single national richness threshold or a pollinator model that ignores plant–insect dependencies.
+For both the ANO and ASO survey locations, these results indicate that the calibrated indicator incorporates information about regional reference conditions that is not present in the uncalibrated pollinator potential. Consequently, differences between calibrated and uncalibrated values should not be interpreted as changes in underlying pollinator potential. Rather, calibration changes the relative position of locations on the indicator scale, with the direction and magnitude of the adjustment depending on the nature region and whether regional or national reference conditions are used.
 
 
+## 11. Summary and Implications
 
-## 11. Export file
+The modelling and evaluation indicate that the pollinator potential indicator captures ecologically meaningful variation in the capacity of open lowland areas to support pollinator communities. The GAM was the best-performing candidate model based on validation RMSE and most closely reproduced the observed patterns. Pollinator potential varied among nature regions, with the highest mean scaled value in East ($0.33$) and the lowest in Central ($0.27$), while the national mean was $0.30$. Considerable variation within regions, particularly in South ($SD = 0.24$), indicates that regional averages can mask substantial local differences in pollinator potential. Reference levels also differed substantially among regions, highlighting the importance of regional ecological context when assessing indicator values. This spatial variation is consistent with the broader understanding that pollinator communities respond to variation in habitat, resources and landscape context, and that pollinator diversity contributes to important ecosystem functions [@ollerton2017pollinator; @steffan2008interplay].
+
+Evaluation against independent observations provides support for the ecological relevance of the indicator. At Norwegian insect survey locations, pollinator potential showed a strong positive relationship with observed insect richness ($r = 0.78$), while its relationship with expected plant richness was moderate ($r = 0.32$). The plant-host evaluation further showed a very strong relationship between expected plant richness and uncalibrated expected pollinator richness ($r > 0.94$), consistent with the role of plant resources in determining the potential for supporting pollinator communities. This interpretation is supported by empirical and meta-analytic evidence showing generally positive relationships between plant richness and pollinator richness, although the strength of these relationships varies among systems and management contexts [@kral2021meta; @orford2016modest]. At the same time, expected plant richness showed only a weak relationship with observed plant richness in the present evaluation, indicating that the indicator should not be interpreted as a direct measure of plant diversity or as a substitute for field-based biodiversity monitoring. More broadly, pollination is an interaction-dependent ecosystem function, and relationships between biodiversity and pollination cannot be reduced to a single trophic level or species-richness measure [@loy2022effects; @bartholomee2019disentangling].
+
+For management and conservation, the indicator is therefore most appropriately used as a relative measure of ecological condition and change, rather than as a direct measure of pollinator abundance, species richness or realised pollination service. Calibration to regional or national reference conditions changes the relative position of locations on the indicator scale, with the magnitude and direction of these changes varying among nature regions. This is important when interpreting the indicator for environmental assessment: reference conditions provide the ecological context against which current condition is evaluated, and their definition can strongly influence the resulting assessment [@mcnellie2020reference]. In practical terms, the indicator can support identification of areas with comparatively high or low pollinator potential, prioritisation of areas for further investigation or conservation, and monitoring of changes through time. It should, however, be interpreted alongside information on habitat, plant resources, land use and other pressures rather than used alone to prescribe management actions. From an ecological perspective, the results support an interpretation of pollinator potential as an emergent property of plant–pollinator relationships and resource availability, providing a useful link between ecological theory and spatial environmental assessment. Maintaining or restoring diverse plant communities and associated resources is likely to be relevant for supporting pollinator communities, but management should consider which plant resources are provided, their spatial and temporal availability, and the broader habitat context, rather than relying on plant species richness alone [@kral2021meta; @orford2016modest; @loy2022effects].
+
+
+## 12. Export file
 
 <!--# 
 
@@ -7217,7 +8052,7 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 ```
 
 
-## 12. Author contributions
+## 13. Author contributions
 
 <!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
 
