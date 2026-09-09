@@ -9,9 +9,9 @@ indicatorID:
   - NO_URAQ_004
 indicatorName: 
   - Urban Air Quality # add more by adding another line starting '-'
-  verbatimName: 
+verbatimName: 
   - Konsentrasjon av PM2.5 partikler
-  - Concentration de particule fines PM2,5
+  - Concentration de particule fines PM2.5
 folderName: NO_URAQ_001-005
 country: Norway
 continent: Europe
@@ -377,7 +377,7 @@ We used the following four datasets:
 We downloaded, cleaned and formatted the data prior to compiling URAQ indicators. Section 7 only presents how to load the cleaned data. In the data analyses, we will use a mix of `duckspatial` and `terra` packages. The first one is faster at handling big vector data than `sf` but raster operations are not part of it so we use `sf` and `terra` to handle vector-raster operations. Hence vector datasets are written in a duckdb database whose connection is set below:
 
 ```{r}
-#| eval: false
+#| eval: true
 #| code-summary: "Create a DuckDB connection"
 conn_pm <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 30)
 
@@ -387,7 +387,8 @@ conn_pm <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 3
 We have nine rasters to load, we first create a list of files before reading them and storing them in a list object. The cleaning and formatting steps only included a mask using D-3 to remove marine ecosystems. This is because the coastal municipalities have maritime territory.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Load PM2.5 data"
 
 # Path to PM2.5
@@ -416,7 +417,9 @@ rm(list = setdiff(ls(),
 D-2 is stored in the temporary duckdb database. We check that the data have the same CRS as the PM25 data.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Load Grunnkart"
 
 # Path
@@ -471,7 +474,8 @@ rm(list = setdiff(ls(),
 LAU data can be directly downloaded from Eurostat using the `giscoR` package. We download the data in temporary directory.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Load LAU data"
 # Load administrative boundaries
 # Create a temporary directory to store the cache
@@ -494,7 +498,9 @@ lau_no$GISCO_ID <- str_remove(lau_no$GISCO_ID, "NO_")
 Now we load DEBURBA data and add it to `lau_no`.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Add DEGURBA to LAU data"
 
 # Source function to add fylke number
@@ -540,6 +546,10 @@ simple_check <- ddbs_is_simple("lau_33",
                   ddbs_collect() %>%
                   dim()
 
+print(valid_check)
+print(empty_check)
+print(simple_check)
+
 
 # Verify table is in my duckdb conn_pm database
 ddbs_list_tables(conn_pm)
@@ -566,7 +576,8 @@ To speed up the computation time, parallel computing has been used through the n
 
 We first start by the spatial intersection between LAUs considered as cities (`DEGURBA = 1`) and the PM2.5 data.
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Spatial intersection LAU and PM2.5"
 
 ## Select city LAUs
@@ -607,7 +618,8 @@ daemons(0)
 
 Then we compile URAQ_001.
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile URAQ_001"
 
 ## URAQ national level - area-weighted mean
@@ -653,7 +665,9 @@ We start by doing the spatial intersection between ET01 and LAUs.
 
 *Note 3: we add an extensive cleaning steps to ensure that the resultsing first intersection only has polygons or multipolygons gemoetries as it is a requirement from `exact_extract`.*
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Spatial intersection ET01 and LAU"
 
 ## Intersect ET01 with LAUs - block processing to avoid memory issues
@@ -730,20 +744,20 @@ for(tbl in tables){
   
 }
 
-## Export the temporary layers, just in case of crash
-path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URAQ_tmp_layers/ET01_LAU_UNTM33.gpkg")
-
-for (lyr in fylke_nb){
-  
-as_duckspatial_df(paste0("lau_et01_", lyr), conn = conn_pm) %>%
-                ddbs_collect() %>%
-                rename(fid_original = fid) %>%
-                
-    
-    st_write(path_gpkg,
-             layer = lyr,
-             append = TRUE)
-}
+# ## Export the temporary layers, just in case of crash
+# path_gpkg <- paste0(str_remove(tempdir(), "Rtmp\\w*"), "URAQ_tmp_layers/ET01_LAU_UNTM33.gpkg")
+# 
+# for (lyr in fylke_nb){
+#   
+# as_duckspatial_df(paste0("lau_et01_", lyr), conn = conn_pm) %>%
+#                 ddbs_collect() %>%
+#                 rename(fid_original = fid) %>%
+#                 
+#     
+#     st_write(path_gpkg,
+#              layer = lyr,
+#              append = TRUE)
+# }
 
 ## Read intermediate layer (if needed)
 # layers <- st_layers(path_gpkg)$name
@@ -800,9 +814,9 @@ for (tbl in tables) {
 
 Now we do the spatial intersection with the ET01 in LAUs and PM2.5 data.
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Spatial intersection ET01-LAU and PM2.5 data"
-#| 
 
 ## Retrieve pm25 per pyear and fylke
 daemons(5)
@@ -871,7 +885,8 @@ Finally, we compile the four remaining URAQ indicators: URAQ_002 to URAQ_005. Du
 We added a step of cleaning in the code below to remove these "NA" values. Overall though, it means that the final indicator value is slightly underestimated.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile URAQ_002"
 
 ## URAQ national level - area-weighted mean
@@ -918,7 +933,8 @@ rm(list = setdiff(ls(),
 
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile URAQ_003"
 
 ## URAQ national level - area-weighted mean
@@ -966,7 +982,8 @@ rm(list = setdiff(ls(),
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile URAQ_004"
 
 ## URAQ national level - area-weighted mean
@@ -1016,7 +1033,8 @@ rm(list = setdiff(ls(),
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
 #| code-summary: "Compile URAQ_005"
 
 ## URAQ national level - area-weighted mean
@@ -1068,6 +1086,7 @@ Below, we present two kinds of summary table: one national, and one presenting a
 **Warning: uncertainties around the indicators are not presented. Data points missing in the original data had to be removed from the estimations below.**
 ```{r}
 #| eval: true
+#| message: false
 #| code-summary: "National summary table"
 
 # Format individual tables
@@ -1108,7 +1127,7 @@ datatable(res_national, filter = "top")
 **Warning: uncertainties around the indicators are not presented. Data points missing in the original data had to be removed from the estimations below.** Note that URAQ_005 is not reported here as this indicator is only for national level. An area-weighted mean of URAQ_002 to URAQ_004 would sum to URAQ_005.
 ```{r}
 #| eval: true
-#| message : false
+#| message: false
 #| code-summary: "Municipal summary table"
 
 # Format individual tables
@@ -1135,7 +1154,7 @@ res_municipal$`Average PM2.5 concentration µg/m3` <- round2(res_municipal$`Aver
 rm(list = setdiff(ls(), 
                   c("pull",
                     "res_municipal",
-                    "res_national",)))
+                    "res_national")))
 
 # Show table
 datatable(res_municipal, filter = "top")
