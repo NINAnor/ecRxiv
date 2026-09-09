@@ -65,6 +65,86 @@ build_ect_name_lookup <- function(registry = NULL, lang = c("en", "nb")) {
   out
 }
 
+# Forest B3 display order: bilberry, then ungulates (EN alpha), then carnivores (EN alpha).
+# Norwegian figures/tables reuse this same ID order (not Norwegian alphabetical).
+FOREST_B3_INDICATOR_ORDER <- c(
+  "NO_BLAA_001", # Bilberry cover / Blåbærdekning
+  "NO_MOOS_001", # Moose / Elg
+  "NO_DEER_001", # Red deer / Hjort
+  "NO_ROED_001", # Roe deer / Rådyr
+  "NO_BAER_001", # Brown bear / Brunbjørn
+  "NO_LYNX_001", # Lynx / Gaupe
+  "NO_WOLF_001"  # Wolf / Ulv
+)
+
+ECT_CODE_ORDER <- c("A1", "A2", "B1", "B2", "B3", "C1")
+
+# Named integer sort keys by indicator ID for consistent table/figure order.
+# Within each ECT class: English name alphabetical, except forest B3 (custom).
+build_indicator_display_order <- function(registry) {
+  if (is.null(registry) || nrow(registry) == 0) {
+    return(character())
+  }
+
+  reg <- registry |>
+    dplyr::filter(!is.na(.data$indicatorID), .data$indicatorID != "") |>
+    dplyr::mutate(
+      id = as.character(.data$indicatorID),
+      ect_code = dplyr::coalesce(
+        as.character(.data$ect),
+        parse_ect(.data$ECT)
+      ),
+      ecosystem = dplyr::coalesce(
+        as.character(.data$ecosystem),
+        NA_character_
+      ),
+      en_name = stringr::str_squish(as.character(.data$indicatorName))
+    ) |>
+    dplyr::distinct(.data$id, .keep_all = TRUE)
+
+  within_rank <- function(ids, ect_code, ecosystem, en_name) {
+    n <- length(ids)
+    rank <- rep(NA_integer_, n)
+    is_forest_b3 <- identical(ect_code[1], "B3") &&
+      any(ecosystem == "forest", na.rm = TRUE)
+
+    if (is_forest_b3) {
+      pref <- match(ids, FOREST_B3_INDICATOR_ORDER)
+      known <- !is.na(pref)
+      rank[known] <- pref[known]
+      rest <- which(!known)
+      if (length(rest) > 0) {
+        rank[rest] <- max(c(0L, pref), na.rm = TRUE) +
+          order(order(en_name[rest]))
+      }
+    } else {
+      rank <- order(order(en_name, ids))
+    }
+    rank
+  }
+
+  ordered_ids <- reg |>
+    dplyr::group_by(.data$ect_code) |>
+    dplyr::group_modify(function(df, key) {
+      df$within_order <- within_rank(
+        df$id,
+        key$ect_code,
+        df$ecosystem,
+        df$en_name
+      )
+      df
+    }) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(
+      ect_rank = match(.data$ect_code, ECT_CODE_ORDER),
+      ect_rank = dplyr::coalesce(.data$ect_rank, length(ECT_CODE_ORDER) + 1L)
+    ) |>
+    dplyr::arrange(.data$ect_rank, .data$within_order, .data$id) |>
+    dplyr::pull(.data$id)
+
+  stats::setNames(seq_along(ordered_ids), ordered_ids)
+}
+
 # Soft-wrap long axis labels for detailed index figures.
 wrap_axis_label <- function(x, width = 42) {
   vapply(
@@ -1023,7 +1103,17 @@ registry_indicator_table <- function(
       `2.5%` = .data$q025,
       `97.5%` = .data$q975
     ) |>
-    dplyr::arrange(.data$ECT, .data$Indicator) |>
+    dplyr::mutate(
+      .display_order = unname(
+        build_indicator_display_order(registry)[.data$ID]
+      )
+    ) |>
+    dplyr::arrange(
+      dplyr::coalesce(.data$.display_order, Inf),
+      .data$ECT,
+      .data$Indicator
+    ) |>
+    dplyr::select(-".display_order") |>
     knitr::kable(digits = 3, caption = caption, na = "")
 }
 
@@ -1074,6 +1164,7 @@ index_figure_summary_table <- function(
 
   indicator_name_lookup <- NULL
   indicator_ect_lookup <- NULL
+  indicator_display_order <- NULL
   if (!is.null(registry)) {
     ind_map <- registry |>
       dplyr::filter(
@@ -1112,6 +1203,7 @@ index_figure_summary_table <- function(
       ) |>
       dplyr::distinct(.data$id, .keep_all = TRUE) |>
       (\(x) stats::setNames(x$ect, x$id))()
+    indicator_display_order <- build_indicator_display_order(registry)
   }
 
   level_order <- c("Indicator", "ECT", "Index", "Index (direct)")
@@ -1204,9 +1296,24 @@ index_figure_summary_table <- function(
     dplyr::mutate(
       level = factor(.data$level, levels = level_order),
       part = factor(.data$part, levels = part_order),
-      ect = factor(.data$ect, levels = names(ect_name_lookup))
+      ect = factor(.data$ect, levels = names(ect_name_lookup)),
+      .display_order = if (!is.null(indicator_display_order)) {
+        dplyr::coalesce(
+          unname(indicator_display_order[.data$id]),
+          length(indicator_display_order) + 1L
+        )
+      } else {
+        NA_integer_
+      }
     ) |>
-    dplyr::arrange(.data$year, .data$part, .data$level, .data$ect, .data$label) |>
+    dplyr::arrange(
+      .data$year,
+      .data$part,
+      .data$level,
+      .data$ect,
+      .data$.display_order,
+      .data$label
+    ) |>
     dplyr::mutate(
       level = as.character(.data$level),
       part = as.character(.data$part),
@@ -1809,6 +1916,7 @@ plot_index_detailed <- function(
   # (keeps saved figures in sync with indicators_*.csv without recalculating).
   indicator_name_lookup <- NULL
   indicator_ect_lookup <- NULL
+  indicator_display_order <- NULL
   ect_name_lookup <- NULL
   if (!is.null(registry)) {
     ind_map <- registry |>
@@ -1848,6 +1956,7 @@ plot_index_detailed <- function(
       ) |>
       dplyr::distinct(.data$id, .keep_all = TRUE) |>
       (\(x) stats::setNames(x$ect, x$id))()
+    indicator_display_order <- build_indicator_display_order(registry)
 
     ect_name_lookup <- build_ect_name_lookup(registry, lang = lang)
   } else {
@@ -1869,7 +1978,7 @@ plot_index_detailed <- function(
     stats::setNames(c(19, 17, 17, 17, 17, 17), region_levels)
   )
 
-  ect_order <- c("A1", "A2", "B1", "B2", "B3", "C1")
+  ect_order <- ECT_CODE_ORDER
   ect_shapes <- c(
       A1 = 15,
       A2 = 16,
@@ -1962,10 +2071,19 @@ plot_index_detailed <- function(
     .data$ect
   ) |>
   dplyr::mutate(
-    ect = factor(.data$ect, levels = ect_order)
+    ect = factor(.data$ect, levels = ect_order),
+    .display_order = if (!is.null(indicator_display_order)) {
+      dplyr::coalesce(
+        unname(indicator_display_order[.data$indicator_id]),
+        length(indicator_display_order) + 1L
+      )
+    } else {
+      NA_integer_
+    }
   ) |>
   dplyr::arrange(
     .data$ect,
+    .data$.display_order,
     .data$indicator_id
   )
   indicator_keys <- indicator_rows$row_key
@@ -2009,7 +2127,11 @@ plot_index_detailed <- function(
     stats::setNames(names(ect_shapes), names(ect_shapes)),
     Total = if (lang == "nb") "Totalt" else "Total"
   )
-  shape_legend_name <- if (lang == "nb") "ECT" else "ECT"
+  shape_legend_name <- if (lang == "nb") {
+    "\u00d8kosystemegenskap"
+  } else {
+    "ECT"
+  }
 
   plot_dat <- dplyr::bind_rows(
     indicator_summary,
