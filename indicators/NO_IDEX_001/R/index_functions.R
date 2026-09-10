@@ -1859,6 +1859,65 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
     )
 }
 
+# Five-class condition scale (WFD / Norwegian fagsystem for økologisk tilstand).
+# Equal 0.2 bins on the 0-1 indicator scale; 0.6 aligns with the "good
+# ecological condition" threshold used elsewhere in this workflow.
+condition_scale_labels <- function(lang = c("en", "nb")) {
+  lang <- rlang::arg_match(lang)
+  if (lang == "nb") {
+    c("Svært dårlig", "Dårlig", "Moderat", "God", "Svært god")
+  } else {
+    c("Very poor", "Poor", "Moderate", "Good", "Very good")
+  }
+}
+
+# Two five-class palettes (bins 0-0.2, …, 0.8-1.0).
+# `default`: earlier Miljøstatus-inspired warm scale (deep orange → green).
+# `v2`: alternate palette (red → orange → yellow → green → blue).
+condition_scale_colors <- function(palette = c("default", "v2")) {
+  palette <- rlang::arg_match(palette)
+  if (palette == "v2") {
+    c(
+      "#d8241a", # 0.0-0.2
+      "#e47616", # 0.2-0.4
+      "#fef500", # 0.4-0.6
+      "#85c125", # 0.6-0.8
+      "#0092dd"  # 0.8-1.0
+    )
+  } else {
+    # Based on Miljødirektoratet / Miljøstatus palette:
+    # green #78c840, yellow #e8d080, orange #f89018; lowest bin is deep orange
+    # (not red) so the scale stays warm throughout.
+    c(
+      "#c86012", # 0.0-0.2 dyp oransje (bright enough for labels)
+      "#f89018", # 0.2-0.4 oransje
+      "#f0b848", # 0.4-0.6 lys oransje
+      "#e8d080", # 0.6-0.8 gul
+      "#78c840"  # 0.8-1.0 grønn
+    )
+  }
+}
+
+condition_scale_data <- function(
+    lang = c("en", "nb"),
+    palette = c("default", "v2"),
+    ymin = 0,
+    ymax = 1) {
+  lang <- rlang::arg_match(lang)
+  palette <- rlang::arg_match(palette)
+  labels <- condition_scale_labels(lang)
+  cols <- condition_scale_colors(palette = palette)
+  breaks <- seq(0, 1, by = 0.2)
+  tibble::tibble(
+    xmin = head(breaks, -1),
+    xmax = tail(breaks, -1),
+    ymin = ymin,
+    ymax = ymax,
+    label = labels,
+    fill = cols
+  )
+}
+
 # Detailed dot-and-whisker plot for one year: every matched indicator
 # individually, then ECT classes, then the overall totals (the ECT-based
 # "Index" and the alternative "Index (direct)", see aggregate_indicators_to_
@@ -1869,14 +1928,19 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
 #
 # `national_only = TRUE` drops the five regions and shows a single national
 # ("Norway") value per row instead, with no region colour/shape legend.
+# `condition_scale = TRUE` (national only) adds a coloured condition band
+# at the bottom of the plot (default = first palette; v2 = alternate).
 plot_index_detailed <- function(
     index_result,
     year,
     title = "NO_IDEX_001",
     national_only = FALSE,
+    condition_scale = FALSE,
+    condition_palette = c("default", "v2"),
     lang = c("en", "nb"),
     registry = NULL) {
   lang <- rlang::arg_match(lang)
+  condition_palette <- rlang::arg_match(condition_palette)
 
   if (lang == "nb") {
     part_labels <- c(
@@ -2178,9 +2242,30 @@ plot_index_detailed <- function(
     n_ind + n_ect + 0.5
   )
 
+  show_condition_scale <- isTRUE(condition_scale) && isTRUE(national_only)
+  scale_bar <- if (show_condition_scale) {
+    condition_scale_data(lang = lang, palette = condition_palette)
+  } else {
+    NULL
+  }
+
+  if (show_condition_scale) {
+    plot_dat <- plot_dat |>
+      dplyr::mutate(y_pos = as.numeric(.data$row_key) + 1L)
+    group_breaks <- group_breaks + 1
+  }
+
   p <- ggplot2::ggplot(
     plot_dat,
-    if (national_only) {
+    if (show_condition_scale) {
+      ggplot2::aes(
+        x = .data$median,
+        y = .data$y_pos,
+        xmin = .data$q025,
+        xmax = .data$q975,
+        shape = .data$shape_group
+      )
+    } else if (national_only) {
       ggplot2::aes(x = median, y = row_key, xmin = q025, xmax = q975, shape = shape_group)
     } else {
       ggplot2::aes(
@@ -2200,8 +2285,18 @@ plot_index_detailed <- function(
       yintercept = group_breaks, colour = "grey40", linewidth = 0.4
     ) +
     ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
-    ggplot2::scale_y_discrete(
-      labels = label_lookup) +
+    {
+      if (show_condition_scale) {
+        ggplot2::scale_y_continuous(
+          breaks = seq_along(y_levels) + 1L,
+          labels = unname(label_lookup[y_levels]),
+          limits = c(0, length(y_levels) + 1L + 0.35),
+          expand = c(0, 0)
+        )
+      } else {
+        ggplot2::scale_y_discrete(labels = label_lookup)
+      }
+    } +
     ggplot2::labs(
       title = paste0(
         title, " \u2014 ", year,
@@ -2213,9 +2308,41 @@ plot_index_detailed <- function(
     ggplot2::theme_bw(base_size = 10) +
     ggplot2::theme(
       panel.grid.minor = ggplot2::element_blank(),
-      plot.margin = ggplot2::margin(5, 5, 5, 5),
+      plot.margin = ggplot2::margin(
+        5, 5,
+        if (show_condition_scale) 8 else 5,
+        5
+      ),
       axis.text.y = ggplot2::element_text(size = 8.5)
     )
+
+  if (!is.null(scale_bar)) {
+    p <- p +
+      ggplot2::geom_rect(
+        data = scale_bar,
+        ggplot2::aes(
+          xmin = .data$xmin,
+          xmax = .data$xmax,
+          ymin = .data$ymin,
+          ymax = .data$ymax
+        ),
+        fill = scale_bar$fill,
+        colour = "white",
+        linewidth = 0.35,
+        inherit.aes = FALSE
+      ) +
+      ggplot2::geom_text(
+        data = scale_bar,
+        ggplot2::aes(
+          x = (.data$xmin + .data$xmax) / 2,
+          y = (.data$ymin + .data$ymax) / 2,
+          label = .data$label
+        ),
+        size = 2.7,
+        lineheight = 0.85,
+        inherit.aes = FALSE
+      )
+  }
 
   # Add one extra shape for the total index rows.
   shape_values <- c(
@@ -2224,7 +2351,7 @@ plot_index_detailed <- function(
   )
 
   if (national_only) {
-    p +
+    p <- p +
       ggplot2::geom_pointrange(
         colour = unname(region_cols[norway_tag]),
         size = 0.45,
@@ -2237,7 +2364,7 @@ plot_index_detailed <- function(
       ) +
       ggplot2::theme(legend.position = "bottom")
   } else {
-    p +
+    p <- p +
       ggplot2::geom_pointrange(
         position = ggplot2::position_dodge(width = 0.55),
         size = 0.5,
@@ -2250,8 +2377,77 @@ plot_index_detailed <- function(
         labels = unname(shape_legend_labels[names(shape_values)])
       ) +
       ggplot2::theme(legend.position = "bottom")
-      
   }
+
+  if (condition_scale && !national_only) {
+    warning(
+      "condition_scale is intended for national-only figures; ",
+      "ignoring condition_scale.",
+      call. = FALSE
+    )
+  }
+
+  p
+}
+
+# Save Norwegian national figures with the coloured condition-scale band
+# (default palette). Writes separate *_condition.png files so the plain
+# national figures remain unchanged.
+save_index_condition_figures <- function(
+    forest_index,
+    mountain_index,
+    registry_forest,
+    registry_mountain,
+    year = 2024L,
+    out_dir = here::here("img"),
+    condition_palette = "default") {
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE)
+  }
+
+  specs <- list(
+    list(
+      index = forest_index,
+      registry = registry_forest,
+      title = "NO_IDEX_001 \u2014 skog",
+      slug = "skog",
+      height = 8.2
+    ),
+    list(
+      index = mountain_index,
+      registry = registry_mountain,
+      title = "NO_IDEX_001 \u2014 fjell",
+      slug = "fjell",
+      height = 6.2
+    )
+  )
+
+  for (spec in specs) {
+    p <- plot_index_detailed(
+      spec$index,
+      year = year,
+      title = spec$title,
+      national_only = TRUE,
+      condition_scale = TRUE,
+      condition_palette = condition_palette,
+      lang = "nb",
+      registry = spec$registry
+    )
+    out <- file.path(
+      out_dir,
+      sprintf("NO_IDEX_001_%s_%s_national_nb_condition.png", spec$slug, year)
+    )
+    ggplot2::ggsave(
+      filename = out,
+      plot = p,
+      width = 7,
+      height = spec$height,
+      dpi = 150,
+      bg = "white"
+    )
+  }
+
+  invisible(TRUE)
 }
 
 # Save regional + national detailed index figures (English and Norwegian).
