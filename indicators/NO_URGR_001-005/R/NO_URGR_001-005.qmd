@@ -9,7 +9,7 @@ indicatorID:
   - NO_URGR_005
 indicatorName: 
   - Share of Urban Green Areas
-  verbatimName: 
+verbatimName: 
   - Andel grønt areal 
   - Part des espaces verts urbains
 folderName: NO_URGR_001-005
@@ -401,9 +401,15 @@ We used the following four datasets:
 We downloaded, cleaned and formatted the data prior to compiling URGR indicators. Section 7 only presents how to load the cleaned data. In the data analyses, we will use a mix of `duckspatial` and `terra` packages. The first one is faster at handling big vector data than `sf` but raster operations are not part of it, so we use `sf` and `terra` to handle vector-raster operations. Hence vector datasets are written in a duckdb database whose connection is set below:
 
 ```{r}
-#| eval: false
+#| eval: true
 #| code-summary: "Create a DuckDB connection"
-conn_ug <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 30)
+
+# # For users who don't have a set up duckdb database
+# conn_ug <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 30)
+
+# If users already have a duckdb database they want to use
+conn_ug <- ddbs_create_conn(dbdir = paste0(str_remove(tempdir(), "Rtmp\\w*"), "duckdb_conn/urgr.duckdb"), threads = 10, memory_limit_gb = 30)
+
 
 ```
 
@@ -411,7 +417,7 @@ conn_ug <- ddbs_create_conn(dbdir = "tempdir", threads = 10, memory_limit_gb = 3
 We have three years and 159 rasters to load, we first create a list of files before reading them and storing them in a list object. The only cleaning step was to create a virtual raster. We did not apply any mask for Norway on the IMD data as the use of the `exact_extract()` function will restrict the urban green indicators to the polygons terrestrial urban ecosystems or terretsrial LAUs boundaries.
 
 ```{r}
-#| eval: false
+#| eval: true
 #| code-summary: "Load Copernicus IMD"
 
 # Path to the Copernicus IMD data
@@ -1068,7 +1074,9 @@ rm(list = setdiff(ls(),
 
 Now we do the spatial intersection with the ET01 in LAUs and IMD data. *Note: No need to wrap the raster because the virtual raster can be passed through workers. But we need to store the result from the previous intersection in the R environment because workers can't read from the duckdb databse due to the locking of the main session.*
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Spatial intersection ET01-LAU and IMD data"
 #| 
 
@@ -1080,8 +1088,8 @@ lau_et01_all <- map(tables, function(tbl) {
 
   as_duckspatial_df(tbl, conn = conn_ug) %>%
     ddbs_collect()}) %>%
-  bind_rows() %>%
-  select(!c(fid)) # if from intermediate layer
+  bind_rows() #%>%
+  #select(!c(fid)) # if from intermediate layer
 
 
 ## Fylke number for parallelisation
@@ -1149,7 +1157,9 @@ rm(list = setdiff(ls(),
 Now, we compile the four remaining URAQ indicators: URGR_001 to URGR_004. During the extraction of the raster cell values, there will be the creation of "NA" values. This means that some polygon will have a imperviousness share of "NA". This is due to some municipal polygons, partially overlap with NA raster cells.We remove these NAs when performing the mean.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Compile URGR_001"
 
 ## URGR national level - area-weighted mean
@@ -1204,7 +1214,9 @@ rm(list = setdiff(ls(),
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Compile URGR_002"
 
 ## URGR national level - area-weighted mean
@@ -1260,7 +1272,9 @@ rm(list = setdiff(ls(),
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Compile URGR_003"
 
 ## URGR national level - area-weighted mean
@@ -1318,7 +1332,9 @@ rm(list = setdiff(ls(),
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Compile URGR_004"
 
 ## URGR national level - area-weighted mean
@@ -1630,7 +1646,9 @@ rm(list = setdiff(ls(),
 Now we can compile URGR_005.
 
 ```{r}
-#| eval: false
+#| eval: true
+#| message: false
+#| results: false
 #| code-summary: "Compile URGR_005"
 
 ## List of tables
@@ -1706,7 +1724,8 @@ rm(list = setdiff(ls(),
                   c("pull",
                     "urgr_001_mun",
                     "urgr_002_mun",
-                    "urgr_003_mun")))
+                    "urgr_003_mun",
+                    "res_national")))
 
 # Show table
 datatable(res_national, filter = "top") %>%
@@ -1730,7 +1749,10 @@ res_municipal <- bind_rows(urgr_001_mun,
 
 
 # Clean R environment
-rm(list = ls())
+rm(list = setdiff(ls(), 
+                  c("pull",
+                    "res_municipal",
+                    "res_national")))
 
 # Show table
 datatable(res_municipal, filter = "top") %>%
@@ -1742,8 +1764,6 @@ datatable(res_municipal, filter = "top") %>%
 
 
 ## 11. Export file
-<!--# Optional: Display the code (don't execute it) or the workflow for exporting the indicator values to file. Ideally the indicator values are exported as a georeferenced shape or raster file with indicators values, reference values and errors. You can also chose to export the raw (un-normalised or unscaled variable) as a seperate product. You should not save large sptaial output data on GitHub. You can use eval=FALSE to avoid code from being executed (example below - delete if not relevant) -->
-
 Code to export the result tables above.
 
 ```{r export}
