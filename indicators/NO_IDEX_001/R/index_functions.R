@@ -65,6 +65,86 @@ build_ect_name_lookup <- function(registry = NULL, lang = c("en", "nb")) {
   out
 }
 
+# Forest B3 display order: bilberry, then ungulates (EN alpha), then carnivores (EN alpha).
+# Norwegian figures/tables reuse this same ID order (not Norwegian alphabetical).
+FOREST_B3_INDICATOR_ORDER <- c(
+  "NO_BLAA_001", # Bilberry cover / Blåbærdekning
+  "NO_MOOS_001", # Moose / Elg
+  "NO_DEER_001", # Red deer / Hjort
+  "NO_ROED_001", # Roe deer / Rådyr
+  "NO_BAER_001", # Brown bear / Brunbjørn
+  "NO_LYNX_001", # Lynx / Gaupe
+  "NO_WOLF_001"  # Wolf / Ulv
+)
+
+ECT_CODE_ORDER <- c("A1", "A2", "B1", "B2", "B3", "C1")
+
+# Named integer sort keys by indicator ID for consistent table/figure order.
+# Within each ECT class: English name alphabetical, except forest B3 (custom).
+build_indicator_display_order <- function(registry) {
+  if (is.null(registry) || nrow(registry) == 0) {
+    return(character())
+  }
+
+  reg <- registry |>
+    dplyr::filter(!is.na(.data$indicatorID), .data$indicatorID != "") |>
+    dplyr::mutate(
+      id = as.character(.data$indicatorID),
+      ect_code = dplyr::coalesce(
+        as.character(.data$ect),
+        parse_ect(.data$ECT)
+      ),
+      ecosystem = dplyr::coalesce(
+        as.character(.data$ecosystem),
+        NA_character_
+      ),
+      en_name = stringr::str_squish(as.character(.data$indicatorName))
+    ) |>
+    dplyr::distinct(.data$id, .keep_all = TRUE)
+
+  within_rank <- function(ids, ect_code, ecosystem, en_name) {
+    n <- length(ids)
+    rank <- rep(NA_integer_, n)
+    is_forest_b3 <- identical(ect_code[1], "B3") &&
+      any(ecosystem == "forest", na.rm = TRUE)
+
+    if (is_forest_b3) {
+      pref <- match(ids, FOREST_B3_INDICATOR_ORDER)
+      known <- !is.na(pref)
+      rank[known] <- pref[known]
+      rest <- which(!known)
+      if (length(rest) > 0) {
+        rank[rest] <- max(c(0L, pref), na.rm = TRUE) +
+          order(order(en_name[rest]))
+      }
+    } else {
+      rank <- order(order(en_name, ids))
+    }
+    rank
+  }
+
+  ordered_ids <- reg |>
+    dplyr::group_by(.data$ect_code) |>
+    dplyr::group_modify(function(df, key) {
+      df$within_order <- within_rank(
+        df$id,
+        key$ect_code,
+        df$ecosystem,
+        df$en_name
+      )
+      df
+    }) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(
+      ect_rank = match(.data$ect_code, ECT_CODE_ORDER),
+      ect_rank = dplyr::coalesce(.data$ect_rank, length(ECT_CODE_ORDER) + 1L)
+    ) |>
+    dplyr::arrange(.data$ect_rank, .data$within_order, .data$id) |>
+    dplyr::pull(.data$id)
+
+  stats::setNames(seq_along(ordered_ids), ordered_ids)
+}
+
 # Soft-wrap long axis labels for detailed index figures.
 wrap_axis_label <- function(x, width = 42) {
   vapply(
@@ -1023,7 +1103,17 @@ registry_indicator_table <- function(
       `2.5%` = .data$q025,
       `97.5%` = .data$q975
     ) |>
-    dplyr::arrange(.data$ECT, .data$Indicator) |>
+    dplyr::mutate(
+      .display_order = unname(
+        build_indicator_display_order(registry)[.data$ID]
+      )
+    ) |>
+    dplyr::arrange(
+      dplyr::coalesce(.data$.display_order, Inf),
+      .data$ECT,
+      .data$Indicator
+    ) |>
+    dplyr::select(-".display_order") |>
     knitr::kable(digits = 3, caption = caption, na = "")
 }
 
@@ -1074,6 +1164,7 @@ index_figure_summary_table <- function(
 
   indicator_name_lookup <- NULL
   indicator_ect_lookup <- NULL
+  indicator_display_order <- NULL
   if (!is.null(registry)) {
     ind_map <- registry |>
       dplyr::filter(
@@ -1112,6 +1203,7 @@ index_figure_summary_table <- function(
       ) |>
       dplyr::distinct(.data$id, .keep_all = TRUE) |>
       (\(x) stats::setNames(x$ect, x$id))()
+    indicator_display_order <- build_indicator_display_order(registry)
   }
 
   level_order <- c("Indicator", "ECT", "Index", "Index (direct)")
@@ -1204,9 +1296,24 @@ index_figure_summary_table <- function(
     dplyr::mutate(
       level = factor(.data$level, levels = level_order),
       part = factor(.data$part, levels = part_order),
-      ect = factor(.data$ect, levels = names(ect_name_lookup))
+      ect = factor(.data$ect, levels = names(ect_name_lookup)),
+      .display_order = if (!is.null(indicator_display_order)) {
+        dplyr::coalesce(
+          unname(indicator_display_order[.data$id]),
+          length(indicator_display_order) + 1L
+        )
+      } else {
+        NA_integer_
+      }
     ) |>
-    dplyr::arrange(.data$year, .data$part, .data$level, .data$ect, .data$label) |>
+    dplyr::arrange(
+      .data$year,
+      .data$part,
+      .data$level,
+      .data$ect,
+      .data$.display_order,
+      .data$label
+    ) |>
     dplyr::mutate(
       level = as.character(.data$level),
       part = as.character(.data$part),
@@ -1752,6 +1859,65 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
     )
 }
 
+# Five-class condition scale (WFD / Norwegian fagsystem for økologisk tilstand).
+# Equal 0.2 bins on the 0-1 indicator scale; 0.6 aligns with the "good
+# ecological condition" threshold used elsewhere in this workflow.
+condition_scale_labels <- function(lang = c("en", "nb")) {
+  lang <- rlang::arg_match(lang)
+  if (lang == "nb") {
+    c("Svært dårlig", "Dårlig", "Moderat", "God", "Svært god")
+  } else {
+    c("Very poor", "Poor", "Moderate", "Good", "Very good")
+  }
+}
+
+# Two five-class palettes (bins 0-0.2, …, 0.8-1.0).
+# `default`: earlier Miljøstatus-inspired warm scale (deep orange → green).
+# `v2`: alternate palette (red → orange → yellow → green → blue).
+condition_scale_colors <- function(palette = c("default", "v2")) {
+  palette <- rlang::arg_match(palette)
+  if (palette == "v2") {
+    c(
+      "#d8241a", # 0.0-0.2
+      "#e47616", # 0.2-0.4
+      "#fef500", # 0.4-0.6
+      "#85c125", # 0.6-0.8
+      "#0092dd"  # 0.8-1.0
+    )
+  } else {
+    # Based on Miljødirektoratet / Miljøstatus palette:
+    # green #78c840, yellow #e8d080, orange #f89018; lowest bin is deep orange
+    # (not red) so the scale stays warm throughout.
+    c(
+      "#c86012", # 0.0-0.2 dyp oransje (bright enough for labels)
+      "#f89018", # 0.2-0.4 oransje
+      "#f0b848", # 0.4-0.6 lys oransje
+      "#e8d080", # 0.6-0.8 gul
+      "#78c840"  # 0.8-1.0 grønn
+    )
+  }
+}
+
+condition_scale_data <- function(
+    lang = c("en", "nb"),
+    palette = c("default", "v2"),
+    ymin = 0,
+    ymax = 1) {
+  lang <- rlang::arg_match(lang)
+  palette <- rlang::arg_match(palette)
+  labels <- condition_scale_labels(lang)
+  cols <- condition_scale_colors(palette = palette)
+  breaks <- seq(0, 1, by = 0.2)
+  tibble::tibble(
+    xmin = head(breaks, -1),
+    xmax = tail(breaks, -1),
+    ymin = ymin,
+    ymax = ymax,
+    label = labels,
+    fill = cols
+  )
+}
+
 # Detailed dot-and-whisker plot for one year: every matched indicator
 # individually, then ECT classes, then the overall totals (the ECT-based
 # "Index" and the alternative "Index (direct)", see aggregate_indicators_to_
@@ -1762,14 +1928,19 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
 #
 # `national_only = TRUE` drops the five regions and shows a single national
 # ("Norway") value per row instead, with no region colour/shape legend.
+# `condition_scale = TRUE` (national only) adds a coloured condition band
+# at the bottom of the plot (default = first palette; v2 = alternate).
 plot_index_detailed <- function(
     index_result,
     year,
     title = "NO_IDEX_001",
     national_only = FALSE,
+    condition_scale = FALSE,
+    condition_palette = c("default", "v2"),
     lang = c("en", "nb"),
     registry = NULL) {
   lang <- rlang::arg_match(lang)
+  condition_palette <- rlang::arg_match(condition_palette)
 
   if (lang == "nb") {
     part_labels <- c(
@@ -1809,6 +1980,7 @@ plot_index_detailed <- function(
   # (keeps saved figures in sync with indicators_*.csv without recalculating).
   indicator_name_lookup <- NULL
   indicator_ect_lookup <- NULL
+  indicator_display_order <- NULL
   ect_name_lookup <- NULL
   if (!is.null(registry)) {
     ind_map <- registry |>
@@ -1848,6 +2020,7 @@ plot_index_detailed <- function(
       ) |>
       dplyr::distinct(.data$id, .keep_all = TRUE) |>
       (\(x) stats::setNames(x$ect, x$id))()
+    indicator_display_order <- build_indicator_display_order(registry)
 
     ect_name_lookup <- build_ect_name_lookup(registry, lang = lang)
   } else {
@@ -1869,7 +2042,7 @@ plot_index_detailed <- function(
     stats::setNames(c(19, 17, 17, 17, 17, 17), region_levels)
   )
 
-  ect_order <- c("A1", "A2", "B1", "B2", "B3", "C1")
+  ect_order <- ECT_CODE_ORDER
   ect_shapes <- c(
       A1 = 15,
       A2 = 16,
@@ -1962,10 +2135,19 @@ plot_index_detailed <- function(
     .data$ect
   ) |>
   dplyr::mutate(
-    ect = factor(.data$ect, levels = ect_order)
+    ect = factor(.data$ect, levels = ect_order),
+    .display_order = if (!is.null(indicator_display_order)) {
+      dplyr::coalesce(
+        unname(indicator_display_order[.data$indicator_id]),
+        length(indicator_display_order) + 1L
+      )
+    } else {
+      NA_integer_
+    }
   ) |>
   dplyr::arrange(
     .data$ect,
+    .data$.display_order,
     .data$indicator_id
   )
   indicator_keys <- indicator_rows$row_key
@@ -2009,7 +2191,11 @@ plot_index_detailed <- function(
     stats::setNames(names(ect_shapes), names(ect_shapes)),
     Total = if (lang == "nb") "Totalt" else "Total"
   )
-  shape_legend_name <- if (lang == "nb") "ECT" else "ECT"
+  shape_legend_name <- if (lang == "nb") {
+    "\u00d8kosystemegenskap"
+  } else {
+    "ECT"
+  }
 
   plot_dat <- dplyr::bind_rows(
     indicator_summary,
@@ -2056,9 +2242,30 @@ plot_index_detailed <- function(
     n_ind + n_ect + 0.5
   )
 
+  show_condition_scale <- isTRUE(condition_scale) && isTRUE(national_only)
+  scale_bar <- if (show_condition_scale) {
+    condition_scale_data(lang = lang, palette = condition_palette)
+  } else {
+    NULL
+  }
+
+  if (show_condition_scale) {
+    plot_dat <- plot_dat |>
+      dplyr::mutate(y_pos = as.numeric(.data$row_key) + 1L)
+    group_breaks <- group_breaks + 1
+  }
+
   p <- ggplot2::ggplot(
     plot_dat,
-    if (national_only) {
+    if (show_condition_scale) {
+      ggplot2::aes(
+        x = .data$median,
+        y = .data$y_pos,
+        xmin = .data$q025,
+        xmax = .data$q975,
+        shape = .data$shape_group
+      )
+    } else if (national_only) {
       ggplot2::aes(x = median, y = row_key, xmin = q025, xmax = q975, shape = shape_group)
     } else {
       ggplot2::aes(
@@ -2078,8 +2285,18 @@ plot_index_detailed <- function(
       yintercept = group_breaks, colour = "grey40", linewidth = 0.4
     ) +
     ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
-    ggplot2::scale_y_discrete(
-      labels = label_lookup) +
+    {
+      if (show_condition_scale) {
+        ggplot2::scale_y_continuous(
+          breaks = seq_along(y_levels) + 1L,
+          labels = unname(label_lookup[y_levels]),
+          limits = c(0, length(y_levels) + 1L + 0.35),
+          expand = c(0, 0)
+        )
+      } else {
+        ggplot2::scale_y_discrete(labels = label_lookup)
+      }
+    } +
     ggplot2::labs(
       title = paste0(
         title, " \u2014 ", year,
@@ -2091,9 +2308,41 @@ plot_index_detailed <- function(
     ggplot2::theme_bw(base_size = 10) +
     ggplot2::theme(
       panel.grid.minor = ggplot2::element_blank(),
-      plot.margin = ggplot2::margin(5, 5, 5, 5),
+      plot.margin = ggplot2::margin(
+        5, 5,
+        if (show_condition_scale) 8 else 5,
+        5
+      ),
       axis.text.y = ggplot2::element_text(size = 8.5)
     )
+
+  if (!is.null(scale_bar)) {
+    p <- p +
+      ggplot2::geom_rect(
+        data = scale_bar,
+        ggplot2::aes(
+          xmin = .data$xmin,
+          xmax = .data$xmax,
+          ymin = .data$ymin,
+          ymax = .data$ymax
+        ),
+        fill = scale_bar$fill,
+        colour = "white",
+        linewidth = 0.35,
+        inherit.aes = FALSE
+      ) +
+      ggplot2::geom_text(
+        data = scale_bar,
+        ggplot2::aes(
+          x = (.data$xmin + .data$xmax) / 2,
+          y = (.data$ymin + .data$ymax) / 2,
+          label = .data$label
+        ),
+        size = 2.7,
+        lineheight = 0.85,
+        inherit.aes = FALSE
+      )
+  }
 
   # Add one extra shape for the total index rows.
   shape_values <- c(
@@ -2102,7 +2351,7 @@ plot_index_detailed <- function(
   )
 
   if (national_only) {
-    p +
+    p <- p +
       ggplot2::geom_pointrange(
         colour = unname(region_cols[norway_tag]),
         size = 0.45,
@@ -2115,7 +2364,7 @@ plot_index_detailed <- function(
       ) +
       ggplot2::theme(legend.position = "bottom")
   } else {
-    p +
+    p <- p +
       ggplot2::geom_pointrange(
         position = ggplot2::position_dodge(width = 0.55),
         size = 0.5,
@@ -2128,8 +2377,77 @@ plot_index_detailed <- function(
         labels = unname(shape_legend_labels[names(shape_values)])
       ) +
       ggplot2::theme(legend.position = "bottom")
-      
   }
+
+  if (condition_scale && !national_only) {
+    warning(
+      "condition_scale is intended for national-only figures; ",
+      "ignoring condition_scale.",
+      call. = FALSE
+    )
+  }
+
+  p
+}
+
+# Save Norwegian national figures with the coloured condition-scale band
+# (default palette). Writes separate *_condition.png files so the plain
+# national figures remain unchanged.
+save_index_condition_figures <- function(
+    forest_index,
+    mountain_index,
+    registry_forest,
+    registry_mountain,
+    year = 2024L,
+    out_dir = here::here("img"),
+    condition_palette = "default") {
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE)
+  }
+
+  specs <- list(
+    list(
+      index = forest_index,
+      registry = registry_forest,
+      title = "NO_IDEX_001 \u2014 skog",
+      slug = "skog",
+      height = 8.2
+    ),
+    list(
+      index = mountain_index,
+      registry = registry_mountain,
+      title = "NO_IDEX_001 \u2014 fjell",
+      slug = "fjell",
+      height = 6.2
+    )
+  )
+
+  for (spec in specs) {
+    p <- plot_index_detailed(
+      spec$index,
+      year = year,
+      title = spec$title,
+      national_only = TRUE,
+      condition_scale = TRUE,
+      condition_palette = condition_palette,
+      lang = "nb",
+      registry = spec$registry
+    )
+    out <- file.path(
+      out_dir,
+      sprintf("NO_IDEX_001_%s_%s_national_nb_condition.png", spec$slug, year)
+    )
+    ggplot2::ggsave(
+      filename = out,
+      plot = p,
+      width = 7,
+      height = spec$height,
+      dpi = 150,
+      bg = "white"
+    )
+  }
+
+  invisible(TRUE)
 }
 
 # Save regional + national detailed index figures (English and Norwegian).
