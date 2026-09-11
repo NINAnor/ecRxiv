@@ -1,3 +1,25 @@
+check_anybadger <- function() {
+  if (!requireNamespace("anybadger", quietly = TRUE)) {
+    stop(
+      "Package 'anybadger' is required.\n",
+      "Install with:\n",
+      'remotes::install_github("lmeninato/anybadger")',
+      call. = FALSE
+    )
+  }
+
+  if (utils::packageVersion("anybadger") < "0.1.1") {
+    stop(
+      "This project requires anybadger >= 0.1.1.\n",
+      "The CRAN version (0.1.0) is broken.\n\n",
+      "Install with:\n",
+      'remotes::install_github("lmeninato/anybadger")',
+      call. = FALSE
+    )
+  }
+}
+check_anybadger()
+
 # Function to add url to images embedded using knitr
 image_link <- function(image, url, ...) {
   htmltools::a(
