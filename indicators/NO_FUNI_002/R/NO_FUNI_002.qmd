@@ -26,8 +26,8 @@ verbatimEcosystem:
 yearAdded: 2026
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
-Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: This indicator has been calculated before under different names and codes. 
+Version: "0.2.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+VersionComment: Since version 0.1.0 the indicator has been made one-sided so that only signals from high N loads will reduce the indicator value
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_FUNI_002
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
 SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) 
@@ -222,17 +222,17 @@ meta |>
 ## 1. Summary
 
 1. **Background and rationale**: 
-Nitrogen is a limiting macronutrient in many plant communities and terrestrial ecosystems. Fertilisation from airborne deposition of nitrogen can increase plant productivity, change the community composition, and most likely also decrease the species diversity. This indicator represents plant community responses to nitrogen. It represents the lowest score of deviations from an optimal state either to higher or to lower nitrogen levels. 
+Nitrogen is a limiting macronutrient in many plant communities and terrestrial ecosystems. Fertilisation from airborne deposition of nitrogen can increase plant productivity, change the community composition, and most likely also decrease the species diversity. This indicator represents plant community responses to increased nitrogen. It represents the  deviations from an optimal state and towards higher nitrogen levels. 
 
 2. **Methods**: 
 The data comes from field sampled plant community data from the Norwegian nature monitoring program ANO (Tingstad et al. 2019). We combine this with functional trait values from Tyler et al. (2021) and plant strategies towards stressors from Grime (1974). Indicator values are based on calculating community-weighted means (Diekmann 2003, Töpper et al. 2018) or cumulative abundance (see Framstad et al. 2022) of functional trait values for plant community data. Deviations in such an indicator beyond a certain range of indicator values indicate a directional shift in the plant community. As reference communities we use ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020). 
 
 3. **Interpretation**:
-An indicator value of 1 indicates no discernible difference in the functional plant composition due to nitrogen impacts. 
-Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state, either as a response to increased or decreased nitrogen.
+An indicator value of 1 indicates no discernible difference in the functional plant composition due to impacts of increased nitrogen. 
+Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state as a response to increased nitrogen.
 
 4. **Results and development needs**:
-The indicator value for Norway as a whole is 0.65 [95% CI: 0.64-0.66], indicating that the functional plant community composition is within the range of what is expected under good ecological condition. The result is driven by deviations towards low nitrogen values.
+The indicator value for Norway as a whole is 0.80 [95% CI: 0.78-0.81], indicating that the functional plant community composition indicates a slight shift towards communities with higher nitrogen affinity/tolerance, but well within what is accepted under good ecological condition. As for the regions, the results for Northern, Western and Southern Norway are very similar to Norway in total. However, Eastern Norway scores clearly lower (0.76 with CI 0.73-0.79), and Central Norway scores clearly higher (0.83 with CI 0.80-0.86).
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southhern and eastern Norway. The indicator values also need validation against independent datasets.
 
 
@@ -289,7 +289,7 @@ The variable is scaled, transformed (piece-wise linear) and truncated at the ini
 In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). In terms of nitrogen, the reference condition is defined by a reference community.
 
 ### 4.2 Reference levels
-Reference and limit values (scaling values) for functional plant community indicators are derived as the 0.025, 0.5, and 0.975 quantiles (lower limit values, reference value, upper limit value, respectively) from distributions of community weighted means of the respective plant indicators originating from bootstrapped generalized species lists.
+Reference and limit values (scaling values) for a one-sided functional plant community indicator are derived as the 0.5 and 0.95 quantiles (reference value and upper limit value, respectively) from distributions of community weighted means of the respective plant indicators originating from bootstrapped generalized species lists.
 Bootstraps were set up with resampling of the original generalized species lists 1000 times. In every sample a random 1/3 of the original generalized species list was sampled (as ANO points on average contain roughly a third of the potential species richness in the generalized species lists -> local variation in species composition thus is large and needs to be reflected in the bootstraps), with the exception of dominant species (abundance value of 5 or higher in the original scale of the generalized species lists), which were retained in every sample.
 All reference distributions, and thus all scaling values are unique to NiN mapping units at a scale of 1:5000.
 
@@ -1096,7 +1096,7 @@ indEll.n=2
 tab <- matrix(ncol=3*indEll.n, nrow=25 ) # 25 basic ecosystem types
 # coercing the values into the table
 
-myQuantiles <- c(0.025, 0.5, 0.975)
+myQuantiles <- c(0.025, 0.5, 0.95) # the lowest quantile will not be used in this one-sided indicator
 
 for (i in 1:length(x) ) {
   tab[i,1:3] <- quantile(as.matrix(mountain.ref.cov[["Light"]][,x[i]]),probs=myQuantiles,na.rm=T)
@@ -1241,12 +1241,12 @@ for (i in 1:nrow(ANO.mountain) ) {  #
         if ( nrow(dat)>0 ) {
           
           val <- sum(dat[,'art_dekning'] * dat[,'Nitrogen'],na.rm=T) / sum(dat[,'art_dekning'],na.rm=T)
-          # lower part of distribution
-          ref <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Rv']
-          lim <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Gv']
-          maxmin <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'maxmin']
-          # normalisation
-          ANO.mountain[i,'Nitrogen1'] <- ec_normalise(variable = val, x0 = maxmin, x60 = lim, x100 = ref, fun = "linear")
+#          # lower part of distribution
+#          ref <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Rv']
+#          lim <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Gv']
+#          maxmin <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen1' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'maxmin']
+#          # normalisation
+#          ANO.mountain[i,'Nitrogen1'] <- ec_normalise(variable = val, x0 = maxmin, x60 = lim, x100 = ref, fun = "linear")
 
           # upper part of distribution
           ref <- mountain.ref.cov.val[mountain.ref.cov.val$Ind=='Nitrogen2' & mountain.ref.cov.val$grunn==as.character(ANO.mountain[i,"kartleggingsenhet_1m2"]),'Rv']
@@ -1268,10 +1268,10 @@ for (i in 1:nrow(ANO.mountain) ) {  #
 }
 
 # generate overall Nitrogen indicator
-ANO.mountain$Nitrogen <- ANO.mountain$Nitrogen1*ANO.mountain$Nitrogen2
+ANO.mountain$Nitrogen <- ANO.mountain$Nitrogen2
 
-ANO.mountain$Nitrogen1[ANO.mountain$Nitrogen1==1] <- NA
-ANO.mountain$Nitrogen2[ANO.mountain$Nitrogen2==1] <- NA
+#ANO.mountain$Nitrogen1[ANO.mountain$Nitrogen1==1] <- NA
+#ANO.mountain$Nitrogen2[ANO.mountain$Nitrogen2==1] <- NA
 
 # add geometry again
 ANO.mountain <- ANO.mountain %>%
@@ -1306,21 +1306,8 @@ nitrogen.no <- glmmTMB(
   family = ordbeta
 )
 
-nitrogen1.no <- glmmTMB(
-  Nitrogen1 ~ 1 + (1|ano_flate_id),
-  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen1),],
-  family = ordbeta
-)
-
-nitrogen2.no <- glmmTMB(
-  Nitrogen2 ~ 1 + (1|ano_flate_id),
-  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen2),],
-  family = ordbeta
-)
-
 summary(nitrogen.no)
-summary(nitrogen1.no)
-summary(nitrogen2.no)
+
 
 # regions
 nitrogen.re <- glmmTMB(
@@ -1329,21 +1316,8 @@ nitrogen.re <- glmmTMB(
   family = ordbeta
 )
 
-nitrogen1.re <- glmmTMB(
-  Nitrogen1 ~ 0 + region + (1|ano_flate_id),
-  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen1),],
-  family = ordbeta
-)
-
-nitrogen2.re <- glmmTMB(
-  Nitrogen2 ~ 0 + region + (1|ano_flate_id),
-  data = ANO.mountain[!is.na(ANO.mountain$Nitrogen2),],
-  family = ordbeta
-)
-
 summary(nitrogen.re)
-summary(nitrogen1.re)
-summary(nitrogen2.re)
+
 ```
 
 
@@ -1384,22 +1358,6 @@ NO_FUNI_002_table <- tibble(
       summary(nitrogen.re)$coef$cond[, 1] -
         1.96 * summary(nitrogen.re)$coef$cond[, 2]
     )
-  ),
-  upper_indicator_value = c(
-    plogis(summary(nitrogen2.no)$coef$cond[, 1]),
-    plogis(summary(nitrogen2.re)$coef$cond[, 1])
-  ),
-  n_upper_indicator_value = c(
-    summary(nitrogen2.no)$nobs,
-    as.vector(table(nitrogen2.re$frame$region))
-  ),
-  lower_indicator_value = c(
-    plogis(summary(nitrogen1.no)$coef$cond[, 1]),
-    plogis(summary(nitrogen1.re)$coef$cond[, 1])
-  ),
-  n_lower_indicator_value = c(
-    summary(nitrogen1.no)$nobs,
-    as.vector(table(nitrogen1.re$frame$region))
   )
 )
 NO_FUNI_002_table
@@ -1414,35 +1372,35 @@ b0 <- fixef(nitrogen.no)$cond["(Intercept)"]
 se_b0 <- sqrt(vcov(nitrogen.no)$cond["(Intercept)", "(Intercept)"])
 
 # draw estimates and backtransform from logit-scale
-eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
-mu_draws  <- plogis(eta_draws)
+eta_draws_no <- rnorm(1000, mean = b0, sd = se_b0)
+mu_draws_no  <- plogis(eta_draws_no)
 
 
 ## regions
 b_re <- fixef(nitrogen.re)$cond
 vc_re <- vcov(nitrogen.re)$cond
 
-eta_draws_reg <- MASS::mvrnorm(
+eta_draws_re <- MASS::mvrnorm(
   n = 1000,
   mu = b_re,
   Sigma = vc_re
 )
 
-mu_draws_reg <- plogis(eta_draws_reg)
+mu_draws_re <- plogis(eta_draws_re)
 
 
 # combining nitrogen_no_sim and nitrogen_re_sim
-mu <- mu_draws_reg |>
+mu <- mu_draws_re |>
   as_tibble() |>
-  add_column(Norway = mu_draws) |>
-  pivot_longer(everything(), names_to = "part") |>
-  mutate(part = case_when(
-    part == "regionCentral.Norway" ~ "C",
-    part == "regionEastern.Norway" ~ "E",
-    part == "regionNorthern.Norway" ~ "N",
-    part == "regionWestern.Norway" ~ "W",
-    part == "regionSouthern.Norway" ~ "S",
-    .default = part
+  add_column(Norway = mu_draws_no) |>
+  pivot_longer(everything(), names_to = "region") |>
+  mutate(region = case_when(
+    region == "regionCentral.Norway" ~ "C",
+    region == "regionEastern.Norway" ~ "E",
+    region == "regionNorthern.Norway" ~ "N",
+    region == "regionWestern.Norway" ~ "W",
+    region == "regionSouthern.Norway" ~ "S",
+    .default = region
   )) |>
     add_column(year = "2024")
 ```
@@ -1454,16 +1412,16 @@ mu <- mu_draws_reg |>
 mu |>
   ggplot(aes(x = value)) +
   geom_histogram() +
-  facet_wrap(.~part, ncol=1) +
+  facet_wrap(.~region, ncol=1) +
   theme_bw(base_size=16) 
 ```
 
 ```{r tbl-results}
 #| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUNI_002, calculated for Norwegian mountain ecosystems.'
 mu |>
-  group_by(part) |>
+  group_by(region) |>
   summarise(
-    indicator = mean(value),
+    'indicator value' = round(mean(value),2),
     low = round(quantile(value, probs = 0.025), 2),
     high = round(quantile(value, probs = .975), 2)
   ) |>

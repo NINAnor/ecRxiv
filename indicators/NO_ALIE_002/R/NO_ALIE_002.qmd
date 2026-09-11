@@ -1,5 +1,5 @@
 ---
-title: "Alien plants"
+title: "Alien plant species"
 subtitle: |
   [NO_ALIE_002]
 # delete the line with the second indicatorID (line 5) 
@@ -18,7 +18,7 @@ indicatorID:
 # same realm, same country etc., then you only need to write the realm and
 # country once. 
 indicatorName: 
-  - Alien plants
+  - Alien plant species
 verbatimName: 
   - Fremmede plantearter # the indicator name that us used in the native language
 folderName: NO_ALIE_002 # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
@@ -233,6 +233,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - 21 May 2026 - original start-up of the 2026 alien species indicator for mountains
 - June 31 2026 - Accepted
+- 11 August 2026 - Minor update to metadata
 :::
 
 
@@ -386,7 +387,7 @@ reg$region <- c("Northern.Norway","Central.Norway","Eastern.Norway","Western.Nor
 
 regnor <- st_intersection(reg,nor)
 
-ANO.mount = st_join(ANO.mount, regnor, left = TRUE, join = st_nearest_feature)
+ANO.mount <- st_join(ANO.mount, regnor, left = TRUE, join = st_nearest_feature)
 
 ```
 
@@ -446,6 +447,7 @@ Indicator values are calculated as arithmetic means of the normalised indicator 
 ```{r}
 #| warning: false
 #| message: false
+#| eval: false
 set.seed(123)
 
 B <- 1000
@@ -504,10 +506,15 @@ NO_ALIE_002_table <- boot_results |>
     .groups = "drop"
   ) |>
   mutate(Year = 2024)
-
 NO_ALIE_002_table
+saveRDS(NO_ALIE_002_table, here::here("data/ANO_ALIE_002_table.rds"))
 ```
 
+```{r readCache}
+#| include: false
+NO_ALIE_002_table <- readRDS(here::here("data/ANO_ALIE_002_table.rds"))
+NO_ALIE_002_table
+```
 
 ## 11. Export file
 
