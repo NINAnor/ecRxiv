@@ -235,6 +235,8 @@ Values decreasing toward zero reflect a shift in species composition and communi
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
+Access to further years of data for the ASO monitoring scheme would strengthen its temporal and spatial representation, and thus the indicator's robustness.
+
 
 
 
@@ -251,11 +253,21 @@ For details see point 7 below.
 The ANO monitoring data available now represent one cycle of sampling from 2019-2024 comprising ca. 1000 sites across Norway.
 ANO has no defined end date. 2025 is the first year of repeated sampling for about 20% of the approximately 1000 ANO sites for all of mainland Norway (i.e. the Ecosystem Accounting Area). Annual sampling is spatially representative, in principle allowing to compute area-representative estimates for single years but also multiple-yr-reporting periods. The indicator at hand is calculated based on the ANO data from 2020-2024.
 
+The GRUK monitoring data follows a similar five-year sampling cycle from 2020-2024. Monitoring sites were randomly selected across the Oslo fjord basin, resulting in ~80 sites surveyed annually. The sites comprise open, shallow-soil calcareous grassland in three sub-areas - the inner, middle and outer Oslo fjord region.
+
+The ASO monitoring dataset is spatially representative of Norway, with each year's sampling pool representative at a national and regional scale. ASO follows a 5-year monitoring cycle, though only data from 2022 are represented here.
+
 ### 2.2 Sampling design
-At every ANO site, the the plant community is recorded (presence and percent cover of every vascular plant species) in the central 1 sqm plot of each of systematically arranged 18 monitoring points.
+At every ANO site, the plant community is recorded (presence and percent cover of every vascular plant species) in the central 1 sqm plot of each of systematically arranged 18 monitoring points.
+
+Within each GRUK site, one or several polygons matching the NiN mapping units T2-C-7 and T2-C-8 were delineated, and 5, 10, or 15 0.5 x 0.5 m permanent plots established, randomly selected from a 10 x 10 m grid within the polygons. All vascular plant species were recorded, including their percentage cover (visual estimate). 
+
+ASO is structured using a nested design consisting of ASO areas (10x10 km), ASO plots (500x500 m), and semi-natural grasslands. Within each semi-natural grassland up to three transects were established, the length of each chosen to reflect the size of the grassland. 
 
 ### 2.3 Original units
-Abundance data for vascular plants in ANO is given as % cover within a 1 m2 sample quadrat. This is transformed to relative abundance data per quadrat. Each ANO quadrat is classified to its respective ecosystem type according to ‘Nature in Norway’ (NiN; <https://artsdatabanken.no/NiN>). Environmental indicator values from Tyler et al. (2021) are given on an ordinal scale from 1 (lowest affinity to the respective variable) to n (highest affinity to the respective variable), the number of levels (n) varying between environmental indicators.
+Abundance data for vascular plants in ANO is given as % cover within a 1 m2 sample quadrat, and within a 0.5 x 0.5 m sample quadrat for GRUK. This is transformed to relative abundance data per quadrat. Each ANO and GRUK quadrat is classified to its respective ecosystem type according to ‘Nature in Norway’ (NiN; <https://artsdatabanken.no/NiN>). Species diversity in ASO was recorded using cover and frequency classes (cf. modified measurement scale A7 for NiN2). Environmental indicator values from Tyler et al. (2021) are given on an ordinal scale from 1 (lowest affinity to the respective variable) to n (highest affinity to the respective variable), the number of levels (n) varying between environmental indicators.
+
+
 
 
 ### 2.4 Instructions for citing, using and accessing data
@@ -487,11 +499,11 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 nor <- st_read(paste0(here(), "/data/geo/outlineOfNorway_EPSG25833.shp"), quiet = TRUE) |>
   st_as_sf() |>
-  st_transform(crs = st_crs(ano_lowlands))  # originally ano_lowlands
+  st_transform(crs = st_crs(ano_geo))  # originally ano_lowlands
 
 reg <- st_read(paste0(here(), "/data/geo/regions.shp"), quiet = TRUE) |>
   st_as_sf() |>
-  st_transform(crs = st_crs(ano_lowlands))
+  st_transform(crs = st_crs(ano_geo))
 
 # update region names
 reg$region <- c(
@@ -512,14 +524,15 @@ species_dict_pattern <- tibble::tibble(
     "Aconitum septentrionale",
     "Agrostis hyemalis",
     "Anagallis minima",
+    "Anagallis arvensis",
     "Antennaria lapponica",
     "Antennaria porsildii",
     "Arabis wahlenbergii",
     "Arctous alpinus",
     "Aristavena setacea",
-    "Atriplex lapponica",  
-    "Atriplex praecox",    
     "Artemisia rupestris",
+    "Atriplex lapponica",
+    "Atriplex praecox",
     "Betula tortuosa",
     "Blysmopsis rufa",
     "Cardamine dentata",
@@ -543,46 +556,64 @@ species_dict_pattern <- tibble::tibble(
     "Cotoneaster scandinavicus",
     "Cotoneaster symondsii",
     "Cyanus montanus",
+    "Dactylorhiza fuchsii",
+    "Dactylorhiza sphagnicola",
     "Dactylorhiza viridis",
     "Diphasiastrum alpinum",
     "Diphasiastrum complanatum",
+    "Drymochloa sylvatica",
     "Dryopteris affinis",
     "Empetrum hermaphroditum",
     "Elymus alaskanus",
     "Elymus repens",
+    "Empetrum hermaphroditum",
+    "Erigeron acer",
+    "Erigeron eriocephalus",
     "Epilobium angustifolium",
     "Erysimum virgatum",
     "Euphrasia frigida",
+    "Festuca altissima",
     "Festuca prolifera",
     "Festuca trachyphylla",
+    "Filago arvensis",
     "Galium album",
     "Galium elongatum",
+    "Glaux maritima",
     "Hedlundia meinichii",
     "Helictotrichon pratense",
     "Helictotrichon pubescens",
     "Hieracium alpina",
     "Hieracium alpinum",
+    "Hieracium aurantiacum",
+    "Hieracium dovrense",
     "Hieracium hieracium",
     "Hieracium hieracioides",
+    "Hieracium lactucella",
     "Hieracium murorum",
     "Hieracium oreadea",
     "Hieracium prenanthoidea",
     "Hieracium pilosella",
     "Hieracium vulgata",
     "Hieracium vulgatum",
+    "Hierochloã« alpina",
+    "Hierochloã« hirta",
+    "Hierochlo\x95 hirta",
+    "Hierochloã« odorata",
     "Huperzia appressa",
     "Huperzia arctica",
     "Hylotelephium maximum",
-    "Juncus arcuatus",
-    "Kali turgida",
-    "Leontodon autumnalis",
+    "Lappula myosotis",
     "Lepidotheca suaveolens",
+    "Leontodon autumnalis",
     "Listera cordata",
     "Listera ovata",
     "Loiseleuria procumbens",
     "Luzula pallidula",
     "Lychnis alpina",
+    "Lysimachia arvensis",
+    "Lysimachia maritima",
     "Matricaria discoidea",
+    "Mentha _verticillata",
     "Minuartia rubella",
     "Minuartia stricta",
     "Mycelis muralis",
@@ -593,17 +624,22 @@ species_dict_pattern <- tibble::tibble(
     "Oreopteris limbosperma",
     "Oxycoccus microcarpus",
     "Oxycoccus palustris",
-    "Papaver dahlianum",   
-    "Papaver lapponicum",  
+    "Papaver dahlianum",
+    "Papaver lapponicum",
     "Pentanema salicinum",
     "Phalaris minor",
+    "Phalaroides arundinacea",
     "Pilosella peletariana",
     "Pinus unicinata",
+    "Platanthera montana",
     "Poa alpigena",
     "Poa angustifolia",
-    "Poa humilis",
-    "Polygonum boreale",   
-    "Polygonum excelsius", 
+    "Poa laxa",
+    "Poa _herjedalica",
+    "Poa _jemtlandica",
+    "Poa lindebergii",
+    "Polygonum boreale",
+    "Polygonum excelsius",
     "Polygonum norvegicum",
     "Potentilla anserina",
     "Potentilla arenosa",
@@ -611,13 +647,16 @@ species_dict_pattern <- tibble::tibble(
     "Puccinellia retroflexa",
     "Pyrola grandiflora",
     "Pyrola norvegica",
+    "Rhamnus catharticus",
     "Rosa dumalis",
     "Rosa vosagica",
     "Roegneria canina",
     "Rubus fruticosus",
     "Rumex alpestris",
     "Rumex graminifolius",
+    "Salix _fragilis",
     "Salicornia pojarkovae",
+    "Saxifraga _opdalensis",
     "Schedonorus elatior",
     "Sedum maximum",
     "Sedum telephium",
@@ -629,24 +668,29 @@ species_dict_pattern <- tibble::tibble(
     "Syringa emodi",
     "Taraxacum crocea",
     "Taraxacum croceum",
+    "Taraxacum erythrospermum",
+    "Taraxacum hamatum",
     "Thinopyrum junceiforme",
     "Trientalis europaea",
     "Trifolium pallidum",
-    "Veratrum lobelianum"
+    "Vicia orobus",
+    "Veratrum lobelianum",
+    "Logfia arvensis"
   ),
   replacement = c(
     "Aconitum septentrionale",
     "Aconitum lycoctonum",
     "Agrostis scabra",
     "Lysimachia minima",
+    "Lysimachia arvensis",
     "Antennaria alpina",
     "Antennaria alpina",
     "Arabis hirsuta",
     "Arctous alpina",
     "Deschampsia setacea",
-    "Atriplex longipes",
-    "Atriplex longipes",
     "Artemisia norvegica",
+    "Atriplex longipes",
+    "Atriplex longipes",
     "Betula pubescens",
     "Blysmus rufus",
     "Cardamine pratensis",
@@ -670,46 +714,64 @@ species_dict_pattern <- tibble::tibble(
     "Cotoneaster integerrimus",
     "Cotoneaster simonsii",
     "Centaurea montana",
+    "Dactylorhiza maculata",
+    "Dactylorhiza majalis",
     "Coeloglossum viride",
     "Lycopodium alpinum",
     "Lycopodium complanatum",
+    "Drymochloa sylvatica",
     "Dryopteris filix-mas",
     "Empetrum nigrum",
     "Elymus kronokensis",
     "Elytrigia repens",
+    "Empetrum nigrum",
+    "Erigeron acris",
+    "Erigeron uniflorus",
     "Chamaenerion angustifolium",
     "Erysimum strictum",
     "Euphrasia wettsteinii",
+    "Drymochloa sylvatica",
     "Festuca rubra",
     "Festuca brevipila",
+    "Filago arvensis",
     "Galium mollugo",
     "Galium palustre",
+    "Lysimachia maritima",
     "Sorbus aucuparia",
     "Avenula pratensis",
     "Avenula pubescens",
     "Hieracium Alpina",
     "Hieracium Alpina",
+    "Pilosella aurantiaca",
+    "Hieracium Alpestria",
     "Hieracium Hieracium",
     "Hieracium umbellatum",
+    "Pilosella lactucella",
     "Hieracium Vulgata",
     "Hieracium Oreadea",
     "Hieracium Prenanthoidea",
     "Pilosella officinarum",
     "Hieracium Vulgata",
     "Hieracium umbellatum",
+    "Hierochloë alpina",
+    "Hierochloë hirta",
+    "Hierochloë hirta",
+    "Hierochloë odorata",
     "Huperzia selago",
     "Huperzia selago",
     "Hylotelephium telephium",
-    "Luzula arcuata",
-    "Kali turgidum",
-    "Scorzoneroides autumnalis",
+    "Lappula squarrosa",
     "Matricaria discoidea",
+    "Scorzoneroides autumnalis",
     "Neottia cordata",
     "Neottia ovata",
     "Kalmia procumbens",
     "Luzula pallescens",
     "Viscaria alpina",
+    "Lysimachia arvensis",
+    "Lysimachia maritima",
     "Matricaria discoidea",
+    "Mentha verticillata",
     "Sabulina rubella",
     "Sabulina stricta",
     "Lactuca muralis",
@@ -724,11 +786,18 @@ species_dict_pattern <- tibble::tibble(
     "Papaver radicatum",
     "Inula salicina",
     "Phalaris arundinacea",
+    "Phalaris arundinacea",
     "Pilosella officinarum",
     "Pinus mugo",
+    "Platanthera chlorantha",
     "Poa pratensis",
     "Poa pratensis",
-    "Poa pratensis",
+    "Poa flexuosa",
+    "Poa herjedalica",
+    "Poa alpina",
+    "Poa arctica",
+    "Polygonum aviculare",
+    "Polygonum aviculare",
     "Polygonum oxyspermum",
     "Argentina anserina",
     "Potentilla nivea",
@@ -736,13 +805,16 @@ species_dict_pattern <- tibble::tibble(
     "Puccinellia capillaris",
     "Pyrola rotundifolia",
     "Pyrola rotundifolia",
+    "Rhamnus cathartica",
     "Rosa vosagiaca",
     "Rosa vosagiaca",
     "Elymus caninus",
     "Rubus plicatus",
     "Rumex acetosa",
     "Rumex acetosella",
+    "Salix fragilis",
     "Salicornia procumbens",
+    "Saxifraga opdalensis",
     "Schedonorus arundinaceus",
     "Hylotelephium telephium",
     "Hylotelephium telephium",
@@ -754,10 +826,14 @@ species_dict_pattern <- tibble::tibble(
     "Syringa vulgaris",
     "Taraxacum officinale",
     "Taraxacum officinale",
+    "Taraxacum officinale",
+    "Taraxacum officinale",
     "Elytrigia juncea",
     "Lysimachia europaea",
     "Trifolium pratense",
-    "Veratrum album"
+    "Vicia cassubica",
+    "Veratrum album",
+    "Filago arvensis"
   )
 )
 
@@ -1351,7 +1427,7 @@ ASO_species <- rename(ASO_species, art_dekning = Dekning)
 
 # fix species names
 ASO_species <- ASO_species |>
-  mutate(scientific_name_original = scientific_name) |> 
+  mutate(scientific_name_original = karplantenavn) |> 
   separate(
     col  = Navn,
     into = c("norsk_navn", "scientific_name"),
@@ -1374,7 +1450,7 @@ ASO_species <- ASO_species |>
   )
 
 ASO_species <- ASO_species  |>  
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_from_dictionary(x = scientific_name, species_dict_pattern))
 
 
 # filter out NAs for WFO cleaning
@@ -2009,104 +2085,7 @@ NiN_sp <- NiN_sp |>
 
 
 NiN_sp <- NiN_sp |> 
-  mutate(species = recode(
-    species,
-    "Aconitum lycoctonum"          = "Aconitum septentrionale",
-    "Anagallis arvensis"           = "Lysimachia arvensis",
-    "Anagallis minima"             = "Lysimachia minima",
-    "Arctous alpinus"              = "Arctous alpina",
-    "Betula tortuosa"              = "Betula pubescens",
-    "Blysmopsis rufa"              = "Blysmus rufus",
-    "Chamerion angustifolium"      = "Chamaenerion angustifolium",
-    "Cardamine nymanii"            = "Cardamine pratensis",
-    "Carex adelostoma"             = "Carex buxbaumii",
-    "Carex leersii"                = "Carex echinata",
-    "Carex paupercula"             = "Carex magellanica",
-    "Carex simpliciuscula"         = "Kobresia simpliciuscula",
-    "Carex _vacillans"             = "Carex vacillans",
-    "Carex viridula"               = "Carex flava",
-    "Chamaepericlymenum suecicum"  = "Cornus suecia",
-    "Cornus suecia"                = "Cornus suecica",
-    "Cicerbita alpina"             = "Lactuca alpina",
-    "Dactylorhiza fuchsii"         = "Dactylorhiza maculata",
-    "Dactylorhiza sphagnicola"     = "Dactylorhiza majalis",
-    "Diphasiastrum alpinum"        = "Lycopodium alpinum",
-    "Diphasiastrum complanatum"    = "Lycopodium complanatum",
-    "Elymus alaskanus"             = "Elymus kronokensis",
-    "Empetrum hermaphroditum"      = "Empetrum nigrum",
-    "Erigeron acer"                = "Erigeron acris",
-    "Erigeron eriocephalus"        = "Erigeron uniflorus",
-    "Festuca altissima"            = "Drymochloa sylvatica",
-    "Festuca prolifera"            = "Festuca rubra",
-    "Galium album"                 = "Galium mollugo",
-    "Galium elongatum"             = "Galium palustre",
-    "Glaux maritima"               = "Lysimachia maritima",
-    "Helictotrichon pratense"      = "Avenula pratensis",
-    "Helictotrichon pubescens"     = "Avenula pubescens",
-    "Hieracium alpina"             = "Hieracium Alpina",
-    "Hieracium alpinum"            = "Hieracium Alpina",
-    "Hieracium aurantiacum"        = "Pilosella aurantiaca",
-    "Hieracium dovrense"           = "Hieracium Alpestria",
-    "Hieracium hieracium"          = "Hieracium Hieracium",
-    "Hieracium hieracioides"       = "Hieracium umbellatum",
-    "Hieracium lactucella"         = "Pilosella lactucella",
-    "Hieracium murorum"            = "Hieracium Vulgata",
-    "Hieracium oreadea"            = "Hieracium Oreadea",
-    "Hieracium prenanthoidea"      = "Hieracium Prenanthoidea",
-    "Hieracium vulgata"            = "Hieracium Vulgata",
-    "Hieracium pilosella"          = "Pilosella officinarum",
-    "Hieracium vulgatum"           = "Hieracium umbellatum",
-    "Hierochloã« alpina"           = "Hierochloë alpina",
-    "Hierochloã« hirta"            = "Hierochloë hirta",
-    "Hierochlo\x95 hirta"          = "Hierochloë hirta",
-    "Hierochloã« odorata"          = "Hierochloë odorata",
-    "Huperzia appressa"            = "Huperzia selago",
-    "Hylotelephium maximum"        = "Hylotelephium telephium",
-    "Lappula myosotis"             = "Lappula squarrosa",
-    "Lepidotheca suaveolens"       = "Matricaria discoidea",
-    "Listera cordata"              = "Neottia cordata",
-    "Listera ovata"                = "Neottia ovata",
-    "Leontodon autumnalis"         = "Scorzoneroides autumnalis",
-    "Loiseleuria procumbens"       = "Kalmia procumbens",
-    "Logfia arvensis"              = "Filago arvensis",
-    "Mentha _verticillata"         = "Mentha verticillata",
-    "Minuartia rubella"            = "Sabulina rubella",
-    "Minuartia stricta"            = "Sabulina stricta",
-    "Mycelis muralis"              = "Lactuca muralis",
-    "Omalotheca supina"            = "Gnaphalium supinum",
-    "Omalotheca norvegica"         = "Gnaphalium norvegicum",
-    "Omalotheca sylvatica"         = "Gnaphalium sylvaticum",
-    "Ononis arvensis"              = "Ononis spinosa",
-    "Oreopteris limbosperma"       = "Thelypteris limbosperma",
-    "Oxycoccus microcarpus"        = "Vaccinium microcarpum",
-    "Oxycoccus palustris"          = "Vaccinium oxycoccos",
-    "Phalaris minor"               = "Phalaris arundinacea",
-    "Phalaroides arundinacea"      = "Phalaris arundinacea",
-    "Pinus unicinata"              = "Pinus mugo",
-    "Platanthera montana"          = "Platanthera chlorantha",
-    "Poa alpigena"                 = "Poa pratensis",
-    "Poa angustifolia"             = "Poa pratensis",
-    "Poa laxa"                     = "Poa flexuosa",
-    "Poa _herjedalica"             = "Poa herjedalica",
-    "Poa _jemtlandica"             = "Poa alpina",
-    "Poa lindebergii"              = "Poa arctica",
-    "Potentilla anserina"          = "Argentina anserina",
-    "Pyrola grandiflora"           = "Pyrola rotundifolia",
-    "Rhamnus catharticus"          = "Rhamnus cathartica",
-    "Rumex alpestris"              = "Rumex acetosa",
-    "Salix _fragilis"              = "Salix fragilis",
-    "Saxifraga _opdalensis"        = "Saxifraga opdalensis",
-    "Sorbus hybrida"               = "Hedlundia hybrida",
-    "Spergularia salina"           = "Spergularia marina",
-    "Syringa emodi"                = "Syringa vulgaris",
-    "Taraxacum crocea"             = "Taraxacum officinale",
-    "Taraxacum croceum"            = "Taraxacum officinale",
-    "Taraxacum erythrospermum"     = "Taraxacum officinale",
-    "Taraxacum hamatum"            = "Taraxacum officinale",
-    "Trientalis europaea"         = "Lysimachia europaea",
-    "Trifolium pallidum"          = "Trifolium pratense",
-    "Vicia orobus"                = "Vicia cassubica"
-  ),
+  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern),
   species = str_replace(species, "Hierochlo.? hirta", "Hierochloë hirta"),
   species = str_replace_all(species, "spp.", "sp.")
     # and similar for other bad names
@@ -2448,10 +2427,10 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 names(lowland_ref_cov[["Moisture"]])
 
 
-# 2 indicator-value indicators: Moisture, "Moisture"
+# 1 indicator-value indicators: "Moisture"
 indEll.n=2
 # creating a table to hold:
-# for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator), for Heat_requirement in alpine/arctic systems we do 0.05 quantile and  0.95 quantile and ignore the former as it is a one-sided indicator
+# for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator)
 # for every nature type (nrows)
 # coercing the values into the table
 
@@ -2604,7 +2583,8 @@ ano_lowlands <- ano_lowlands |>
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   filter(hovedtype_rute %in% c("T32", "T34", "T45", "V10", "T41")) |> 
-    rename(kartleggingsenhet = kartleggingsenhet_1m2) |> 
+    rename(kartleggingsenhet = kartleggingsenhet_1m2,
+           nest_1 = ano_flate_id) |> 
   mutate(scale = "1m2")
 
 
@@ -2612,7 +2592,7 @@ ano_lowlands <- ano_lowlands |>
 gruk_lowlands <- GRUK_all |>
   rename(globalid = parent_global_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning, Moisture, polygon_id, rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw)) |> 
+  select(-c(species, art_dekning, Moisture, rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw)) |> 
   distinct() |> 
   rename(
     X = UTM33_E,
@@ -2624,8 +2604,9 @@ st_drop_geometry() |>
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   mutate(hovedtype_rute = str_sub(kartleggingsenhet_1_5000, 1, 2)) |> 
-  select(globalid, globalid_chr, hovedtype_rute, aar, X, Y, kartleggingsenhet_1_5000, nin_kartleggingsenheter, hovedokosystem) |> 
-  rename(kartleggingsenhet = kartleggingsenhet_1_5000) |> 
+  select(globalid, globalid_chr, polygon_id, hovedtype_rute, aar, X, Y, kartleggingsenhet_1_5000, nin_kartleggingsenheter, hovedokosystem) |> 
+  rename(kartleggingsenhet = kartleggingsenhet_1_5000,
+         nest_1 = polygon_id) |> 
   mutate(scale = "1_5000")
 
 # ASO
@@ -2646,8 +2627,10 @@ semi_join(
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |> 
-  select(globalid, globalid_chr, aso_id, hovedtype_rute, X, Y, nin_grunntype) |> 
-  rename(kartleggingsenhet = nin_grunntype)
+  select(globalid, globalid_chr, eng_id, omradenummer_flatenummer, aso_id, hovedtype_rute, X, Y, nin_grunntype) |> 
+  rename(kartleggingsenhet = nin_grunntype,
+         nest_1 = omradenummer_flatenummer,
+         nest_2 = eng_id)
 
 
 combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = "dataset") |> 
@@ -2672,10 +2655,13 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
 # combine species data
 
 GRUK_species_ind <- GRUK_species_ind |> 
-  filter(!is.na(species), !is.na(art_dekning), !is.na(Moisture))
+  filter(!is.na(species), !is.na(art_dekning), !is.na(Moisture)) |> 
+  rename(nest_1 = polygon_id)
 
 ASO_species_ind <- ASO_species_ind |> 
-  filter(!is.na(species), !is.na(art_dekning), !is.na(Moisture))
+  filter(!is.na(species), !is.na(art_dekning), !is.na(Moisture)) |> 
+  rename(nest_1 = omradenummer_flatenummer,
+         nest_2 = eng_id)
 
 
 combined_species <-  bind_rows(ANO_species_ind |> select(-c(busker_dekning, tresjikt_dekning, roesslyng_dekning, ssb_id, vedplanter_total_dekning, kartleggingsenhet_1m2)), 
@@ -2853,20 +2839,20 @@ The national and regional estimates are computed separately.
 # Norway
 
 Moisture_no_ano <- glmmTMB(
-  moisture ~ 1 + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO"),
+  moisture ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands,
   family = ordbeta
 )
 
 Moisture1_no_ano <- glmmTMB(
   Moisture1 ~ 1 + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO", !is.na(Moisture1)),
+  data = combined_lowlands |> filter(!is.na(Moisture1)),
   family = ordbeta
 )
 
 Moisture2_no_ano <- glmmTMB(
   Moisture2 ~ 1 + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO", !is.na(Moisture2)),
+  data = combined_lowlands |> filter(!is.na(Moisture2)),
   family = ordbeta
 )
 
