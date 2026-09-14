@@ -2699,8 +2699,8 @@ For scaling the data against the reference we use the normalisation function fro
 #| warning: false
 
 #### 1. calculating scaled and non-truncated values for the indicators based on the datasets ####
-combined_species <- combined_species |> filter(!is.na(Nitrogen))
-lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Nitrogen1", "Nitrogen2"))
+combined_species <- combined_species |> filter(!is.na(Phosphorus))
+lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Phosphorus1", "Phosphorus2"))
 
 ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
 
@@ -2722,20 +2722,20 @@ for (i in seq_len(nrow(combined_lowlands))) {
         dataset == ds,
         parentglobalid == global_i
       ) |>
-      dplyr::select(art_dekning, Nitrogen)
+      dplyr::select(art_dekning, Phosphorus)
     
     if (nrow(dat) == 0) next
     
     combined_lowlands$richness[i] <- nrow(dat)
-    dat <- dat[!is.na(dat$Nitrogen), ]
+    dat <- dat[!is.na(dat$Phosphorus), ]
     if (nrow(dat) == 0) next
     
-    # 3) CWM Nitrogen
-    val <- sum(dat$art_dekning * dat$Nitrogen, na.rm = TRUE) /
+    # 3) CWM Phosphorus
+    val <- sum(dat$art_dekning * dat$Phosphorus, na.rm = TRUE) /
       sum(dat$art_dekning, na.rm = TRUE)
     
-    ## Nitrogen1
-    idx1 <- lowland_ref_cov_val$Ind == "Nitrogen1" &
+    ## Phosphorus1
+    idx1 <- lowland_ref_cov_val$Ind == "Phosphorus1" &
       lowland_ref_cov_val$grunn == nin_i
     idx1[is.na(idx1)] <- FALSE
     
@@ -2745,7 +2745,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
       maxmin1 <- as.numeric(lowland_ref_cov_val$maxmin[idx1][[1]])
       
       if (!any(is.na(c(ref1, lim1, maxmin1)))) {
-        combined_lowlands$Nitrogen1[i] <- ec_normalise(
+        combined_lowlands$Phosphorus1[i] <- ec_normalise(
           variable = val,
           x0   = maxmin1,
           x60  = lim1,
@@ -2755,8 +2755,8 @@ for (i in seq_len(nrow(combined_lowlands))) {
       }
     }
     
-    ## Nitrogen2
-    idx2 <- lowland_ref_cov_val$Ind == "Nitrogen2" &
+    ## Phosphorus2
+    idx2 <- lowland_ref_cov_val$Ind == "Phosphorus2" &
       lowland_ref_cov_val$grunn == nin_i
     idx2[is.na(idx2)] <- FALSE
     
@@ -2766,7 +2766,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
       maxmin2 <- as.numeric(lowland_ref_cov_val$maxmin[idx2][[1]])
       
       if (!any(is.na(c(ref2, lim2, maxmin2)))) {
-        combined_lowlands$Nitrogen2[i] <- ec_normalise(
+        combined_lowlands$Phosphorus2[i] <- ec_normalise(
           variable = val,
           x0   = maxmin2,
           x60  = lim2,
@@ -2784,7 +2784,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
 
 combined_lowlands <- combined_lowlands |>
   dplyr::mutate(
-    Nitrogen  = Nitrogen2
+    Phosphorus  = Phosphorus2
   )
 
 
@@ -2852,24 +2852,24 @@ The national and regional estimates are computed separately.
 ## Fit ordered beta regression null-model with a random effect
 # Norway
 
-Nitrogen_no <- glmmTMB(
-  Nitrogen ~ 1 + (1|dataset/nest_1),
+Phosphorus_no <- glmmTMB(
+  Phosphorus ~ 1 + (1|dataset/nest_1),
   data = combined_lowlands,
   family = ordbeta
 )
 
 
-summary(Nitrogen_no)
+summary(Phosphorus_no)
 
 # regions
-Nitrogen_re <- glmmTMB(
-  Nitrogen ~ 0 + region + (1|dataset/nest_1),
+Phosphorus_re <- glmmTMB(
+  Phosphorus ~ 0 + region + (1|dataset/nest_1),
   data = combined_lowlands,
   family = ordbeta
 )
 
 
-summary(Nitrogen_re)
+summary(Phosphorus_re)
 ```
 
 
@@ -2878,7 +2878,7 @@ summary(Nitrogen_re)
 The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
 ```{r}
 
-NO_FUNI_005_table <- tibble(
+NO_FUFO_001_table <- tibble(
   Region = c(
     "Norway",
     "Central Norway",
@@ -2888,31 +2888,31 @@ NO_FUNI_005_table <- tibble(
     "Western Norway"
   ),
   indicator_value = c(
-    plogis(summary(Nitrogen_no)$coef$cond[, 1]),
-    plogis(summary(Nitrogen_re)$coef$cond[, 1])
+    plogis(summary(Phosphorus_no)$coef$cond[, 1]),
+    plogis(summary(Phosphorus_re)$coef$cond[, 1])
   ),
   CI_upper = c(
     plogis(
-      summary(Nitrogen_no)$coef$cond[, 1] + 1.96 * summary(Nitrogen_no)$coef$cond[, 2]
+      summary(Phosphorus_no)$coef$cond[, 1] + 1.96 * summary(Phosphorus_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(Nitrogen_re)$coef$cond[, 1] + 1.96 * summary(Nitrogen_re)$coef$cond[, 2]
+      summary(Phosphorus_re)$coef$cond[, 1] + 1.96 * summary(Phosphorus_re)$coef$cond[, 2]
     )
   ),
   CI_lower = as.numeric(
     plogis(
-      summary(Nitrogen_no)$coef$cond[, 1] - 1.96 * summary(Nitrogen_no)$coef$cond[, 2]
+      summary(Phosphorus_no)$coef$cond[, 1] - 1.96 * summary(Phosphorus_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(Nitrogen_re)$coef$cond[, 1] - 1.96 * summary(Nitrogen_re)$coef$cond[, 2]
+      summary(Phosphorus_re)$coef$cond[, 1] - 1.96 * summary(Phosphorus_re)$coef$cond[, 2]
     )
   )
 )
-NO_FUNI_005_table
+NO_FUFO_001_table
 
 #write.table(
-#    NO_FUNI_005_table,
-#    file = paste0(here(), "/data/NO_FUNI_005_table.txt"),
+#    NO_FUFO_001_table,
+#    file = paste0(here(), "/data/NO_FUFO_001_table.txt"),
 #    sep = "\t",
 #    row.names = FALSE,
 #    quote = FALSE)
