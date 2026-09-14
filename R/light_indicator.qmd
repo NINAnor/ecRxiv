@@ -2787,11 +2787,9 @@ for (i in seq_len(nrow(combined_lowlands))) {
 
 
 combined_lowlands <- combined_lowlands |>
-  dplyr::mutate(
-    Light  = Light1 * Light2,
-    Light1 = if_else(Light1 == 1, NA_real_, Light1),
-    Light2 = if_else(Light2 == 1, NA_real_, Light2)
-  )
+  dplyr::mutate(Light  = Light1,
+                Light_product = Light1 * Light2)          # only interested in one side of the distribution
+
 
 
 
@@ -2938,23 +2936,23 @@ NO_FULI_005_table <- tibble(
     plogis(
       summary(Light_re)$coef$cond[, 1] - 1.96 * summary(Light_re)$coef$cond[, 2]
     )
-  ),
-  upper_indicator_value = c(
-    plogis(summary(Light2_no)$coef$cond[, 1]),
-    plogis(summary(Light2_re)$coef$cond[, 1])
-  ),
-  n_upper_indicator_value = c(
-    summary(Light2_no)$nobs,
-    as.vector(table(Light2_re$frame$region))
-  ),
-  lower_indicator_value = c(
-    plogis(summary(Light1_no)$coef$cond[, 1]),
-    plogis(summary(Light1_re)$coef$cond[, 1])
-  ),
-  n_lower_indicator_value = c(
-    summary(Light1_no)$nobs,
-    as.vector(table(Light1_re$frame$region))
-  )
+  )#,
+#  upper_indicator_value = c(
+#    plogis(summary(Light2_no)$coef$cond[, 1]),
+#    plogis(summary(Light2_re)$coef$cond[, 1])
+#  ),
+#  n_upper_indicator_value = c(
+#    summary(Light2_no)$nobs,
+#    as.vector(table(Light2_re$frame$region))
+#  ),
+#  lower_indicator_value = c(
+#    plogis(summary(Light1_no)$coef$cond[, 1]),
+#    plogis(summary(Light1_re)$coef$cond[, 1])
+#  ),
+#  n_lower_indicator_value = c(
+#    summary(Light1_no)$nobs,
+#    as.vector(table(Light1_re$frame$region))
+#  )
 )
 NO_FULI_005_table
 ```
