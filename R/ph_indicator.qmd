@@ -2786,8 +2786,12 @@ for (i in seq_len(nrow(combined_lowlands))) {
 
 combined_lowlands <- combined_lowlands |>
   dplyr::mutate(
-    Nitrogen  = Soil_reaction_pH1
-  )
+    Soil_reaction_pH  = Soil_reaction_pH1
+  ) |> 
+  mutate(Soil_reaction_pH  = Soil_reaction_pH1 * Soil_reaction_pH2,
+    Soil_reaction_pH1 = if_else(Soil_reaction_pH1 == 1, NA_real_, Soil_reaction_pH1),
+    Soil_reaction_pH2 = if_else(Soil_reaction_pH2 == 1, NA_real_, Soil_reaction_pH2)
+)
 
 
 
@@ -2953,6 +2957,16 @@ NO_FUPH_001_table <- tibble(
   )
 )
 NO_FUPH_001_table
+
+#write.table(
+#    NO_FUPH_001_table,
+#    file = paste0(here(), "/data/NO_FUPH_001_table.txt"),
+#    sep = "\t",
+#    row.names = FALSE,
+#    quote = FALSE)
+
+
+
 ```
 
 To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
