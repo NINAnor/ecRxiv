@@ -2530,7 +2530,7 @@ build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
   y_ref[((1:nrow(tab)) * 2) - 1] <- tab$Q025_dup
   y_ref[((1:nrow(tab)) * 2)     ] <- tab$Q975_dup
   
-  # Build indicator names (e.g. Moist1, Moist2 or pH1, pH2)
+  # Build indicator names
   ind_base <- ind_name
   ind_labels <- c(paste0(ind_base, "1"), paste0(ind_base, "2"))
   
@@ -2568,6 +2568,8 @@ lowland_ref_cov_val_list <- map(indicators, function(ind) {
 
 # Combine all indicators into one table
 lowland_ref_cov_val <- bind_rows(lowland_ref_cov_val_list)
+
+lowland_ref_cov_val <- lowland_ref_cov_val |> distinct()
 
 summary(lowland_ref_cov_val)
 
@@ -2675,13 +2677,14 @@ GRUK_species_ind <- GRUK_species_ind |>
 
 ASO_species_ind <- ASO_species_ind |> 
   filter(!is.na(species), !is.na(art_dekning)) |> 
-  rename(nest_1 = omradenummer_flatenummer,
-         nest_2 = eng_id)
+  rename(nest_1 = omradenummer_flatenummer#,
+         #nest_2 = eng_id
+         )
 
 ANO_species_ind <- ANO_species_ind |> 
   rename(nest_1 = ano_flate_id)
 
-combined_species <-  bind_rows(ANO_species_ind |> select(-c(busker_dekning, tresjikt_dekning, roesslyng_dekning, ssb_id, vedplanter_total_dekning, kartleggingsenhet_1m2)), 
+combined_species <-  bind_rows(ANO_species_ind |> select(-c(ssb_id, kartleggingsenhet_1m2)), 
                                GRUK_species_ind |> rename(parentglobalid = parent_global_id),
                                ASO_species_ind |> rename(parentglobalid = ParentGlobalID                       ),
                                .id = "dataset") |> 
@@ -2701,13 +2704,15 @@ For scaling ANO-data against the reference we use the normalisation function fro
 #| warning: false
 
 #### 1. calculating scaled and non-truncated values for the indicators based on the datasets ####
+combined_species <- combined_species |> filter(!is.na(Moisture))
+lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Moisture1", "Moisture2"))
 
 ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
 
 for (i in seq_len(nrow(combined_lowlands))) {
   tryCatch({
     
-    ds       <- combined_lowlands$dataset[i]         # "ANO" or "GRUK"
+    ds       <- combined_lowlands$dataset[i]
     hoved_i  <- as.character(combined_lowlands$hovedtype_rute[i])
     global_i <- as.character(combined_lowlands$globalid_chr[i])
     nin_i    <- as.character(combined_lowlands$kartleggingsenhet[i])
@@ -2794,8 +2799,8 @@ combined_lowlands <- combined_lowlands |>
 ```
 
 ```{r}
-head(ano_lowlands) |>
-  kable("html", caption = "ANO plots for ecosystems with scaled indicator values in the far-right columns.") |> 
+head(combined_lowlands) |>
+  kable("html", caption = "Plots for ecosystems with scaled indicator values in the far-right columns.") |> 
   kable_styling("striped") |> scroll_box(width = "100%")
 ```
 
@@ -2813,8 +2818,7 @@ ind2 <- ec_normalise(var2, x100 = 101, x0 = 200, x60 = 150)
 
 ec_norm_plot(
   variable = c(var, var2),
-  indicator = c(ind, ind2)
-) +
+  indicator = c(ind, ind2)) +
   scale_x_continuous(
     breaks = c(0, 50, 100, 150, 200),
     labels = c("lowest possible\nvalue", "2.5%", "50%", "97.5%", "highest possible\nvalue"),
@@ -2855,50 +2859,50 @@ The national and regional estimates are computed separately.
 ## Fit ordered beta regression null-model with a random effect
 # Norway
 
-Moisture_no_ano <- glmmTMB(
+Moisture_no <- glmmTMB(
   moisture ~ 1 + (1|dataset/nest_1),
   data = combined_lowlands,
   family = ordbeta
 )
 
-Moisture1_no_ano <- glmmTMB(
-  Moisture1 ~ 1 + (1|ano_flate_id),
+Moisture1_no <- glmmTMB(
+  Moisture1 ~ 1 + (1|dataset/nest_1),
   data = combined_lowlands |> filter(!is.na(Moisture1)),
   family = ordbeta
 )
 
-Moisture2_no_ano <- glmmTMB(
-  Moisture2 ~ 1 + (1|ano_flate_id),
+Moisture2_no <- glmmTMB(
+  Moisture2 ~ 1 + (1|dataset/nest_1),
   data = combined_lowlands |> filter(!is.na(Moisture2)),
   family = ordbeta
 )
 
-summary(Moisture_no_ano)
-summary(Moisture1_no_ano)
-summary(Moisture2_no_ano)
+summary(Moisture_no)
+summary(Moisture1_no)
+summary(Moisture2_no)
 
 # regions
-Moisture_re_ano <- glmmTMB(
-  moisture ~ 0 + region + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO"),
+Moisture_re <- glmmTMB(
+  moisture ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands,
   family = ordbeta
 )
 
-Moisture1_re_ano <- glmmTMB(
-  Moisture1 ~ 0 + region + (1|ano_flate_id),
+Moisture1_re <- glmmTMB(
+  Moisture1 ~ 0 + region + (1|dataset/nest_1),
   data = combined_lowlands[!is.na(combined_lowlands$Moisture1),],
   family = ordbeta
 )
 
-Moisture2_re_ano <- glmmTMB(
-  Moisture2 ~ 0 + region + (1|ano_flate_id),
+Moisture2_re <- glmmTMB(
+  Moisture2 ~ 0 + region + (1|dataset/nest_1),
   data = combined_lowlands[!is.na(combined_lowlands$Moisture2),],
   family = ordbeta
 )
 
-summary(Moisture_re_ano)
-summary(Moisture1_re_ano)
-summary(Moisture2_re_ano)
+summary(Moisture_re)
+summary(Moisture1_re)
+summary(Moisture2_re)
 ```
 
 
@@ -2917,44 +2921,44 @@ NO_FUMO_005_table <- tibble(
     "Western Norway"
   ),
   indicator_value = c(
-    plogis(summary(Moisture_no_ano)$coef$cond[, 1]),
-    plogis(summary(Moisture_re_ano)$coef$cond[, 1])
+    plogis(summary(Moisture_no)$coef$cond[, 1]),
+    plogis(summary(Moisture_re)$coef$cond[, 1])
   ),
   CI_upper = c(
     plogis(
-      summary(Moisture_no_ano)$coef$cond[, 1] +
-        1.96 * summary(Moisture_no_ano)$coef$cond[, 2]
+      summary(Moisture_no)$coef$cond[, 1] +
+        1.96 * summary(Moisture_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(Moisture_re_ano)$coef$cond[, 1] +
-        1.96 * summary(Moisture_re_ano)$coef$cond[, 2]
+      summary(Moisture_re)$coef$cond[, 1] +
+        1.96 * summary(Moisture_re)$coef$cond[, 2]
     )
   ),
   CI_lower = as.numeric(
     plogis(
-      summary(Moisture_no_ano)$coef$cond[, 1] -
-        1.96 * summary(Moisture_no_ano)$coef$cond[, 2]
+      summary(Moisture_no)$coef$cond[, 1] -
+        1.96 * summary(Moisture_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(Moisture_re_ano)$coef$cond[, 1] -
-        1.96 * summary(Moisture_re_ano)$coef$cond[, 2]
+      summary(Moisture_re)$coef$cond[, 1] -
+        1.96 * summary(Moisture_re)$coef$cond[, 2]
     )
   ),
   upper_indicator_value = c(
-    plogis(summary(Moisture2_no_ano)$coef$cond[, 1]),
-    plogis(summary(Moisture2_re_ano)$coef$cond[, 1])
+    plogis(summary(Moisture2_no)$coef$cond[, 1]),
+    plogis(summary(Moisture2_re)$coef$cond[, 1])
   ),
   n_upper_indicator_value = c(
-    summary(Moisture2_no_ano)$nobs,
-    as.vector(table(Moisture2_re_ano$frame$region))
+    summary(Moisture2_no)$nobs,
+    as.vector(table(Moisture2_re$frame$region))
   ),
   lower_indicator_value = c(
-    plogis(summary(Moisture1_no_ano)$coef$cond[, 1]),
-    plogis(summary(Moisture1_re_ano)$coef$cond[, 1])
+    plogis(summary(Moisture1_no)$coef$cond[, 1]),
+    plogis(summary(Moisture1_re)$coef$cond[, 1])
   ),
   n_lower_indicator_value = c(
-    summary(Moisture1_no_ano)$nobs,
-    as.vector(table(Moisture1_re_ano$frame$region))
+    summary(Moisture1_no)$nobs,
+    as.vector(table(Moisture1_re$frame$region))
   )
 )
 NO_FUMO_005_table
@@ -2965,10 +2969,10 @@ To express the results as a distribution, we need to simulate mean estimates bas
 
 ## Norway
 # Fixed-effect intercept and SE
-b0 <- fixef(Moisture_no_ano)$cond["(Intercept)"]
-se_b0 <- sqrt(vcov(Moisture_no_ano)$cond["(Intercept)", "(Intercept)"])
+b0 <- fixef(Moisture_no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(Moisture_no)$cond["(Intercept)", "(Intercept)"])
 # Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
-phi <- sigma(Moisture_no_ano)
+phi <- sigma(Moisture_no)
 
 
 # draw estimates and backtransform from logit-scale
@@ -2977,9 +2981,9 @@ mu_draws  <- plogis(eta_draws)
 
 
 ## regions
-b_re <- fixef(Moisture_re_ano)$cond
-vc_re <- vcov(Moisture_re_ano)$cond
-phi <- sigma(Moisture_re_ano)
+b_re <- fixef(Moisture_re)$cond
+vc_re <- vcov(Moisture_re)$cond
+phi <- sigma(Moisture_re)
 
 eta_draws_reg <- MASS::mvrnorm(
   n = 1000,
