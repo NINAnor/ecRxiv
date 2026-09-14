@@ -387,6 +387,7 @@ library(ecTools)
 library(glmmTMB)
 
 
+
 # download 
 url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
 download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
@@ -507,11 +508,11 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 nor <- st_read(paste0(here(), "/data/geo/outlineOfNorway_EPSG25833.shp"), quiet = TRUE) |>
   st_as_sf() |>
-  st_transform(crs = st_crs(ano_lowlands))  # originally ano_lowlands
+  st_transform(crs = st_crs(ano_geo))  # originally ano_lowlands
 
 reg <- st_read(paste0(here(), "/data/geo/regions.shp"), quiet = TRUE) |>
   st_as_sf() |>
-  st_transform(crs = st_crs(ano_lowlands))
+  st_transform(crs = st_crs(ano_geo))
 
 # update region names
 reg$region <- c(
@@ -603,10 +604,10 @@ species_dict_pattern <- tibble::tibble(
     "Hieracium pilosella",
     "Hieracium vulgata",
     "Hieracium vulgatum",
-    "Hierochloã« alpina",
-    "Hierochloã« hirta",
-    "Hierochlo\x95 hirta",
-    "Hierochloã« odorata",
+    #"Hierochloã« alpina",
+    #"Hierochloã« hirta",
+    #"Hierochlo\x95 hirta",
+    #"Hierochloã« odorata",
     "Huperzia appressa",
     "Huperzia arctica",
     "Hylotelephium maximum",
@@ -760,10 +761,10 @@ species_dict_pattern <- tibble::tibble(
     "Hieracium Prenanthoidea",
     "Pilosella officinarum",
     "Hieracium Vulgata",
-    "Hieracium umbellatum",
-    "Hierochloë alpina",
-    "Hierochloë hirta",
-    "Hierochloë hirta",
+    #"Hieracium umbellatum",
+    #"Hierochloë alpina",
+    #"Hierochloë hirta",
+    #"Hierochloë hirta",
     "Hierochloë odorata",
     "Huperzia selago",
     "Huperzia selago",
@@ -845,12 +846,12 @@ species_dict_pattern <- tibble::tibble(
   )
 )
 
-clean_species_from_dictionary <- function(x, dict = species_dict_pattern) {
+clean_species_with_patterns <- function(x, dict = species_dict_pattern) {
   x_clean <- x
   for (k in seq_len(nrow(dict))) {
     pat  <- dict$pattern[k]
     repl <- dict$replacement[k]
-    x_clean[grepl(pat, x_clean)] <- repl
+    x_clean[grepl(pat, x_clean, fixed = TRUE)] <- repl
   }
   x_clean
 }
@@ -869,11 +870,11 @@ ind_tyler <- ind_tyler |>
          scientific_name = str_remove_all(scientific_name, "agg."),                    # remove aggregates
          scientific_name = str_replace_all(scientific_name, " x ", " \u00D7 ")) |>     # correct hybrids labelling
   filter(!is.na(scientific_name), !scientific_name == "") |> 
-  distinct(scientific_name_original, scientific_name, Grazing_mowing) |>           # select indicator here
+  distinct(scientific_name_original, scientific_name, Moisture, Nitrogen, Soil_disturbance, Grazing_mowing, Phosphorus, Soil_reaction_pH, Light) |>           # select indicator here
   tibble()
 
 ind_tyler <- ind_tyler |> 
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern))
 
 # remove certain species
 ind_tyler <- ind_tyler |>  
@@ -1009,7 +1010,7 @@ tyler_species_clean <- tyler_species_clean |>
       
     ),
   accepted_name = case_when(
-    accepted_name = "Clinopodium acinos" ~ "Acinos arvensis",
+    accepted_name == "Clinopodium acinos" ~ "Acinos arvensis",
     accepted_name == "Rosa vinodora" ~ "Rosa inodora",
     clean_string == "Heracleum 'kungsholm'" ~ clean_string,
     #accepted_name == "Salix mollissima" ~ clean_string,
@@ -1030,8 +1031,7 @@ tyler_species_clean |> filter(is.na(accepted_name))
 
 tyler_indicators <- tyler_species_clean |> 
   select(species = accepted_name,
-         Grazing_mowing) |> 
-  filter(!is.na(Grazing_mowing))
+         Moisture:Light)                          # select all indicators
 
 # remove unused dataframes
 #rm(ind_tyler, tyler_prepared, tyler_prepared_wfo, tyler_sp_clean, tyler_sp_matched, tyler_species_clean)
@@ -1065,7 +1065,11 @@ GRUK_species <- GRUK_species |>
 
 # update species names
 GRUK_species <- GRUK_species |> 
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern),
+         scientific_name = str_replace(
+      scientific_name,
+      "^Hiero\\S*",
+      "Hierochloe"))      # fixing Hierochloe naming issue
 
 GRUK_prepared_wfo <- WFO.prepare(GRUK_species$scientific_name)
 
@@ -1360,7 +1364,7 @@ GRUK_all <- GRUK_all |>
 summary(GRUK_all)
 
 
-#rm(GRUK_polygoner, GRUK_prepared, GRUK_prepared_wfo, GRUK_ruter, GRUK_sirkler, GRUK_sp_clean, GRUK_sp_matched, GRUK_species, GRUK_species_clean, GRUK_species_ind, GRUK_variables)
+#rm(GRUK_polygoner, GRUK_prepared, GRUK_prepared_wfo, GRUK_ruter, GRUK_sirkler, GRUK_sp_clean, GRUK_sp_matched, GRUK_species, GRUK_species_clean, GRUK_variables)
 
 #saveRDS(GRUK_all, paste0(here::here(),"/data/cache/GRUK_all.RDS"))
 #saveRDS(GRUK_species_ind, paste0(here::here(),"/data/cache/GRUK_species_ind.RDS"))
@@ -1435,7 +1439,7 @@ ASO_species <- rename(ASO_species, art_dekning = Dekning)
 
 # fix species names
 ASO_species <- ASO_species |>
-  mutate(scientific_name_original = scientific_name) |> 
+  mutate(scientific_name_original = karplantenavn) |> 
   separate(
     col  = Navn,
     into = c("norsk_navn", "scientific_name"),
@@ -1458,7 +1462,11 @@ ASO_species <- ASO_species |>
   )
 
 ASO_species <- ASO_species  |>  
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern),
+         scientific_name = str_replace(
+      scientific_name,
+      "^Hiero\\S*",
+      "Hierochloe"))      # fixing Hierochloe naming issue
 
 
 # filter out NAs for WFO cleaning
@@ -1550,7 +1558,7 @@ ASO_sp_clean <- ASO_sp_clean |>
 ASO_species_clean <- left_join(ASO_prepared, ASO_sp_clean, by = "clean_string") |> 
   full_join(ASO_species, by = join_by(spec.full == scientific_name)) |> 
   distinct() |> 
-  # add on Hieracium group info lost in Norwegian name
+  # retrieving Hieracium group info lost in Norwegian name
   mutate(
     accepted_name = case_when(
       norsk_navn == "skogsvevegruppa" ~ paste("Hieracium", str_sub(karplantenavn, 19, 27))  |> str_squish(),
@@ -1574,8 +1582,8 @@ ASO_species_clean |>
 ASO_species_ind <- ASO_species_clean |>
   select(species = accepted_name, art_dekning, ParentGlobalID) |> 
   filter(!is.na(art_dekning)) |> 
-  left_join(tyler_indicators |> 
-              select(species, Grazing_mowing)) |> 
+  left_join(tyler_indicators) |>
+  left_join(ASO_points |> select(global_id, omradenummer_flatenummer), by = join_by(ParentGlobalID == global_id))
   tibble()
 
 
@@ -1588,8 +1596,8 @@ unique(ASO_species_ind[is.na(ASO_species_ind$Grazing_mowing),'species'])
 ## adding information on ecosystem and condition variables to species data
 ASO_all <- ASO_species_ind |> 
   left_join(ASO_points |>  
-              select(global_id, omradenummer_flatenummer, eng_id, aso_id, nin_grunntype, annen_dominerende_kartleggingsenhet), 
-            by = join_by(ParentGlobalID == global_id))        # check why there are 276 points with no species data?
+              select(global_id, eng_id, aso_id, nin_grunntype, annen_dominerende_kartleggingsenhet), 
+            by = join_by(ParentGlobalID == global_id))
 
 
 
@@ -1639,7 +1647,11 @@ ano_species <- ano_species |>
 
 # recode species names for WFO matching
 ano_species <- ano_species |> 
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern), # 4% of scientific_name changed
+         scientific_name = str_replace(
+      scientific_name,
+      "^Hiero\\S*",
+      "Hierochloe"))
 
 ano_prepared_wfo <- ano_species |> 
   distinct(scientific_name, scientific_name_original)
@@ -1735,8 +1747,7 @@ ano_species_clean |> filter(is.na(accepted_name))
 ## merge species data with indicators
 ANO_species_ind <- ano_species_clean |>                                 # fix species match here
   select(species = accepted_name, art_dekning, parentglobalid) |> 
-  full_join(tyler_indicators |> 
-              select(species, Grazing_mowing)) |> 
+  full_join(tyler_indicators) |> 
   tibble()
 
 
@@ -1828,27 +1839,18 @@ ano_geo <- ano_geo |>
   )
 
 ## 4. Filter lowland plots points
-ano_lowlands <- ano_geo# |>
+ano_all <- ano_geo# |>
   #filter(hovedoekosystem_rute %in% c("Natopen", "Seminat", "T45", "T41"))
 
 
-ano_lowlands <- st_join(
-  ano_lowlands,
-  regnor,
-  left = TRUE,
-  join = st_nearest_feature
-)
-
 
 ANO_species_ind <- ANO_species_ind |> 
-  left_join(ano_lowlands |> select("globalid","ano_flate_id","ano_punkt_id","ssb_id","aar", "hovedtype_rute","kartleggingsenhet_1m2",
-                             #"bruksintensitet","beitetrykk","slatteintensitet", "tungekjoretoy","slitasje",
-                             "vedplanter_total_dekning","busker_dekning","tresjikt_dekning","roesslyng_dekning"), 
+  left_join(ano_all |> select("globalid","ano_flate_id","ano_punkt_id","ssb_id","aar", "hovedtype_rute","kartleggingsenhet_1m2"), 
             by = join_by(parentglobalid == globalid)) |> 
   filter(!is.na(hovedtype_rute))
 
 
-#saveRDS(ano_lowlands, paste0(here::here(),"/data/cache/ano_lowlands.RDS"))
+#saveRDS(ano_all, paste0(here::here(),"/data/cache/ano_lowlands.RDS"))
 #saveRDS(ANO_species_ind, paste0(here::here(),"/data/cache/ANO_species_ind.RDS"))
 
 
@@ -1976,8 +1978,7 @@ natop_nin_species_clean |> filter(is.na(accepted_name))
 # Merge with indicator values
 natop_nin_sp_ind <- natop_nin_species_clean |>
   select(nin_id, species = accepted_name, cover) |> 
-  left_join(tyler_indicators |> 
-              select(species, Grazing_mowing),
+  left_join(tyler_indicators,
             by = join_by(species)) |> 
   tibble() |>
   filter(grepl("T2-C-7", nin_id) | grepl("T2-C-8", nin_id)) |> 
@@ -2203,8 +2204,7 @@ nin_species_clean |> filter(is.na(accepted_name))
 # Merge with indicator values
 nin_sp_ind <- nin_species_clean |>
   select(Nature_Type, Sub_Type, nin_id, nin_code, species = accepted_name, species_group, cover) |> 
-  left_join(tyler_indicators |> 
-              select(species, Grazing_mowing),
+  left_join(tyler_indicators,
             by = join_by(species)) |> 
   tibble()
 
@@ -2240,6 +2240,7 @@ abun_wide <- nin_sp_ind |>
     nin_code,
     cover
   ) |> 
+  distinct() |> 
   pivot_wider(
     names_from  = nin_code,
     values_from = cover,
@@ -2250,12 +2251,16 @@ abun_wide <- nin_sp_ind |>
 ind_wide <- nin_sp_ind  |> 
   select(
     sp = species,
-    Grazing_mowing
+    Moisture:Light
     )  |> 
-  group_by(sp) |> 
+group_by(sp)  |> 
   summarise(
-    Grazing_mowing = first(Grazing_mowing),
-    .groups  = "drop"
+    across(
+      .cols = everything(), 
+      .fns  = ~ first(.x),
+      .names = "{.col}"
+    ),
+    .groups = "drop"
   )
 
 
@@ -2270,7 +2275,7 @@ rm(wfo_backbone)
 
 ```
 
-This leaves us with the monitoring data including plant indicators (ano_lowlands) and the reference data including plant indicators (nin_sp_ind):
+This leaves us with the monitoring data including plant indicators (ano_all, gruk_all, aso_all) and the reference data including plant indicators (nin_sp_ind):
   
   <!-- Print head of data set with horizontal scrolling -->
   ```{r ano-sp-tab, echo=F}
@@ -2383,7 +2388,7 @@ lowland_ref_cov <- indBoot.freq(
   ind     = ind,
   iter    = 1000,
   obl     = 0.8,
-  rat     = 1/2,
+  rat     = 1/3,
   var.abun = FALSE
 )
 
@@ -2432,135 +2437,135 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 # in some cases two NiN-types are represented by the same species list
 
 # NiN-types where each type is represented by one species list (including when one species list represents two NiN-types), i.e. excluding types with a- and b-suffix
-names(lowland_ref_cov[["Grazing_mowing"]])
-
-
-# 2 indicator-value indicators: Grazing_mowing
-indEll.n=1
-# creating a table to hold:
-# for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator), for Heat_requirement in alpine/arctic systems we do 0.05 quantile and  0.95 quantile and ignore the former as it is a one-sided indicator
-# for every nature type (nrows)
-# coercing the values into the table
-
-myQuantiles <- c(0.025, 0.5, 0.975)
-
-# 1) Grazing_mowing bootstrap matrix
-grazmow_mat  <- lowland_ref_cov[["Grazing_mowing"]]
-all_names  <- colnames(grazmow_mat)
-
-# 2) Strip a/b/c/d suffixes from column names to get base NiN IDs
-base_names <- all_names %>%
-  str_remove("[abcd]$")
-
-# 3) Map: each column index -> base NiN ID
-nin_map <- tibble(
-  col_index = seq_along(all_names),
-  col_name  = all_names,
-  base_nin  = base_names
-)
-
-# 4) Count how many columns per base NiN
-nin_counts <- nin_map %>%
-  count(base_nin, name = "n_cols")
-
-# Singles: NiN types represented by exactly one column
-nin_single <- nin_counts %>%
-  filter(n_cols == 1) %>%
-  pull(base_nin)
-
-# Multis: NiN types represented by multiple columns
-nin_multi <- nin_counts %>%
-  filter(n_cols > 1) %>%
-  pull(base_nin)
-
-# 5) Quantiles for single NiN types (one column each)
-tab_single <- map_dfr(nin_single, function(base_id) {
-  # find the column index that has this base NiN
-  idx <- nin_map %>%
-    filter(base_nin == base_id) %>%
-    pull(col_index)
+build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
+  # Matrix 
+  ind_mat  <- ref_cov[[ind_name]]
+  all_names <- colnames(ind_mat)
   
-  vals <- as.matrix(grazmow_mat[, idx])
-  q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
+  # Strip a/b/c/d suffixes from column names to get base NiN IDs
+  base_names <- all_names %>%
+    str_remove("[abcd]$")
   
-  tibble(
-    NiN              = base_id,
-    grazmow_025     = q[1],
-    grazmow_50      = q[2],
-    grazmow_975     = q[3],
-    grazmow_025_dup = q[1],
-    grazmow_50_dup  = q[2],
-    grazmow_975_dup = q[3]
+  # Map: each column index -> base NiN ID
+  nin_map <- tibble(
+    col_index = seq_along(all_names),
+    col_name  = all_names,
+    base_nin  = base_names
+  )
+  
+  # Count how many columns per base NiN
+  nin_counts <- nin_map %>%
+    count(base_nin, name = "n_cols")
+  
+  nin_single <- nin_counts %>%
+    filter(n_cols == 1) %>%
+    pull(base_nin)
+  
+  nin_multi <- nin_counts %>%
+    filter(n_cols > 1) %>%
+    pull(base_nin)
+  
+  # Quantiles for single NiN types
+  tab_single <- map_dfr(nin_single, function(base_id) {
+    idx <- nin_map %>%
+      filter(base_nin == base_id) %>%
+      pull(col_index)
+    
+    vals <- as.matrix(ind_mat[, idx])
+    q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
+    
+    tibble(
+      NiN      = base_id,
+      Q025     = q[1],
+      Q050     = q[2],
+      Q975     = q[3],
+      Q025_dup = q[1],
+      Q050_dup = q[2],
+      Q975_dup = q[3]
+    )
+  })
+  
+  # Quantiles for multi NiN types
+  tab_multi <- map_dfr(nin_multi, function(base_id) {
+    idx <- nin_map %>%
+      filter(base_nin == base_id) %>%
+      pull(col_index)
+    
+    vals <- as.matrix(ind_mat[, idx])
+    q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
+    
+    tibble(
+      NiN      = base_id,
+      Q025     = q[1],
+      Q050     = q[2],
+      Q975     = q[3],
+      Q025_dup = q[1],
+      Q050_dup = q[2],
+      Q975_dup = q[3]
+    )
+  })
+  
+  # Combine singles and multis
+  tab <- bind_rows(tab_single, tab_multi)
+  
+  # Take first NiN type where multiple are listed
+  tab <- tab %>%
+    mutate(NiN = str_replace(NiN, "(.*?C[^C]*?)C.*", "\\1")) %>%
+    mutate(NiN = if_else(
+      !NiN %in% c("T2-C-7", "T2-C-8"),
+      gsub("C", "C-", NiN),
+      NiN
+    ))
+  
+  # Restructuring lower (q2.5) and higher (q97.5) limits
+  y_low <- numeric(length = nrow(tab) * 2)
+  y_low[((1:nrow(tab)) * 2) - 1] <- tab$Q025
+  y_low[((1:nrow(tab)) * 2)     ] <- tab$Q975
+  
+  y_ref <- numeric(length = nrow(tab) * 2)
+  y_ref[((1:nrow(tab)) * 2) - 1] <- tab$Q025_dup
+  y_ref[((1:nrow(tab)) * 2)     ] <- tab$Q975_dup
+  
+  # Build indicator names
+  ind_base <- ind_name
+  ind_labels <- c(paste0(ind_base, "1"), paste0(ind_base, "2"))
+  
+  ind_ref <- data.frame(
+    grunn  = rep(rep(tab$NiN, each = 2), indEll_n),
+    county = rep("all", nrow(tab) * 2 * indEll_n),
+    region = rep("all", nrow(tab) * 2 * indEll_n),
+    Ind    = rep(ind_labels, nrow(tab) * indEll_n),
+    Rv     = c(rep(tab$Q050, each = 2),
+               rep(tab$Q050_dup, each = 2)),
+    Gv     = c(y_low, y_ref),
+    maxmin = rep(c(1, n_levels), nrow(tab) * indEll_n)
+  )
+  
+  ind_ref %>%
+    as_tibble() %>%
+    mutate(
+      grunn = as.factor(grunn),
+      Ind   = as.factor(Ind)
+    )
+}
+
+# loop over all indicators
+indicators <- c("Moisture", "Soil_reaction_pH", "Light", "Nitrogen", "Phosphorus", "Grazing_mowing", "Soil_disturbance")  
+levels_per_indicator <- c(Moisture = 12, Soil_reaction_pH = 8, Light = 7, Nitrogen = 9, Phosphorus = 5, Grazing_mowing = 8, Soil_disturbance = 9)
+
+lowland_ref_cov_val_list <- map(indicators, function(ind) {
+  build_ref_for_indicator(
+    ref_cov  = lowland_ref_cov,
+    ind_name = ind,
+    n_levels = levels_per_indicator[[ind]],
+    indEll_n = 2
   )
 })
 
-# 6) Quantiles for multi NiN types (several columns per type)
-tab_multi <- map_dfr(nin_multi, function(base_id) {
-  # find all columns whose stripped base_nin equals this base_id
-  idx <- nin_map %>%
-    filter(base_nin == base_id) %>%
-    pull(col_index)
-  
-  vals <- as.matrix(grazmow_mat[, idx])
-  q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
-  
-  tibble(
-    NiN              = base_id,
-    grazmow_025     = q[1],
-    grazmow_50      = q[2],
-    grazmow_975     = q[3],
-    grazmow_025_dup = q[1],
-    grazmow_50_dup  = q[2],
-    grazmow_975_dup = q[3]
-  )
-})
+# Combine all indicators into one table
+lowland_ref_cov_val <- bind_rows(lowland_ref_cov_val_list)
 
-# 7) Combine singles and multis into final table
-tab <- bind_rows(tab_single, tab_multi)
-
-tab
-
-# take first nin type where multiple are listed
-tab <- tab |> mutate(NiN = str_replace(NiN, "(.*?C[^C]*?)C.*", "\\1"))
-
-
-# making it a proper data frame
-dim(tab)
-round(tab[,2:7],digits=2)
-
-summary(tab)
-tab <- tab |> 
-  mutate(NiN = if_else(
-  !NiN %in% c("T2-C-7", "T2-C-8"), 
-  gsub("C", "C-", NiN), 
-  NiN
-))
-  
-tab
-
-
-# creating final objects holding the reference and limit values for all indicators
-
-# ref object for indicators
-lowland_ref_cov_val <- data.frame(grunn=c(rep(rep(tab$NiN,each=2),indEll.n)),
-                                                    county=rep('all',(nrow(tab)*2*indEll.n)),
-                                                    region=rep('all',(nrow(tab)*2*indEll.n)),
-                                                    Ind=c(rep(c('grazmow1','grazmow2'),nrow(tab)),
-                                                          rep(c('grazmowing1','grazmowing2'),nrow(tab))
-                                                          
-                                                    ),
-                                                    Rv=c(rep(tab$grazmow_50,each=2),
-                                                         rep(tab$grazmow_50_dup,each=2)
-                                                    ),
-                                                    Gv=c(y.grazmow,y.grazmowing),
-                                                    maxmin=c(rep(c(1,8),nrow(tab))  # 8 levels of grazing and mowing
-                                                    )
-)
-
-lowland_ref_cov_val <- lowland_ref_cov_val |> 
-  tibble() |> 
-  mutate(grunn = as.factor(grunn),
-         Ind = as.factor(Ind))
+lowland_ref_cov_val <- lowland_ref_cov_val |> distinct()
 
 summary(lowland_ref_cov_val)
 
@@ -2577,11 +2582,11 @@ lowland_ref_cov_val |>
 
 ```{r merging datasets}
 # ANO
-ano_lowlands <- ano_lowlands |>
+ano_lowlands <- ano_all |>
   select(globalid, ano_flate_id, ano_punkt_id, ssb_id, aar, hovedoekosystem_250m2, hovedoekosystem_rute, hovedtype_rute, hovedtype_250m2, hovedtype_1m2, kartleggingsenhet_1m2, kartleggingsenhet_250m2) |> 
   mutate(
-    X = st_coordinates(ano_lowlands)[, 1],
-    Y = st_coordinates(ano_lowlands)[, 2],
+    X = st_coordinates(ano_geo)[, 1],
+    Y = st_coordinates(ano_geo)[, 2],
     kartleggingsenhet_1m2 = word(kartleggingsenhet_1m2, 1, 1)
   ) |>
   st_drop_geometry() |> 
@@ -2591,7 +2596,8 @@ ano_lowlands <- ano_lowlands |>
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   filter(hovedtype_rute %in% c("T32", "T34", "T45", "V10", "T41")) |> 
-    rename(kartleggingsenhet = kartleggingsenhet_1m2) |> 
+    rename(kartleggingsenhet = kartleggingsenhet_1m2,
+           nest_1 = ano_flate_id) |> 
   mutate(scale = "1m2")
 
 
@@ -2599,7 +2605,7 @@ ano_lowlands <- ano_lowlands |>
 gruk_lowlands <- GRUK_all |>
   rename(globalid = parent_global_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning, Grazing_mowing, polygon_id, rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw)) |> 
+  select(-c(species, art_dekning, rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw, Moisture:Light)) |> 
   distinct() |> 
   rename(
     X = UTM33_E,
@@ -2611,8 +2617,9 @@ st_drop_geometry() |>
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   mutate(hovedtype_rute = str_sub(kartleggingsenhet_1_5000, 1, 2)) |> 
-  select(globalid, globalid_chr, hovedtype_rute, aar, X, Y, kartleggingsenhet_1_5000, nin_kartleggingsenheter, hovedokosystem) |> 
-  rename(kartleggingsenhet = kartleggingsenhet_1_5000) |> 
+  select(globalid, globalid_chr, polygon_id, hovedtype_rute, aar, X, Y, kartleggingsenhet_1_5000, nin_kartleggingsenheter, hovedokosystem) |> 
+  rename(kartleggingsenhet = kartleggingsenhet_1_5000,
+         nest_1 = polygon_id) |> 
   mutate(scale = "1_5000")
 
 # ASO
@@ -2620,7 +2627,7 @@ st_drop_geometry() |>
 ASO_lowlands <- ASO_all |>
   rename(globalid = ParentGlobalID) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning, Grazing_mowing)) |> 
+  select(-c(species, art_dekning)) |> 
   distinct() |> 
   st_as_sf(crs = "+proj=longlat +datum=WGS84 +ellps=WGS84") |>
   st_transform(crs = 25833) |> 
@@ -2633,8 +2640,10 @@ semi_join(
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |> 
-  select(globalid, globalid_chr, aso_id, hovedtype_rute, X, Y, nin_grunntype) |> 
-  rename(kartleggingsenhet = nin_grunntype)
+  select(globalid, globalid_chr, eng_id, omradenummer_flatenummer, aso_id, hovedtype_rute, X, Y, nin_grunntype) |> 
+  rename(kartleggingsenhet = nin_grunntype,
+         nest_1 = omradenummer_flatenummer,
+         nest_2 = eng_id)
 
 
 combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = "dataset") |> 
@@ -2659,13 +2668,19 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
 # combine species data
 
 GRUK_species_ind <- GRUK_species_ind |> 
-  filter(!is.na(species), !is.na(art_dekning), !is.na(Grazing_mowing))
+  filter(!is.na(species), !is.na(art_dekning)) |> 
+  rename(nest_1 = polygon_id)
 
 ASO_species_ind <- ASO_species_ind |> 
-  filter(!is.na(species), !is.na(art_dekning), !is.na(Grazing_mowing))
+  filter(!is.na(species), !is.na(art_dekning)) |> 
+  rename(nest_1 = omradenummer_flatenummer#,
+         #nest_2 = eng_id
+         )
 
+ANO_species_ind <- ANO_species_ind |> 
+  rename(nest_1 = ano_flate_id)
 
-combined_species <-  bind_rows(ANO_species_ind |> select(-c(busker_dekning, tresjikt_dekning, roesslyng_dekning, ssb_id, vedplanter_total_dekning, kartleggingsenhet_1m2)), 
+combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m2)), 
                                GRUK_species_ind |> rename(parentglobalid = parent_global_id),
                                ASO_species_ind |> rename(parentglobalid = ParentGlobalID                       ),
                                .id = "dataset") |> 
@@ -2685,13 +2700,15 @@ For scaling ANO-data against the reference we use the normalisation function fro
 #| warning: false
 
 #### 1. calculating scaled and non-truncated values for the indicators based on the datasets ####
+combined_species <- combined_species |> filter(!is.na(Grazing_mowing))
+lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Grazing_mowing1", "Grazing_mowing2"))
 
 ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
 
 for (i in seq_len(nrow(combined_lowlands))) {
   tryCatch({
     
-    ds       <- combined_lowlands$dataset[i]         # "ANO" or "GRUK"
+    ds       <- combined_lowlands$dataset[i]
     hoved_i  <- as.character(combined_lowlands$hovedtype_rute[i])
     global_i <- as.character(combined_lowlands$globalid_chr[i])
     nin_i    <- as.character(combined_lowlands$kartleggingsenhet[i])
@@ -2714,12 +2731,12 @@ for (i in seq_len(nrow(combined_lowlands))) {
     dat <- dat[!is.na(dat$Grazing_mowing), ]
     if (nrow(dat) == 0) next
     
-    # 3) CWM Grazing_mowing
+    # 3) CWM Grazing mowing
     val <- sum(dat$art_dekning * dat$Grazing_mowing, na.rm = TRUE) /
       sum(dat$art_dekning, na.rm = TRUE)
     
-    ## grazmowing1
-    idx1 <- lowland_ref_cov_val$Ind == "grazmowing1" &
+    ## Grazing_mowing1
+    idx1 <- lowland_ref_cov_val$Ind == "Grazing_mowing1" &
       lowland_ref_cov_val$grunn == nin_i
     idx1[is.na(idx1)] <- FALSE
     
@@ -2729,7 +2746,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
       maxmin1 <- as.numeric(lowland_ref_cov_val$maxmin[idx1][[1]])
       
       if (!any(is.na(c(ref1, lim1, maxmin1)))) {
-        combined_lowlands$grazmow1[i] <- ec_normalise(
+        combined_lowlands$Grazing_mowing1[i] <- ec_normalise(
           variable = val,
           x0   = maxmin1,
           x60  = lim1,
@@ -2739,8 +2756,8 @@ for (i in seq_len(nrow(combined_lowlands))) {
       }
     }
     
-    ## grazmowing2
-    idx2 <- lowland_ref_cov_val$Ind == "grazmowing2" &
+    ## Grazing_mowing2
+    idx2 <- lowland_ref_cov_val$Ind == "Grazing_mowing2" &
       lowland_ref_cov_val$grunn == nin_i
     idx2[is.na(idx2)] <- FALSE
     
@@ -2750,7 +2767,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
       maxmin2 <- as.numeric(lowland_ref_cov_val$maxmin[idx2][[1]])
       
       if (!any(is.na(c(ref2, lim2, maxmin2)))) {
-        combined_lowlands$grazmow2[i] <- ec_normalise(
+        combined_lowlands$Grazing_mowing2[i] <- ec_normalise(
           variable = val,
           x0   = maxmin2,
           x60  = lim2,
@@ -2768,9 +2785,9 @@ for (i in seq_len(nrow(combined_lowlands))) {
 
 combined_lowlands <- combined_lowlands |>
   dplyr::mutate(
-    grazing_mowing  = grazmow1 * grazmow2,
-    grazmow1 = if_else(grazmow1 == 1, NA_real_, grazmow1),
-    grazmow2 = if_else(grazmow2 == 1, NA_real_, grazmow2)
+    Grazing_mowing  = Grazing_mowing1 * Grazing_mowing2,
+    Grazing_mowing1 = if_else(Grazing_mowing1 == 1, NA_real_, Grazing_mowing1),
+    Grazing_mowing2 = if_else(Grazing_mowing2 == 1, NA_real_, Grazing_mowing2)
   )
 
 
@@ -2778,8 +2795,8 @@ combined_lowlands <- combined_lowlands |>
 ```
 
 ```{r}
-head(ano_lowlands) |>
-  kable("html", caption = "ANO plots for ecosystems with scaled indicator values in the far-right columns.") |> 
+head(combined_lowlands) |>
+  kable("html", caption = "Plots for ecosystems with scaled indicator values in the far-right columns.") |> 
   kable_styling("striped") |> scroll_box(width = "100%")
 ```
 
@@ -2797,8 +2814,7 @@ ind2 <- ec_normalise(var2, x100 = 101, x0 = 200, x60 = 150)
 
 ec_norm_plot(
   variable = c(var, var2),
-  indicator = c(ind, ind2)
-) +
+  indicator = c(ind, ind2)) +
   scale_x_continuous(
     breaks = c(0, 50, 100, 150, 200),
     labels = c("lowest possible\nvalue", "2.5%", "50%", "97.5%", "highest possible\nvalue"),
@@ -2839,50 +2855,50 @@ The national and regional estimates are computed separately.
 ## Fit ordered beta regression null-model with a random effect
 # Norway
 
-grazmow_no_ano <- glmmTMB(
-  grazing_mowing ~ 1 + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO"),
+Grazing_mowing_no <- glmmTMB(
+  Grazing_mowing ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands,
   family = ordbeta
 )
 
-grazmow1_no_ano <- glmmTMB(
-  grazmow1 ~ 1 + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO", !is.na(grazmow1)),
+Grazing_mowing1_no <- glmmTMB(
+  Grazing_mowing1 ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands |> filter(!is.na(Grazing_mowing1)),
   family = ordbeta
 )
 
-grazmow2_no_ano <- glmmTMB(
-  grazmow2 ~ 1 + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO", !is.na(grazmow2)),
+Grazing_mowing2_no <- glmmTMB(
+  Grazing_mowing2 ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands |> filter(!is.na(Grazing_mowing2)),
   family = ordbeta
 )
 
-summary(grazmow_no_ano)
-summary(grazmow1_no_ano)
-summary(grazmow2_no_ano)
+summary(Grazing_mowing_no)
+summary(Grazing_mowing1_no)
+summary(Grazing_mowing2_no)
 
 # regions
-grazmow_re_ano <- glmmTMB(
-  grazing_mowing ~ 0 + region + (1|ano_flate_id),
-  data = combined_lowlands |> filter(dataset == "ANO"),
+Grazing_mowing_re <- glmmTMB(
+  Grazing_mowing ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands,
   family = ordbeta
 )
 
-grazmow1_re_ano <- glmmTMB(
-  grazmow1 ~ 0 + region + (1|ano_flate_id),
-  data = combined_lowlands[!is.na(combined_lowlands$grazmow1),],
+Grazing_mowing1_re <- glmmTMB(
+  Grazing_mowing1 ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands[!is.na(combined_lowlands$Grazing_mowing1),],
   family = ordbeta
 )
 
-grazmow2_re_ano <- glmmTMB(
-  grazmow2 ~ 0 + region + (1|ano_flate_id),
-  data = combined_lowlands[!is.na(combined_lowlands$grazmow2),],
+Grazing_mowing2_re <- glmmTMB(
+  Grazing_mowing2 ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands[!is.na(combined_lowlands$Grazing_mowing2),],
   family = ordbeta
 )
 
-summary(grazmow_re_ano)
-summary(grazmow1_re_ano)
-summary(grazmow2_re_ano)
+summary(Grazing_mowing_re)
+summary(Grazing_mowing1_re)
+summary(Grazing_mowing2_re)
 ```
 
 
@@ -2891,7 +2907,7 @@ summary(grazmow2_re_ano)
 The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
 ```{r}
 
-NO_FUMO_005_table <- tibble(
+NO_FUBS_001_table <- tibble(
   Region = c(
     "Norway",
     "Central Norway",
@@ -2901,47 +2917,47 @@ NO_FUMO_005_table <- tibble(
     "Western Norway"
   ),
   indicator_value = c(
-    plogis(summary(grazmow_no_ano)$coef$cond[, 1]),
-    plogis(summary(grazmow_re_ano)$coef$cond[, 1])
+    plogis(summary(Grazing_mowing_no)$coef$cond[, 1]),
+    plogis(summary(Grazing_mowing_re)$coef$cond[, 1])
   ),
   CI_upper = c(
     plogis(
-      summary(grazmow_no_ano)$coef$cond[, 1] +
-        1.96 * summary(grazmow_no_ano)$coef$cond[, 2]
+      summary(Grazing_mowing_no)$coef$cond[, 1] +
+        1.96 * summary(Grazing_mowing_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(grazmow_re_ano)$coef$cond[, 1] +
-        1.96 * summary(grazmow_re_ano)$coef$cond[, 2]
+      summary(Grazing_mowing_re)$coef$cond[, 1] +
+        1.96 * summary(Grazing_mowing_re)$coef$cond[, 2]
     )
   ),
   CI_lower = as.numeric(
     plogis(
-      summary(grazmow_no_ano)$coef$cond[, 1] -
-        1.96 * summary(grazmow_no_ano)$coef$cond[, 2]
+      summary(Grazing_mowing_no)$coef$cond[, 1] -
+        1.96 * summary(Grazing_mowing_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(grazmow_re_ano)$coef$cond[, 1] -
-        1.96 * summary(grazmow_re_ano)$coef$cond[, 2]
+      summary(Grazing_mowing_re)$coef$cond[, 1] -
+        1.96 * summary(Grazing_mowing_re)$coef$cond[, 2]
     )
   ),
   upper_indicator_value = c(
-    plogis(summary(grazmow2_no_ano)$coef$cond[, 1]),
-    plogis(summary(grazmow2_re_ano)$coef$cond[, 1])
+    plogis(summary(Grazing_mowing2_no)$coef$cond[, 1]),
+    plogis(summary(Grazing_mowing2_re)$coef$cond[, 1])
   ),
   n_upper_indicator_value = c(
-    summary(grazmow2_no_ano)$nobs,
-    as.vector(table(grazmow2_re_ano$frame$region))
+    summary(Grazing_mowing2_no)$nobs,
+    as.vector(table(Grazing_mowing2_re$frame$region))
   ),
   lower_indicator_value = c(
-    plogis(summary(grazmow1_no_ano)$coef$cond[, 1]),
-    plogis(summary(grazmow1_re_ano)$coef$cond[, 1])
+    plogis(summary(Grazing_mowing1_no)$coef$cond[, 1]),
+    plogis(summary(Grazing_mowing1_re)$coef$cond[, 1])
   ),
   n_lower_indicator_value = c(
-    summary(grazmow1_no_ano)$nobs,
-    as.vector(table(grazmow1_re_ano$frame$region))
+    summary(Grazing_mowing1_no)$nobs,
+    as.vector(table(Grazing_mowing1_re$frame$region))
   )
 )
-NO_FUMO_005_table
+NO_FUBS_001_table
 ```
 
 To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
@@ -2949,10 +2965,10 @@ To express the results as a distribution, we need to simulate mean estimates bas
 
 ## Norway
 # Fixed-effect intercept and SE
-b0 <- fixef(grazmow_no_ano)$cond["(Intercept)"]
-se_b0 <- sqrt(vcov(grazmow_no_ano)$cond["(Intercept)", "(Intercept)"])
+b0 <- fixef(Moisture_no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(Moisture_no)$cond["(Intercept)", "(Intercept)"])
 # Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
-phi <- sigma(grazmow_no_ano)
+phi <- sigma(Moisture_no)
 
 
 # draw estimates and backtransform from logit-scale
@@ -2961,9 +2977,9 @@ mu_draws  <- plogis(eta_draws)
 
 
 ## regions
-b_re <- fixef(grazmow_re_ano)$cond
-vc_re <- vcov(grazmow_re_ano)$cond
-phi <- sigma(grazmow_re_ano)
+b_re <- fixef(Moisture_re)$cond
+vc_re <- vcov(Moisture_re)$cond
+phi <- sigma(Moisture_re)
 
 eta_draws_reg <- MASS::mvrnorm(
   n = 1000,
@@ -2974,7 +2990,7 @@ eta_draws_reg <- MASS::mvrnorm(
 mu_draws_reg <- plogis(eta_draws_reg)
 
 
-# combining grazmow_no_sim and grazmow_re_sim
+# combining Moisture_no_sim and Moisture_re_sim
 mu <- mu_draws_reg |>
   as_tibble() |>
   add_column(Norway = mu_draws) |>
