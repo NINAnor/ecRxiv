@@ -2682,7 +2682,7 @@ ANO_species_ind <- ANO_species_ind |>
 
 combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m2)), 
                                GRUK_species_ind |> rename(parentglobalid = parent_global_id),
-                               ASO_species_ind |> rename(parentglobalid = ParentGlobalID                       ),
+                               ASO_species_ind |> rename(parentglobalid = ParentGlobalID),
                                .id = "dataset") |> 
   mutate(dataset = case_match(
     dataset, 
@@ -2700,8 +2700,8 @@ For scaling the data against the reference we use the normalisation function fro
 #| warning: false
 
 #### 1. calculating scaled and non-truncated values for the indicators based on the datasets ####
-combined_species <- combined_species |> filter(!is.na(Light))
-lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Light1", "Light2"))
+combined_species <- combined_species |> filter(!is.na(Nitrogen))
+lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Nitrogen1", "Nitrogen2"))
 
 ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
 
@@ -2723,20 +2723,20 @@ for (i in seq_len(nrow(combined_lowlands))) {
         dataset == ds,
         parentglobalid == global_i
       ) |>
-      dplyr::select(art_dekning, Light)
+      dplyr::select(art_dekning, Nitrogen)
     
     if (nrow(dat) == 0) next
     
     combined_lowlands$richness[i] <- nrow(dat)
-    dat <- dat[!is.na(dat$Light), ]
+    dat <- dat[!is.na(dat$Nitrogen), ]
     if (nrow(dat) == 0) next
     
-    # 3) CWM Grazing mowing
-    val <- sum(dat$art_dekning * dat$Light, na.rm = TRUE) /
+    # 3) CWM Nitrogen
+    val <- sum(dat$art_dekning * dat$Nitrogen, na.rm = TRUE) /
       sum(dat$art_dekning, na.rm = TRUE)
     
-    ## Grazing_mowing1
-    idx1 <- lowland_ref_cov_val$Ind == "Light1" &
+    ## Nitrogen1
+    idx1 <- lowland_ref_cov_val$Ind == "Nitrogen1" &
       lowland_ref_cov_val$grunn == nin_i
     idx1[is.na(idx1)] <- FALSE
     
@@ -2746,7 +2746,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
       maxmin1 <- as.numeric(lowland_ref_cov_val$maxmin[idx1][[1]])
       
       if (!any(is.na(c(ref1, lim1, maxmin1)))) {
-        combined_lowlands$Light1[i] <- ec_normalise(
+        combined_lowlands$Nitrogen1[i] <- ec_normalise(
           variable = val,
           x0   = maxmin1,
           x60  = lim1,
@@ -2756,8 +2756,8 @@ for (i in seq_len(nrow(combined_lowlands))) {
       }
     }
     
-    ## Grazing_mowing2
-    idx2 <- lowland_ref_cov_val$Ind == "Light2" &
+    ## Nitrogen2
+    idx2 <- lowland_ref_cov_val$Ind == "Nitrogen2" &
       lowland_ref_cov_val$grunn == nin_i
     idx2[is.na(idx2)] <- FALSE
     
@@ -2767,7 +2767,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
       maxmin2 <- as.numeric(lowland_ref_cov_val$maxmin[idx2][[1]])
       
       if (!any(is.na(c(ref2, lim2, maxmin2)))) {
-        combined_lowlands$Light2[i] <- ec_normalise(
+        combined_lowlands$Nitrogen2[i] <- ec_normalise(
           variable = val,
           x0   = maxmin2,
           x60  = lim2,
@@ -2785,9 +2785,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
 
 combined_lowlands <- combined_lowlands |>
   dplyr::mutate(
-    Light  = Light1 * Light2,
-    Light1 = if_else(Light1 == 1, NA_real_, Light1),
-    Light2 = if_else(Light2 == 1, NA_real_, Light2)
+    Nitrogen  = Nitrogen2
   )
 
 
@@ -2855,50 +2853,24 @@ The national and regional estimates are computed separately.
 ## Fit ordered beta regression null-model with a random effect
 # Norway
 
-Light_no <- glmmTMB(
-  Light ~ 1 + (1|dataset/nest_1),
+Nitrogen_no <- glmmTMB(
+  Nitrogen ~ 1 + (1|dataset/nest_1),
   data = combined_lowlands,
   family = ordbeta
 )
 
-Light1_no <- glmmTMB(
-  Light1 ~ 1 + (1|dataset/nest_1),
-  data = combined_lowlands |> filter(!is.na(Light1)),
-  family = ordbeta
-)
 
-Light2_no <- glmmTMB(
-  Light2 ~ 1 + (1|dataset/nest_1),
-  data = combined_lowlands |> filter(!is.na(Light2)),
-  family = ordbeta
-)
-
-summary(Light_no)
-summary(Light1_no)
-summary(Light2_no)
+summary(Nitrogen_no)
 
 # regions
-Light_re <- glmmTMB(
-  Light ~ 0 + region + (1|dataset/nest_1),
+Nitrogen_re <- glmmTMB(
+  Nitrogen ~ 0 + region + (1|dataset/nest_1),
   data = combined_lowlands,
   family = ordbeta
 )
 
-Light1_re <- glmmTMB(
-  Light1 ~ 0 + region + (1|dataset/nest_1),
-  data = combined_lowlands[!is.na(combined_lowlands$Light1),],
-  family = ordbeta
-)
 
-Light2_re <- glmmTMB(
-  Light2 ~ 0 + region + (1|dataset/nest_1),
-  data = combined_lowlands[!is.na(combined_lowlands$Light2),],
-  family = ordbeta
-)
-
-summary(Light_re)
-summary(Light1_re)
-summary(Light2_re)
+summary(Nitrogen_re)
 ```
 
 
@@ -2907,7 +2879,7 @@ summary(Light2_re)
 The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
 ```{r}
 
-NO_FULI_005_table <- tibble(
+NO_FUNI_005_table <- tibble(
   Region = c(
     "Norway",
     "Central Norway",
@@ -2917,43 +2889,35 @@ NO_FULI_005_table <- tibble(
     "Western Norway"
   ),
   indicator_value = c(
-    plogis(summary(Light_no)$coef$cond[, 1]),
-    plogis(summary(Light_re)$coef$cond[, 1])
+    plogis(summary(Nitrogen_no)$coef$cond[, 1]),
+    plogis(summary(Nitrogen_re)$coef$cond[, 1])
   ),
   CI_upper = c(
     plogis(
-      summary(Light_no)$coef$cond[, 1] + 1.96 * summary(Light_no)$coef$cond[, 2]
+      summary(Nitrogen_no)$coef$cond[, 1] + 1.96 * summary(Nitrogen_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(Light_re)$coef$cond[, 1] + 1.96 * summary(Light_re)$coef$cond[, 2]
+      summary(Nitrogen_re)$coef$cond[, 1] + 1.96 * summary(Nitrogen_re)$coef$cond[, 2]
     )
   ),
   CI_lower = as.numeric(
     plogis(
-      summary(Light_no)$coef$cond[, 1] - 1.96 * summary(Light_no)$coef$cond[, 2]
+      summary(Nitrogen_no)$coef$cond[, 1] - 1.96 * summary(Nitrogen_no)$coef$cond[, 2]
     ),
     plogis(
-      summary(Light_re)$coef$cond[, 1] - 1.96 * summary(Light_re)$coef$cond[, 2]
+      summary(Nitrogen_re)$coef$cond[, 1] - 1.96 * summary(Nitrogen_re)$coef$cond[, 2]
     )
-  ),
-  upper_indicator_value = c(
-    plogis(summary(Light2_no)$coef$cond[, 1]),
-    plogis(summary(Light2_re)$coef$cond[, 1])
-  ),
-  n_upper_indicator_value = c(
-    summary(Light2_no)$nobs,
-    as.vector(table(Light2_re$frame$region))
-  ),
-  lower_indicator_value = c(
-    plogis(summary(Light1_no)$coef$cond[, 1]),
-    plogis(summary(Light1_re)$coef$cond[, 1])
-  ),
-  n_lower_indicator_value = c(
-    summary(Light1_no)$nobs,
-    as.vector(table(Light1_re$frame$region))
   )
 )
-NO_FULI_005_table
+NO_FUNI_005_table
+
+#write.table(
+#    NO_FUNI_005_table,
+#    file = paste0(here(), "/data/NO_FUNI_005_table.txt"),
+#    sep = "\t",
+#    row.names = FALSE,
+#    quote = FALSE)
+
 ```
 
 To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
