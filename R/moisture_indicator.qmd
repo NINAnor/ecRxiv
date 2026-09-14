@@ -379,6 +379,7 @@ library(ecTools)
 library(glmmTMB)
 
 
+
 # download 
 url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
 download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
@@ -595,10 +596,10 @@ species_dict_pattern <- tibble::tibble(
     "Hieracium pilosella",
     "Hieracium vulgata",
     "Hieracium vulgatum",
-    "Hierochloã« alpina",
-    "Hierochloã« hirta",
-    "Hierochlo\x95 hirta",
-    "Hierochloã« odorata",
+    #"Hierochloã« alpina",
+    #"Hierochloã« hirta",
+    #"Hierochlo\x95 hirta",
+    #"Hierochloã« odorata",
     "Huperzia appressa",
     "Huperzia arctica",
     "Hylotelephium maximum",
@@ -752,10 +753,10 @@ species_dict_pattern <- tibble::tibble(
     "Hieracium Prenanthoidea",
     "Pilosella officinarum",
     "Hieracium Vulgata",
-    "Hieracium umbellatum",
-    "Hierochloë alpina",
-    "Hierochloë hirta",
-    "Hierochloë hirta",
+    #"Hieracium umbellatum",
+    #"Hierochloë alpina",
+    #"Hierochloë hirta",
+    #"Hierochloë hirta",
     "Hierochloë odorata",
     "Huperzia selago",
     "Huperzia selago",
@@ -837,12 +838,12 @@ species_dict_pattern <- tibble::tibble(
   )
 )
 
-clean_species_from_dictionary <- function(x, dict = species_dict_pattern) {
+clean_species_with_patterns <- function(x, dict = species_dict_pattern) {
   x_clean <- x
   for (k in seq_len(nrow(dict))) {
     pat  <- dict$pattern[k]
     repl <- dict$replacement[k]
-    x_clean[grepl(pat, x_clean)] <- repl
+    x_clean[grepl(pat, x_clean, fixed = TRUE)] <- repl
   }
   x_clean
 }
@@ -861,11 +862,11 @@ ind_tyler <- ind_tyler |>
          scientific_name = str_remove_all(scientific_name, "agg."),                    # remove aggregates
          scientific_name = str_replace_all(scientific_name, " x ", " \u00D7 ")) |>     # correct hybrids labelling
   filter(!is.na(scientific_name), !scientific_name == "") |> 
-  distinct(scientific_name_original, scientific_name, Moisture, Nitrogen) |>           # select indicator here
+  distinct(scientific_name_original, scientific_name, Moisture, Nitrogen, Soil_disturbance, Grazing_mowing, Phosphorus, Soil_reaction_pH, Light) |>           # select indicator here
   tibble()
 
 ind_tyler <- ind_tyler |> 
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern))
 
 # remove certain species
 ind_tyler <- ind_tyler |>  
@@ -1001,7 +1002,7 @@ tyler_species_clean <- tyler_species_clean |>
       
     ),
   accepted_name = case_when(
-    accepted_name = "Clinopodium acinos" ~ "Acinos arvensis",
+    accepted_name == "Clinopodium acinos" ~ "Acinos arvensis",
     accepted_name == "Rosa vinodora" ~ "Rosa inodora",
     clean_string == "Heracleum 'kungsholm'" ~ clean_string,
     #accepted_name == "Salix mollissima" ~ clean_string,
@@ -1022,8 +1023,7 @@ tyler_species_clean |> filter(is.na(accepted_name))
 
 tyler_indicators <- tyler_species_clean |> 
   select(species = accepted_name,
-         Moisture) |> 
-  filter(!is.na(Moisture))
+         Moisture:Light)                          # select all indicators
 
 # remove unused dataframes
 #rm(ind_tyler, tyler_prepared, tyler_prepared_wfo, tyler_sp_clean, tyler_sp_matched, tyler_species_clean)
@@ -1057,7 +1057,11 @@ GRUK_species <- GRUK_species |>
 
 # update species names
 GRUK_species <- GRUK_species |> 
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern),
+         scientific_name = str_replace(
+      scientific_name,
+      "^Hiero\\S*",
+      "Hierochloe"))      # fixing Hierochloe naming issue
 
 GRUK_prepared_wfo <- WFO.prepare(GRUK_species$scientific_name)
 
@@ -1352,7 +1356,7 @@ GRUK_all <- GRUK_all |>
 summary(GRUK_all)
 
 
-#rm(GRUK_polygoner, GRUK_prepared, GRUK_prepared_wfo, GRUK_ruter, GRUK_sirkler, GRUK_sp_clean, GRUK_sp_matched, GRUK_species, GRUK_species_clean, GRUK_species_ind, GRUK_variables)
+#rm(GRUK_polygoner, GRUK_prepared, GRUK_prepared_wfo, GRUK_ruter, GRUK_sirkler, GRUK_sp_clean, GRUK_sp_matched, GRUK_species, GRUK_species_clean, GRUK_variables)
 
 #saveRDS(GRUK_all, paste0(here::here(),"/data/cache/GRUK_all.RDS"))
 #saveRDS(GRUK_species_ind, paste0(here::here(),"/data/cache/GRUK_species_ind.RDS"))
@@ -1450,7 +1454,11 @@ ASO_species <- ASO_species |>
   )
 
 ASO_species <- ASO_species  |>  
-  mutate(scientific_name = clean_species_from_dictionary(x = scientific_name, species_dict_pattern))
+  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern),
+         scientific_name = str_replace(
+      scientific_name,
+      "^Hiero\\S*",
+      "Hierochloe"))      # fixing Hierochloe naming issue
 
 
 # filter out NAs for WFO cleaning
@@ -1542,7 +1550,7 @@ ASO_sp_clean <- ASO_sp_clean |>
 ASO_species_clean <- left_join(ASO_prepared, ASO_sp_clean, by = "clean_string") |> 
   full_join(ASO_species, by = join_by(spec.full == scientific_name)) |> 
   distinct() |> 
-  # add on Hieracium group info lost in Norwegian name
+  # retrieving Hieracium group info lost in Norwegian name
   mutate(
     accepted_name = case_when(
       norsk_navn == "skogsvevegruppa" ~ paste("Hieracium", str_sub(karplantenavn, 19, 27))  |> str_squish(),
@@ -1567,7 +1575,8 @@ ASO_species_ind <- ASO_species_clean |>
   select(species = accepted_name, art_dekning, ParentGlobalID) |> 
   filter(!is.na(art_dekning)) |> 
   left_join(tyler_indicators |> 
-              select(species, Moisture)) |> 
+              select(species, Moisture)) |>
+  left_join(ASO_points |> select(global_id, omradenummer_flatenummer), by = join_by(ParentGlobalID == global_id))
   tibble()
 
 
@@ -1580,7 +1589,7 @@ unique(ASO_species_ind[is.na(ASO_species_ind$Moisture),'species'])
 ## adding information on ecosystem and condition variables to species data
 ASO_all <- ASO_species_ind |> 
   left_join(ASO_points |>  
-              select(global_id, omradenummer_flatenummer, eng_id, aso_id, nin_grunntype, annen_dominerende_kartleggingsenhet), 
+              select(global_id, eng_id, aso_id, nin_grunntype, annen_dominerende_kartleggingsenhet), 
             by = join_by(ParentGlobalID == global_id))        # check why there are 276 points with no species data?
 
 
@@ -1631,7 +1640,11 @@ ano_species <- ano_species |>
 
 # recode species names for WFO matching
 ano_species <- ano_species |> 
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern))
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern), # 4% of scientific_name changed
+         scientific_name = str_replace(
+      scientific_name,
+      "^Hiero\\S*",
+      "Hierochloe"))
 
 ano_prepared_wfo <- ano_species |> 
   distinct(scientific_name, scientific_name_original)
@@ -1820,27 +1833,18 @@ ano_geo <- ano_geo |>
   )
 
 ## 4. Filter lowland plots points
-ano_lowlands <- ano_geo# |>
+ano_all <- ano_geo# |>
   #filter(hovedoekosystem_rute %in% c("Natopen", "Seminat", "T45", "T41"))
 
 
-ano_lowlands <- st_join(
-  ano_lowlands,
-  regnor,
-  left = TRUE,
-  join = st_nearest_feature
-)
-
 
 ANO_species_ind <- ANO_species_ind |> 
-  left_join(ano_lowlands |> select("globalid","ano_flate_id","ano_punkt_id","ssb_id","aar", "hovedtype_rute","kartleggingsenhet_1m2",
-                             #"bruksintensitet","beitetrykk","slatteintensitet", "tungekjoretoy","slitasje",
-                             "vedplanter_total_dekning","busker_dekning","tresjikt_dekning","roesslyng_dekning"), 
+  left_join(ano_all |> select("globalid","ano_flate_id","ano_punkt_id","ssb_id","aar", "hovedtype_rute","kartleggingsenhet_1m2"), 
             by = join_by(parentglobalid == globalid)) |> 
   filter(!is.na(hovedtype_rute))
 
 
-#saveRDS(ano_lowlands, paste0(here::here(),"/data/cache/ano_lowlands.RDS"))
+#saveRDS(ano_all, paste0(here::here(),"/data/cache/ano_lowlands.RDS"))
 #saveRDS(ANO_species_ind, paste0(here::here(),"/data/cache/ANO_species_ind.RDS"))
 
 
@@ -2195,8 +2199,7 @@ nin_species_clean |> filter(is.na(accepted_name))
 # Merge with indicator values
 nin_sp_ind <- nin_species_clean |>
   select(Nature_Type, Sub_Type, nin_id, nin_code, species = accepted_name, species_group, cover) |> 
-  left_join(tyler_indicators |> 
-              select(species, Moisture),
+  left_join(tyler_indicators,
             by = join_by(species)) |> 
   tibble()
 
@@ -2232,6 +2235,7 @@ abun_wide <- nin_sp_ind |>
     nin_code,
     cover
   ) |> 
+  distinct() |> 
   pivot_wider(
     names_from  = nin_code,
     values_from = cover,
@@ -2242,12 +2246,16 @@ abun_wide <- nin_sp_ind |>
 ind_wide <- nin_sp_ind  |> 
   select(
     sp = species,
-    Moisture
+    Moisture:Light
     )  |> 
-  group_by(sp) |> 
+group_by(sp)  |> 
   summarise(
-    Moisture = first(Moisture),
-    .groups  = "drop"
+    across(
+      .cols = everything(), 
+      .fns  = ~ first(.x),
+      .names = "{.col}"
+    ),
+    .groups = "drop"
   )
 
 
@@ -2262,7 +2270,7 @@ rm(wfo_backbone)
 
 ```
 
-This leaves us with the monitoring data including plant indicators (ano_lowlands) and the reference data including plant indicators (nin_sp_ind):
+This leaves us with the monitoring data including plant indicators (ano_all, gruk_all, aso_all) and the reference data including plant indicators (nin_sp_ind):
   
   <!-- Print head of data set with horizontal scrolling -->
   ```{r ano-sp-tab, echo=F}
@@ -2375,7 +2383,7 @@ lowland_ref_cov <- indBoot.freq(
   ind     = ind,
   iter    = 1000,
   obl     = 0.8,
-  rat     = 1/2,
+  rat     = 1/3,
   var.abun = FALSE
 )
 
@@ -2424,135 +2432,133 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 # in some cases two NiN-types are represented by the same species list
 
 # NiN-types where each type is represented by one species list (including when one species list represents two NiN-types), i.e. excluding types with a- and b-suffix
-names(lowland_ref_cov[["Moisture"]])
-
-
-# 1 indicator-value indicators: "Moisture"
-indEll.n=2
-# creating a table to hold:
-# for every indicator: the 0.5 quantile (median), 0.025 quantile and  0.975 quantile for each NiN-type (3 metrics -> 3 columns per indicator)
-# for every nature type (nrows)
-# coercing the values into the table
-
-myQuantiles <- c(0.025, 0.5, 0.975)
-
-# 1) Moisture bootstrap matrix
-moist_mat  <- lowland_ref_cov[["Moisture"]]
-all_names  <- colnames(moist_mat)
-
-# 2) Strip a/b/c/d suffixes from column names to get base NiN IDs
-base_names <- all_names %>%
-  str_remove("[abcd]$")
-
-# 3) Map: each column index -> base NiN ID
-nin_map <- tibble(
-  col_index = seq_along(all_names),
-  col_name  = all_names,
-  base_nin  = base_names
-)
-
-# 4) Count how many columns per base NiN
-nin_counts <- nin_map %>%
-  count(base_nin, name = "n_cols")
-
-# Singles: NiN types represented by exactly one column
-nin_single <- nin_counts %>%
-  filter(n_cols == 1) %>%
-  pull(base_nin)
-
-# Multis: NiN types represented by multiple columns
-nin_multi <- nin_counts %>%
-  filter(n_cols > 1) %>%
-  pull(base_nin)
-
-# 5) Quantiles for single NiN types (one column each)
-tab_single <- map_dfr(nin_single, function(base_id) {
-  # find the column index that has this base NiN
-  idx <- nin_map %>%
-    filter(base_nin == base_id) %>%
-    pull(col_index)
+build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
+  # Matrix 
+  ind_mat  <- ref_cov[[ind_name]]
+  all_names <- colnames(ind_mat)
   
-  vals <- as.matrix(moist_mat[, idx])
-  q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
+  # Strip a/b/c/d suffixes from column names to get base NiN IDs
+  base_names <- all_names %>%
+    str_remove("[abcd]$")
   
-  tibble(
-    NiN              = base_id,
-    Moisture_025     = q[1],
-    Moisture_50      = q[2],
-    Moisture_975     = q[3],
-    Moisture_025_dup = q[1],
-    Moisture_50_dup  = q[2],
-    Moisture_975_dup = q[3]
+  # Map: each column index -> base NiN ID
+  nin_map <- tibble(
+    col_index = seq_along(all_names),
+    col_name  = all_names,
+    base_nin  = base_names
+  )
+  
+  # Count how many columns per base NiN
+  nin_counts <- nin_map %>%
+    count(base_nin, name = "n_cols")
+  
+  nin_single <- nin_counts %>%
+    filter(n_cols == 1) %>%
+    pull(base_nin)
+  
+  nin_multi <- nin_counts %>%
+    filter(n_cols > 1) %>%
+    pull(base_nin)
+  
+  # Quantiles for single NiN types
+  tab_single <- map_dfr(nin_single, function(base_id) {
+    idx <- nin_map %>%
+      filter(base_nin == base_id) %>%
+      pull(col_index)
+    
+    vals <- as.matrix(ind_mat[, idx])
+    q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
+    
+    tibble(
+      NiN      = base_id,
+      Q025     = q[1],
+      Q050     = q[2],
+      Q975     = q[3],
+      Q025_dup = q[1],
+      Q050_dup = q[2],
+      Q975_dup = q[3]
+    )
+  })
+  
+  # Quantiles for multi NiN types
+  tab_multi <- map_dfr(nin_multi, function(base_id) {
+    idx <- nin_map %>%
+      filter(base_nin == base_id) %>%
+      pull(col_index)
+    
+    vals <- as.matrix(ind_mat[, idx])
+    q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
+    
+    tibble(
+      NiN      = base_id,
+      Q025     = q[1],
+      Q050     = q[2],
+      Q975     = q[3],
+      Q025_dup = q[1],
+      Q050_dup = q[2],
+      Q975_dup = q[3]
+    )
+  })
+  
+  # Combine singles and multis
+  tab <- bind_rows(tab_single, tab_multi)
+  
+  # Take first NiN type where multiple are listed
+  tab <- tab %>%
+    mutate(NiN = str_replace(NiN, "(.*?C[^C]*?)C.*", "\\1")) %>%
+    mutate(NiN = if_else(
+      !NiN %in% c("T2-C-7", "T2-C-8"),
+      gsub("C", "C-", NiN),
+      NiN
+    ))
+  
+  # Restructuring lower (q2.5) and higher (q97.5) limits
+  y_low <- numeric(length = nrow(tab) * 2)
+  y_low[((1:nrow(tab)) * 2) - 1] <- tab$Q025
+  y_low[((1:nrow(tab)) * 2)     ] <- tab$Q975
+  
+  y_ref <- numeric(length = nrow(tab) * 2)
+  y_ref[((1:nrow(tab)) * 2) - 1] <- tab$Q025_dup
+  y_ref[((1:nrow(tab)) * 2)     ] <- tab$Q975_dup
+  
+  # Build indicator names (e.g. Moist1, Moist2 or pH1, pH2)
+  ind_base <- ind_name
+  ind_labels <- c(paste0(ind_base, "1"), paste0(ind_base, "2"))
+  
+  ind_ref <- data.frame(
+    grunn  = rep(rep(tab$NiN, each = 2), indEll_n),
+    county = rep("all", nrow(tab) * 2 * indEll_n),
+    region = rep("all", nrow(tab) * 2 * indEll_n),
+    Ind    = rep(ind_labels, nrow(tab) * indEll_n),
+    Rv     = c(rep(tab$Q050, each = 2),
+               rep(tab$Q050_dup, each = 2)),
+    Gv     = c(y_low, y_ref),
+    maxmin = rep(c(1, n_levels), nrow(tab) * indEll_n)
+  )
+  
+  ind_ref %>%
+    as_tibble() %>%
+    mutate(
+      grunn = as.factor(grunn),
+      Ind   = as.factor(Ind)
+    )
+}
+
+# loop over all indicators
+indicators <- c("Moisture", "Soil_reaction_pH", "Light", "Nitrogen", "Phosphorus", "Grazing_mowing", "Soil_disturbance")  
+levels_per_indicator <- c(Moisture = 12, Soil_reaction_pH = 8, Light = 7, Nitrogen = 9, Phosphorus = 5, Grazing_mowing = 8, Soil_disturbance = 9)
+
+lowland_ref_cov_val_list <- map(indicators, function(ind) {
+  build_ref_for_indicator(
+    ref_cov  = lowland_ref_cov,
+    ind_name = ind,
+    n_levels = levels_per_indicator[[ind]],
+    indEll_n = 2
   )
 })
 
-# 6) Quantiles for multi NiN types (several columns per type)
-tab_multi <- map_dfr(nin_multi, function(base_id) {
-  # find all columns whose stripped base_nin equals this base_id
-  idx <- nin_map %>%
-    filter(base_nin == base_id) %>%
-    pull(col_index)
-  
-  vals <- as.matrix(moist_mat[, idx])
-  q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
-  
-  tibble(
-    NiN              = base_id,
-    Moisture_025     = q[1],
-    Moisture_50      = q[2],
-    Moisture_975     = q[3],
-    Moisture_025_dup = q[1],
-    Moisture_50_dup  = q[2],
-    Moisture_975_dup = q[3]
-  )
-})
-
-# 7) Combine singles and multis into final table
-tab <- bind_rows(tab_single, tab_multi)
-
-tab
-
-# take first nin type where multiple are listed
-tab <- tab |> mutate(NiN = str_replace(NiN, "(.*?C[^C]*?)C.*", "\\1"))
-
-
-# making it a proper data frame
-dim(tab)
-round(tab[,2:7],digits=2)
-
-summary(tab)
-tab <- tab |> 
-  mutate(NiN = if_else(
-  !NiN %in% c("T2-C-7", "T2-C-8"), 
-  gsub("C", "C-", NiN), 
-  NiN
-))
-  
-tab
-
-
-# creating final objects holding the reference and limit values for all indicators
-
-# ref object for indicators
-lowland_ref_cov_val <- data.frame(grunn=c(rep(rep(tab$NiN,each=2),indEll.n)),
-                                                    county=rep('all',(nrow(tab)*2*indEll.n)),
-                                                    region=rep('all',(nrow(tab)*2*indEll.n)),
-                                                    Ind=c(rep(c('Moist1','Moist2'),nrow(tab)),
-                                                          rep(c('Moisture1','Moisture2'),nrow(tab))
-                                                          
-                                                    ),
-                                                    Rv=c(rep(tab$Moisture_50,each=2),
-                                                         rep(tab$Moisture_50_dup,each=2)
-                                                    ),
-                                                    Gv=c(y.Moist,y.Moisture),
-                                                    maxmin=c(rep(c(1,12),nrow(tab))  # 9 levels of Moisture
-                                                    )
-)
-
-lowland_ref_cov_val <- lowland_ref_cov_val |> 
-  tibble() |> 
-  mutate(grunn = as.factor(grunn),
-         Ind = as.factor(Ind))
+# Combine all indicators into one table
+lowland_ref_cov_val <- bind_rows(lowland_ref_cov_val_list)
 
 summary(lowland_ref_cov_val)
 
@@ -2569,11 +2575,11 @@ lowland_ref_cov_val |>
 
 ```{r merging datasets}
 # ANO
-ano_lowlands <- ano_lowlands |>
+ano_lowlands <- ano_all |>
   select(globalid, ano_flate_id, ano_punkt_id, ssb_id, aar, hovedoekosystem_250m2, hovedoekosystem_rute, hovedtype_rute, hovedtype_250m2, hovedtype_1m2, kartleggingsenhet_1m2, kartleggingsenhet_250m2) |> 
   mutate(
-    X = st_coordinates(ano_lowlands)[, 1],
-    Y = st_coordinates(ano_lowlands)[, 2],
+    X = st_coordinates(ano_geo)[, 1],
+    Y = st_coordinates(ano_geo)[, 2],
     kartleggingsenhet_1m2 = word(kartleggingsenhet_1m2, 1, 1)
   ) |>
   st_drop_geometry() |> 
@@ -2655,14 +2661,16 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
 # combine species data
 
 GRUK_species_ind <- GRUK_species_ind |> 
-  filter(!is.na(species), !is.na(art_dekning), !is.na(Moisture)) |> 
+  filter(!is.na(species), !is.na(art_dekning)) |> 
   rename(nest_1 = polygon_id)
 
 ASO_species_ind <- ASO_species_ind |> 
-  filter(!is.na(species), !is.na(art_dekning), !is.na(Moisture)) |> 
+  filter(!is.na(species), !is.na(art_dekning)) |> 
   rename(nest_1 = omradenummer_flatenummer,
          nest_2 = eng_id)
 
+ANO_species_ind <- ANO_species_ind |> 
+  rename(nest_1 = ano_flate_id)
 
 combined_species <-  bind_rows(ANO_species_ind |> select(-c(busker_dekning, tresjikt_dekning, roesslyng_dekning, ssb_id, vedplanter_total_dekning, kartleggingsenhet_1m2)), 
                                GRUK_species_ind |> rename(parentglobalid = parent_global_id),
