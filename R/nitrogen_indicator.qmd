@@ -2859,6 +2859,18 @@ Nitrogen_no <- glmmTMB(
   family = ordbeta
 )
 
+Nitrogen1_no <- glmmTMB(
+  Nitrogen1 ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands |> filter(!is.na(Nitrogen1)),
+  family = ordbeta
+)
+
+Nitrogen2_no <- glmmTMB(
+  Nitrogen2 ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands |> filter(!is.na(Nitrogen2)),
+  family = ordbeta
+)
+
 
 summary(Nitrogen_no)
 
@@ -2866,6 +2878,18 @@ summary(Nitrogen_no)
 Nitrogen_re <- glmmTMB(
   Nitrogen ~ 0 + region + (1|dataset/nest_1),
   data = combined_lowlands,
+  family = ordbeta
+)
+
+Nitrogen1_re <- glmmTMB(
+  Nitrogen1 ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands[!is.na(combined_lowlands$Nitrogen1),],
+  family = ordbeta
+)
+
+Nitrogen2_re <- glmmTMB(
+  Nitrogen2 ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands[!is.na(combined_lowlands$Nitrogen2),],
   family = ordbeta
 )
 
@@ -2907,6 +2931,22 @@ NO_FUNI_005_table <- tibble(
     plogis(
       summary(Nitrogen_re)$coef$cond[, 1] - 1.96 * summary(Nitrogen_re)$coef$cond[, 2]
     )
+  ),
+  upper_indicator_value = c(
+    plogis(summary(Nitrogen2_no)$coef$cond[, 1]),
+    plogis(summary(Nitrogen2_re)$coef$cond[, 1])
+  ),
+  n_upper_indicator_value = c(
+    summary(Nitrogen2_no)$nobs,
+    as.vector(table(Nitrogen2_re$frame$region))
+  ),
+  lower_indicator_value = c(
+    plogis(summary(Nitrogen1_no)$coef$cond[, 1]),
+    plogis(summary(Nitrogen1_re)$coef$cond[, 1])
+  ),
+  n_lower_indicator_value = c(
+    summary(Nitrogen1_no)$nobs,
+    as.vector(table(Nitrogen1_re$frame$region))
   )
 )
 NO_FUNI_005_table
