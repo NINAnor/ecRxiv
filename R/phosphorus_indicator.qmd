@@ -2785,7 +2785,11 @@ for (i in seq_len(nrow(combined_lowlands))) {
 combined_lowlands <- combined_lowlands |>
   dplyr::mutate(
     Phosphorus  = Phosphorus2
-  )
+  ) #|> 
+#  mutate(Soil_reaction_pH  = Soil_reaction_pH1 * Soil_reaction_pH2,
+#    Soil_reaction_pH1 = if_else(Soil_reaction_pH1 == 1, NA_real_, Soil_reaction_pH1),
+#    Soil_reaction_pH2 = if_else(Soil_reaction_pH2 == 1, NA_real_, Soil_reaction_pH2)
+#)
 
 
 
@@ -2858,7 +2862,17 @@ Phosphorus_no <- glmmTMB(
   family = ordbeta
 )
 
+Phosphorus1_no <- glmmTMB(
+  Phosphorus1 ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands |> filter(!is.na(Phosphorus1)),
+  family = ordbeta
+)
 
+Phosphorus2_no <- glmmTMB(
+  Phosphorus2 ~ 1 + (1|dataset/nest_1),
+  data = combined_lowlands |> filter(!is.na(Phosphorus2)),
+  family = ordbeta
+)
 summary(Phosphorus_no)
 
 # regions
@@ -2868,6 +2882,17 @@ Phosphorus_re <- glmmTMB(
   family = ordbeta
 )
 
+Phosphorus1_re <- glmmTMB(
+  Phosphorus1 ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands[!is.na(combined_lowlands$Phosphorus1),],
+  family = ordbeta
+)
+
+Phosphorus2_re <- glmmTMB(
+  Phosphorus2 ~ 0 + region + (1|dataset/nest_1),
+  data = combined_lowlands[!is.na(combined_lowlands$Phosphorus2),],
+  family = ordbeta
+)
 
 summary(Phosphorus_re)
 ```
@@ -2906,6 +2931,22 @@ NO_FUFO_001_table <- tibble(
     plogis(
       summary(Phosphorus_re)$coef$cond[, 1] - 1.96 * summary(Phosphorus_re)$coef$cond[, 2]
     )
+  ),
+  upper_indicator_value = c(
+    plogis(summary(Phosphorus2_no)$coef$cond[, 1]),
+    plogis(summary(Phosphorus2_re)$coef$cond[, 1])
+  ),
+  n_upper_indicator_value = c(
+    summary(Phosphorus2_no)$nobs,
+    as.vector(table(Phosphorus2_re$frame$region))
+  ),
+  lower_indicator_value = c(
+    plogis(summary(Phosphorus1_no)$coef$cond[, 1]),
+    plogis(summary(Phosphorus1_re)$coef$cond[, 1])
+  ),
+  n_lower_indicator_value = c(
+    summary(Phosphorus1_no)$nobs,
+    as.vector(table(Phosphorus1_re$frame$region))
   )
 )
 NO_FUFO_001_table
