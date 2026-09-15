@@ -1859,62 +1859,15 @@ plot_index_forest <- function(summaries, title = "NO_IDEX_001") {
     )
 }
 
-# Five-class condition scale (WFD / Norwegian fagsystem for økologisk tilstand).
-# Equal 0.2 bins on the 0-1 indicator scale; 0.6 aligns with the "good
-# ecological condition" threshold used elsewhere in this workflow.
-condition_scale_labels <- function(lang = c("en", "nb")) {
-  lang <- rlang::arg_match(lang)
-  if (lang == "nb") {
-    c("Svært dårlig", "Dårlig", "Moderat", "God", "Svært god")
-  } else {
-    c("Very poor", "Poor", "Moderate", "Good", "Very good")
-  }
-}
-
-# Two five-class palettes (bins 0-0.2, …, 0.8-1.0).
-# `default`: earlier Miljøstatus-inspired warm scale (deep orange → green).
-# `v2`: alternate palette (red → orange → yellow → green → blue).
-condition_scale_colors <- function(palette = c("default", "v2")) {
-  palette <- rlang::arg_match(palette)
-  if (palette == "v2") {
-    c(
-      "#d8241a", # 0.0-0.2
-      "#e47616", # 0.2-0.4
-      "#fef500", # 0.4-0.6
-      "#85c125", # 0.6-0.8
-      "#0092dd"  # 0.8-1.0
-    )
-  } else {
-    # Based on Miljødirektoratet / Miljøstatus palette:
-    # green #78c840, yellow #e8d080, orange #f89018; lowest bin is deep orange
-    # (not red) so the scale stays warm throughout.
-    c(
-      "#c86012", # 0.0-0.2 dyp oransje (bright enough for labels)
-      "#f89018", # 0.2-0.4 oransje
-      "#f0b848", # 0.4-0.6 lys oransje
-      "#e8d080", # 0.6-0.8 gul
-      "#78c840"  # 0.8-1.0 grønn
-    )
-  }
-}
-
-condition_scale_data <- function(
-    lang = c("en", "nb"),
-    palette = c("default", "v2"),
-    ymin = 0,
-    ymax = 1) {
-  lang <- rlang::arg_match(lang)
-  palette <- rlang::arg_match(palette)
-  labels <- condition_scale_labels(lang)
-  cols <- condition_scale_colors(palette = palette)
-  breaks <- seq(0, 1, by = 0.2)
+# Three-class condition scale for the national figures (no class labels).
+# 0-0.4 red, 0.4-0.6 yellow, 0.6-1 green; 0.6 is the "good condition" threshold.
+condition_scale_data <- function(ymin = 0, ymax = 1) {
   tibble::tibble(
-    xmin = head(breaks, -1),
-    xmax = tail(breaks, -1),
+    xmin = c(0, 0.4, 0.6),
+    xmax = c(0.4, 0.6, 1),
     ymin = ymin,
     ymax = ymax,
-    label = labels,
-    fill = cols
+    fill = c("#DF9A99", "#F6C084", "#80D1B1")
   )
 }
 
@@ -1928,19 +1881,17 @@ condition_scale_data <- function(
 #
 # `national_only = TRUE` drops the five regions and shows a single national
 # ("Norway") value per row instead, with no region colour/shape legend.
-# `condition_scale = TRUE` (national only) adds a coloured condition band
-# at the bottom of the plot (default = first palette; v2 = alternate).
+# `condition_scale = TRUE` (national only) adds a three-class coloured
+# condition band at the bottom of the plot (no class labels).
 plot_index_detailed <- function(
     index_result,
     year,
     title = "NO_IDEX_001",
     national_only = FALSE,
     condition_scale = FALSE,
-    condition_palette = c("default", "v2"),
     lang = c("en", "nb"),
     registry = NULL) {
   lang <- rlang::arg_match(lang)
-  condition_palette <- rlang::arg_match(condition_palette)
 
   if (lang == "nb") {
     part_labels <- c(
@@ -2244,7 +2195,7 @@ plot_index_detailed <- function(
 
   show_condition_scale <- isTRUE(condition_scale) && isTRUE(national_only)
   scale_bar <- if (show_condition_scale) {
-    condition_scale_data(lang = lang, palette = condition_palette)
+    condition_scale_data()
   } else {
     NULL
   }
@@ -2330,17 +2281,6 @@ plot_index_detailed <- function(
         colour = "white",
         linewidth = 0.35,
         inherit.aes = FALSE
-      ) +
-      ggplot2::geom_text(
-        data = scale_bar,
-        ggplot2::aes(
-          x = (.data$xmin + .data$xmax) / 2,
-          y = (.data$ymin + .data$ymax) / 2,
-          label = .data$label
-        ),
-        size = 2.7,
-        lineheight = 0.85,
-        inherit.aes = FALSE
       )
   }
 
@@ -2390,17 +2330,16 @@ plot_index_detailed <- function(
   p
 }
 
-# Save Norwegian national figures with the coloured condition-scale band
-# (default palette). Writes separate *_condition.png files so the plain
-# national figures remain unchanged.
+# Save Norwegian national figures with the three-class condition-scale band.
+# Writes separate *_condition.png files so the plain national figures remain
+# unchanged.
 save_index_condition_figures <- function(
     forest_index,
     mountain_index,
     registry_forest,
     registry_mountain,
     year = 2024L,
-    out_dir = here::here("img"),
-    condition_palette = "default") {
+    out_dir = here::here("img")) {
   if (!dir.exists(out_dir)) {
     dir.create(out_dir, recursive = TRUE)
   }
@@ -2429,7 +2368,6 @@ save_index_condition_figures <- function(
       title = spec$title,
       national_only = TRUE,
       condition_scale = TRUE,
-      condition_palette = condition_palette,
       lang = "nb",
       registry = spec$registry
     )
