@@ -2284,10 +2284,19 @@ plot_index_detailed <- function(
       )
   }
 
-  # Add one extra shape for the total index rows.
-  shape_values <- c(
-    ect_shapes,
-    Total = 19
+  # Restrict the shape legend to ECT classes (and Total) actually present,
+  # so mountain plots do not inherit unused forest classes with misaligned labels.
+  present_groups <- unique(as.character(plot_dat$shape_group))
+  present_groups <- present_groups[!is.na(present_groups)]
+  shape_order <- c(names(ect_shapes), "Total")
+  present_groups <- shape_order[shape_order %in% present_groups]
+  shape_values <- c(ect_shapes, Total = 19)[present_groups]
+  shape_labels <- unname(shape_legend_labels[present_groups])
+  shape_scale <- ggplot2::scale_shape_manual(
+    values = shape_values,
+    name = shape_legend_name,
+    breaks = names(shape_values),
+    labels = shape_labels
   )
 
   if (national_only) {
@@ -2297,11 +2306,7 @@ plot_index_detailed <- function(
         size = 0.45,
         linewidth = 0.35
       ) +
-      ggplot2::scale_shape_manual(
-        values = shape_values,
-        name = shape_legend_name,
-        labels = unname(shape_legend_labels[names(shape_values)])
-      ) +
+      shape_scale +
       ggplot2::theme(legend.position = "bottom")
   } else {
     p <- p +
@@ -2311,11 +2316,7 @@ plot_index_detailed <- function(
         linewidth = 0.35
       ) +
       ggplot2::scale_colour_manual(values = region_cols, name = NULL) +
-      ggplot2::scale_shape_manual(
-        values = shape_values,
-        name = shape_legend_name,
-        labels = unname(shape_legend_labels[names(shape_values)])
-      ) +
+      shape_scale +
       ggplot2::theme(legend.position = "bottom")
   }
 
