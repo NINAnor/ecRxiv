@@ -1025,8 +1025,6 @@ tyler_species_clean <- tyler_species_clean |>
 
 # check name changes
 tyler_species_clean |> filter(clean_string != accepted_name)
-
-
 tyler_species_clean |> filter(is.na(accepted_name))
 
 
@@ -1195,6 +1193,8 @@ summary(GRUK_species_ind)
 unique(GRUK_species_ind[is.na(GRUK_species_ind$Moisture),'species'])# |> view()
 
 
+# cache the GRUK species data here
+#saveRDS(GRUK_species_ind, paste0(here::here(),"/data/cache/GRUK_species_ind.RDS"))
 
 
 #########################################################
@@ -1463,7 +1463,7 @@ ASO_species <- ASO_species |>
   )
 
 ASO_species <- ASO_species  |>  
-  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern),
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern),
          scientific_name = str_replace(
       scientific_name,
       "^Hiero\\S*",
@@ -1585,7 +1585,7 @@ ASO_species_ind <- ASO_species_clean |>
   filter(!is.na(art_dekning)) |> 
   left_join(tyler_indicators |> 
               select(species, Moisture)) |>
-  left_join(ASO_points |> select(global_id, omradenummer_flatenummer), by = join_by(ParentGlobalID == global_id))
+  left_join(ASO_points |> select(global_id, omradenummer_flatenummer), by = join_by(ParentGlobalID == global_id)) |> 
   tibble()
 
 
@@ -2276,6 +2276,8 @@ ind   <- ind_wide[, -1]   # drop 'sp'; remaining columns are indicators
 
 
 rm(wfo_backbone)
+#saveRDS(nin_sp_ind, paste0(here::here(),"/data/cache/nin_sp_ind.RDS"))
+
 
 ```
 
@@ -2288,9 +2290,9 @@ head(ANO.sp.ind) |>
   kable_styling("striped") |> scroll_box(width = "100%")
 ```
 
-```{r wetland_mountain_forest_seminatural-ref-data-tab, echo=FALSE}
+```{r seminatural-ref-data-tab, echo=FALSE}
 head(nin_sp_ind) |> 
-  kable("html", caption = "Reference data set for semi-natural ecosystems") |> 
+  kable("html", caption = "Reference data set for naturally open and semi-natural lowland ecosystems") |> 
   kable_styling("striped") |> scroll_box(width = "100%")
 
 ```
@@ -2311,6 +2313,8 @@ In order to get distributions of these metrics rather than one single value (for
 - in every bootstrap iteration the abundance of the sampled species can be randomly changed by a limited amount if wished by introducing a re-sampling of abundance values from adjacent abundance steps with a certain probability (var.abun)
 
 ```{r bootstrapping}
+
+myQuantiles <- c(0.025, 0.5, 0.975)
 
 indBoot.freq <- function(sp, abun, ind, iter, obl, rat = 2/3,var.abun = F) {
   
@@ -2624,20 +2628,21 @@ st_drop_geometry() |>
   select(globalid, globalid_chr, polygon_id, hovedtype_rute, aar, X, Y, kartleggingsenhet_1_5000, nin_kartleggingsenheter, hovedokosystem) |> 
   rename(kartleggingsenhet = kartleggingsenhet_1_5000,
          nest_1 = polygon_id) |> 
-  mutate(scale = "1_5000")
+  mutate(scale = "1_5000") |> 
+  distinct()
 
 # ASO
 
 ASO_lowlands <- ASO_all |>
   rename(globalid = ParentGlobalID) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning, Moisture)) |> 
+  select(-c(species, art_dekning, Moisture, -geometry.x)) |> 
   distinct() |> 
   st_as_sf(crs = "+proj=longlat +datum=WGS84 +ellps=WGS84") |>
   st_transform(crs = 25833) |> 
 mutate(
-  X = st_coordinates(st_sfc(geometry))[, 1],
-  Y = st_coordinates(st_sfc(geometry))[, 2]) |> 
+  X = st_coordinates(st_sfc(geometry.y))[, 1],
+  Y = st_coordinates(st_sfc(geometry.y))[, 2]) |> 
   st_drop_geometry() |> 
 semi_join(
     ASO_species_ind  |>  mutate(parent_chr = as.character(ParentGlobalID)) |>  st_drop_geometry(),
@@ -2667,6 +2672,7 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
 ) |> 
   st_drop_geometry()
 
+#saveRDS(combined_lowlands, paste0(here::here(),"/data/cache/combined_lowlands.RDS"))
 
 
 # combine species data
@@ -2704,10 +2710,11 @@ For scaling ANO-data against the reference we use the normalisation function fro
 #| warning: false
 
 #### 1. calculating scaled and non-truncated values for the indicators based on the datasets ####
-combined_species <- combined_species |> filter(!is.na(Moisture))
+ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
+combined_species <- combined_species |> filter(!is.na(Moisture), hovedtype_rute %in% ref_grunn)
 lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Moisture1", "Moisture2"))
 
-ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
+
 
 for (i in seq_len(nrow(combined_lowlands))) {
   tryCatch({
@@ -2789,7 +2796,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
 
 combined_lowlands <- combined_lowlands |>
   dplyr::mutate(
-    moisture  = Moisture1 * Moisture2,
+    Moisture  = Moisture1 * Moisture2,
     Moisture1 = if_else(Moisture1 == 1, NA_real_, Moisture1),
     Moisture2 = if_else(Moisture2 == 1, NA_real_, Moisture2)
   )
@@ -2860,7 +2867,7 @@ The national and regional estimates are computed separately.
 # Norway
 
 Moisture_no <- glmmTMB(
-  moisture ~ 1 + (1|dataset/nest_1),
+  Moisture ~ 1 + (1|dataset/nest_1),
   data = combined_lowlands,
   family = ordbeta
 )
@@ -2883,7 +2890,7 @@ summary(Moisture2_no)
 
 # regions
 Moisture_re <- glmmTMB(
-  moisture ~ 0 + region + (1|dataset/nest_1),
+  Moisture ~ 0 + region + (1|dataset/nest_1),
   data = combined_lowlands,
   family = ordbeta
 )
