@@ -20,7 +20,7 @@ indicatorID:
 indicatorName: 
   - Erosive disturbance
 verbatimName: 
-  - Slitasje # the indicator name that us used in the native language
+  - Terrengskade # the indicator name that us used in the native language
 folderName: NO_SLIT_001 # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
 # If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
 # If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
@@ -38,8 +38,8 @@ verbatimEcosystem:
   - Fjell
 yearAdded: 2025
 yearLastUpdate: 2026
-status: incomplete # options are complete, incomplete, or deprecated
-Version: "2.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+status: complete # options are complete, incomplete, or deprecated
+Version: "2.0.1" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
 VersionComment: separate code for mountain ecosystem. Updated variable combination matrix.
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_SLIT_001
 # To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
@@ -65,7 +65,7 @@ author:
 AuthorList: Töpper, J.  
 date: June 6, 2026
 data_availability: silver
-code_reproducibility: silver
+code_reproducibility: gold
 open_science_badge: silver
 callout-icon: false
 lightbox: true
@@ -104,6 +104,8 @@ library(conflicted)
 library(sf)
 library(ecTools)
 library(MASS)
+library(arrow)
+library(DT)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -196,12 +198,14 @@ meta |>
   dplyr::filter(Variable %in% c(
     "Indicator ID",
     "Indicator Name",
+    "verbatimName",
     "Continent",
     "Country",
     "Ecosystem Condition Typology Class", 
     "Realm",
     "Biome",
     "Ecosystem",
+    "verbatimEcosystem",
     "Year added", 
     "Last update",
     "Version",
@@ -210,6 +214,7 @@ meta |>
     "Spatial aggregation pathway",
     "Precision")) |>   
   kable()
+
 
 ```
 :::
@@ -222,6 +227,7 @@ meta |>
 - 21 May 2026 - original start-up of the 2026 erosion species indicator for mountains
 - 27 July - Changed ID number to 001 to reflect previous versions
 - 27 July - removed glmmTMB
+- 01 September 2026 - Update metadata and verbatimName
 
 :::
 
@@ -508,9 +514,10 @@ Indicator values are calculated as the arithmetic mean of the normalised indicat
 
 
 
-```{r}
+```{r boot}
 #| warning: false
 #| message: false
+#| eval: false
 set.seed(123)
 
 B <- 1000
@@ -560,6 +567,18 @@ boot_results <- map_dfr(1:B, function(i) {
     mutate(draw = i)
 })
 
+
+out <- boot_results |>
+  dplyr::select(
+    area = Region, 
+    value = sim) |>
+  tibble::add_column(year = 2024)
+saveRDS(out, here::here("data/results_NO_SLIT_001.rds"))
+```
+
+```{r readCachedBoot}
+#| include: false
+out <- readRDS(here::here("data/results_NO_SLIT_001.rds"))
 ```
 
 
@@ -567,19 +586,21 @@ boot_results <- map_dfr(1:B, function(i) {
 
 Indicator values are calculated as arithmetic means of the normalised indicator values. To quantify uncertainty, we perform a stratified cluster bootstrap with 1,000 replicates. Within each replicate, ANO sites are resampled with replacement within each region while retaining all monitoring points from each selected site. The distribution of bootstrap estimates is used to calculate the mean indicator value and the associated 95% confidence interval.
 
-```{r}
-
-NO_SLIT_002_table<- boot_results |>
-  group_by(Region) |>
+```{r tbl-results}
+#| tbl-cap: 'Indicator values and 95% confidence interval for the indicator NO_SLIT_001 (Erosive disturbance) for mountain ecosystems in Norway, and five geographis regions.'
+out |>
+  group_by(area) |>
   summarise(
-    indicator_value = mean(sim, na.rm = TRUE),
-    CI_lower = quantile(sim, 0.025, na.rm = TRUE),
-    CI_upper = quantile(sim, 0.975, na.rm = TRUE),
+    indicator_value = mean(value, na.rm = TRUE),
+    CI_lower = quantile(value, 0.025, na.rm = TRUE),
+    CI_upper = quantile(value, 0.975, na.rm = TRUE),
     .groups = "drop"
   ) |>
-  mutate(Year = 2024)
-
-NO_SLIT_002_table
+    DT::datatable(
+      options = list(
+        dom = "t")) |>
+    DT::formatRound(c("indicator_value", "CI_lower", "CI_upper"), 3)
+    
 
 ```
 
@@ -595,7 +616,7 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 ```{r export}
 #| eval: false
 arrow::write_parquet(
-  NO_SLIT_002_sim, "data/NO_SLIT_002_table.parquet"
+  out, "data/results_NO_SLIT_001.parquet"
 )
 
 ```

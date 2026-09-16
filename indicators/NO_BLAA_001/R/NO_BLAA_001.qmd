@@ -24,8 +24,8 @@ verbatimEcosystem:
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
-Version: "1.0.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
+Version: "1.0.1" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+VersionComment: Fix wrong indicator value in summary # Describe briefly how this version differs from earlier versions 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BLAA_001
 Normalised: Yes
 SpatialAggregationPathway: Aggregate (NFI plots to county/sub-county) - Scale - Aggregate (geographic region) - Aggregate (national level) - Truncate
@@ -81,9 +81,16 @@ codeReviewers:
     email: matthew.grainger@nina.no
     affiliations:
       - id: reviewerInst
-        name: Norwegian Institute for Nature Resaech (NINA)
+        name: Norwegian Institute for Nature Research (NINA)
     reviewType: code review
     github: DrMattG
+  - name: Anders Kolstad
+    email: anders.kolstad@nina.no
+    affiliations:
+      - id: reviewerInst
+    reviewType: consistency update
+    github: DrMattG
+
 ---
 
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -237,6 +244,7 @@ meta |>
 - 20 May. 2026 - Change truncation and use ecTools
 - 02 July. 2026 - Updated text and references
 - 21 July 2026 - Accepted
+- 24 August 2026 - Fix wrong indicator value in summary
 :::
 
 
@@ -265,7 +273,8 @@ An indicator value of 1 signifies that the bilberry cover is at least as extensi
 Values decreasing towards zero reflect a deteriorating condition towards complete lack of bilberry plants. 
 
 4. **Results and development needs**:
-For the current reporting period (2020-2024) the national indicator value is 0.88, with somewhat lower value for region West (0.76).
+For the current reporting period (2020-2024) the national indicator value is 0.77.
+Regions West has the highest value (0.99), and region North has the lowest value (0.55).
 The indicator values increase over time nationally and for all regions, except for a low decline (from a high value) in region South since the previous period.
 There are no specific development needs for the indicator measure.
 However more thorough analyses and review of the assessment of reference values and the scaling function is needed. 
@@ -289,7 +298,7 @@ Indikatoren bør ikke brukes på en finere geografisk skala enn den som gjelder 
 3. **Tolkning**: Indikatorverdi 1 betyr at blåbærdekningen er minst like stor som forventet i referansetilstanden.
 En nedgang i verdier mot 0 innebærer en forringelse av økosystemtilstanden, mot fullstendig mangel på blåbærplanter.
 
-4. **Resultater og utviklingsbehov**: For inneværende rapporteringsperiode (2020-2024) er indikatorverdien for hele landet 0.88, med en noe lavere verdi for region Vest (0.76). 
+4. **Resultater og utviklingsbehov**: For inneværende rapporteringsperiode (2020-2024) er indikatorverdien for hele landet 0,77. Region Vest har den høyeste verdien (0,99) og region Nord har den laveste verdien (0,55). 
 Indikatorverdien har økt for hele landet og de fleste regionene, med unntak av en svak nedgang (fra høy verdi) i region Sør siden forrige periode.
 Det er ingen spesielle utviklingsbehov for selve indikatormålingen.
 Men mer grundige analyser, vurderinger og en revisjon av referanseverdier og skaleringsfunksjonen burde vært gjennomført.
@@ -641,7 +650,7 @@ County or sub-county reference levels are listed in @tbl-blaa-reference-values.
 _X~0~_ is 0% for all units; _X~100~_ is the bilberry cover by area at best condition for each county or sub-county accounting unit.
 
 ```{r blaa-reference-values}
-#| echo: false
+#| echo: true
 #| code-summary: "Reference values by county or sub-county"
 
 # X100 reference values (% bilberry cover by area)
@@ -755,6 +764,27 @@ ggsave(
 )
 
 blaa_norm_plot
+```
+
+```{r genericPlot}
+#| include: false
+#| eval: false
+norm_plot_data2 <- county_draws_scaled |>
+  dplyr::slice_sample(n = 1000) 
+
+blaa_norm_plot2 <- ec_norm_plot(norm_plot_data2$non_scaled_value, norm_plot_data2$scaled_value) +
+  ggplot2::labs(
+    x = "Blåbærdekning (andel)",
+    y = "Indikatorverdi"
+  ) +
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 9))
+blaa_norm_plot2$layers[[1]]$aes_params$size <- 3
+
+ggsave(
+  filename = here::here("img/blaa_norm_plot2.png"),
+  plot     = blaa_norm_plot2,
+  scale    = 1.5
+)
 ```
 
 The scaled draws are passed to `ecTools::ec_upscale()`, which propagates uncertainty through the spatial hierarchy.
@@ -1259,7 +1289,7 @@ write.csv(
 
 ## 12. Author contributions
 
-<!-- Fill in CReDIT and MeRIT statments to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structur below, and just delete the rows you dont use.  -->
+<!-- Fill in CReDIT and MeRIT statements to clarify the contributions from individual authors. For MeRIT, see https://www.nature.com/articles/s41467-023-37039-1. For CRedit, see https://credit.niso.org/. You can start with the template structure below, and just delete the rows you dont use.  -->
 
 **CRediT statement**
 
@@ -1273,30 +1303,7 @@ write.csv(
 * Writing – review & editing: [All]
 
 
-**MeRIT attribution**
 
-This part supplements the CRediT statement with more granularity for method section.
-
-**Study design**
-The study was designed by [AB, CD].
-
-**Data collection / fieldwork**
-Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
-
-**Laboratory procedures**
-DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
-
-**Data processing**
-Raw data were curated and cleaned by [EF]. Code for preprocessing was written by [KL].
-
-**Statistical analysis**
-All analyses were conducted by [CD] using [software], with verification by [AB].
-
-**Visualization**
-Figures were produced by [KL], with input from [CD].
-
-**Reproducibility**
-All code was reviewed and validated by [AB, CD].
 
 
 
