@@ -22,8 +22,8 @@ verbatimEcosystem: Skog
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
-Version: "1.0.0" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
-VersionComment: Initial version # Describe briefly how this version differs from earlier versions 
+Version: "1.1.0" # Beta-versions are numbers incrementally with values below 0. Operational versions can be given the version numbers above 0. Use this terms similar as for software versioning,
+VersionComment: Added unscaled values 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_DWTO_001
 # Leave the url as is, but replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: Yes
@@ -157,6 +157,7 @@ status_badge(as.character(st))
 
 ```{r versionBadge}
 #| echo: false
+#| cache: false
 version_badge(my_version_number = as.character(version[[1]]))
 ```
 
@@ -228,8 +229,9 @@ meta |>
 
 <!--# Update this logg with short messages for each update -->
 - 12. May 2026 - Original PR
-- 18 July 2026 - Accepted
-- 13 August 2026 - Minor update to metadata
+- 18. July 2026 - Accepted
+- 13. August 2026 - Minor update to metadata
+- 26. August 2026 - Added unscaled values
 :::
 
 
@@ -927,7 +929,7 @@ if (
 } else {
   dwto_mc_national <- ecTools::ec_upscale(
     data        = dwto_mc_regional_for_national,
-    variable    = sampled_mean,
+    variable    = sampled_value,
     weight      = region_area,
     start_units = region_code,
     end_units   = nation,
@@ -943,8 +945,8 @@ if (
 #| code-summary: "Combine regional and national MC draws; build summary tables"
 
 dwto_mc_combined <- dplyr::bind_rows(
-  dwto_mc_regional |> dplyr::select(period, region = region_code, sampled_mean),
-  dwto_mc_national |> dplyr::select(period, region = nation, sampled_mean)
+  dwto_mc_regional |> dplyr::select(period, region = region_code, sampled_value),
+  dwto_mc_national |> dplyr::select(period, region = nation, sampled_value)
 )
 
 county_scaled_all_periods <- dwto_results_county_all_periods |>
@@ -956,22 +958,22 @@ county_scaled_all_periods <- dwto_results_county_all_periods |>
 
 region_scaled_agg_all_periods <- dwto_mc_regional |>
   dplyr::group_by(period, region_code) |>
-  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::summarise(scaled_value = median(sampled_value), .groups = "drop") |>
   dplyr::mutate(region_name = assign_region_name(region_code))
 
 national_scaled_agg_all_periods <- dwto_mc_national |>
   dplyr::group_by(period) |>
-  dplyr::summarise(scaled_value = median(sampled_mean), .groups = "drop") |>
+  dplyr::summarise(scaled_value = median(sampled_value), .groups = "drop") |>
   dplyr::mutate(region = "National")
 
 region_scaled_agg_with_uncertainty <- dwto_mc_regional |>
   dplyr::group_by(period, region_code) |>
   dplyr::summarise(
-    median = median(sampled_mean),
-    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
-    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
-    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
-    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    median = median(sampled_value),
+    p_025  = as.numeric(quantile(sampled_value, 0.025)),
+    p_25   = as.numeric(quantile(sampled_value, 0.25)),
+    p_75   = as.numeric(quantile(sampled_value, 0.75)),
+    p_975  = as.numeric(quantile(sampled_value, 0.975)),
     .groups = "drop"
   ) |>
   dplyr::mutate(region_name = assign_region_name(region_code)) |>
@@ -983,11 +985,11 @@ region_scaled_agg_with_uncertainty <- dwto_mc_regional |>
 national_scaled_agg_with_uncertainty <- dwto_mc_national |>
   dplyr::group_by(period) |>
   dplyr::summarise(
-    median = median(sampled_mean),
-    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
-    p_25   = as.numeric(quantile(sampled_mean, 0.25)),
-    p_75   = as.numeric(quantile(sampled_mean, 0.75)),
-    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    median = median(sampled_value),
+    p_025  = as.numeric(quantile(sampled_value, 0.025)),
+    p_25   = as.numeric(quantile(sampled_value, 0.25)),
+    p_75   = as.numeric(quantile(sampled_value, 0.75)),
+    p_975  = as.numeric(quantile(sampled_value, 0.975)),
     .groups = "drop"
   ) |>
   dplyr::mutate(region = "National") |>
@@ -1152,9 +1154,9 @@ dwto_plot_data <- dwto_mc_combined |>
   ) |>
   dplyr::group_by(period, region_name, series_type) |>
   dplyr::summarise(
-    median = median(sampled_mean),
-    p_025  = as.numeric(quantile(sampled_mean, 0.025)),
-    p_975  = as.numeric(quantile(sampled_mean, 0.975)),
+    median = median(sampled_value),
+    p_025  = as.numeric(quantile(sampled_value, 0.025)),
+    p_975  = as.numeric(quantile(sampled_value, 0.975)),
     .groups = "drop"
   ) |>
   dplyr::mutate(region_name = factor(region_name, levels = dwto_region_levels))
@@ -1436,28 +1438,29 @@ national_nonscaled_with_uncertainty |>
 
 ## 11. Export file
 
-Regional and national Monte Carlo draws are exported in one table (`dwto_mc_combined`: `period`, `region`, `sampled_mean`; `region` contains the five NI region codes and `"National"`).
+Regional and national Monte Carlo draws are exported in one table (`dwto_mc_combined`: `period`, `region`, `sampled_value`; `region` contains the five NI region codes and `"National"`).
 
-Non-scaled values at sub-county, regional, and national level for all reporting periods are exported as `results_NO_DWTO_001_nonscaled.csv` (`period`, `level`, `unit_name`, `region_name`, `region_code`, `fylke_name`, `county_part`, `non_scaled_m3_ha`, `ci_low`, `p_25`, `p_75`, `ci_high`, `total_area`, `n_plots`).
+Non-scaled values at sub-county, regional, and national level for all reporting periods are exported as `results_NO_DWTO_001_v1.1.0_nonscaled.csv` (`period`, `level`, `unit_name`, `region_name`, `region_code`, `fylke_name`, `county_part`, `non_scaled_m3_ha`, `ci_low`, `p_25`, `p_75`, `ci_high`, `total_area`, `n_plots`).
 The point estimate is the direct area-weighted mean; intervals come from 1000 bootstrap draws within each unit.
 
 ```{r export}
-#| eval: false
+#| eval: true
 #| code-summary: "Export regional and national MC-propagated indicator draws"
 
 write.csv(
   dwto_mc_combined,
-  here::here("data/results_NO_DWTO_001.csv"),
+  here::here("data/results_NO_DWTO_001_v1.1.0.csv"),
   row.names = FALSE
 )
 ```
 
 ```{r export-nonscaled}
+#| eval: true
 #| code-summary: "Export non-scaled values at all levels and reporting periods"
 
 write.csv(
   dwto_nonscaled_all_levels,
-  here::here("data/results_NO_DWTO_001_nonscaled.csv"),
+  here::here("data/results_NO_DWTO_001_v1.1.0_nonscaled.csv"),
   row.names = FALSE
 )
 ```
