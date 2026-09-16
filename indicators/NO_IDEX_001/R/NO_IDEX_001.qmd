@@ -19,8 +19,8 @@ Ecosystem:
 yearAdded: 2026
 yearLastUpdate: 2026
 status: complete
-Version: "1.0.1"
-VersionComment: Equal-weight composite index from published indicator MC distributions with visualizations
+Version: "1.0.0"
+VersionComment: Phase 1 equal-weight composite index from published indicator MC distributions
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_IDEX_001
 Normalised: NA
 SpatialAggregationPathway: Resample - Aggregate (equal-weight mean) - Summarise
@@ -134,7 +134,6 @@ status_badge(as.character(st))
 
 ```{r versionBadge}
 #| echo: false
-#| cache: false
 version_badge(my_version_number = as.character(version[[1]]))
 ```
 
@@ -170,17 +169,13 @@ license_badge()
 - 1 July 2026 - First draft of calculation
 - 14 August 2026 - Renamed to NO_IDEX_001, update indicator list, imputation of missing reporting years, direct national aggregation, and update figures
 - 31 August 2026 - Finalize results and figures for forest and mountain index
-- 9 September 2026 - Update Norwegian indicator names, forest B3 display order, and Norwegian figure ECT legend
-- 9 September 2026 - Add Norwegian national 2024 condition-scale figures for forest and mountain
-- 10 September 2026 - Move mountain Warming impact on vegetation (NO_FUHR_002) from B1 to A1
-- 15 September 2026 - Three-class unlabelled condition-scale bars on 2024 national figures
 :::
 
 <hr />
 
 ## 1. Aim
 
-NO_IDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices. Version 1.0.1 contains indices for **forest** and **mountain** ecosystems, for 2019 and 2024, calculated separately by region, for ECT (Ecosystem Condition Typology) classes, and for Norway.
+NO_IDEX_001 combines published ecRxiv indicator uncertainty distributions into composite indices. Version 1.0.0 contains indices for **forest** and **mountain** ecosystems, for 2019 and 2024, calculated separately by region, for ECT (Ecosystem Condition Typology) classes, and for Norway.
 Values near 1 indicate better ecological condition relative to reference; values toward 0 indicate deterioration.
 
 ## 2. Datasets {#sec-datasets}
@@ -407,7 +402,7 @@ if (sum(registry_mountain$match_status == "matched") >= 1) {
 ## 4. Results
 
 Forest and mountain indices are reported separately below.
-Each subsection gives a full summary table (all indicators, Ecosystem Condition Typology (ECT) classes, and index totals for every area and reporting year) followed by figures.
+Each subsection gives a full summary table (all indicators, ECT classes, and index totals for every area and reporting year) followed by figures.
 
 ### 4.1 Forest {#sec-results-forest}
 
@@ -511,14 +506,6 @@ save_index_detailed_figures(
   height_regional = 8,
   height_national = 5.5
 )
-# Extra NB national figures with condition-scale colour band (2024 only)
-save_index_condition_figures(
-  forest_index,
-  mountain_index,
-  registry_forest,
-  registry_mountain,
-  year = 2024L
-)
 ```
 
 ## 5. Export file {#sec-export}
@@ -529,12 +516,12 @@ The exported files contain the full MC distributions for every level (`"ECT"`, `
 #| cache: false
 export_index_results(
   forest_index$distributions,
-  here("data/results_NO_IDEX_001_forest_v1.0.1.csv")
+  here("data/results_NO_IDEX_001_forest_v1.0.0.csv")
 )
 
 export_index_results(
   mountain_index$distributions,
-  here("data/results_NO_IDEX_001_mountain_v1.0.1.csv")
+  here("data/results_NO_IDEX_001_mountain_v1.0.0.csv")
 )
 ```
 
