@@ -399,8 +399,15 @@ The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and poi
 #Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
 ano_species <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb", layer="ANO_Art", quiet = T)
 ano_geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb", layer="ANO_SurveyPoint", quiet = T)
-#head(ANO.sp)
-#head(ANO.geo)
+
+#write_rds(ano_species, file = paste0(here(), "/data/cache/ano_species.RDS"))
+#write_rds(ano_geo, file = paste0(here(), "/data/cache/ano_geo.RDS"))
+
+ano_species <- read_rds(file = paste0(here(), "/data/cache/ano_species.RDS"))
+ano_geo <- read_rds(file = paste0(here(), "/data/cache/ano_geo.RDS"))
+
+#head(ano_species)
+#head(ano_geo)
 
 ```
 
@@ -410,18 +417,19 @@ ano_geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturoverv
 # download WFO plant list from zenodo
 #download_zenodo("https://doi.org/10.5281/zenodo.20782718", files = "_DwC_backbone_R.zip", path = "/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/ecRxiv_veg_indicators/data")
 
-wfo_backbone <- read_delim("C:/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/ecRxiv_veg_indicators/data/_DwC_backbone_R/classification.csv", delim = "\t")
+wfo_backbone <- read_rds("P:/41201785_okologisk_tilstand_2022_2023/data/WFO_backbone/wfo_backbone.RDS")
 ```
 
   ### 7.3. Dataset C
 Import Reference data from NiN:
 ```{r}
-load("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/reference from NiN/Eco_State.RData")
+#ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
+load(paste0(here(), "data/NiN/Eco_State.RData"))
  # str(Eco_State)
 
 # for GRUK
-natopen_NiN_ref <- read_rds("C:/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/ecRxiv_veg_indicators/data/NiN/natopen_NiN_ref.RDS")
-natopen_NiN_species <- read_rds("C:/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/ecRxiv_veg_indicators/data/NiN/natopen_NiN_ref_spInfo.RDS")
+natopen_NiN_ref <- read_rds(paste0(here(), "/data/NiN/natopen_NiN_ref.RDS"))
+natopen_NiN_species <- read_rds(paste0(here(), "/data/NiN/natopen_NiN_ref_spInfo.RDS"))
 
 ```
 
@@ -441,7 +449,8 @@ For the purpose of this project, these steps are simplified to maximum expected 
   ### 7.4. Dataset D
 Import plant indicator values from Tyler et al. (2021):
 ```{r}
-ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
+#ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
+ind_tyler <- readRDS(paste0(here(), "/data/indicators/ind.Tyler.RDS"))
 ```
 
 The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for mowing and grazing as this is thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
