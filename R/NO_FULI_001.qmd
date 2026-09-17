@@ -85,18 +85,22 @@ github:
   ```{r setup}
 #| include: false
 #| cache: false
-library(knitr)
 library(tidyverse)
-library(kableExtra)
-library(here)
-library(anybadger)
-library(yaml)
-library(tibble)
-library(conflicted)
+library(pwr)
+library(lme4)
+library(simr)
+library(readxl)
+library(formattable)
 library(sf)
+library(tmap)
+library(WorldFlora)
+library(zen4R)
+library(tidylog)
+library(rgbif)
+library(here)
 library(ecTools)
 library(glmmTMB)
-library(MASS)
+library(conflicted)
 # weird workarounds for cache issues
 conflicts_prefer(dplyr::filter)
 conflicts_prefer(dplyr::lag)
@@ -372,29 +376,10 @@ Ullerud HA, Bryn A, Halvorsen R, Hemsing LØ. Consistency in land-cover mapping:
   Import ANO testing data:
   First, download from  Miljødirektoratet (downloaded spring 2026).
 ```{r, eval = F, echo = F}
-# load packages
-library(tidyverse)
-library(pwr)
-library(lme4)
-library(simr)
-library(readxl)
-library(formattable)
-library(sf)
-library(tmap)
-library(WorldFlora)
-library(zen4R)
-library(tidylog)
-library(rgbif)
-library(here)
-library(ecTools)
-library(glmmTMB)
-
-
-
 # download 
-url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
-download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
-unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
+#url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
+#download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
+#unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
 ```
 
 ...then upload from local storage
@@ -468,6 +453,12 @@ GRUK_ruter <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK/GRU
 GRUK_sirkler <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK/GRUK_alle_artsdata_2020-24.xlsx", sheet="Sirkler")
 GRUK_polygoner <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK/GRUK_alle_artsdata_2020-24.xlsx", sheet="Polygoner")
 
+#GRUK_species <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Arter i ruter"))
+#GRUK_ruter <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Ruter"))
+#GRUK_sirkler <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Sirkler"))
+#GRUK_polygoner <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Polygoner"))
+
+
 ```
 
   ### 7.6 Dataset F
@@ -490,6 +481,9 @@ GRUK_polygoner <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK
 
 ASO_species <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
 ASO_points <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
+
+#ASO_species <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
+#ASO_points <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
 ```
 
 
@@ -2712,11 +2706,10 @@ For scaling the data against the reference we use the normalisation function fro
 #| warning: false
 
 #### 1. calculating scaled and non-truncated values for the indicators based on the datasets ####
-combined_species <- combined_species |> filter(!is.na(Light))
-combined_species <- combined_species |> filter(!is.na(Moisture), hovedtype_rute %in% ref_grunn)
+ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
+combined_species <- combined_species |> filter(!is.na(Light), hovedtype_rute %in% ref_grunn)
 lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Light1", "Light2"))
 
-ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
 
 for (i in seq_len(nrow(combined_lowlands))) {
   tryCatch({
