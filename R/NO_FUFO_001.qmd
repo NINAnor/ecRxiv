@@ -1986,8 +1986,9 @@ natop_nin_sp_ind <- natop_nin_species_clean |>
   left_join(tyler_indicators,
             by = join_by(species)) |> 
   tibble() |>
-  filter(grepl("T2-C-7", nin_id) | grepl("T2-C-8", nin_id)) |> 
-  mutate(nin_id = str_remove(nin_id, "_BN")) |> 
+  filter(grepl("T2-C-7", nin_id) | grepl("T2-C-8", nin_id) | grepl("T8", nin_id) | grepl("T11", nin_id) | grepl("T12", nin_id) | grepl("T13", nin_id) | grepl("T15", nin_id) | grepl("T16", nin_id) | grepl("T18", nin_id) | grepl("T21", nin_id) | grepl("T24", nin_id) | grepl("T29", nin_id)) |> 
+  mutate(nin_id = sub("_.*", "", nin_id),
+         nin_id = str_remove(nin_id, "-Bratli21")) |> 
       group_by(species, nin_id, Grazing_mowing) |> 
   summarise(cover = max(cover),           # summing cover of species which have ended up appearing several times per nature type
     .groups = "drop"
@@ -2564,7 +2565,10 @@ lowland_ref_cov_val_list <- map(indicators, function(ind) {
 # Combine all indicators into one table
 lowland_ref_cov_val <- bind_rows(lowland_ref_cov_val_list)
 
-lowland_ref_cov_val <- lowland_ref_cov_val |> distinct()
+lowland_ref_cov_val <- lowland_ref_cov_val |> 
+  distinct() |> 
+  filter(!is.na(Rv)) |> 
+  mutate(grunn = str_replace_all(grunn, "--", "-"))
 
 summary(lowland_ref_cov_val)
 
