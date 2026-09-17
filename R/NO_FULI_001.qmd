@@ -2790,8 +2790,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
 
 
 combined_lowlands <- combined_lowlands |>
-  dplyr::mutate(Light  = Light1,
-                Light_product = Light1 * Light2)          # only interested in one side of the distribution
+  dplyr::mutate(Light  = Light1)          # only interested in one side of the distribution
 
 
 
@@ -2865,21 +2864,8 @@ Light_no <- glmmTMB(
   family = ordbeta
 )
 
-Light1_no <- glmmTMB(
-  Light1 ~ 1 + (1|dataset/nest_1),
-  data = combined_lowlands |> filter(!is.na(Light1)),
-  family = ordbeta
-)
-
-Light2_no <- glmmTMB(
-  Light2 ~ 1 + (1|dataset/nest_1),
-  data = combined_lowlands |> filter(!is.na(Light2)),
-  family = ordbeta
-)
 
 summary(Light_no)
-summary(Light1_no)
-summary(Light2_no)
 
 # regions
 Light_re <- glmmTMB(
@@ -2901,8 +2887,6 @@ Light2_re <- glmmTMB(
 )
 
 summary(Light_re)
-summary(Light1_re)
-summary(Light2_re)
 ```
 
 
@@ -2958,6 +2942,15 @@ NO_FULI_001_table <- tibble(
 #  )
 )
 NO_FULI_001_table
+
+#write.table(
+#    NO_FULI_001_table,
+#    file = paste0(here(), "/data/NO_FULI_001_table.txt"),
+#    sep = "\t",
+#    row.names = FALSE,
+#    quote = FALSE)
+
+
 ```
 
 To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
