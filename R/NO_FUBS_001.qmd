@@ -411,7 +411,7 @@ wfo_backbone <- read_rds("P:/41201785_okologisk_tilstand_2022_2023/data/WFO_back
 Import Reference data from NiN:
 ```{r}
 #ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
-load(paste0(here(), "data/NiN/Eco_State.RData"))
+load(paste0(here(), "/data/NiN/Eco_State.RData"))
  # str(Eco_State)
 
 # for GRUK
@@ -436,8 +436,8 @@ For the purpose of this project, these steps are simplified to maximum expected 
   ### 7.4. Dataset D
 Import plant indicator values from Tyler et al. (2021):
 ```{r}
-ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
-#ind_tyler <- readRDS(paste0(here(), "/data/indicators/ind.Tyler.RDS"))
+#ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
+ind_tyler <- readRDS(paste0(here(), "/data/indicators/ind.Tyler.RDS"))
 ```
 
 The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for mowing and grazing as this is thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
@@ -455,6 +455,7 @@ GRUK_polygoner <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK
 #GRUK_ruter <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Ruter"))
 #GRUK_sirkler <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Sirkler"))
 #GRUK_polygoner <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Polygoner"))
+
 
 ```
 
@@ -477,7 +478,7 @@ GRUK_polygoner <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK
 # no abundance data. Falling back onto the available abundance data from 2022 only
 
 ASO_species <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
-ASO_points <- read_excel( "P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
+ASO_points <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
 
 #ASO_species <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
 #ASO_points <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
@@ -1347,8 +1348,10 @@ GRUK_variables <- GRUK_variables |>
 names(GRUK_species_ind)
 names(GRUK_variables)
 
-GRUK_all <- GRUK_species_ind |> 
-  left_join(GRUK_variables |>  select(-polygon_id, -rute_id), by = join_by(parent_global_id == global_id))
+GRUK_species_ind <- GRUK_species_ind |> 
+  left_join(GRUK_variables |>  select(global_id, kartleggingsenhet_1_5000), by = join_by(parent_global_id == global_id)) |> 
+  mutate(hovedtype_rute = str_sub(kartleggingsenhet_1_5000, 1, 2)) |> 
+  filter(!is.na(hovedtype_rute))
 
 
 
@@ -1363,7 +1366,9 @@ GRUK_all <- GRUK_all |>
     as.numeric
   )) |> 
 # trimming away the points without information on NiN, species or cover  
-    filter(!is.na(species), !is.na(art_dekning))
+    filter(!is.na(species), !is.na(art_dekning)) |> 
+  select(-c(species, art_dekning, Moisture:Light)) |> 
+  distinct()
 
 summary(GRUK_all)
 
@@ -1466,7 +1471,7 @@ ASO_species <- ASO_species |>
   )
 
 ASO_species <- ASO_species  |>  
-  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern),
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern),
          scientific_name = str_replace(
       scientific_name,
       "^Hiero\\S*",
@@ -1587,9 +1592,9 @@ ASO_species_ind <- ASO_species_clean |>
   select(species = accepted_name, art_dekning, ParentGlobalID) |> 
   filter(!is.na(art_dekning)) |> 
   left_join(tyler_indicators) |>
-  left_join(ASO_points |> select(global_id, omradenummer_flatenummer), by = join_by(ParentGlobalID == global_id))
-  tibble()
-
+  left_join(ASO_points |> select(global_id, omradenummer_flatenummer, nin_grunntype), by = join_by(ParentGlobalID == global_id)) |> 
+  mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |> 
+  filter(!is.na(hovedtype_rute))
 
 
 # checking which species didn't find a match
@@ -1600,19 +1605,21 @@ unique(ASO_species_ind[is.na(ASO_species_ind$Grazing_mowing),'species'])
 ## adding information on ecosystem and condition variables to species data
 ASO_all <- ASO_species_ind |> 
   left_join(ASO_points |>  
-              select(global_id, eng_id, aso_id, nin_grunntype, annen_dominerende_kartleggingsenhet), 
-            by = join_by(ParentGlobalID == global_id))
+              select(global_id, eng_id, aso_id, annen_dominerende_kartleggingsenhet), 
+            by = join_by(ParentGlobalID == global_id)) |> 
+  select(-c(species, art_dekning, Moisture:Light)) |> 
+  distinct()
 
 
 
 # fixing variable types
 ASO_all <- ASO_all |> 
   mutate(across(
-    c(species, nin_grunntype, omradenummer_flatenummer, eng_id, aso_id),
+    c(nin_grunntype, omradenummer_flatenummer, eng_id, aso_id),
     as.factor
-  )) |> 
+  )) #|> 
   # trimming away the points without information on NiN, species or cover  
-  filter(!is.na(species), !is.na(art_dekning), !is.na(nin_grunntype))
+ # filter(!is.na(species), !is.na(art_dekning), !is.na(nin_grunntype))
 
 summary(ASO_all)
 
@@ -1784,15 +1791,11 @@ ano_geo <- ano_geo |>
     # recode to hovedøkosystem
     hovedoekosystem_rute = recode(
       hovedtype_rute,
-      "T4"  = "Forest", "T30" = "Forest",
-      "T3"  = "Mountain", "T7"  = "Mountain", "T14" = "Mountain", "T22" = "Mountain",
-      "V1"  = "Wetland", "V2"  = "Wetland", "V3"  = "Wetland", "V4"  = "Wetland", "V5"  = "Wetland", "V6"  = "Wetland", 
-      "V7"  = "Wetland", "V8"  = "Wetland",
       "T31" = "Seminat", "T32" = "Seminat", "T33" = "Seminat", "T34" = "Seminat", "V9"  = "Seminat", "V10" = "Seminat",
       "T2"  = "Natopen", "T8"  = "Natopen", "T11" = "Natopen", "T12" = "Natopen", "T13" = "Natopen", "T15" = "Natopen", 
       "T16" = "Natopen", "T18" = "Natopen", "T21" = "Natopen", "T24" = "Natopen", "T29" = "Natopen",
-      "T41" = "Seminat", # DOUBLE CHECK THIS!
-      "T45" = "Seminat"  # DOUBLE CHECK THIS!
+      "T41" = "Seminat", 
+      "T45" = "Seminat"
     )
   )
 
@@ -1843,8 +1846,8 @@ ano_geo <- ano_geo |>
   )
 
 ## 4. Filter lowland plots points
-ano_all <- ano_geo# |>
-  #filter(hovedoekosystem_rute %in% c("Natopen", "Seminat", "T45", "T41"))
+ano_all <- ano_geo |>
+  filter(hovedoekosystem_rute %in% c("Natopen", "Seminat"))
 
 
 
@@ -1879,7 +1882,6 @@ unique(natopen_NiN_ref$Phylum)
 
 
 
-natopen_NiN_ref$species
 # only genus and species name
 natopen_NiN_ref$sp.orig <- natopen_NiN_ref$species
 natopen_NiN_ref$species <- word(natopen_NiN_ref$species, 1,2)
@@ -2217,8 +2219,6 @@ nin_sp_ind <- nin_species_clean |>
 nin_sp_ind |> filter(is.na(species))  
 nin_sp_ind |> filter(is.na(Grazing_mowing)) |>  distinct(species)
 
-nin_sp_ind
-
 
 
 # merge nin datasets
@@ -2439,25 +2439,33 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 # every NiN-type is represented by one 'generalisert artsliste'
 # some NiN-types are represented by two such species lists
 # in some cases two NiN-types are represented by the same species list
+one_sided_indicators <- c("Nitrogen", "Light", "Phosphorus", "Soil_disturbance", "Soil_reaction_pH")
+two_sided_indicators <- c("Moisture", "Soil_disturbance", "Grazing_mowing")
 
-# NiN-types where each type is represented by one species list (including when one species list represents two NiN-types), i.e. excluding types with a- and b-suffix
 build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
+  # Choose quantiles based on indicator type
+  if (ind_name %in% one_sided_indicators) {
+    # one-sided: 0.05 / 0.95 around median
+    myQuantiles <- c(0.05, 0.5, 0.95)
+  } else {
+    # two-sided: 0.025 / 0.975 around median
+    myQuantiles <- c(0.025, 0.5, 0.975)
+  }
+  
   # Matrix 
-  ind_mat  <- ref_cov[[ind_name]]
+  ind_mat   <- ref_cov[[ind_name]]
   all_names <- colnames(ind_mat)
   
   # Strip a/b/c/d suffixes from column names to get base NiN IDs
   base_names <- all_names %>%
     str_remove("[abcd]$")
   
-  # Map: each column index -> base NiN ID
   nin_map <- tibble(
     col_index = seq_along(all_names),
     col_name  = all_names,
     base_nin  = base_names
   )
   
-  # Count how many columns per base NiN
   nin_counts <- nin_map %>%
     count(base_nin, name = "n_cols")
   
@@ -2469,47 +2477,26 @@ build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
     filter(n_cols > 1) %>%
     pull(base_nin)
   
-  # Quantiles for single NiN types
-  tab_single <- map_dfr(nin_single, function(base_id) {
-    idx <- nin_map %>%
-      filter(base_nin == base_id) %>%
-      pull(col_index)
-    
+  # Helper to compute quantiles for one base NiN
+  calc_q_for_nin <- function(base_id) {
+    idx  <- nin_map %>% filter(base_nin == base_id) %>% pull(col_index)
     vals <- as.matrix(ind_mat[, idx])
     q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
     
     tibble(
       NiN      = base_id,
-      Q025     = q[1],
-      Q050     = q[2],
-      Q975     = q[3],
-      Q025_dup = q[1],
-      Q050_dup = q[2],
-      Q975_dup = q[3]
+      Q_low    = q[1],
+      Q_med    = q[2],
+      Q_high   = q[3],
+      Q_low_dup  = q[1],
+      Q_med_dup  = q[2],
+      Q_high_dup = q[3]
     )
-  })
+  }
   
-  # Quantiles for multi NiN types
-  tab_multi <- map_dfr(nin_multi, function(base_id) {
-    idx <- nin_map %>%
-      filter(base_nin == base_id) %>%
-      pull(col_index)
-    
-    vals <- as.matrix(ind_mat[, idx])
-    q    <- quantile(vals, probs = myQuantiles, na.rm = TRUE)
-    
-    tibble(
-      NiN      = base_id,
-      Q025     = q[1],
-      Q050     = q[2],
-      Q975     = q[3],
-      Q025_dup = q[1],
-      Q050_dup = q[2],
-      Q975_dup = q[3]
-    )
-  })
+  tab_single <- map_dfr(nin_single, calc_q_for_nin)
+  tab_multi  <- map_dfr(nin_multi,  calc_q_for_nin)
   
-  # Combine singles and multis
   tab <- bind_rows(tab_single, tab_multi)
   
   # Take first NiN type where multiple are listed
@@ -2521,26 +2508,25 @@ build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
       NiN
     ))
   
-  # Restructuring lower (q2.5) and higher (q97.5) limits
+  # Restructuring lower and higher limits
   y_low <- numeric(length = nrow(tab) * 2)
-  y_low[((1:nrow(tab)) * 2) - 1] <- tab$Q025
-  y_low[((1:nrow(tab)) * 2)     ] <- tab$Q975
+  y_low[((1:nrow(tab)) * 2) - 1] <- tab$Q_low
+  y_low[((1:nrow(tab)) * 2)     ] <- tab$Q_high
   
   y_ref <- numeric(length = nrow(tab) * 2)
-  y_ref[((1:nrow(tab)) * 2) - 1] <- tab$Q025_dup
-  y_ref[((1:nrow(tab)) * 2)     ] <- tab$Q975_dup
+  y_ref[((1:nrow(tab)) * 2) - 1] <- tab$Q_low_dup
+  y_ref[((1:nrow(tab)) * 2)     ] <- tab$Q_high_dup
   
   # Build indicator names
-  ind_base <- ind_name
-  ind_labels <- c(paste0(ind_base, "1"), paste0(ind_base, "2"))
+  ind_labels <- c(paste0(ind_name, "1"), paste0(ind_name, "2"))
   
   ind_ref <- data.frame(
     grunn  = rep(rep(tab$NiN, each = 2), indEll_n),
     county = rep("all", nrow(tab) * 2 * indEll_n),
     region = rep("all", nrow(tab) * 2 * indEll_n),
     Ind    = rep(ind_labels, nrow(tab) * indEll_n),
-    Rv     = c(rep(tab$Q050, each = 2),
-               rep(tab$Q050_dup, each = 2)),
+    Rv     = c(rep(tab$Q_med,     each = 2),
+               rep(tab$Q_med_dup, each = 2)),
     Gv     = c(y_low, y_ref),
     maxmin = rep(c(1, n_levels), nrow(tab) * indEll_n)
   )
@@ -2554,8 +2540,18 @@ build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
 }
 
 # loop over all indicators
-indicators <- c("Moisture", "Soil_reaction_pH", "Light", "Nitrogen", "Phosphorus", "Grazing_mowing", "Soil_disturbance")  
-levels_per_indicator <- c(Moisture = 12, Soil_reaction_pH = 8, Light = 7, Nitrogen = 9, Phosphorus = 5, Grazing_mowing = 8, Soil_disturbance = 9)
+indicators <- c("Moisture", "Soil_reaction_pH", "Light", "Nitrogen",
+                "Phosphorus", "Grazing_mowing", "Soil_disturbance")  
+
+levels_per_indicator <- c(
+  Moisture          = 12,
+  Soil_reaction_pH  = 8,
+  Light             = 7,
+  Nitrogen          = 9,
+  Phosphorus        = 5,
+  Grazing_mowing    = 8,
+  Soil_disturbance  = 9
+)
 
 lowland_ref_cov_val_list <- map(indicators, function(ind) {
   build_ref_for_indicator(
@@ -2589,8 +2585,8 @@ lowland_ref_cov_val |>
 ano_lowlands <- ano_all |>
   select(globalid, ano_flate_id, ano_punkt_id, ssb_id, aar, hovedoekosystem_250m2, hovedoekosystem_rute, hovedtype_rute, hovedtype_250m2, hovedtype_1m2, kartleggingsenhet_1m2, kartleggingsenhet_250m2) |> 
   mutate(
-    X = st_coordinates(ano_geo)[, 1],
-    Y = st_coordinates(ano_geo)[, 2],
+    X = st_coordinates(ano_all)[, 1],
+    Y = st_coordinates(ano_all)[, 2],
     kartleggingsenhet_1m2 = word(kartleggingsenhet_1m2, 1, 1)
   ) |>
   st_drop_geometry() |> 
@@ -2599,7 +2595,6 @@ ano_lowlands <- ano_all |>
     ANO_species_ind %>% mutate(parent_chr = as.character(parentglobalid)),
     by = c("globalid_chr" = "parent_chr")
   ) |> 
-  filter(hovedtype_rute %in% c("T32", "T34", "T45", "V10", "T41")) |> 
     rename(kartleggingsenhet = kartleggingsenhet_1m2,
            nest_1 = ano_flate_id) |> 
   mutate(scale = "1m2")
@@ -2609,7 +2604,7 @@ ano_lowlands <- ano_all |>
 gruk_lowlands <- GRUK_all |>
   rename(globalid = parent_global_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning, rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw, Moisture:Light)) |> 
+  select(-c(rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw)) |> 
   distinct() |> 
   rename(
     X = UTM33_E,
@@ -2631,13 +2626,13 @@ st_drop_geometry() |>
 ASO_lowlands <- ASO_all |>
   rename(globalid = ParentGlobalID) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning)) |> 
+  select(-geometry.x) |> 
   distinct() |> 
   st_as_sf(crs = "+proj=longlat +datum=WGS84 +ellps=WGS84") |>
   st_transform(crs = 25833) |> 
 mutate(
-  X = st_coordinates(st_sfc(geometry))[, 1],
-  Y = st_coordinates(st_sfc(geometry))[, 2]) |> 
+  X = st_coordinates(st_sfc(geometry.y))[, 1],
+  Y = st_coordinates(st_sfc(geometry.y))[, 2]) |> 
   st_drop_geometry() |> 
 semi_join(
     ASO_species_ind  |>  mutate(parent_chr = as.character(ParentGlobalID)) |>  st_drop_geometry(),
@@ -2665,7 +2660,10 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
   left = TRUE,
   join = st_nearest_feature
 ) |> 
-  st_drop_geometry()
+  st_drop_geometry() |> 
+  filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
+      "T2" , "T8" , "T11", "T12", "T13", "T15", 
+      "T16", "T18", "T21", "T24", "T29", "T41", "T45"))
 
 
 
@@ -2686,14 +2684,18 @@ ANO_species_ind <- ANO_species_ind |>
 
 combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m2)), 
                                GRUK_species_ind |> rename(parentglobalid = parent_global_id),
-                               ASO_species_ind |> rename(parentglobalid = ParentGlobalID                       ),
+                               ASO_species_ind |> rename(parentglobalid = ParentGlobalID),
                                .id = "dataset") |> 
   mutate(dataset = case_match(
     dataset, 
     "1" ~ "ANO",
     "2" ~ "GRUK",
     "3" ~ "ASO"
-  ))
+  )) |> 
+    filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
+      "T2" , "T8" , "T11", "T12", "T13", "T15", 
+      "T16", "T18", "T21", "T24", "T29", "T41", "T45"))
+
 ```
 
 Once test data and the scaling values from the reference data are in place, we can calculate CWMs of the selected indicator for the ANO community data and scale them against the scaling values from the reference distribution. Note that we scale each ANO plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. An ANO plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
