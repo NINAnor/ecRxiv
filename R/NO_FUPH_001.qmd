@@ -1194,6 +1194,15 @@ GRUK_species_ind <- GRUK_species_clean |>
   tibble()
 
 
+## adding information on ecosystem and condition variables to species data
+GRUK_species_ind <- GRUK_species_ind |> 
+  left_join(GRUK_variables |>  
+              select(global_id, rute_id_loknr, kartleggingsenhet_1_5000, geometry), 
+            by = join_by(parent_global_id == global_id)) |> 
+# trimming away the points without information on species or cover  
+    filter(!is.na(species), !is.na(art_dekning))
+
+
 summary(GRUK_species_ind)
 
 # checking which species didn't find a match
@@ -1299,9 +1308,6 @@ GRUK_polygoner <- st_as_sf(GRUK_polygoner, wkt = "WKT" ,remove=F, crs = 25833) |
   )
 
 
-
-
-
 tm_shape(GRUK_polygoner) +
   tm_graticules() +
   tm_polygons("polygon_id") +
@@ -1349,30 +1355,24 @@ GRUK_variables <- GRUK_variables |>
 names(GRUK_species_ind)
 names(GRUK_variables)
 
-GRUK_all <- GRUK_species_ind |> 
-  left_join(GRUK_variables |>  select(-polygon_id, -rute_id), by = join_by(parent_global_id == global_id))
-
-
-
 # fixing variable types
-GRUK_all <- GRUK_all |> 
+GRUK_variables <- GRUK_variables |> 
   mutate(across(
-    c(species, kartleggingsenhet_1_5000, lokalitetskvalitet, kommune, tilstand, naturmangfold, nin_kartleggingsenheter),
+    c( kartleggingsenhet_1_5000, lokalitetskvalitet, kommune, tilstand, naturmangfold, nin_kartleggingsenheter),
     as.factor
   ),
   across(
     c(areal_m2, dekning_nakent_berg, dekning_problemarter),
     as.numeric
   )) |> 
-# trimming away the points without information on NiN, species or cover  
-    filter(!is.na(species), !is.na(art_dekning))
+  filter(!is.na(kartleggingsenhet_1_5000))
 
-summary(GRUK_all)
+summary(GRUK_variables)
 
 
-#rm(GRUK_polygoner, GRUK_prepared, GRUK_prepared_wfo, GRUK_ruter, GRUK_sirkler, GRUK_sp_clean, GRUK_sp_matched, GRUK_species, GRUK_species_clean, GRUK_variables)
+#rm(GRUK_polygoner, GRUK_prepared, GRUK_prepared_wfo, GRUK_ruter, GRUK_sirkler, GRUK_sp_clean, GRUK_sp_matched, GRUK_species, GRUK_species_clean)
 
-#saveRDS(GRUK_all, paste0(here::here(),"/data/cache/GRUK_all.RDS"))
+#saveRDS(GRUK_variables, paste0(here::here(),"/data/cache/GRUK_variables.RDS"))
 #saveRDS(GRUK_species_ind, paste0(here::here(),"/data/cache/GRUK_species_ind.RDS"))
 
 
@@ -1468,7 +1468,7 @@ ASO_species <- ASO_species |>
   )
 
 ASO_species <- ASO_species  |>  
-  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern),
+  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern),
          scientific_name = str_replace(
       scientific_name,
       "^Hiero\\S*",
@@ -1600,15 +1600,15 @@ unique(ASO_species_ind[is.na(ASO_species_ind$Grazing_mowing),'species'])
 
 
 ## adding information on ecosystem and condition variables to species data
-ASO_all <- ASO_species_ind |> 
+ASO_species_ind <- ASO_species_ind |> 
   left_join(ASO_points |>  
               select(global_id, eng_id, aso_id, nin_grunntype, annen_dominerende_kartleggingsenhet), 
-            by = join_by(ParentGlobalID == global_id))
+            by = join_by(ParentGlobalID == global_id, geometry))
 
 
 
 # fixing variable types
-ASO_all <- ASO_all |> 
+ASO_points <- ASO_points |> 
   mutate(across(
     c(species, nin_grunntype, omradenummer_flatenummer, eng_id, aso_id),
     as.factor
@@ -1618,9 +1618,9 @@ ASO_all <- ASO_all |>
 
 summary(ASO_all)
 
- #rm(ASO_species, ASO_prepared, ASO_sp_matched, ASO_points, ASO_sp_clean, ASO_species_clean, ASO_species_prepared, ASO_prepared_wfo)
+ #rm(ASO_species, ASO_prepared, ASO_sp_matched, ASO_sp_clean, ASO_species_clean, ASO_species_prepared, ASO_prepared_wfo)
 
-#saveRDS(ASO_all, paste0(here::here(),"/data/cache/ASO_all.RDS"))
+#saveRDS(ASO_points, paste0(here::here(),"/data/cache/ASO_points.RDS"))
 #saveRDS(ASO_species_ind, paste0(here::here(),"/data/cache/ASO_species_ind.RDS"))
 
 
@@ -1793,8 +1793,8 @@ ano_geo <- ano_geo |>
       "T31" = "Seminat", "T32" = "Seminat", "T33" = "Seminat", "T34" = "Seminat", "V9"  = "Seminat", "V10" = "Seminat",
       "T2"  = "Natopen", "T8"  = "Natopen", "T11" = "Natopen", "T12" = "Natopen", "T13" = "Natopen", "T15" = "Natopen", 
       "T16" = "Natopen", "T18" = "Natopen", "T21" = "Natopen", "T24" = "Natopen", "T29" = "Natopen",
-      "T41" = "Seminat", # DOUBLE CHECK THIS!
-      "T45" = "Seminat"  # DOUBLE CHECK THIS!
+      "T41" = "Seminat",
+      "T45" = "Seminat" 
     )
   )
 
@@ -1844,22 +1844,18 @@ ano_geo <- ano_geo |>
       as.numeric()
   )
 
-## 4. Filter lowland plots points
-ano_all <- ano_geo# |>
-  #filter(hovedoekosystem_rute %in% c("Natopen", "Seminat", "T45", "T41"))
-
 
 
 ANO_species_ind <- ANO_species_ind |> 
-  left_join(ano_all |> select("globalid","ano_flate_id","ano_punkt_id","ssb_id","aar", "hovedtype_rute","kartleggingsenhet_1m2"), 
+  left_join(ano_geo |> select("globalid","ano_flate_id","ano_punkt_id","ssb_id","aar", "hovedtype_rute","kartleggingsenhet_1m2"), 
             by = join_by(parentglobalid == globalid)) |> 
   filter(!is.na(hovedtype_rute))
 
 
-#saveRDS(ano_all, paste0(here::here(),"/data/cache/ano_lowlands.RDS"))
+#saveRDS(ano_geo, paste0(here::here(),"/data/cache/ano_lowlands.RDS"))
 #saveRDS(ANO_species_ind, paste0(here::here(),"/data/cache/ANO_species_ind.RDS"))
 
-
+#rm(ano_prepared, ano_prepared_wfo, ano_sp_clean, ano_sp_matched, ano_species_clean, ano_species)
 ```
 
 ```{r dataHandling_NiN, warning = FALSE}
@@ -2276,8 +2272,8 @@ abun  <- abun_wide[, -1]  # drop 'sp' column; remaining columns are NiN types
 ind   <- ind_wide[, -1]   # drop 'sp'; remaining columns are indicators
 
 
-
-rm(wfo_backbone)
+#write_rds(nin_sp_ind, file = paste0(here(), "/data/cache/nin_sp_ind.RDS"))
+#rm(wfo_backbone, nin_prepared, nin_prepared_wfo, nin_sp_clean, nin_sp_matched, nin_species_clean)
 
 ```
 
@@ -2441,6 +2437,7 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 # every NiN-type is represented by one 'generalisert artsliste'
 # some NiN-types are represented by two such species lists
 # in some cases two NiN-types are represented by the same species list
+myQuantiles <- c(0.025, 0.5, 0.975)
 
 # NiN-types where each type is represented by one species list (including when one species list represents two NiN-types), i.e. excluding types with a- and b-suffix
 build_ref_for_indicator <- function(ref_cov, ind_name, n_levels, indEll_n = 2) {
@@ -2588,7 +2585,7 @@ lowland_ref_cov_val |>
 
 ```{r merging datasets}
 # ANO
-ano_lowlands <- ano_all |>
+ano_lowlands <- ano_geo |>
   select(globalid, ano_flate_id, ano_punkt_id, ssb_id, aar, hovedoekosystem_250m2, hovedoekosystem_rute, hovedtype_rute, hovedtype_250m2, hovedtype_1m2, kartleggingsenhet_1m2, kartleggingsenhet_250m2) |> 
   mutate(
     X = st_coordinates(ano_geo)[, 1],
@@ -2601,17 +2598,17 @@ ano_lowlands <- ano_all |>
     ANO_species_ind %>% mutate(parent_chr = as.character(parentglobalid)),
     by = c("globalid_chr" = "parent_chr")
   ) |> 
-  filter(hovedtype_rute %in% c("T32", "T34", "T45", "V10", "T41")) |> 
+  filter(hovedtype_rute %in% c("T32", "T34", "T45", "V10", "T41", "T45", "T2")) |> 
     rename(kartleggingsenhet = kartleggingsenhet_1m2,
            nest_1 = ano_flate_id) |> 
   mutate(scale = "1m2")
 
 
 # GRUK
-gruk_lowlands <- GRUK_all |>
-  rename(globalid = parent_global_id) |> 
+gruk_lowlands <- GRUK_variables |>
+  rename(globalid = global_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning, rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw, Moisture:Light)) |> 
+  select(-c(rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw)) |> 
   distinct() |> 
   rename(
     X = UTM33_E,
@@ -2630,10 +2627,9 @@ st_drop_geometry() |>
 
 # ASO
 
-ASO_lowlands <- ASO_all |>
-  rename(globalid = ParentGlobalID) |> 
+ASO_lowlands <- ASO_points |>
+  rename(globalid = global_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-c(species, art_dekning)) |> 
   distinct() |> 
   st_as_sf(crs = "+proj=longlat +datum=WGS84 +ellps=WGS84") |>
   st_transform(crs = 25833) |> 
@@ -2669,7 +2665,7 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
 ) |> 
   st_drop_geometry()
 
-
+#write_rds(combined_lowlands, file = paste0(here(), "/data/cache/combined_lowlands.RDS"))
 
 # combine species data
 
@@ -2679,6 +2675,8 @@ GRUK_species_ind <- GRUK_species_ind |>
 
 ASO_species_ind <- ASO_species_ind |> 
   filter(!is.na(species), !is.na(art_dekning)) |> 
+   st_as_sf(crs = "+proj=longlat +datum=WGS84 +ellps=WGS84") |>
+  st_transform(crs = 25833) |> 
   rename(nest_1 = omradenummer_flatenummer#,
          #nest_2 = eng_id
          )
@@ -2706,10 +2704,10 @@ For scaling the data against the reference we use the normalisation function fro
 #| warning: false
 
 #### 1. calculating scaled and non-truncated values for the indicators based on the datasets ####
+ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
 combined_species <- combined_species |> filter(!is.na(Soil_reaction_pH), hovedtype_rute %in% ref_grunn)
 lowland_ref_cov_val <- lowland_ref_cov_val |> filter(Ind %in% c("Soil_reaction_pH1", "Soil_reaction_pH2"))
 
-ref_grunn <- unique(sub("\\-.*", "", as.character(lowland_ref_cov_val$grunn)))
 
 for (i in seq_len(nrow(combined_lowlands))) {
   tryCatch({
@@ -2792,11 +2790,7 @@ for (i in seq_len(nrow(combined_lowlands))) {
 combined_lowlands <- combined_lowlands |>
   dplyr::mutate(
     Soil_reaction_pH  = Soil_reaction_pH1
-  ) |> 
-  mutate(Soil_reaction_pH  = Soil_reaction_pH1 * Soil_reaction_pH2,
-    Soil_reaction_pH1 = if_else(Soil_reaction_pH1 == 1, NA_real_, Soil_reaction_pH1),
-    Soil_reaction_pH2 = if_else(Soil_reaction_pH2 == 1, NA_real_, Soil_reaction_pH2)
-)
+  )
 
 
 
@@ -2869,21 +2863,8 @@ Soil_reaction_pH_no <- glmmTMB(
   family = ordbeta
 )
 
-Soil_reaction_pH1_no <- glmmTMB(
-  Soil_reaction_pH1 ~ 1 + (1|dataset/nest_1),
-  data = combined_lowlands |> filter(!is.na(Soil_reaction_pH1)),
-  family = ordbeta
-)
-
-Soil_reaction_pH2_no <- glmmTMB(
-  Soil_reaction_pH2 ~ 1 + (1|dataset/nest_1),
-  data = combined_lowlands |> filter(!is.na(Soil_reaction_pH2)),
-  family = ordbeta
-)
 
 summary(Soil_reaction_pH_no)
-summary(Soil_reaction_pH1_no)
-summary(Soil_reaction_pH2_no)
 
 # regions
 Soil_reaction_pH_re <- glmmTMB(
@@ -2892,21 +2873,9 @@ Soil_reaction_pH_re <- glmmTMB(
   family = ordbeta
 )
 
-Soil_reaction_pH1_re <- glmmTMB(
-  Soil_reaction_pH1 ~ 0 + region + (1|dataset/nest_1),
-  data = combined_lowlands[!is.na(combined_lowlands$Soil_reaction_pH1),],
-  family = ordbeta
-)
-
-Soil_reaction_pH2_re <- glmmTMB(
-  Soil_reaction_pH2 ~ 0 + region + (1|dataset/nest_1),
-  data = combined_lowlands[!is.na(combined_lowlands$Soil_reaction_pH2),],
-  family = ordbeta
-)
 
 summary(Soil_reaction_pH_re)
-summary(Soil_reaction_pH1_re)
-summary(Soil_reaction_pH2_re)
+
 ```
 
 
@@ -2943,22 +2912,6 @@ NO_FUPH_001_table <- tibble(
     plogis(
       summary(Soil_reaction_pH_re)$coef$cond[, 1] - 1.96 * summary(Soil_reaction_pH_re)$coef$cond[, 2]
     )
-  ),
-  upper_indicator_value = c(
-    plogis(summary(Soil_reaction_pH2_no)$coef$cond[, 1]),
-    plogis(summary(Soil_reaction_pH2_re)$coef$cond[, 1])
-  ),
-  n_upper_indicator_value = c(
-    summary(Soil_reaction_pH2_no)$nobs,
-    as.vector(table(Soil_reaction_pH2_re$frame$region))
-  ),
-  lower_indicator_value = c(
-    plogis(summary(Soil_reaction_pH1_no)$coef$cond[, 1]),
-    plogis(summary(Soil_reaction_pH1_re)$coef$cond[, 1])
-  ),
-  n_lower_indicator_value = c(
-    summary(Soil_reaction_pH1_no)$nobs,
-    as.vector(table(Soil_reaction_pH1_re$frame$region))
   )
 )
 NO_FUPH_001_table
