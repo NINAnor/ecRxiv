@@ -98,9 +98,14 @@ library(ecTools)
 library(glmmTMB)
 library(MASS)
 # weird workarounds for cache issues
-conflicts_prefer(dplyr::filter)
-conflicts_prefer(dplyr::lag)
-conflicts_prefer(dplyr::select)
+conflicts_prefer(tidylog::filter)
+conflicts_prefer(tidylog::select)
+conflicts_prefer(tidylog::mutate)
+conflicts_prefer(tidylog::rename)
+conflicts_prefer(tidylog::semi_join)
+conflicts_prefer(tidylog::left_join)
+conflicts_prefer(tidylog::full_join)
+conflicts_prefer(tidylog::distinct)
 pull<-dplyr::pull
 library(arrow)
 library(gt)
@@ -1353,18 +1358,15 @@ GRUK_species_ind <- GRUK_species_ind |>
 
 
 # fixing variable types
-GRUK_all <- GRUK_all |> 
+GRUK_all <- GRUK_variables |> 
   mutate(across(
-    c(species, kartleggingsenhet_1_5000, lokalitetskvalitet, kommune, tilstand, naturmangfold, nin_kartleggingsenheter),
+    c(kartleggingsenhet_1_5000, lokalitetskvalitet, kommune, tilstand, naturmangfold, nin_kartleggingsenheter),
     as.factor
   ),
   across(
     c(areal_m2, dekning_nakent_berg, dekning_problemarter),
     as.numeric
   )) |> 
-# trimming away the points without information on NiN, species or cover  
-    filter(!is.na(species), !is.na(art_dekning)) |> 
-  select(-c(species, art_dekning, Moisture:Light)) |> 
   distinct()
 
 summary(GRUK_all)
@@ -2602,7 +2604,7 @@ ano_lowlands <- ano_all |>
 
 # GRUK
 gruk_lowlands <- GRUK_all |>
-  rename(globalid = parent_global_id) |> 
+  rename(globalid = global_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
   select(-c(rute_id, precision, UTM33_E_ne, UTM33_N_ne, UTM33_E_sw, UTM33_N_sw)) |> 
   distinct() |> 
