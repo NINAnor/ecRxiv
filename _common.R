@@ -24,6 +24,8 @@ check_anybadger()
 image_link <- function(image, url, ...) {
   htmltools::a(
     href = url,
+    target = "_blank",
+    rel = "noopener noreferrer",
     htmltools::img(src = image, height = "20px", ...)
   )
 }
