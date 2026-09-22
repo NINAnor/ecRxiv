@@ -1,3 +1,24 @@
+# ASO dataset
+
+# GBIF query
+#aso_ds <- dataset_search(doi = "10.15468/gq6wa5")
+#aso_ds$data |>
+#  select(title, datasetKey, publishingOrganizationTitle)
+## extract dataset key
+#aso_key <- aso_ds$data$datasetKey[1]
+## Request GBIF download
+#occ <- occ_search(datasetKey = aso_key, limit = 20000)
+#ASO_species <- occ$data
+
+# no abundance data. Falling back onto the available abundance data from 2022 only
+
+ASO_species <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
+ASO_points <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
+
+#ASO_species <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
+#ASO_points <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
+
+
 # 2.2.1 ASO points data
 
 ASO_points <- st_as_sf(x = ASO_points, 

@@ -1,4 +1,16 @@
-# 2.4.1 data handling NiN GRUK
+#load data
+
+#ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
+load(paste0(here(), "/data/NiN/Eco_State.RData"))
+# str(Eco_State)
+
+# for GRUK
+natopen_NiN_ref <- read_rds(paste0(here(), "/data/NiN/natopen_NiN_ref.RDS"))
+natopen_NiN_species <- read_rds(paste0(here(), "/data/NiN/natopen_NiN_ref_spInfo.RDS"))
+
+
+
+# 2.3.1 data handling NiN
 head(natopen_NiN_ref)
 head(natopen_NiN_species)
 
@@ -137,7 +149,7 @@ natop_nin_sp_ind |> filter(is.na(Grazing_mowing)) |>  distinct(species)
 
 
 
-# 2.4.2 reference data - data handling ANO
+# 2.3.2 reference data - data handling
 
 ### Inspect Eco_State structure 
 
@@ -183,7 +195,7 @@ NiN_sp <- NiN_sp |>
 
 
 
-### Environment data 
+# 2.3.3 Environment data 
 
 NiN_env <- Eco_State$Concept_Data$Env$Env_Data
 
@@ -341,7 +353,7 @@ nin_species_clean |> filter(is.na(accepted_name))
 
 
 
-# Merge with indicator values
+# 2.3.4  Merge with indicator values
 nin_sp_ind <- nin_species_clean |>
   select(Nature_Type, Sub_Type, nin_id, nin_code, species = accepted_name, species_group, cover) |> 
   left_join(tyler_indicators,

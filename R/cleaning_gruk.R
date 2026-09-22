@@ -1,3 +1,15 @@
+# read in data
+#GRUK_species <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK/GRUK_alle_artsdata_2020-24.xlsx", sheet="Arter i ruter")
+#GRUK_ruter <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK/GRUK_alle_artsdata_2020-24.xlsx", sheet="Ruter")
+#GRUK_sirkler <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK/GRUK_alle_artsdata_2020-24.xlsx", sheet="Sirkler")
+#GRUK_polygoner <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/GRUK/GRUK_alle_artsdata_2020-24.xlsx", sheet="Polygoner")
+
+GRUK_species <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Arter i ruter"))
+GRUK_ruter <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Ruter"))
+GRUK_sirkler <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Sirkler"))
+GRUK_polygoner <- read_excel(paste0(here(), "data/species_data/GRUK_alle_artsdata_2020-24.xlsx", sheet="Polygoner"))
+
+
 ## 2.1.1 GRUK species data handling
 GRUK_species <- GRUK_species |> 
   janitor::clean_names() |> 

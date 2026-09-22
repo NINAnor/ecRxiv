@@ -1,4 +1,10 @@
-# 2.3.1 extract species data
+ano_species <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb", layer="ANO_Art", quiet = T)
+ano_geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb", layer="ANO_SurveyPoint", quiet = T)
+
+#write_rds(ano_species, file = paste0(here(), "/data/cache/ano_species.RDS"))
+#write_rds(ano_geo, file = paste0(here(), "/data/cache/ano_geo.RDS"))
+
+# 2.4.1 extract species data
 ano_species <- ano_species |> 
   mutate(scientific_name = str_replace_all(art_navn, "_", " "),
          scientific_name_original = scientific_name,
