@@ -18,3 +18,6 @@ reg$region <- c(
 )
 
 regnor <- st_intersection(reg, nor)
+
+
+write_rds(regnor, paste0(here::here(), "/data/cache/regnor.RDS"))

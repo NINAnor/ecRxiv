@@ -1,3 +1,9 @@
+#Tyler indicators cleaning
+
+#ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
+tyler_indicators <- readRDS(paste0(here(), "/data/indicators/ind.Tyler.RDS"))
+
+
 ind_tyler <- ind_tyler |>
   rename(scientific_name = Scientific_name) |> 
   mutate(scientific_name_original = scientific_name,

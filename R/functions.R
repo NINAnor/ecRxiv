@@ -68,3 +68,4 @@ indBoot.freq <- function(sp, abun, ind, iter, obl, rat = 2/3,var.abun = F) {
   }
   return(ind.list)
 }
+

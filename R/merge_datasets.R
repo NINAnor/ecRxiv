@@ -1,9 +1,10 @@
 # ANO
 ano_lowlands <- ano_all |>
-  select(globalid, ano_flate_id, ano_punkt_id, ssb_id, aar, hovedoekosystem_250m2, hovedoekosystem_rute, hovedtype_rute, hovedtype_250m2, hovedtype_1m2, kartleggingsenhet_1m2, kartleggingsenhet_250m2) |> 
+  select(globalid, ano_flate_id, ano_punkt_id, ssb_id, aar, hovedoekosystem_250m2, hovedoekosystem_rute, hovedtype_rute, hovedtype_250m2, hovedtype_1m2, kartleggingsenhet_1m2, kartleggingsenhet_250m2, shape) |> 
+  st_as_sf(sf_column_name = "shape", crs = 25833)  |> 
   mutate(
-    X = st_coordinates(ano_all)[, 1],
-    Y = st_coordinates(ano_all)[, 2],
+    X = st_coordinates(shape)[, 1],
+    Y = st_coordinates(shape)[, 2],
     kartleggingsenhet_1m2 = word(kartleggingsenhet_1m2, 1, 1)
   ) |>
   st_drop_geometry() |> 
@@ -41,18 +42,16 @@ gruk_lowlands <- GRUK_all |>
 # ASO
 
 ASO_lowlands <- ASO_all |>
-  rename(globalid = ParentGlobalID) |> 
+  rename(globalid = parent_event_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
-  select(-geometry.x) |> 
   distinct() |> 
-  st_as_sf(crs = "+proj=longlat +datum=WGS84 +ellps=WGS84") |>
   st_transform(crs = 25833) |> 
   mutate(
-    X = st_coordinates(st_sfc(geometry.y))[, 1],
-    Y = st_coordinates(st_sfc(geometry.y))[, 2]) |> 
+    X = st_coordinates(st_sfc(geometry))[, 1],
+    Y = st_coordinates(st_sfc(geometry))[, 2]) |> 
   st_drop_geometry() |> 
   semi_join(
-    ASO_species_ind  |>  mutate(parent_chr = as.character(ParentGlobalID)) |>  st_drop_geometry(),
+    ASO_species_ind  |>  mutate(parent_chr = as.character(parent_event_id)) |>  st_drop_geometry(),
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |> 

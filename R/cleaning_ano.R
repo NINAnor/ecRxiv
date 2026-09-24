@@ -1,3 +1,8 @@
+# download 
+#url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
+#download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
+#unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
+
 ano_species <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb", layer="ANO_Art", quiet = T)
 ano_geo <- st_read("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb", layer="ANO_SurveyPoint", quiet = T)
 
@@ -27,7 +32,7 @@ ano_species <- ano_species |>
 
 # recode species names for WFO matching
 ano_species <- ano_species |> 
-  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern), # 4% of scientific_name changed
+  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern), # 4% of scientific_name changed
          scientific_name = str_replace(
            scientific_name,
            "^Hiero\\S*",
@@ -216,7 +221,9 @@ ano_geo <- ano_geo |>
 
 ## 4. Filter lowland plots points
 ano_all <- ano_geo |>
-  filter(hovedoekosystem_rute %in% c("Natopen", "Seminat"))
+  tibble() |> 
+  filter(hovedoekosystem_rute %in% c("Natopen", "Seminat")) |> 
+  semi_join(ANO_species_ind, by = join_by(globalid == parentglobalid))
 
 
 
@@ -226,8 +233,8 @@ ANO_species_ind <- ANO_species_ind |>
   filter(!is.na(hovedtype_rute))
 
 
-#saveRDS(ano_all, paste0(here::here(),"/data/cache/ano_lowlands.RDS"))
-#saveRDS(ANO_species_ind, paste0(here::here(),"/data/cache/ANO_species_ind.RDS"))
+#write_rds(ano_all, paste0(here::here(),"/data/cache/ano_all.RDS"))
+#write_rds(ANO_species_ind, paste0(here::here(),"/data/cache/ANO_species_ind.RDS"))
 
 
 

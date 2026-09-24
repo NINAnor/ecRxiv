@@ -96,6 +96,7 @@ library(sf)
 library(tmap)
 library(WorldFlora)
 library(zen4R)
+library(rgbif)
 library(tidylog)
 library(rgbif)
 library(here)
@@ -382,29 +383,36 @@ Ullerud HA, Bryn A, Halvorsen R, Hemsing LØ. Consistency in land-cover mapping:
 
 <!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
 
-### 7.1. Dataset A
-Import plant indicator values from Tyler et al. (2021):
-```{r}
-#ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
-ind_tyler <- readRDS(paste0(here(), "/data/indicators/ind.Tyler.RDS"))
-```
-
-The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for mowing and grazing as this is thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
-
-
-### 7.2 Dataset B
-   backbone
-```{r, eval = F, echo = F}
+### 7.1 Dataset A
+Download and load the WFO plant list backbone from Zenodo:
+```{r, eval = FALSE, echo = F}
 # download WFO plant list from zenodo
 #download_zenodo("https://doi.org/10.5281/zenodo.20782718", files = "_DwC_backbone_R.zip", path = "/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/ecRxiv_veg_indicators/data")
 
 wfo_backbone <- read_rds("P:/41201785_okologisk_tilstand_2022_2023/data/WFO_backbone/wfo_backbone.RDS")
 ```
 
+```{r source_functions, eval=TRUE}
+source(paste0(here(), "/R/functions.R"))
+source(paste0(here(), "/R/species_dictionary.R"))
+```
+
+
+### 7.2. Dataset B
+Import plant indicator values from Tyler et al. (2021):
+```{r, eval=FALSE}
+tyler_indicators <- read_rds(paste0(here(), "/data/cache/tyler_indicators.RDS"))
+
+```
+
+The Swedish plant indicator values dataset published by Tyler et al. (2021) contains a large collection of plant indicators based on the Swedish flora, which is well representative of the Norwegian flora as well. From this set, we use indicator data for mowing and grazing as this is thought to be subject to potential change due to ongoing pressures in the respective ecosystems (see details above under 3.4 'Impact factors').
+
+
 ### 7.3. Dataset C
 Import Reference data from NiN:
 ```{r}
 
+nin_sp_ind <- read_rds(paste0(here::here(), "/data/cache/nin_sp_ind.RDS"))
 ```
 
 The generalized species lists underlying the ecosystem categorization in NiN (Halvorsen et al. 2020) represent expert-compiled species lists based on empirical evidence from the literature and expert knowledge of the systems and their species. In these lists, every species is assigned an abundance value on a 6-step scale, with each step representing a range for the ‘expected combination of frequency and cover’ of occurrence
@@ -420,25 +428,13 @@ For the purpose of this project, these steps are simplified to maximum expected 
   
 ### 7.4 Dataset D
 Import ANO testing data:
-First, download from  Miljødirektoratet (downloaded spring 2026).
-```{r, eval = F, echo = F}
-# download 
-#url <- "https://nedlasting.miljodirektoratet.no/naturovervaking/naturovervaking_eksport.gdb.zip"
-#download(url, dest="P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", mode="wb") 
-#unzip("P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb.zip", exdir = "P:/41201785_okologisk_tilstand_2022_2023/data/ANO/naturovervaking_eksport.gdb")
-```
-
-...then upload from local storage
+First, download from  Miljødirektoratet (downloaded spring 2026). Then upload from local storage.
 The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and point data including alien plant species cover.
-```{r loadData}
-#Sys.setlocale("LC_ALL", "no_NB.utf8") #works with æøå or use "Norwegian"
-source(paste0(here(), "/R/cleaning_ano.R"))
+```{r, eval = F, echo = F}
 
-#ano_species <- read_rds(file = paste0(here(), "/data/cache/ano_species.RDS"))
-#ano_geo <- read_rds(file = paste0(here(), "/data/cache/ano_geo.RDS"))
+ANO_species_ind <- read_rds(paste0(here::here(), "/data/cache/ANO_species_ind.RDS"))
+ano_all <- read_rds(paste0(here::here(), "/data/cache/ano_geo.RDS"))
 
-#head(ano_species)
-#head(ano_geo)
 
 ```
 
@@ -448,6 +444,8 @@ source(paste0(here(), "/R/cleaning_ano.R"))
 Import GRUK data
 ```{r, eval = FALSE, echo = F}
 
+GRUK_species_ind <- read_rds(paste0(here::here(), "/data/cache/GRUK_species_ind.RDS"))
+GRUK_variables <- read_rds(paste0(here::here(), "/data/cache/GRUK_variables.RDS"))
 
 ```
 
@@ -455,6 +453,9 @@ Import GRUK data
   Import ASO data
 
 ```{r, eval = F, echo = F}
+
+ASO_species_ind <- read_rds(paste0(here::here(), "/data/cache/ASO_species_ind.RDS"))
+ASO_all <- read_rds(paste0(here::here(), "/data/cache/ASO_all.RDS"))
 
 ```
 
@@ -466,7 +467,7 @@ The spatial units for functional plant community indicators are governed by the 
 
 <!--# 
   
-  Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
+Use this header for documenting the analyses. Put code in separate code chunks, and annotate the code in between using normal text (i.e. between the chunks, and try to avoid too many hashed out comments inside the code chunks). Add subheaders as needed. 
 
 Code folding is activated, meaning the code will be hidden by default in the html (one can click to expand it).
 
@@ -475,42 +476,33 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 -->
   
 #### Data handling
-  - Checking for errors
+- Checking for errors
 - Checking species nomenclature in the different species lists to make species and indicator data possible to merge
 - Merging indicator data with monitoring data and indicator data with reference data
 (not shown here, but documented in the code)
 
 
-```{r spatial_data, warnings = FALSE}
+```{r spatial_data, warnings = FALSE, eval=FALSE}
+source(paste0(here::here(), "/R/spatial_data.R"))
+
 ```
 
 
-```{r dataHandling_Tyler, warning=F, message=F, results='hide', eval = FALSE} 
-
-
+```{r dataHandling, warning=F, message=F, results='hide', eval = FALSE} 
 # 2.0 Plant indicator data
-
-
-```
-
-```{r dataHandling_GRUK, warning = FALSE, eval = FALSE}
+source(paste0(here::here(), "/R/cleaning_tyler.R"))
 
 # 2.1 GRUK data
+source(paste0(here::here(), "/R/cleaning_gruk.R"))
 
-
-```
-
-```{r dataHandling_ASO, warning = FALSE, eval=FALSE}
 # 2.2 ASO
+source(paste0(here::here(), "/R/cleaning_aso.R"))
 
-```
-
-```{r dataHandling_ANO, warning = FALSE, eval = FALSE}
 #### 2.3 ANO monitoring data
+source(paste0(here::here(), "/R/cleaning_ano.R"))
 
-```
-
-```{r dataHandling_NiN, warning = FALSE, eval = FALSE}
+# 2.4 NiN species data
+source(paste0(here::here(), "/R/cleaning_nin.R"))
 
 
 rm(wfo_backbone)
@@ -521,8 +513,8 @@ This leaves us with the monitoring data including plant indicators (ano_all, gru
   
   <!-- Print head of data set with horizontal scrolling -->
 ```{r ano-sp-tab, echo=F}
-head(ANO.sp.ind) |>
-  kable("html",caption = "Species occurrence data set with attached plant trait data.") |> 
+head(ANO_species_ind) |>
+  kable("html",caption = "Species occurrence data set for ANO with attached plant trait data.") |> 
   kable_styling("striped") |> scroll_box(width = "100%")
 ```
 
@@ -535,13 +527,13 @@ head(nin_sp_ind) |>
 
 <br />
   
-  For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators.
+For each ecosystem type with a NiN species list, we can calculate a community weighted mean (CWM) for the relevant functional plant indicators.
 In order to get distributions of these metrics rather than one single value (for comparison with the empirical testing data) the NiN lists can be bootstrapped.
 
 <br />
   
 ##### Bootstrap functions for frequency abundance and cumulative density
-  - function to calculate community weighted means (indBoot.freq() ) or cumulative density (indBoot.HeatOverhang() ) of selected indicator values (ind)
+- function to calculate community weighted means (indBoot.freq() ) or cumulative density (indBoot.HeatOverhang() ) of selected indicator values (ind)
 - for species lists (sp) with given abundances in percent (or on a scale from 0 to 1) in one or more 'sites' (abun)
 - with a given number of iterations (iter),
 - with species given a certain minimum abundance occurring in all bootstraps (obl), and
@@ -549,15 +541,12 @@ In order to get distributions of these metrics rather than one single value (for
 - in every bootstrap iteration the abundance of the sampled species can be randomly changed by a limited amount if wished by introducing a re-sampling of abundance values from adjacent abundance steps with a certain probability (var.abun)
 
 ```{r bootstrapping}
-
+indBoot.freq
 
 ```
 
 ```{r}
 #colnames(NiN.forest.cov)
-# 1st column is the species
-# 2nd-27th column is the abundances of sp in different ecosystem types
-# 28th-29th column is the indicator values of the respective species
 # we choose 1000 iterations
 # species with abundance 0.8 or more (dominant species) must be included in each sample
 # each sample re-samples 1/3 of the number of species
@@ -566,15 +555,13 @@ In order to get distributions of these metrics rather than one single value (for
 
 Running the bootstraps:
 ```{r boot2, eval = F}
-
-
-
+source(paste0(here::here(), "/R/bootstrapping.R"))
 
 ```
 
 ```{r, include = F}
 # Data from cache
-lowland_ref_cov <- readRDS(paste0(here::here(), "/data/cache/lowland_ref_cov.RDS"))
+lowland_ref_cov <- read_rds(paste0(here::here(), "/data/cache/lowland_ref_cov.RDS"))
 ```
 
 ```{r}
@@ -593,10 +580,27 @@ Next, we need to derive scaling values from these bootstrap-lists (the columns) 
 
 
 ```{r scalingValues, attr.output='style="max-height: 300px;"', results='hide'}
+source(paste0(here::here(), "/R/scaling.R"))
 
 # every NiN-type is represented by one 'generalisert artsliste'
 # some NiN-types are represented by two such species lists
 # in some cases two NiN-types are represented by the same species list
+
+```
+
+
+
+```{r merging datasets, eval=FALSE}
+source(paste0(here::here(), "/R/merge_datasets.R"))
+
+```
+
+```{r load in rds files}
+
+regnor <- read_rds(paste0(here::here(), "/data/cache/regnor.RDS"))
+combined_lowlands <- read_rds(paste0(here::here(), "/data/cache/combined_lowlands.RDS"))
+combined_species <- read_rds(paste0(here::here(), "/data/cache/combined_species.RDS"))
+lowland_ref_cov_val <- read_rds(paste0(here::here(), "/data/cache/lowland_ref_cov_val.RDS"))
 
 ```
 
@@ -605,10 +609,6 @@ lowland_ref_cov_val |>
   kable("html", caption = "Reference values (Rv and threshold values (Gv) for each indicator and nature type combination") |> kable_styling("striped") |> scroll_box(width = "100%", height = "300px")
 ```
 
-
-```{r merging datasets}
-
-```
 
 Once test data and the scaling values from the reference data are in place, we can calculate CWMs of the selected indicator for the community data for each dataset and scale them against the scaling values from the reference distribution. Note that we scale each plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. A plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
 

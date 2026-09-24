@@ -372,4 +372,4 @@ nin_sp_ind <- nin_sp_ind |>
   full_join(natop_nin_sp_ind |> rename(nin_code = nin_id))
 
 
-
+#write_rds(nin_sp_ind, paste0(here::here(), "/data/cache/nin_sp_ind.RDS"))

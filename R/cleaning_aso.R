@@ -1,80 +1,63 @@
 # ASO dataset
 
-# GBIF query
-#aso_ds <- dataset_search(doi = "10.15468/gq6wa5")
-#aso_ds$data |>
-#  select(title, datasetKey, publishingOrganizationTitle)
-## extract dataset key
-#aso_key <- aso_ds$data$datasetKey[1]
-## Request GBIF download
-#occ <- occ_search(datasetKey = aso_key, limit = 20000)
-#ASO_species <- occ$data
+# 1. Load processing environments
+library(readr)
+library(dplyr)
 
-# no abundance data. Falling back onto the available abundance data from 2022 only
+# 2. Extract UUID via the NIBIO dataset DOI
+aso_ds  <- dataset_search(doi = "10.15468/gq6wa5")
+aso_key <- aso_ds$data$datasetKey
 
-ASO_species <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
-ASO_points <- read_excel("P:/41201785_okologisk_tilstand_2022_2023/data/ASO/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
+# 3. Request Darwin Core Archive Download 
+# (Requires your GBIF username/password loaded in your .Renviron file)
+download_request <- occ_download(
+  pred("datasetKey", aso_key),
+  format = "DWCA" 
+)
 
-#ASO_species <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "transektregistreringer_4")
-#ASO_points <- read_excel(paste0(here(), "data/species_data/Semi-naturlig_eng_S123_2022.xlsx", sheet = "surveyPoint_0")
+# 4. Stand by for GBIF compilation to complete
+occ_download_wait(download_request)
+
+# 5. Bring the zip archive into your local workspace folder
+downloaded_zip_path <- occ_download_get(download_request, path = ".")
+
+# 6. Extract the zip file's contents into a local temporary folder
+temp_extraction_dir <- file.path(tempdir(), "gbif_aso_raw")
+unzip(zipfile = downloaded_zip_path, exdir = temp_extraction_dir)
+
+# 7. Read the untouched source matrix file ("verbatim.txt") directly into R
+# This keeps the character formatting intact before any GBIF database interpretations
+aso_verbatim <- read_tsv(
+  file = file.path(temp_extraction_dir, "verbatim.txt"),
+  guess_max = 30000,
+  show_col_types = FALSE  # Silences the data frame schema text window you saw
+)
+
+
+
+ASO_species <- read_delim("C:/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/occurrence.txt")
+ASO_points <- read_delim("C:/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/event.txt")
 
 
 # 2.2.1 ASO points data
-
-ASO_points <- st_as_sf(x = ASO_points, 
-                       coords = c("x", "y"),
-                       crs = "+proj=longlat +datum=WGS84 +ellps=WGS84")
-
 ASO_points <- ASO_points |> 
+  filter(!is.na(decimalLatitude)) |> 
   janitor::clean_names()
 
-# Rename using base R
-nms <- names(ASO_points)
+ASO_points <- st_as_sf(x = ASO_points, 
+                       coords = c("decimal_latitude", "decimal_longitude"),
+                       crs = "+proj=longlat +datum=WGS84 +ellps=WGS84") |> 
+  st_transform(crs = 25833) |> 
+  mutate(
+    X = st_coordinates(st_sfc(geometry))[, 1],
+    Y = st_coordinates(st_sfc(geometry))[, 2])
 
-nms[nms == "dominerende_kartleggingsenhet_1_5000_t32"] <- "nin_grunntype"
-nms[nms == "aktuell_bruksintensitet_7jb_ba"]           <- "bruksintensitet"
-nms[nms == "beitetrykk_7jb_bt"]                        <- "beitetrykk"
-nms[nms == "slatteintensitet_7jb_si"]                  <- "slatteintensitet"
-nms[nms == "spor_etter_ferdsel_med_tunge_kjoretoy_m_dir_prtk"] <-
-  "tungekjoretoy"
-nms[nms == "spor_etter_slitasje_og_slitasjebetinget_erosjon_m_dir_prse"] <-
-  "slitasje"
-
-names(ASO_points) <- nms
 
 ## fix NiN-variables
-# remove variable code in the data
-ASO_points <- ASO_points |>
-  mutate(
-    bruksintensitet = bruksintensitet |>
-      str_remove("^7JB-BA_") |>
-      na_if("X") |>
-      as.numeric(),
-    
-    beitetrykk = beitetrykk |>
-      str_remove("^7JB-BT_") |>
-      na_if("X") |>
-      as.numeric(),
-    
-    slatteintensitet = slatteintensitet |>  # 4 NAs
-      str_remove("^7JB-SI_") |>
-      na_if("X") |>
-      as.numeric(),
-    
-    tungekjoretoy = tungekjoretoy |>
-      str_remove("^MDirPRTK_") |>
-      na_if("X") |>
-      as.numeric(),
-    
-    slitasje = slitasje |>
-      str_remove("^MDirPRSE_") |>
-      na_if("X") |>
-      as.numeric()
-  ) |> 
-  mutate(
-    nin_grunntype = case_when(is.na(nin_grunntype) ~ annen_dominerende_kartleggingsenhet,
-                              TRUE ~ nin_grunntype)
-  )
+ASO_points <- ASO_points |> 
+  mutate(habitat = str_remove_all(habitat, "NA_")) |> 
+  filter(!is.na(habitat)) |> 
+  select(id, event_id, parent_event_id, event_date, nin_grunntype = habitat, location_id, geometry, X, Y)
 
 
 
@@ -83,45 +66,37 @@ ASO_points <- ASO_points |>
 ## fixing variable names and issues in ASO.sp
 head(as.data.frame(ASO_species))
 
-ASO_species <- rename(ASO_species, art_dekning = Dekning)
-
 # fix species names
 ASO_species <- ASO_species |>
-  mutate(scientific_name_original = karplantenavn) |> 
-  separate(
-    col  = Navn,
-    into = c("norsk_navn", "scientific_name"),
-    sep  = "_",
-    extra = "merge",   # keep any additional _ in the "after" part
-    fill  = "right"    # if no _, "after" becomes NA
-  ) |> 
+  janitor::clean_names() |> 
   mutate(
-    scientific_name = scientific_name  |> 
-      str_replace_all("_", " ")  |> 
-      str_to_sentence(),
-    
     scientific_name = if_else(
       is.na(word(scientific_name, 2)),        # only one word (no species epithet)
       word(scientific_name, 1),              # just genus
       word(scientific_name, 1, 2)            # genus + species
-    ) %>%
+    )  |> 
       str_replace_all("-", " ")  |> 
-      str_squish()
+      str_squish() |> 
+      str_to_sentence()
   )
 
 ASO_species <- ASO_species  |>  
-  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern),
-         scientific_name = str_replace(
+  filter(!is.na(scientific_name), !is.na(organism_quantity)) |>                                    # remove empty species rows
+  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern),
+         scientific_name = str_replace(                                 # fixing Hierochloe naming issue
            scientific_name,
            "^Hiero\\S*",
-           "Hierochloe"))      # fixing Hierochloe naming issue
+           "Hierochloe"), 
+  scientific_name = case_when(                                          # retrieving Hieracium group info lost in Norwegian name
+    vernacular_name == "bm: skogsvevegruppa" ~ "Hieracium Hieracium",
+    vernacular_name == "bm: beitesvevegruppa" ~ "Hieracium Vulgata",
+    vernacular_name == "bm: skjermsvevegruppa" ~ "Hieracium Hieracioides",
+    TRUE ~ scientific_name
+  )
+)
 
 
-# filter out NAs for WFO cleaning
-ASO_species_prepared <- filter(ASO_species, !is.na(scientific_name))
-
-
-ASO_prepared_wfo <- WFO.prepare(ASO_species_prepared$scientific_name)
+ASO_prepared_wfo <- WFO.prepare(ASO_species$scientific_name)
 
 ASO_prepared <- ASO_prepared_wfo |>
   mutate(
@@ -129,7 +104,8 @@ ASO_prepared <- ASO_prepared_wfo |>
       !is.na(Authorship) & Authorship != "" ~ paste0(spec.name, "-", Authorship),
       TRUE ~ spec.name) |>
       str_squish() |> 
-      str_to_sentence()
+      str_to_sentence(),
+    spec.name = if_else(grepl(" na$", spec.name), paste0(word(spec.name, 1, 1), " sp."), spec.name)
   ) |>
   rename(clean_string = spec.name) |>
   distinct(spec.full, clean_string)
@@ -177,24 +153,27 @@ ASO_sp_clean |> filter(clean_string != accepted_name)
 ASO_sp_clean |> filter(flag_multiple_suggestions == TRUE, clean_string != accepted_name)
 
 
-# correct incorrect corrections. haha
+# correct incorrect corrections
 ASO_sp_clean <- ASO_sp_clean |> 
   mutate(
     flag_species_revert =
       case_when(
-        clean_string == "Hieracium vulgata" ~ "added",
-        clean_string == "Taraxacum crocea" ~ "added",
-        clean_string == "Taraxacum hamata" ~ "added",
+        grepl("Hieracium", clean_string) ~ "edited",
         TRUE ~ ""
         
       ),
     accepted_name = case_when(
-      clean_string == "Hieracium vulgata" ~ "Hieracium Vulgata",
-      clean_string == "Taraxacum crocea" ~ clean_string,
-      clean_string == "Taraxacum hamata" ~ clean_string,
+      grepl("Hieracium", clean_string) ~ clean_string,
+      TRUE ~ accepted_name
+    ),
+    accepted_name = case_when(
+      accepted_name == "Hieracium vulgata" ~ "Hieracium Vulgata",
+      accepted_name == "Hieracium hieracium" ~ "Hieracium Hieracium",
+      accepted_name == "Hieracium alpina" ~ "Hieracium Alpina",
+      accepted_name == "Hieracium hieracioides" ~ "Hieracium Hieracioides",
       TRUE ~ accepted_name
     )) |> 
-  # add "sp." back onto genus-level identifications
+# add "sp." back onto genus-level identifications
   mutate(accepted_name = case_when(
     is.na(word(accepted_name, 2)) ~ paste(accepted_name, "sp."),
     TRUE ~ accepted_name
@@ -205,16 +184,7 @@ ASO_sp_clean <- ASO_sp_clean |>
 # bind new species names onto original dataset
 ASO_species_clean <- left_join(ASO_prepared, ASO_sp_clean, by = "clean_string") |> 
   full_join(ASO_species, by = join_by(spec.full == scientific_name)) |> 
-  distinct() |> 
-  # retrieving Hieracium group info lost in Norwegian name
-  mutate(
-    accepted_name = case_when(
-      norsk_navn == "skogsvevegruppa" ~ paste("Hieracium", str_sub(karplantenavn, 19, 27))  |> str_squish(),
-      norsk_navn == "beitesvevegruppa" ~ paste("Hieracium", str_sub(karplantenavn, 20, 26))  |> str_squish(),
-      norsk_navn == "skjermsvevegruppa" ~ paste("Hieracium", str_sub(karplantenavn, 21, 32))  |> str_squish(),
-      TRUE ~ accepted_name
-    )
-  )
+  distinct()
 
 
 # check for original species with no matched accepted name.
@@ -222,18 +192,33 @@ ASO_species_clean |>
   filter(is.na(accepted_name)) |> 
   tibble()
 
-
+ASO_species_clean |> 
+  tibble() |> 
+  mutate(organism_quantity = str_remove_all(organism_quantity, " % dekning"),
+         organism_quantity = case_when(
+           organism_quantity == "< 1" ~ "A7_0",
+           organism_quantity == "1 - 6,25" ~ "A7_1",
+           organism_quantity == "6,25 - 12,5" ~ "A7_2",
+           organism_quantity == "12,5 - 25" ~ "A7_3",
+           organism_quantity == "25-50" ~ "A7_4",
+           organism_quantity == "50 - 75" ~ "A7_5",
+           organism_quantity == "75 - 90" ~ "A7_6",
+           organism_quantity == "> 90" ~ "A7_7",
+           TRUE ~ organism_quantity
+         )) |> 
+  distinct(organism_quantity)
 
 # 2.2.3 merge with indicator data
 
 ## merge species data with indicators
 ASO_species_ind <- ASO_species_clean |>
-  select(species = accepted_name, art_dekning, ParentGlobalID) |> 
-  filter(!is.na(art_dekning)) |> 
+  tibble() |> 
+  select(id, occurrence_id, event_id, species = accepted_name, organism_quantity) |> 
+  filter(!is.na(organism_quantity)) |> 
   left_join(tyler_indicators) |>
-  left_join(ASO_points |> select(global_id, omradenummer_flatenummer, nin_grunntype), by = join_by(ParentGlobalID == global_id)) |> 
-  mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |> 
-  filter(!is.na(hovedtype_rute))
+  left_join(ASO_points) |> 
+  mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |>
+  filter(!is.na(hovedtype_rute), !hovedtype_rute =="T4-")
 
 
 # checking which species didn't find a match
@@ -242,23 +227,14 @@ unique(ASO_species_ind[is.na(ASO_species_ind$Grazing_mowing),'species'])
 
 
 ## adding information on ecosystem and condition variables to species data
-ASO_all <- ASO_species_ind |> 
-  left_join(ASO_points |>  
-              select(global_id, eng_id, aso_id, annen_dominerende_kartleggingsenhet), 
-            by = join_by(ParentGlobalID == global_id)) |> 
-  select(-c(species, art_dekning, Moisture:Light)) |> 
-  distinct()
-
-
-
-# fixing variable types
-ASO_all <- ASO_all |> 
+ASO_all <- ASO_points |> 
+  semi_join(ASO_species_ind) |> 
+  distinct() |> 
   mutate(across(
-    c(nin_grunntype, omradenummer_flatenummer, eng_id, aso_id),
+    c(nin_grunntype, parent_event_id, event_id, id),
     as.factor
-  )) #|> 
-# trimming away the points without information on NiN, species or cover  
-# filter(!is.na(species), !is.na(art_dekning), !is.na(nin_grunntype))
+  ))
+
 
 summary(ASO_all)
 
