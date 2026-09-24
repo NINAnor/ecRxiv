@@ -192,7 +192,7 @@ ASO_species_clean |>
   filter(is.na(accepted_name)) |> 
   tibble()
 
-ASO_species_clean |> 
+ASO_species_clean <- ASO_species_clean |> 
   tibble() |> 
   mutate(organism_quantity = str_remove_all(organism_quantity, " % dekning"),
          organism_quantity = case_when(
@@ -205,16 +205,27 @@ ASO_species_clean |>
            organism_quantity == "75 - 90" ~ "A7_6",
            organism_quantity == "> 90" ~ "A7_7",
            TRUE ~ organism_quantity
-         )) |> 
-  distinct(organism_quantity)
+         ),
+         organism_quantity = case_when(
+           organism_quantity == "A7_0" ~ 0.1,
+           organism_quantity == "A7_1" ~ 3.625,
+           organism_quantity == "A7_2" ~ 9.375,
+           organism_quantity == "A7_3" ~ 18.75, 
+           organism_quantity == "A7_4" ~ 37.5,
+           organism_quantity == "A7_5" ~ 62.5,
+           organism_quantity == "A7_6" ~ 82.5,
+           organism_quantity == "A7_7" ~ 95,
+           TRUE ~ 0
+         ),
+         organism_quantity = as.numeric(organism_quantity))
 
 # 2.2.3 merge with indicator data
 
 ## merge species data with indicators
 ASO_species_ind <- ASO_species_clean |>
   tibble() |> 
-  select(id, occurrence_id, event_id, species = accepted_name, organism_quantity) |> 
-  filter(!is.na(organism_quantity)) |> 
+  select(id, occurrence_id, event_id, species = accepted_name, art_dekning = organism_quantity) |> 
+  filter(!is.na(art_dekning)) |> 
   left_join(tyler_indicators) |>
   left_join(ASO_points) |> 
   mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |>
@@ -237,6 +248,7 @@ ASO_all <- ASO_points |>
 
 
 summary(ASO_all)
+summary(ASO_species_ind)
 
 #rm(ASO_species, ASO_prepared, ASO_sp_matched, ASO_points, ASO_sp_clean, ASO_species_clean, ASO_species_prepared, ASO_prepared_wfo)
 
