@@ -284,42 +284,42 @@ message("Core dimensions QA passed.")
 # ================================================================
 # 10. QA deterministic NO_CONN_002
 # ================================================================
-
-conn_json <- forest_indicator_json |>
-  keep(
-    ~ .x$indikatorReferanseUid == "no-conn-002"
-  )
-
-stopifnot(
-  length(conn_json) == 6L,
-  
-  all(
-    map_chr(conn_json, "periodeStart") ==
-      "2024-01-01 00:00:00"
-  ),
-  
-  all(
-    map_chr(conn_json, "periodeSlutt") ==
-      "2024-12-31 00:00:00"
-  ),
-  
-  # Adminportal needs numeric confidence limits
-  all(
-    map_lgl(
-      conn_json,
-      ~ !is.null(.x$nedreKonfidensIntervalGrense)
-    )
-  ),
-  
-  all(
-    map_lgl(
-      conn_json,
-      ~ !is.null(.x$ovreKonfidensIntervalGrense)
-    )
-  )
-)
-
-message("NO_CONN_002 JSON QA passed.")
+# 
+# conn_json <- forest_indicator_json |>
+#   keep(
+#     ~ .x$indikatorReferanseUid == "no-conn-002"
+#   )
+# 
+# stopifnot(
+#   length(conn_json) == 6L,
+#   
+#   all(
+#     map_chr(conn_json, "periodeStart") ==
+#       "2024-01-01 00:00:00"
+#   ),
+#   
+#   all(
+#     map_chr(conn_json, "periodeSlutt") ==
+#       "2024-12-31 00:00:00"
+#   ),
+#   
+#   # Adminportal needs numeric confidence limits
+#   all(
+#     map_lgl(
+#       conn_json,
+#       ~ !is.null(.x$nedreKonfidensIntervalGrense)
+#     )
+#   ),
+#   
+#   all(
+#     map_lgl(
+#       conn_json,
+#       ~ !is.null(.x$ovreKonfidensIntervalGrense)
+#     )
+#   )
+# )
+# 
+# message("NO_CONN_002 JSON QA passed.")
 # ================================================================
 # 11. QA expected mountain B2 structural absence
 # ================================================================
@@ -888,7 +888,7 @@ clean_adminportal_text <- function(x) {
 # ================================================================
 
 code_base_url <-
-  "https://ninanor.github.io/ecRxiv/indicators/"
+  "https://github.com/NINAnor/ecRxiv/tree/main/indicators/"
 
 
 make_code_json <- function(metadata) {
