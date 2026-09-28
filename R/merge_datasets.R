@@ -39,10 +39,10 @@ gruk_lowlands <- GRUK_all |>
          nest_1 = polygon_id) |> 
   mutate(scale = "1_5000")
 
-# ASO
 
+# ASO
 ASO_lowlands <- ASO_all |>
-  rename(globalid = parent_event_id) |> 
+  rename(globalid = event_id) |> 
   mutate(globalid_chr = as.character(globalid)) |> 
   distinct() |> 
   st_transform(crs = 25833) |> 
@@ -51,14 +51,13 @@ ASO_lowlands <- ASO_all |>
     Y = st_coordinates(st_sfc(geometry))[, 2]) |> 
   st_drop_geometry() |> 
   semi_join(
-    ASO_species_ind  |>  mutate(parent_chr = as.character(parent_event_id)) |>  st_drop_geometry(),
+    ASO_species_ind  |>  mutate(parent_chr = as.character(event_id)) |>  st_drop_geometry(),
     by = c("globalid_chr" = "parent_chr")
   ) |> 
   mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |> 
-  select(globalid, globalid_chr, eng_id, omradenummer_flatenummer, aso_id, hovedtype_rute, X, Y, nin_grunntype) |> 
+  select(parent_event_id, location_id, globalid_chr, globalid, hovedtype_rute, X, Y, nin_grunntype) |> 
   rename(kartleggingsenhet = nin_grunntype,
-         nest_1 = omradenummer_flatenummer,
-         nest_2 = eng_id)
+         nest_1 = parent_event_id)
 
 
 combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = "dataset") |> 
@@ -79,7 +78,8 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
   st_drop_geometry() |> 
   filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
-                               "T16", "T18", "T21", "T24", "T29", "T41", "T45"))
+                               "T16", "T18", "T21", "T24", "T29", "T41", "T45")) |> 
+  as.data.frame()
 
 
 
@@ -87,20 +87,21 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
 
 GRUK_species_ind <- GRUK_species_ind |> 
   filter(!is.na(species), !is.na(art_dekning)) |> 
-  rename(nest_1 = polygon_id)
+  rename(nest_1 = polygon_id,
+         nin_grunntype = kartleggingsenhet_1_5000)
 
 ASO_species_ind <- ASO_species_ind |> 
   filter(!is.na(species), !is.na(art_dekning)) |> 
-  rename(nest_1 = omradenummer_flatenummer#,
-         #nest_2 = eng_id
+  rename(nest_1 = parent_event_id
   )
 
 ANO_species_ind <- ANO_species_ind |> 
-  rename(nest_1 = ano_flate_id)
+  rename(nest_1 = ano_flate_id) |> 
+  mutate(kartleggingsenhet = str_remove(kartleggingsenhet_1m2, " .*"))
 
 combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m2)), 
                                GRUK_species_ind |> rename(parentglobalid = parent_global_id),
-                               ASO_species_ind |> rename(parentglobalid = ParentGlobalID),
+                               ASO_species_ind |> rename(parentglobalid = event_id),
                                .id = "dataset") |> 
   mutate(dataset = case_match(
     dataset, 
@@ -111,3 +112,6 @@ combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m
   filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
                                "T16", "T18", "T21", "T24", "T29", "T41", "T45"))
+
+#write_rds(combined_lowlands, paste0(here::here(),"/data/cache/combined_lowlands.RDS"))
+#write_rds(combined_species, paste0(here::here(),"/data/cache/combined_species.RDS"))

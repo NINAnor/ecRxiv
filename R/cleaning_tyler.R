@@ -1,7 +1,7 @@
 #Tyler indicators cleaning
 
 #ind_tyler <- readRDS("P:/41201785_okologisk_tilstand_2022_2023/data/functional plant indicators/ind.Tyler.RDS")
-tyler_indicators <- readRDS(paste0(here(), "/data/indicators/ind.Tyler.RDS"))
+ind_tyler <- readRDS(paste0(here(), "/data/indicators/ind.Tyler.RDS"))
 
 
 ind_tyler <- ind_tyler |>
@@ -16,7 +16,7 @@ ind_tyler <- ind_tyler |>
   tibble()
 
 ind_tyler <- ind_tyler |> 
-  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern))
+  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern))
 
 # remove certain species
 ind_tyler <- ind_tyler |>  
@@ -173,11 +173,13 @@ tyler_species_clean |> filter(is.na(accepted_name))
 
 tyler_indicators <- tyler_species_clean |> 
   select(species = accepted_name,
-         Moisture:Light)                          # select all indicators
+         Moisture:Light) |>                           # select all indicators
+  mutate(Soil_disturbance_1 = Soil_disturbance) |>    # duplicate soil disturbance indicator for one and two sided analyses
+  rename(Soil_disturbance_2 = Soil_disturbance)
 
 # remove unused dataframes
 #rm(ind_tyler, tyler_prepared, tyler_prepared_wfo, tyler_sp_clean, tyler_sp_matched, tyler_species_clean)
 
 
 # cache the indicator data here
-#saveRDS(tyler_indicators, paste0(here::here(),"/data/cache/tyler_indicators.RDS"))
+#write_rds(tyler_indicators, paste0(here::here(),"/data/cache/tyler_indicators.RDS"))

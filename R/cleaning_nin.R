@@ -11,9 +11,6 @@ natopen_NiN_species <- read_rds(paste0(here(), "/data/NiN/natopen_NiN_ref_spInfo
 
 
 # 2.3.1 data handling NiN
-head(natopen_NiN_ref)
-head(natopen_NiN_species)
-
 colnames(natopen_NiN_ref)[1] <- "species"
 head(natopen_NiN_ref)
 
@@ -47,7 +44,7 @@ natopen_NiN_ref <- natopen_NiN_ref |>
 
 
 natopen_NiN_ref <- natopen_NiN_ref %>%
-  mutate(species = clean_species_with_patterns(species, species_dict_pattern)) |> 
+  mutate(species = clean_species_from_dictionary(species, species_dict_pattern)) |> 
   group_by(species, nin_id) |> 
   summarise(cover = max(cover),           # summing cover of species which have ended up appearing several times per nature type
             .groups = "drop"
@@ -132,15 +129,17 @@ natop_nin_sp_ind <- natop_nin_species_clean |>
   left_join(tyler_indicators,
             by = join_by(species)) |> 
   tibble() |>
-  filter(grepl("T2-C-7", nin_id) | grepl("T2-C-8", nin_id) | grepl("T8", nin_id) | grepl("T11", nin_id) | grepl("T12", nin_id) | grepl("T13", nin_id) | grepl("T15", nin_id) | grepl("T16", nin_id) | grepl("T18", nin_id) | grepl("T21", nin_id) | grepl("T24", nin_id) | grepl("T29", nin_id)) |> 
+  filter(grepl("T2", nin_id) | grepl("T8", nin_id) | grepl("T11", nin_id) | grepl("T12", nin_id) | grepl("T13", nin_id) | grepl("T15", nin_id) | grepl("T16", nin_id) | grepl("T18", nin_id) | grepl("T21", nin_id) | grepl("T24", nin_id) | grepl("T29", nin_id)) |> 
   mutate(nin_id = sub("_.*", "", nin_id),
          nin_id = str_remove(nin_id, "-Bratli21")) |> 
-  group_by(species, nin_id, Grazing_mowing) |> 
+  group_by(species, nin_id) |> 
   summarise(cover = max(cover),           # summing cover of species which have ended up appearing several times per nature type
             .groups = "drop"
   )
 
 
+natop_nin_sp_ind <- natop_nin_sp_ind |> 
+  left_join(tyler_indicators, by = join_by(species))
 
 # double check species matching
 natop_nin_sp_ind |> filter(is.na(species))  
@@ -150,15 +149,6 @@ natop_nin_sp_ind |> filter(is.na(Grazing_mowing)) |>  distinct(species)
 
 
 # 2.3.2 reference data - data handling
-
-### Inspect Eco_State structure 
-
-str(Eco_State)
-
-# species list, env data, abundance data (same as your checks)
-Eco_State$Concept_Data$Species$Species_List$species
-t(Eco_State$Concept_Data$Env$Env_Data)
-t(Eco_State$Concept_Data$Species$Species_Data)
 
 # Transpose & prepare species abundance data
 
@@ -246,7 +236,7 @@ NiN_sp <- NiN_sp |>
 
 
 NiN_sp <- NiN_sp |> 
-  mutate(scientific_name = clean_species_with_patterns(species, species_dict_pattern),
+  mutate(scientific_name = clean_species_from_dictionary(species, species_dict_pattern),
          species = str_replace(species, "Hierochlo.? hirta", "Hierochloë hirta"),
          species = str_replace_all(species, "spp.", "sp.")
          # and similar for other bad names
@@ -363,7 +353,7 @@ nin_sp_ind <- nin_species_clean |>
 
 # double check species matching
 nin_sp_ind |> filter(is.na(species))  
-nin_sp_ind |> filter(is.na(Grazing_mowing)) |>  distinct(species)
+nin_sp_ind |> filter(is.na(Grazing_mowing), is.na(Nitrogen)) |>  distinct(species)
 
 
 

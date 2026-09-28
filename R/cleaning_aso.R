@@ -227,9 +227,11 @@ ASO_species_ind <- ASO_species_clean |>
   select(id, occurrence_id, event_id, species = accepted_name, art_dekning = organism_quantity) |> 
   filter(!is.na(art_dekning)) |> 
   left_join(tyler_indicators) |>
-  left_join(ASO_points) |> 
+  left_join(ASO_points, by = join_by(event_id, id)) |> 
   mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |>
-  filter(!is.na(hovedtype_rute), !hovedtype_rute =="T4-")
+  filter(!is.na(hovedtype_rute), !hovedtype_rute =="T4-") |> 
+  mutate(nin_grunntype = sub(";.*$", "", as.character(nin_grunntype)
+  ))
 
 
 # checking which species didn't find a match
@@ -242,17 +244,18 @@ ASO_all <- ASO_points |>
   semi_join(ASO_species_ind) |> 
   distinct() |> 
   mutate(across(
-    c(nin_grunntype, parent_event_id, event_id, id),
-    as.factor
-  ))
+    c(nin_grunntype, parent_event_id, event_id, location_id, id),
+    as.factor),
+  nin_grunntype = sub(";.*$", "", as.character(nin_grunntype)
+    ))
 
 
 summary(ASO_all)
 summary(ASO_species_ind)
 
-#rm(ASO_species, ASO_prepared, ASO_sp_matched, ASO_points, ASO_sp_clean, ASO_species_clean, ASO_species_prepared, ASO_prepared_wfo)
+#rm(ASO_species, ASO_prepared, ASO_sp_matched, ASO_points, ASO_sp_clean, ASO_species_clean, ASO_prepared_wfo)
 
-#saveRDS(ASO_all, paste0(here::here(),"/data/cache/ASO_all.RDS"))
-#saveRDS(ASO_species_ind, paste0(here::here(),"/data/cache/ASO_species_ind.RDS"))
+#write_rds(ASO_all, paste0(here::here(),"/data/cache/ASO_all.RDS"))
+#write_rds(ASO_species_ind, paste0(here::here(),"/data/cache/ASO_species_ind.RDS"))
 
 

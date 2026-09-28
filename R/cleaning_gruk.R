@@ -28,7 +28,7 @@ GRUK_species <- GRUK_species |>
 
 # update species names
 GRUK_species <- GRUK_species |> 
-  mutate(scientific_name = clean_species_with_patterns(scientific_name, species_dict_pattern),
+  mutate(scientific_name = clean_species_from_dictionary(scientific_name, species_dict_pattern),
          scientific_name = str_replace(
            scientific_name,
            "^Hiero\\S*",
@@ -210,8 +210,6 @@ GRUK_ruter <- GRUK_ruter |>
 
 ## 2.1.3 GRUK sirkler data handling
 ## merge information on mapping units and condition variables from GRUK.sirkler into GRUK.ruter
-names(GRUK_ruter)
-names(GRUK_sirkler)
 
 GRUK_sirkler <- GRUK_sirkler |> 
   janitor::clean_names() |> 
@@ -284,9 +282,6 @@ tm_shape(GRUK_polygoner) +
 GRUK_variables <- GRUK_variables |> 
   st_drop_geometry()
 
-names(GRUK_variables)
-names(GRUK_polygoner)
-
 
 GRUK_variables <- GRUK_variables |> 
   left_join(GRUK_polygoner, by = c("year", "polygon_id")) # there are 94 rows only found in GRUK_polygoner
@@ -328,7 +323,7 @@ summary(GRUK_all)
 
 #rm(GRUK_polygoner, GRUK_prepared, GRUK_prepared_wfo, GRUK_ruter, GRUK_sirkler, GRUK_sp_clean, GRUK_sp_matched, GRUK_species, GRUK_species_clean, GRUK_variables)
 
-#saveRDS(GRUK_all, paste0(here::here(),"/data/cache/GRUK_all.RDS"))
-#saveRDS(GRUK_species_ind, paste0(here::here(),"/data/cache/GRUK_species_ind.RDS"))
+#write_rds(GRUK_all, paste0(here::here(),"/data/cache/GRUK_all.RDS"))
+#write_rds(GRUK_species_ind, paste0(here::here(),"/data/cache/GRUK_species_ind.RDS"))
 
 

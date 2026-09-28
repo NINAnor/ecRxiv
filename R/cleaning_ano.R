@@ -132,7 +132,7 @@ ano_species_clean |> filter(is.na(accepted_name))
 ## merge species data with indicators
 ANO_species_ind <- ano_species_clean |>                                 # fix species match here
   select(species = accepted_name, art_dekning, parentglobalid) |> 
-  full_join(tyler_indicators) |> 
+  left_join(tyler_indicators) |> 
   tibble()
 
 

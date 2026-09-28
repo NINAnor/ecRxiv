@@ -25,7 +25,7 @@ abun_wide <- nin_sp_ind |>
 ind_wide <- nin_sp_ind  |> 
   select(
     sp = species,
-    Moisture:Light
+    Moisture:Soil_disturbance_1
   )  |> 
   group_by(sp)  |> 
   summarise(
@@ -67,4 +67,4 @@ for (i in 1:length(lowland_ref_cov) ) {
 
 
 
-#saveRDS(lowland_ref_cov, paste0(here::here(),"/data/cache/lowland_ref_cov.RDS"))
+#write_rds(lowland_ref_cov, paste0(here::here(),"/data/cache/lowland_ref_cov.RDS"))
