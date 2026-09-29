@@ -802,10 +802,10 @@ summary(Soil_reaction_pH_re)
 
 # Norway
 # 1. Get the proportion of each nature type based ONLY on the representative ANO data
-ano_proportions <- combined_lowlands %>%
-  filter(dataset == "ANO") %>%
-  count(hovedtype_rute_new) %>%
-  mutate(share = n / sum(n)) %>%
+ano_proportions <- combined_lowlands  |> 
+  filter(dataset == "ANO") |> 
+  count(hovedtype_rute_new) |>
+  mutate(share = n / sum(n)) |>
   pull(share)
 # 2. Get the estimated marginal means for each nature type
 grid_means <- emmeans(Soil_reaction_pH_no, ~ hovedtype_rute_new, type = "link")
@@ -818,11 +818,11 @@ summary(global_mean_estimate)
 # regions
 # 1. Calculate the regional weights from the ANO data
 # This creates a data frame showing the proportion of each nature type within each region
-regional_weights_df <- combined_lowlands %>%
-  filter(dataset == "ANO") %>%
-  count(region, hovedtype_rute_new) %>%
-  group_by(region) %>%
-  mutate(share = n / sum(n)) %>%
+regional_weights_df <- combined_lowlands |>
+  filter(dataset == "ANO") |>
+  count(region, hovedtype_rute_new) |>
+  group_by(region) |>
+  mutate(share = n / sum(n)) |>
   ungroup()
 
 # there is no ANO records of T2-C7/C8 in Eastern and Southern Norway, but that is where GRUK is. So, we need to add 1 dummy observation each.
@@ -830,9 +830,9 @@ regional_weights_df <- rbind(regional_weights_df,
                              regional_weights_df |> filter(hovedtype_rute_new =="GRUK") |> mutate(region = "Eastern_Norway"),
                              regional_weights_df |> filter(hovedtype_rute_new =="GRUK") |> mutate(region = "Southern_Norway"))
 
-regional_weights_df <- regional_weights_df %>%
-  group_by(region) %>%
-  mutate(share = n / sum(n)) %>%
+regional_weights_df <- regional_weights_df |>
+  group_by(region) |>
+  mutate(share = n / sum(n)) |>
   ungroup()
 
 # 2. Get the grid of predictions on the link scale for EVERY combination
@@ -842,15 +842,15 @@ grid_regional <- emmeans(Soil_reaction_pH_re, ~ hovedtype_rute_new | region, typ
 grid_df <- as.data.frame(grid_regional)
 
 # 4. Merge with your regional ANO weights and drop non-existing (NA) combinations
-NO_FUPH_001_table <- grid_df %>%
+NO_FUPH_001_table <- grid_df |>
   # Filter out cells where the model couldn't calculate an estimate (non-existing combinations)
-  filter(!is.na(emmean)) %>%
+  filter(!is.na(emmean)) |>
   # Join your previously calculated regional weights data frame
-  left_join(regional_weights_df, by = c("region", "hovedtype_rute_new")) %>%
+  left_join(regional_weights_df, by = c("region", "hovedtype_rute_new")) |>
   # Re-normalize weights within each region so they sum up to 1 for the remaining existing cells
-  group_by(region) %>%
-  mutate(share = share / sum(share, na.rm = TRUE)) %>%
-  filter(!is.na(share)) %>%
+  group_by(region) |>
+  mutate(share = share / sum(share, na.rm = TRUE)) |>
+  filter(!is.na(share)) |>
   # Calculate the weighted mean and pool the SEs on the logit scale
   summarise(
     # Weighted mean of logits
@@ -858,7 +858,7 @@ NO_FUPH_001_table <- grid_df %>%
     # Pooled standard error (square root of the sum of weighted variances)
     se_logit = sqrt(sum((SE * share)^2)),
     .groups = "drop"
-  ) %>%
+  ) |>
   # 4. Calculate 95% CIs on the logit scale and back-transform with plogis()
   mutate(
     lower_logit = mu_logit - (1.96 * se_logit),
@@ -866,7 +866,7 @@ NO_FUPH_001_table <- grid_df %>%
     global_mean = plogis(mu_logit),
     lower_CI    = plogis(lower_logit),
     upper_CI    = plogis(upper_logit)
-  ) %>%
+  ) |>
   # Keep only the final clean output
   select(region, global_mean, lower_CI, upper_CI)
 
