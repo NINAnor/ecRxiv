@@ -808,7 +808,7 @@ ano_proportions <- combined_lowlands %>%
   mutate(share = n / sum(n)) %>%
   pull(share)
 # 2. Get the estimated marginal means for each nature type
-grid_means <- emmeans(Soil_reaction_pH_re, ~ hovedtype_rute_new, type = "link")
+grid_means <- emmeans(Soil_reaction_pH_no, ~ hovedtype_rute_new, type = "link")
 # 3. Collapse all levels into ONE single global mean using the ANO weights
 global_mean_estimate <- emmeans(grid_means, ~ 1, weights = ano_proportions)
 # 4. View the final result
@@ -870,7 +870,7 @@ NO_FUPH_001_table <- grid_df %>%
   # Keep only the final clean output
   select(region, global_mean, lower_CI, upper_CI)
 
-NO_FUPH_001_table <- rbind(Soil_reaction_pH_summary,
+NO_FUPH_001_table <- rbind(NO_FUPH_001_table,
                              c("Norway",
                                plogis(summary(global_mean_estimate)$emmean),
 plogis(summary(global_mean_estimate)$emmean + 1.96 * summary(global_mean_estimate)$SE),
