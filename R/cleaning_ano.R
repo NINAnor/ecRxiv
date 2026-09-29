@@ -123,8 +123,7 @@ ano_species_clean <- left_join(ano_prepared, ano_sp_clean, by = "clean_string") 
   full_join(ano_species, by = join_by(spec.full == scientific_name)) |> 
   # filter out sect. species and subspecies
   #filter(!grepl("subsp.", scientific_name_original)) |> 
-  distinct() |> 
-  filter(!is.na(accepted_name))
+  distinct()
 
 ano_species_clean |> filter(is.na(accepted_name))
 
@@ -132,13 +131,13 @@ ano_species_clean |> filter(is.na(accepted_name))
 ## merge species data with indicators
 ANO_species_ind <- ano_species_clean |>                                 # fix species match here
   select(species = accepted_name, art_dekning, parentglobalid) |> 
-  left_join(tyler_indicators) |> 
+  left_join(tyler_indicators |> filter(!if_all(Moisture:Soil_disturbance_1, is.na))) |> 
   tibble()
 
 
 
 # checking which species didn't find a match
-unique(ANO_species_ind[is.na(ANO_species_ind$Grazing_mowing),'species']) # |> view()
+ANO_species_ind |> filter(if_all(Moisture:Soil_disturbance_1, is.na)) |> distinct(species) # |> view()
 
 
 

@@ -226,7 +226,7 @@ ASO_species_ind <- ASO_species_clean |>
   tibble() |> 
   select(id, occurrence_id, event_id, species = accepted_name, art_dekning = organism_quantity) |> 
   filter(!is.na(art_dekning)) |> 
-  left_join(tyler_indicators) |>
+  left_join(tyler_indicators |> filter(!if_all(Moisture:Soil_disturbance_1, is.na))) |> 
   left_join(ASO_points, by = join_by(event_id, id)) |> 
   mutate(hovedtype_rute = str_sub(nin_grunntype, 1, 3)) |>
   filter(!is.na(hovedtype_rute), !hovedtype_rute =="T4-") |> 
@@ -235,7 +235,7 @@ ASO_species_ind <- ASO_species_clean |>
 
 
 # checking which species didn't find a match
-unique(ASO_species_ind[is.na(ASO_species_ind$Grazing_mowing),'species'])
+ASO_species_ind |> filter(if_all(Moisture:Soil_disturbance_1, is.na)) |> distinct(species)
 
 
 
