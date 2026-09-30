@@ -76,9 +76,9 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
     join = st_nearest_feature
   ) |> 
   st_drop_geometry() |> 
-  filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
+  filter(hovedtype_rute %in% c("T32", "T34" , "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
-                               "T16", "T18", "T21", "T24", "T29", "T41")) |> 
+                               "T16", "T18", "T21", "T24", "T29", "T41")) |> #, "V9, "T33""
   as.data.frame()
 
 
@@ -110,9 +110,9 @@ combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m
     "2" ~ "GRUK",
     "3" ~ "ASO"
   )) |> 
-  filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
+  filter(hovedtype_rute %in% c("T32", "T34", "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
-                               "T16", "T18", "T21", "T24", "T29", "T41"))
+                               "T16", "T18", "T21", "T24", "T29", "T41")) #, "V9, "T33"" 
 
 #write_rds(combined_lowlands, paste0(here::here(),"/data/cache/combined_lowlands.RDS"))
 #write_rds(combined_species, paste0(here::here(),"/data/cache/combined_species.RDS"))
