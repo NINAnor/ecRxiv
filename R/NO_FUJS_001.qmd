@@ -248,7 +248,7 @@ An indicator value of 1 indicates no discernible difference in the functional pl
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state, either as a response to increased or decreased soil disturbance.
 
 4. **Results and development needs**:
-The indicator for Norway as a whole is 0.44 [95%CI: 0.40-0.48], which means that the condition for this indicator is significantly lower than 0.6, the threshold for good ecological condition. Deviations towards lower soil disturbance values occurred ca. 10 times more often than deviations towards higher soil disturbance values, indicating that the majority of sites across the country show considerable plant community changes towards higher abundances of plant species adapted to less soil disturbance than expected under the reference condition. For the regions, the result is very similar as for Norway in total.
+The indicator for Norway as a whole is 0.34 [95%CI: 0.33-0.37, which means that the condition for this indicator is significantly lower than 0.6, the threshold for good ecological condition. Deviations towards lower soil disturbance values occurred ca. 10 times more often than deviations towards higher soil disturbance values, indicating that the majority of sites across the country show considerable plant community changes towards higher abundances of plant species adapted to less soil disturbance than expected under the reference condition. For the regions, the result is very similar as for Norway in total.
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
@@ -402,7 +402,7 @@ The Swedish plant indicator values dataset published by Tyler et al. (2021) cont
 
 ### 7.3. Dataset C
 Import Reference data from NiN:
-```{r}
+```{r, eval=FALSE}
 
 nin_sp_ind <- read_rds(paste0(here::here(), "/data/cache/nin_sp_ind.RDS"))
 ```
@@ -422,7 +422,7 @@ For the purpose of this project, these steps are simplified to maximum expected 
 Import ANO testing data:
 First, download from  Miljødirektoratet (downloaded spring 2026). Then upload from local storage.
 The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and point data including alien plant species cover.
-```{r, eval = F, echo = F}
+```{r, eval = T, echo = F}
 
 ANO_species_ind <- read_rds(paste0(here::here(), "/data/cache/ANO_species_ind.RDS"))
 ano_all <- read_rds(paste0(here::here(), "/data/cache/ano_geo.RDS"))
@@ -503,7 +503,7 @@ rm(wfo_backbone)
 
 This leaves us with the monitoring data including plant indicators (ano_all, gruk_all, aso_all) and the reference data including plant indicators (nin_sp_ind):
   
-  <!-- Print head of data set with horizontal scrolling -->
+<!-- Print head of data set with horizontal scrolling -->
 ```{r ano-sp-tab, echo=F}
 head(ANO_species_ind) |>
   kable("html",caption = "Species occurrence data set for ANO with attached plant trait data.") |> 
@@ -826,10 +826,12 @@ NO_FUJS_001_table <- tibble(
     "Southern Norway",
     "Western Norway"
   ),
+
   indicator_value = c(
     plogis(summary(Soil_disturbance_no)$coef$cond[, 1]),
     plogis(summary(Soil_disturbance_re)$coef$cond[, 1])
   ),
+
   CI_upper = c(
     plogis(
       summary(Soil_disturbance_no)$coef$cond[, 1] +
@@ -840,6 +842,7 @@ NO_FUJS_001_table <- tibble(
         1.96 * summary(Soil_disturbance_re)$coef$cond[, 2]
     )
   ),
+
   CI_lower = c(
     plogis(
       summary(Soil_disturbance_no)$coef$cond[, 1] -
@@ -850,18 +853,26 @@ NO_FUJS_001_table <- tibble(
         1.96 * summary(Soil_disturbance_re)$coef$cond[, 2]
     )
   ),
+
   upper_indicator_value = c(
     plogis(summary(Soil_disturbance2_no)$coef$cond[, 1]),
-    plogis(summary(Soil_disturbance2_re)$coef$cond[, 1])
+    plogis(summary(Soil_disturbance2_re)$coef$cond[, 1])[1:3],
+    NA_real_, # Southern Norway
+    plogis(summary(Soil_disturbance2_re)$coef$cond[, 1])[4]
   ),
+
   n_upper_indicator_value = c(
     summary(Soil_disturbance2_no)$nobs,
-    as.vector(table(Soil_disturbance2_re$frame$region))
+    as.vector(table(Soil_disturbance2_re$frame$region))[1:3],
+    NA_real_, # Southern Norway
+    as.vector(table(Soil_disturbance2_re$frame$region))[4]
   ),
+
   lower_indicator_value = c(
     plogis(summary(Soil_disturbance1_no)$coef$cond[, 1]),
     plogis(summary(Soil_disturbance1_re)$coef$cond[, 1])
   ),
+
   n_lower_indicator_value = c(
     summary(Soil_disturbance1_no)$nobs,
     as.vector(table(Soil_disturbance1_re$frame$region))
@@ -873,7 +884,7 @@ NO_FUJS_001_table
 
 #write.table(
 #    NO_FUJS_001_table,
-#    file = paste0(here(), "/data/NO_FUJS_001_table.txt"),
+#    file = paste0(here(), "/results/NO_FUJS_001_table.txt"),
 #    sep = "\t",
 #    row.names = FALSE,
 #    quote = FALSE)
