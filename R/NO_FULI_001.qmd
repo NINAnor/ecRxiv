@@ -110,6 +110,7 @@ conflicts_prefer(tidylog::semi_join)
 conflicts_prefer(tidylog::left_join)
 conflicts_prefer(tidylog::full_join)
 conflicts_prefer(tidylog::distinct)
+conflicts_prefer(tidylog::ungroup)
 pull<-dplyr::pull
 library(arrow)
 library(gt)
@@ -246,7 +247,7 @@ An indicator value of 1 indicates no discernible difference in the functional pl
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state as a response to reduced light availability.
 
 4. **Results and development needs**: 
-The indicator for Norway as a whole is 0.74 [95%CI: 0.42-0.92], , which means that the condition for this indicator is neither significantly lower nor higher than 0.6, the threshold for good ecological condition. The large spatial heterogeneity indicates that local results vary greatly across the country with a range of sites showing considerable plant community changes towards higher abundances of plant species with lower light requirement. For the regions, the result is very similar as for Norway in total.
+The indicator for Norway as a whole is 0.53 [95%CI: 0.52-0.54], signifying that the condition for this indicator is lower than 0.6, the threshold for good ecological condition. As for the regions, all regions score similarly to the national value, varying from 0.52 in Southern Norway, to 0.54 in Northern Norway.
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
@@ -759,7 +760,7 @@ The national and regional estimates are computed separately.
 
 ```{r tmbs}
 #| warning: false
-## since GRUK represents are very rare ecosystem type (T2-C7/C8, present only once in entire ANO) and a very specific area (Oslofjord), but comprises the majority of the combined data, we need to adjust the weights assigned to observations of T2-C7/C8
+## since GRUK represents a very rare ecosystem type (T2-C7/C8, present only once in entire ANO) and a very specific area (Oslofjord), but comprises the majority of the combined data, we need to adjust the weights assigned to observations of T2-C7/C8
 
 # create variable for distinguishing T2-C7/C8 from other T2s
 combined_lowlands$hovedtype_rute_new <- as.character(
@@ -778,7 +779,7 @@ combined_lowlands <- combined_lowlands %>%
 ## Fit ordered beta regression model with a random effects for dataset and the spatial clustering
 # Norway
 Light_no <- glmmTMB(
-  Light ~ hovedtype_rute_new + (1 | dataset / nest_1), 
+  Light ~ hovedtype_rute_new + (1 | nest_1), 
   family = ordbeta(),
   data = combined_lowlands
 )
@@ -872,8 +873,8 @@ NO_FULI_001_table <- grid_df |>
 NO_FULI_001_table <- rbind(NO_FULI_001_table,
                              c("Norway",
                                plogis(summary(global_mean_estimate)$emmean),
-plogis(summary(global_mean_estimate)$emmean + 1.96 * summary(global_mean_estimate)$SE),
-plogis(summary(global_mean_estimate)$emmean - 1.96 * summary(global_mean_estimate)$SE)
+plogis(summary(global_mean_estimate)$emmean - 1.96 * summary(global_mean_estimate)$SE),
+plogis(summary(global_mean_estimate)$emmean + 1.96 * summary(global_mean_estimate)$SE)
 )
 )
 
@@ -892,7 +893,7 @@ NO_FULI_001_table
 
 #write.table(
 #    NO_FULI_001_table,
-#    file = paste0(here(), "/data/NO_FULI_001_table.txt"),
+#    file = paste0(here(), "/results/NO_FULI_001_table.txt"),
 #    sep = "\t",
 #    row.names = FALSE,
 #    quote = FALSE)
