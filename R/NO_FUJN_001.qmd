@@ -248,7 +248,7 @@ An indicator value of 1 indicates no discernible difference in the functional pl
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state as a response to increased soil disturbance.
 
 4. **Results and development needs**:
-The indicator for Norway as a whole is 0.81 [95%CI: 0.69-0.89], which means that the condition for this indicator is significantly higher than 0.6, the threshold for good ecological condition. As for the regions, Southern Norway (0.76) and Eastern Norway (0.74) show clearly lower indicator values than the other regions (>0.85), which indicates that relatively more sites in these two regions show deviations towards higher soil disturbance values.
+The indicator for Norway as a whole is 0.85 [95%CI: 0.77-0.91], which means that the condition for this indicator is significantly higher than 0.6, the threshold for good ecological condition. As for the regions, Southern Norway (0.65) and Eastern Norway (0.71) show clearly lower indicator values than the national average which indicates that relatively more sites in these two regions show deviations towards higher soil disturbance values.
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
@@ -692,10 +692,12 @@ for (i in seq_len(nrow(combined_lowlands))) {
   })
 }
 
+# The Soil disturbance indicator reverts to a non-weighted beta regression model for just the ASO and ANO datasets to account for the spike in near-1 values in the GRUK dataset that caused the weighting to fail.
 
 combined_lowlands <- combined_lowlands |>
   filter(hovedtype_rute %in% c("T2", "T8", "T11", "T12","T13", "T15","T16", "T18","T21", "T24", "T29")) |> 
-  dplyr::mutate(Soil_disturbance  = Soil_disturbance_12)
+  dplyr::mutate(Soil_disturbance  = Soil_disturbance_12) |> 
+  filter(dataset != "GRUK")
 
 
 
@@ -759,123 +761,24 @@ The national and regional estimates are computed separately.
 
 ```{r tmbs}
 #| warning: false
-## since GRUK represents are very rare ecosystem type (T2-C7/C8, present only once in entire ANO) and a very specific area (Oslofjord), but comprises the majority of the combined data, we need to adjust the weights assigned to observations of T2-C7/C8
-
-# create variable for distinguishing T2-C7/C8 from other T2s
-combined_lowlands$hovedtype_rute_new <- as.character(
-  combined_lowlands$hovedtype_rute
-)
-
-combined_lowlands <- combined_lowlands %>%
-  mutate(
-    hovedtype_rute_new = if_else(
-      kartleggingsenhet %in% c("T2-C-7", "T2-C-8"),
-      "GRUK",
-      as.character(hovedtype_rute)
-    )
-  )
-
-## Fit ordered beta regression model with a random effects for dataset and the spatial clustering
+## Fit ordered beta regression null-model with a random effect
 # Norway
 Soil_disturbance_no <- glmmTMB(
-  Soil_disturbance ~ hovedtype_rute_new + (1 | dataset / nest_1), 
-  family = ordbeta(),
-  data = combined_lowlands
+  Soil_disturbance ~ 1 + (1|nest_1),
+  data = combined_lowlands,
+  family = ordbeta
 )
-
-
 summary(Soil_disturbance_no)
 
-# regions, no ranef for dataset due to lack of data for statistic estimation
-Soil_disturbance_re <- glmmTMB(
-  Soil_disturbance ~ hovedtype_rute_new * region + (1 | nest_1), 
-  family = ordbeta(),
-  data = combined_lowlands
-)
+# regions
 
+Soil_disturbance_re <- glmmTMB(
+  Soil_disturbance ~ 0 + region + (1| nest_1),
+  data = combined_lowlands,
+  family = ordbeta
+)
 
 summary(Soil_disturbance_re)
-
-
-## then we calculate the global mean for Norway and the regions accounting for the share of T2-C7/C8 in ANO
-
-# Norway
-# 1. Get the proportion of each nature type based ONLY on the representative ANO data
-ano_proportions <- combined_lowlands  |> 
-  filter(dataset == "ANO") |> 
-  count(hovedtype_rute_new) |>
-  mutate(share = n / sum(n)) |>
-  pull(share)
-# 2. Get the estimated marginal means for each nature type
-grid_means <- emmeans(Soil_disturbance_no, ~ hovedtype_rute_new, type = "link")
-# 3. Collapse all levels into ONE single global mean using the ANO weights
-global_mean_estimate <- emmeans(grid_means, ~ 1, weights = ano_proportions)
-# 4. View the final result
-summary(global_mean_estimate)
-
-
-# regions
-# 1. Calculate the regional weights from the ANO data
-# This creates a data frame showing the proportion of each nature type within each region
-regional_weights_df <- combined_lowlands |>
-  filter(dataset == "ANO") |>
-  count(region, hovedtype_rute_new) |>
-  group_by(region) |>
-  mutate(share = n / sum(n)) |>
-  ungroup()
-
-# there is no ANO records of T2-C7/C8 in Eastern and Southern Norway, but that is where GRUK is. So, we need to add 1 dummy observation each.
-regional_weights_df <- rbind(regional_weights_df,
-                             regional_weights_df |> filter(hovedtype_rute_new =="GRUK") |> mutate(region = "Eastern_Norway"),
-                             regional_weights_df |> filter(hovedtype_rute_new =="GRUK") |> mutate(region = "Southern_Norway"))
-
-regional_weights_df <- regional_weights_df |>
-  group_by(region) |>
-  mutate(share = n / sum(n)) |>
-  ungroup()
-
-# 2. Get the grid of predictions on the link scale for EVERY combination
-grid_regional <- emmeans(Soil_disturbance_re, ~ hovedtype_rute_new | region, type = "link")
-
-# 3. Convert the emmeans object into a regular data frame
-grid_df <- as.data.frame(grid_regional)
-
-# 4. Merge with your regional ANO weights and drop non-existing (NA) combinations
-NO_FUJN_001_table <- grid_df |>
-  # Filter out cells where the model couldn't calculate an estimate (non-existing combinations)
-  filter(!is.na(emmean)) |>
-  # Join your previously calculated regional weights data frame
-  left_join(regional_weights_df, by = c("region", "hovedtype_rute_new")) |>
-  # Re-normalize weights within each region so they sum up to 1 for the remaining existing cells
-  group_by(region) |>
-  mutate(share = share / sum(share, na.rm = TRUE)) |>
-  filter(!is.na(share)) |>
-  # Calculate the weighted mean and pool the SEs on the logit scale
-  summarise(
-    # Weighted mean of logits
-    mu_logit = sum(emmean * share),
-    # Pooled standard error (square root of the sum of weighted variances)
-    se_logit = sqrt(sum((SE * share)^2)),
-    .groups = "drop"
-  ) |>
-  # 4. Calculate 95% CIs on the logit scale and back-transform with plogis()
-  mutate(
-    lower_logit = mu_logit - (1.96 * se_logit),
-    upper_logit = mu_logit + (1.96 * se_logit),
-    global_mean = plogis(mu_logit),
-    lower_CI    = plogis(lower_logit),
-    upper_CI    = plogis(upper_logit)
-  ) |>
-  # Keep only the final clean output
-  select(region, global_mean, lower_CI, upper_CI)
-
-NO_FUJN_001_table <- rbind(NO_FUJN_001_table,
-                             c("Norway",
-                               plogis(summary(global_mean_estimate)$emmean),
-plogis(summary(global_mean_estimate)$emmean + 1.96 * summary(global_mean_estimate)$SE),
-plogis(summary(global_mean_estimate)$emmean - 1.96 * summary(global_mean_estimate)$SE)
-)
-)
 ```
 
 
@@ -883,13 +786,43 @@ plogis(summary(global_mean_estimate)$emmean - 1.96 * summary(global_mean_estimat
 
 The model estimates and standard errors are on a logit scale, but we can calculate indicator values and confidence intervals (CI) by transforming back from logit to values between 0-1
 ```{r}
+NO_FUJN_001_table <- tibble(
+  Region = c(
+    "Norway",
+    "Central Norway",
+    "Eastern Norway",
+    "Northern Norway",
+    "Southern Norway",
+    "Western Norway"
+    ),
+  indicator_value = c(
+    plogis(summary(Soil_disturbance_no)$coef$cond[, 1]),
+    plogis(summary(Soil_disturbance_re)$coef$cond[, 1])
+    ),
+  CI_upper = c(
+    plogis(
+      summary(Soil_disturbance_no)$coef$cond[, 1] + 1.96 * summary(Soil_disturbance_no)$coef$cond[, 2]
+      ),
+    plogis(
+      summary(Soil_disturbance_re)$coef$cond[, 1] + 1.96 * summary(Soil_disturbance_re)$coef$cond[, 2]
+      )
+    ),
+  CI_lower = c(
+    plogis(
+      summary(Soil_disturbance_no)$coef$cond[, 1] - 1.96 * summary(Soil_disturbance_no)$coef$cond[, 2]
+      ),
+    plogis(
+      summary(Soil_disturbance_re)$coef$cond[, 1] - 1.96 * summary(Soil_disturbance_re)$coef$cond[, 2]
+      )
+    )
+  )
 
 # View results for Norway and regions
 NO_FUJN_001_table
 
 #write.table(
 #    NO_FUJN_001_table,
-#    file = paste0(here(), "/data/NO_FUJN_001_table.txt"),
+#    file = paste0(here(), "/results/NO_FUJN_001_table.txt"),
 #    sep = "\t",
 #    row.names = FALSE,
 #    quote = FALSE)
