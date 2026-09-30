@@ -78,7 +78,7 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
   st_drop_geometry() |> 
   filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
-                               "T16", "T18", "T21", "T24", "T29", "T41", "T45")) |> 
+                               "T16", "T18", "T21", "T24", "T29", "T41")) |> 
   as.data.frame()
 
 
@@ -99,6 +99,7 @@ ANO_species_ind <- ANO_species_ind |>
   rename(nest_1 = ano_flate_id) |> 
   mutate(kartleggingsenhet = str_remove(kartleggingsenhet_1m2, " .*"))
 
+
 combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m2)), 
                                GRUK_species_ind |> rename(parentglobalid = parent_global_id),
                                ASO_species_ind |> rename(parentglobalid = event_id),
@@ -111,7 +112,7 @@ combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m
   )) |> 
   filter(hovedtype_rute %in% c("T31", "T32", "T33", "T34", "V9" , "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
-                               "T16", "T18", "T21", "T24", "T29", "T41", "T45"))
+                               "T16", "T18", "T21", "T24", "T29", "T41"))
 
 #write_rds(combined_lowlands, paste0(here::here(),"/data/cache/combined_lowlands.RDS"))
 #write_rds(combined_species, paste0(here::here(),"/data/cache/combined_species.RDS"))
