@@ -11,14 +11,15 @@
 
 ## NEWS
 
+- 02.10.2026 36 new or updated indicator workflows were published in ecRxiv this summer in relation to the ecosystem condition assessment for mountains and forests.
 - 20.03.2026 NINA is starting up a new project to do ecosystem condition assessments for mountains and forests. Indicators will be documented on ecRxiv.
 - 15.01.2026 We now have a new submission workflow which is hopefully easier to use and requires less git knowledge
 - 19.12.2025 ecRxiv was used to document ecosystem condition indicators for the Norwegian pilot condition account. The report can be found [here](https://www.miljodirektoratet.no/publikasjoner/2025/desember-2025/nasjonal-pilot-for-okologisk-tilstandsregnskap/)
 - 19.12.2025 ecRxiv maintainer and inventor [Anders Kolstad](https://github.com/anders-kolstad) recently won an [award for good open science pratices](https://norrn.substack.com/p/norrn-december-newsletter) based on his work with ecRxiv.
 
 ## How to use ecRxiv
-To browse ecosystem condition indicators, please visit the [ecRxiv web app](https://ecRxiv.com). 
-Or, to browse source files (raw data files or scripts), please switch to the [main branch](https://github.com/NINAnor/ecRxiv/tree/main/indicators).
+To browse ecosystem condition indicators, please visit the [ecRxiv web app](https://ecRxiv.com). There you can use the columns filters to find a specific indicator.
+To browse source files (raw data files or scripts), please switch to the [main branch](https://github.com/NINAnor/ecRxiv/tree/main/indicators).
 You can also look up the histories for published indicators, such as code reviews and comments, by going to the [issues tab](https://github.com/NINAnor/ecRxiv/issues) and in the _Labels_ filter, search and select for indicatorID's. 
 
 ## License
@@ -39,7 +40,7 @@ Forks or derivative works should not imply endorsement by, affiliation with, or 
 
 On this site (this GitHub repository) you can submit technical documentation and ecological justification for your ecosystem condition indicator(s) and have it published on an [online web application](https://ecRxiv.com) in a standardised format along side other indicators from anywhere in the world.
 
-The documentation must be submitted in the form of a quarto file (.qmd) following our template. The indicator metadata is embedded in the same .qmd file, in the top YAML. The .qmd wil render to HTML.
+The documentation must be submitted in the form of a quarto file (.qmd), following one of our templates. The indicator metadata is embedded in the same .qmd file, in the top YAML. The .qmd wil render to HTML.
 
 Please see you author tutorial video, and/or read the part below.
 
