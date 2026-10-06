@@ -1,0 +1,73 @@
+﻿project:
+  indicator_id: NO_GJEN_002
+  version: 0.4.0-candidate-1m
+  reporting_year: 2024
+  target_crs: 25833
+
+paths:
+  aoi: data/x100_reference_v0_4/AOIs_58871_v0_4.gpkg
+  regions: data/x100_reference_v0_4/regions_indicator_v0_4.gpkg
+  bioclimatic_zones: data/x100_reference_v0_4/bioclimatic_zones_v0_4.gpkg
+  good_reference: data/x100_reference_v0_4/reference_good_1m_v0_4.csv
+  forest_reference: data/x100_reference_v0_4/reference_forest_1m_v0_4.csv
+  # Root folder produced by host_norge_master.ps1. Forward slashes work in R
+  # on Windows and avoid YAML escaping of backslashes.
+  ortho_archive: "P:/154008_limnisk_nin_2024/ortofoto_norge_1m"
+  tile_manifest: "C:/NO_GJEN_002_RUNTIME/no_gjen_002_x100_1m_v0_4/work/tile_manifest.csv"
+  tile_aoi_map: "C:/NO_GJEN_002_RUNTIME/no_gjen_002_x100_1m_v0_4/work/tile_aoi_map.csv"
+  predictions: "C:/NO_GJEN_002_RUNTIME/no_gjen_002_x100_1m_v0_4/work/predictions"
+  inference_manifest: "C:/NO_GJEN_002_RUNTIME/no_gjen_002_x100_1m_v0_4/work/inference_manifest.csv"
+  zonal_statistics: "C:/NO_GJEN_002_RUNTIME/no_gjen_002_x100_1m_v0_4/work/polygon_statistics.gpkg"
+  outputs: "C:/NO_GJEN_002_RUNTIME/no_gjen_002_x100_1m_v0_4/outputs"
+
+fields:
+  aoi_id: id
+  ecosystem: ecosystem
+  region_id: region_id
+  region_name: region_name
+  bioclimatic_zone: KLASSE
+imagery:
+  source: existing_nib_archive
+  resolution_m: 1.0
+  source_tile_pixels: 2000
+  source_tile_width_m: 2000
+  # Meta-modellen tar 256 x 256 piksler. Overlapp reduserer modellens
+  # dokumenterte kanteffekter; bare den blendede midtdelen veier fullt.
+  model_chip_pixels: 256
+  chip_overlap_pixels: 64
+  # Modellen er hittil evaluert ved 0,5 og 1 m, ikke ved 2 m. Denne bryteren
+  # gjÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸r den tekniske testkjÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ringen mulig, men resultatet er eksperimentelt.
+  allow_untested_resolution: false
+
+model:
+  # Kjoer SETUP_META_MODELL.ps1; skriptet fyller inn python og Git-revisjon.
+  python: "C:/Users/vegar.bakkestuen/AppData/Local/miniconda3/envs/no_gjen_002/python.exe"
+  script: python/run_inference.py
+  model_repository: "C:/NO_GJEN_002_RUNTIME/HighResCanopyHeight_git_84971392"
+  repository_revision: 84971392fb3a017e53d19e28ee0409d0de5d5d61
+  checkpoint: "C:/NO_GJEN_002_RUNTIME/HighResCanopyHeight/saved_checkpoints/compressed_SSLhuge_aerial.pth"
+  normalization_checkpoint: "C:/NO_GJEN_002_RUNTIME/HighResCanopyHeight/saved_checkpoints/aerial_normalization_quantiles_predictor.ckpt"
+  batch_size: 16
+  workers: 4
+  device: auto
+  # Meta sin publiserte inferenskode bruker 5/95-percentiler og 10 x
+  # modellutgangen. Endres bare ved dokumentert, versjonert rekalibrering.
+  input_low_quantile: 0.05
+  input_high_quantile: 0.95
+  output_scale: 10.0
+  output_offset_m: 0.0
+
+indicator:
+  minimum_raster_coverage: 0.80
+  aggregation: area_weighted
+  resolution_status: candidate_validated_1m
+  calibration_status: x100_1m_v0_4_candidate
+calibration:
+  method: piecewise_knot_1m
+  source_metric: qa_le10_mean_m
+  qa_min_m: 0.0
+  qa_max_m: 10.0
+  minimum_retained_fraction: 0.80
+  knot_m: 1.0
+  lower_slope: 3.752292459275057
+  upper_slope: 0.7369730201769807
