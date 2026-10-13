@@ -15,5 +15,13 @@ foreach($p in @($Frame,$PolygonResults,$V11Table,$AnoGpkg)) {
 }
 if(Test-Path -LiteralPath $OutputDirectory){throw 'Choose a new output directory to preserve the frozen delivery.'}
 $analysis=Join-Path $PSScriptRoot '..\R\calculate_gruk_calibrated_results_v1_2.R'
-& $Rscript $analysis $Frame $PolygonResults $V11Table $AnoGpkg $OutputDirectory $BootstrapReplicates $BootstrapSeed
-if($LASTEXITCODE -ne 0){throw "V1.2 analysis failed: $LASTEXITCODE"}
+$savedPreference=$ErrorActionPreference
+try {
+ $ErrorActionPreference='Continue'
+ & $Rscript $analysis $Frame $PolygonResults $V11Table $AnoGpkg $OutputDirectory $BootstrapReplicates $BootstrapSeed 2>&1 |
+  ForEach-Object { $_.ToString() }
+ $rExitCode=$LASTEXITCODE
+} finally {
+ $ErrorActionPreference=$savedPreference
+}
+if($rExitCode -ne 0){throw "V1.2 analysis failed: $rExitCode"}
