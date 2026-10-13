@@ -1,0 +1,461 @@
+---
+title: "Woody encroachment"
+subtitle: |
+  [NO_GJEN_002] (open ecosystems)
+indicatorID:
+  - NO_GJEN_002
+indicatorName:
+  - Woody encroachment
+verbatimName:
+  - Gjengroing
+folderName: NO_GJEN_002
+country: Norway
+continent: Europe
+ECT: B3 - Functional state characteristics
+Realm:
+  - Terrestrial (T)
+  - Freshwater (F)
+Biome:
+  - Open terrestrial ecosystems
+  - Wetlands
+Ecosystem:
+  - Naturally open areas below the forest line
+  - Semi-natural land
+  - Wetlands
+verbatimEcosystem:
+  - Naturlig åpne områder under skoggrensa
+  - Semi-naturlig mark
+  - Våtmark
+yearAdded: 2024
+yearLastUpdate: 2026
+status: incomplete
+Version: "0.4.0"
+VersionComment: "Reimplemented the indicator with a reproducible 1 m orthophoto workflow; documented frozen X100 and X0 references, implicit X60, spatial uncertainty and GRUK calibration; the result remains provisional and coverage-limited."
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GJEN_002
+Normalised: Yes
+SpatialAggregationPathway: "Scale at object level - sigmoid transform - aggregate using calibrated area weights - truncate to [0,1]"
+Precision: "95% uncertainty interval from 20,000 Bayesian spatial cluster-bootstrap replicates over 10 x 10 km clusters"
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute:
+  cache: true
+author:
+  - name: Andrew Gray
+    email: andrew.gray@nina.no
+    affiliations:
+      - id: nina
+        name: Norwegian Institute for Nature Research (NINA)
+  - name: Vegar Bakkestuen
+    affiliations:
+      - ref: nina
+  - name: Ida M. Mienna
+    affiliations:
+      - ref: nina
+  - name: Zander Venter
+    affiliations:
+      - ref: nina
+AuthorList: Gray, A.; Bakkestuen, V.; Mienna, I. M.; Venter, Z.
+date: October 6, 2026
+data_availability: none
+code_reproducibility: none
+open_science_badge: none
+callout-icon: false
+lightbox: true
+code-links:
+  - text: Add a review
+    icon: github
+    href: https://github.com/NINAnor/ecRxiv
+hide: FALSE
+bibliography: [references.bib, references_aud.bib]
+---
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull <- dplyr::pull
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+here::i_am("indicators/NO_GJEN_002/R/NO_GJEN_002.qmd")
+source(here::here("_common.R"))
+```
+
+```{r reviewers}
+#| echo: false
+#| results: asis
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default"><div class="quarto-title-meta"><div><div class="quarto-title-meta-heading">Reviewed by</div><div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div></div></div></div>'
+  ))
+}
+```
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+license_badge()
+```
+
+:::
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+::: {.callout-tip collapse="true"}
+## Metadata
+
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID", "Indicator Name", "verbatimName", "Continent", "Country",
+    "Ecosystem Condition Typology Class", "Realm", "Biome", "Ecosystem",
+    "verbatimEcosystem", "Year added", "Last update", "Version",
+    "Version comment", "Normalised", "Spatial aggregation pathway", "Precision"
+  )) |>
+  kable()
+```
+:::
+
+::: {.callout-tip collapse="true"}
+## Log
+
+- 06 Oct. 2026 - Version 0.4.0. Migrated the documentation to the current ecRxiv template; documented the reproducible 1 m workflow, frozen references, GRUK calibration and spatial uncertainty.
+- 15 Sep. 2026 - Version 0.3.0-rc1. Added the national production workflow and an experimental 2 m technical result.
+- 11 Oct. 2024 - Original draft.
+:::
+
+<hr />
+
+## 1. Summary
+
+1. **Background and rationale**: Woody encroachment increases the cover and height of bushes and trees in ecosystems whose characteristic condition is open. It can result from land-use abandonment, reduced grazing or haymaking, drainage, climate change and other changes in disturbance regimes. The indicator describes woody vegetation structure in characteristically open ecosystems. The reported V1.2 estimate covers selected naturally open and semi-natural terrestrial systems; it does not provide a separately classified wetland estimate.
+
+2. **Methods**: Canopy height is predicted from ordinary aerial orthophotos with Meta's High Resolution Canopy Height model [@audit_tolan2024]. The 1 m workflow uses overlapping image chips, quality screening and a versioned calibration of the model output. Object-level canopy height is normalised between X~100~ (good-condition reference height) and X~0~ (complete deterioration represented by mature-forest height). Object values are aggregated with area weights. The contributing datasets are Arealrepresentativ naturovervåking (ANO), Arealrepresentativ overvåking av semi-naturlig eng (ASO), and mapped åpen grunnlendt kalkmark (GRUK; calcareous open ground, T2-C-7/T2-C-8). These are the Norwegian programme and habitat names; ASO concerns semi-natural grassland rather than all semi-natural land [@audit_ano; @audit_aso]. The GRUK contribution is calibrated to its estimated share in the ANO open-lowland frame. Uncertainty is estimated with a spatial cluster bootstrap.
+
+3. **Interpretation**: An indicator value of 1 signifies open vegetation structure consistent with the good-condition reference. Values decreasing toward zero indicate increasing woody vegetation height relative to the stratum-specific interval between X~100~ and X~0~. The metric describes vegetation structure, not all components of ecological condition.
+
+4. **Results and development needs**: The provisional national V1.2 estimate is **0.9170** (95% uncertainty interval 0.8910--0.9392). The estimate is coverage-limited and combines imagery from several acquisition years. The recovered GPU V0.5 X~100~ package and exact V1.2 analysis must be retained with the workflow. The X~0~ lookup builder and original GEE export have been recovered; all 57 lookup rows reproduce exactly at the implemented 15-significant-digit precision. The upstream GEE export-generation script remains to be recovered. The V1.2 aggregation has been independently rerun with 20,000 replicates and the original seed: all object CSV fields and all six estimates and interval endpoints match the archived delivery. Full operational status still requires upstream provenance and ecological validation of reference choices. Reference choices should subsequently be reviewed by NiN main type.
+
+## 2. About the underlying data
+
+The workflow combines aerial imagery, mapped ecosystem objects, reference polygons, regional strata and bioclimatic zones. The current V1.2 delivery includes ANO, ASO and GRUK objects. The archived delivery audit contains 3,113 objects assigned to the naturally open group and 646 assigned to the semi-natural group. No object has a separately assigned wetland reference group. Cross-scale source checks identify wetland codes on one recording scale for 21 included ANO objects; their selected terrestrial classification determines their reference group. The complete reference package includes a wetland table, but V1.1G loads only the naturally open and semi-natural tables. The result table retains the raw height statistic, calibrated canopy height, reference levels, eligibility fields, spatial cluster and aggregation weights for every object.
+
+### 2.1 Spatial and temporal resolution and extent
+
+The candidate workflow uses 1 m orthophotos in ETRS89 / UTM zone 33N (EPSG:25833). Source tiles cover 2 x 2 km and contain 2,000 x 2,000 pixels. Inference uses overlapping 256 x 256 pixel windows with 64-pixel overlap. The reporting label is 2024, and V1.2 excludes observations after 2024. The available imagery is a spatial mosaic of acquisition years rather than a simultaneous national survey.
+
+### 2.2 Sampling design
+
+ANO and ASO provide probability-sample information, whereas GRUK polygons are mapped much more intensively around the Oslofjord. Direct area weighting would therefore allow GRUK to dominate the national estimate. V1.2 defines GRUK as T2-C-7/T2-C-8 and calibrates its national contribution to the proportion of these units among 1,081 points in the approved ANO open-lowland frame. One such point was observed nationally.
+
+### 2.2.1 ANO recording scales and selection
+
+ANO records vegetation on a 1 m² plot and an approximately 250 m² circular plot. The delivery selects an approved terrestrial open-system T-code at 250 m² when available; otherwise it uses an approved T-code at 1 m². A wetland V-code is not an eligible 250 m² choice under this rule. Among the 713 included ANO objects, 633 use the 250 m² classification and 80 use the 1 m² fallback; 13 of the latter have a wetland code at 250 m². Eight other included objects have a wetland code at 1 m² but a selected terrestrial type at 250 m². Different types at these scales are legitimate observations, not automatically coding errors. The height statistic still represents the approximately 250 m² object, so the ecological representativeness of the 1 m² fallback needs explicit consideration.
+
+The frame selects the latest eligible observation up to 2024 after filtering on approved types. The V1.2 GRUK step instead links frame point IDs to their latest accessible observation up to 2024. This distinction changes the GRUK classification of ANO0911_55 (T2-C-7 in the selected 2019 record, T4-C-4 in its latest 2021 record). The frozen V1.2 calibration follows the latter rule and retains one observed GRUK point nationally. A different record-linkage rule is a versioned sensitivity analysis, not a silent replacement of V1.2.
+
+### 2.3 Original units
+
+Canopy height, X~100~, X~60~ and X~0~ are expressed in metres. Object area is expressed in square metres. The final indicator is dimensionless and bounded between 0 and 1.
+
+### 2.4 Instructions for citing, using and accessing data
+
+The model code is based on Meta's High Resolution Canopy Height repository [@audit_tolan2024]. The string [`84971392fb3a017e53d19e28ee0409d0de5d5d61`](https://github.com/facebookresearch/HighResCanopyHeight/commit/84971392fb3a017e53d19e28ee0409d0de5d5d61) is a Git commit identifier: it pins the external model source code to an exact revision. Checkpoints are separate inputs and must also be versioned or checksummed. Aerial imagery originates from Norway in Images (Norge i bilder) [@audit_nib]. Small reference and configuration files are stored with the indicator workflow. Orthophotos, model checkpoints and full delivery products are maintained outside GitHub because of licensing and file size.
+
+### 2.5 Additional comments about the dataset
+
+The earlier nationwide 2 m result was a technical pipeline test. It is not the current indicator estimate because predicted heights at 2 m were strongly compressed toward zero. The 1 m candidate uses a separately versioned height calibration.
+
+### 2.6 Plain-language calculation
+
+The input is an orthophoto showing the vegetation. The model predicts a height raster, not one direct prediction per polygon. Quality-screened raster values are summarised within each ecosystem object and converted with the documented 1 m height calibration. The resulting object height is compared with two references: X~100~ for vegetation structure in good condition and X~0~ for the mature-forest endpoint used in this delivery. A fixed nonlinear function converts this position to a score from 0 to 1. A score near 1 means that woody vegetation height is near or below the good-condition reference; a lower score means taller woody vegetation relative to that reference interval. It is not a percentage of remaining habitat or a complete assessment of ecological condition.
+
+The object scores are then combined within two domains using area weights. The intensively mapped GRUK domain receives the contribution estimated from the ANO sampling frame, and the other open-lowland domain receives the remaining contribution. Spatial uncertainty is calculated around this aggregate. This QMD explains the workflow and displays its delivered results; rendering the document does not run imagery inference or the delivery analysis.
+
+## 3. Indicator properties
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+Woody encroachment is assigned to B3, functional state characteristics, because it describes a change in vegetation structure and ecosystem functioning relative to characteristically open conditions.
+
+### 3.1.1 Other condition typologies
+
+The indicator contributes to Norwegian ecosystem-condition assessments and is methodologically related to the LiDAR-based indicator NO_GJEN_001.
+
+### 3.2 Ecosystem condition characteristic
+
+Open vegetation structure.
+
+### 3.3 Collinearities with other indicators
+
+Vegetation height can covary with vegetation productivity metrics such as NDVI. In wetlands, woody encroachment may also covary with drainage indicators. These relationships should be considered when indicators are combined in an ecosystem-condition assessment.
+
+### 3.4 Impact factors
+
+Important impact factors include abandonment or reduced intensity of grazing and haymaking, drainage, planting or removal of trees, altered fire and disturbance regimes, nitrogen deposition, invasive species and climate-driven shifts in the forest line and shrub growth.
+
+### 3.5 Spatial aggregation
+
+Canopy height is scaled and transformed at object level. V1.2 aggregates the transformed values using calibrated area weights. Within the GRUK and other-open-lowland domains, relative area weights are retained. The national combination is the ANO-estimated GRUK share times the GRUK-domain mean plus the complementary share times the other-open-lowland mean. Values are truncated to the interval 0--1. Regional estimates currently use observed regional GRUK shares and are provisional where the ANO frame contains no GRUK point.
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+The reference condition is a minimally disturbed state with native species composition and an open vegetation structure characteristic of the ecosystem. In naturally open ecosystems this means that drainage, climate change, alien species and other pressures have not caused net woody encroachment. In semi-natural ecosystems it assumes continued management, such as grazing or haymaking, sufficient to maintain open conditions.
+
+### 4.2 Reference levels
+
+X~100~ represents good condition and is based on canopy-height estimates from good-condition NiN reference polygons, stratified by ecosystem group, region and bioclimatic zone. Each population object inherits the reference value for its stratum.
+
+X~0~ represents complete deterioration by woody encroachment. The implemented 1 m workflow reads X~0~ from `reference_forest_1m_v0_4.csv`. The same mature-forest height is used for all ecosystem groups within a region-zone stratum. In the strata represented in V1.2, X~0~ ranges from 3.844 to 11.743 m. The current production code does not implement a separate 0.8 m X~0~ override for naturally open ecosystems.
+
+For canopy height $h$, define
+
+$$z=\operatorname{clamp}\left(\frac{h-X_{100}}{X_0-X_{100}},0,1\right).$$
+
+The condition value is
+
+$$I(h)=\operatorname{clamp}\left[1-1.0068\left(1-\exp(-5z^{2.5})\right),0,1\right].$$
+
+The implementation rejects reference strata for which $X_0 \leq X_{100}$.
+
+X~60~ is not independently estimated. Solving $I(h)=0.60$ gives
+
+$$X_{60}=X_{100}+0.400116533\,(X_0-X_{100}).$$
+
+Thus the implemented X~60~ lies almost exactly 40% of the interval from X~100~ to X~0~. Defining an ecological X~60~ independently would constitute a method change.
+
+::: {.callout-warning}
+## Frozen-reference contract
+
+“Frozen” means a retained, versioned snapshot used to produce a specific delivery. Later methodological changes receive a new version; they do not silently overwrite the inputs behind the reported V1.2 result. Freezing therefore protects traceability, not the method from scientific revision. The recovery snapshot is derived from the archived object workbook, with a SHA-256 identifier in its provenance file.
+
+The repository candidate X~0~ table reproduces all 3,759 frozen V1.2 object references exactly. The file `reference_good_1m_v0_4.csv` currently in the repository is not the frozen X~100~ table used for V1.2: none of the object-level X~100~ values are exact matches, although all delivery strata are present, and the largest absolute difference is 0.609 m. The candidate table must not replace the frozen delivery values. The GPU V0.5 reference package used by the delivery has now been recovered and is retained separately in `data/x100_gpu_reference_package_v0_5/`. All 3,759 delivered X~100~ values match its tables exactly, and all 23 package SHA-256 entries were verified. The earlier CPU candidate table remains a distinct version. The object-level recovery snapshot in `data/delivery_v1_2_frozen/` additionally preserves the delivered values. Full reference regeneration still requires the original pilot selection, predictions and generation environment identified in the package provenance.
+:::
+
+The recovered X~0~ builder maps `p90_height` from `vegHeights_skog_climZoneRegion.csv` into 57 lookup rows using 25 region–zone cells. The archived 2024 documentation describes LiDAR heights within national forest base-map polygons, excluding forest clear-cut since 1986. This is historical method documentation; the exact GEE assets, masks and percentile aggregation have not yet been verified against the original export-generation script. Reproduction from the retained export is verified, whereas regeneration of that export remains an explicit provenance limitation. See `docs/x0_provenance_audit_2026-10-14.md`.
+
+An X~0~ of 0.8 m cannot be introduced independently of X~100~: 1,000 of 3,113 naturally open V1.2 objects already have X~100~ greater than or equal to 0.8 m. The three reference levels should therefore be reviewed jointly, preferably by NiN main type as well as region and bioclimatic zone.
+
+#### 4.2.1 Spatial resolution and validity
+
+Reference levels vary by ecosystem group, one of five reporting regions and bioclimatic zone. They are regional-stratum references rather than local measurements. Object-level values are retained for transparency, but inference and interpretation are intended at national and regional scales.
+
+## 5. Uncertainties
+
+### 5.1 General uncertainties
+
+The canopy-height model is less precise for very low vegetation and shaded areas. Differences in acquisition year, season, camera system and georectification can affect predictions. Reference polygons and mapped GRUK objects are spatially biased. The ecological meaning of mature forest as X~0~ may differ among semi-natural grasslands, coastal heath, boreal heath, semi-natural strand meadows and naturally open systems. The recovered GPU X~100~ snapshot resolves its lookup-version discrepancy; remaining upstream GEE X~0~ export provenance and alternative ecological reference choices are not represented by the numerical interval.
+
+### 5.2 Reported uncertainties
+
+The reported 95% intervals describe uncertainty around the aggregated point estimate caused by spatial sampling. They are calculated from 20,000 Bayesian spatial cluster-bootstrap replicates over 10 x 10 km clusters. The ANO GRUK share is re-estimated within every replicate. These intervals do not incorporate model-prediction error, alternative reference definitions, imagery-year uncertainty or classification error.
+
+## 6. References
+
+The model, imagery service, monitoring programmes, nature-type data catalogue and Bayesian-bootstrap basis are cited using bibliography entries [@audit_tolan2024; @audit_nib; @audit_ano; @audit_aso; @audit_nin_catalogue; @audit_rubin1981]. The catalogue entry identifies the mapping source, not a full methodological reference for the NiN classification system.
+
+## 7. Import and prepare datasets
+
+### 7.0 Code map
+
+Paths below are relative to `indicators/NO_GJEN_002/`. The QMD is documentation; the scripts run separately.
+
+| Task | Files | Role and limits |
+|:--|:--|:--|
+| Configuration and reference lookup | `config_x100_1m_v0_4.yml`; `data/x100_reference_v0_4/` | Select calibration and reference tables. The lookup tables do not regenerate the missing original reference populations. |
+| Model inference | `python/run_inference.py`; `python/prepare_vegheights.py`; `SETUP_META_MODELL.ps1` | Prepare imagery/model inputs and produce the height raster. |
+| Polygon height statistics | `R/calculate_zonal_stats_x100_v0_4.R` | Screen raster values and calculate the calibrated object-height statistic. |
+| Object scores and direct means | `R/calculate_indicator_x100_v0_4.R` | Apply reference scaling and the condition function. This alone does not produce the GRUK-calibrated delivery. |
+| GRUK calibration and intervals | `R/calculate_gruk_calibrated_results_v1_2.R`; `scripts/RUN_GRUK_V1_2.ps1` | Reuse frozen V1.1G object scores, classify GRUK against original ANO units, estimate domain weights and run 20,000 cluster-weight replicates. |
+| Pipeline coordination | `R/run_pipeline_x100_v0_4.R`; production PowerShell launchers | Run preparation, inference, zonal statistics and object scoring. V1.2 is a subsequent aggregation step. |
+| Tests and audit | `tests/run_x100_v0_4_candidate_contract.R`; `python/audit_reference_contract_v1_2.py`; `docs/aud_review_2026-10-13.md` | Distinguish synthetic workflow checks from checks on frozen delivery values. |
+| Preserved delivery values | `data/delivery_v1_2_frozen/objects_recovered.csv` | Recovery copy from the archived workbook; can reproduce the point estimate, not the full bootstrap without the ANO frame. |
+
+
+### 7.1 Aerial imagery and model configuration
+
+The production configuration is stored in `config_x100_1m_v0_4.yml`. It fixes the imagery resolution, coordinate reference system, model revision, checkpoints, image-normalisation quantiles, output scaling and calibration parameters.
+
+```{r import-config}
+#| eval: false
+library(yaml)
+cfg <- yaml::read_yaml(here::here(
+  "indicators", "NO_GJEN_002", "config_x100_1m_v0_4.yml"
+))
+```
+
+### 7.2 Reference tables and frozen delivery values
+
+The candidate lookup tables can be imported as follows. The frozen GPU reference package and object table remain authoritative for reproducing the delivered result; do not substitute the CPU V0.4 candidate lookup.
+
+```{r import-reference}
+#| eval: false
+reference_dir <- here::here(
+  "indicators", "NO_GJEN_002", "data", "x100_reference_v0_4"
+)
+good_reference <- read.csv(file.path(reference_dir, "reference_good_1m_v0_4.csv"))
+forest_reference <- read.csv(file.path(reference_dir, "reference_forest_1m_v0_4.csv"))
+```
+
+## 8. Spatial units
+
+The basic calculation units are mapped ecosystem objects or probability-sample objects. Reference strata are intersections of ecosystem group, reporting region and bioclimatic zone. Uncertainty clusters are 10 x 10 km grid cells. Final reporting units are Norway and five regions: Northern, Central, Eastern, Western and Southern Norway.
+
+## 9. Analyses
+
+### 9.1 Canopy-height inference and calibration
+
+Inference uses the fixed model revision and checkpoints recorded in the configuration. Model predictions outside 0--10 m are excluded from the polygon height statistic, and at least 80% of covered weight must be retained. The coverage-weighted mean is transformed by a piecewise-linear 1 m calibration with a knot at 1 m, lower slope 4.281660377624701 and upper slope 0.933252196706718 (the frozen GPU V0.5 calibration used for V1.1G/V1.2; the CPU V0.4 calibration is a separate candidate).
+
+### 9.2 Object-level condition
+
+The production implementation is contained in `R/calculate_indicator_x100_v0_4.R`. The essential transformation is shown below.
+
+```{r condition-function}
+#| eval: false
+scale_encroachment <- function(height, X100, X0) {
+  denominator <- X0 - X100
+  invalid <- !is.finite(height) | !is.finite(X100) |
+    !is.finite(X0) | denominator <= 0
+  z <- pmin(pmax((height - X100) / denominator, 0), 1)
+  condition <- 1 - 100.68 * (1 - exp(-5 * z^2.5)) / 100
+  condition[invalid] <- NA_real_
+  pmin(pmax(condition, 0), 1)
+}
+```
+
+### 9.3 GRUK calibration and uncertainty
+
+Let $p$ be the T2-C-7/T2-C-8 share in the ANO open-lowland frame, $\bar I_G$ the area-weighted GRUK-domain mean and $\bar I_O$ the area-weighted mean for the remaining open-lowland domain. The calibrated estimate is
+
+$$\hat I=p\bar I_G+(1-p)\bar I_O.$$
+
+The implementation is `R/calculate_gruk_calibrated_results_v1_2.R`, extracted without changes from the original delivery launcher. In each replicate, every 10 x 10 km cluster receives an independent Exp(1) weight. Normalising these weights gives Dirichlet(1,...,1) weights, which is the Bayesian-bootstrap construction [@audit_rubin1981]. The same cluster weight is used for both the ANO-frame points and the outcome objects in that cluster. Thus $p$ and both domain means are re-estimated jointly in each replicate. This is weighted Bayesian resampling, not multinomial sampling of clusters with replacement.
+
+The delivery uses 20,000 replicates, seed 20260930 with the original reporting-area offsets, and the 2.5% and 97.5% quantiles. National and regional GRUK proportions are estimated separately. Four regions have observed share zero, so their Bayesian replicates keep that share at zero; the intervals cannot represent an unobserved GRUK occurrence in those regions. The small national GRUK count is a further limitation of the calibration.
+
+```{r run-delivery}
+#| eval: false
+# Run from a terminal with sf and jsonlite installed; paths are explicit.
+# Rscript R/calculate_gruk_calibrated_results_v1_2.R \
+#   FRAME.gpkg V11_OBJECTS.gpkg V11_TABLE.csv ANO_SOURCE.gpkg \
+#   NEW_OUTPUT_DIRECTORY 20000 20260930
+```
+
+Full reproduction also requires the approved ANO frame and original ANO mapping-unit source, not just the 3,759 outcome objects. The recovery CSV does not substitute for those inputs. A local reproduction using the original inputs has now confirmed all delivered object CSV fields, all six point estimates and all interval endpoints. The national bootstrap uses 587 clusters in the union of frame and outcome locations; the earlier count of 492 described outcome-only clusters.
+
+### 9.4 Reproducibility checks
+
+The synthetic contract test validates the 1 m calibration and end-to-end calculation. It passes together with the numerical Pilot85 contract: 0.96271791 for 591 eligible polygons. The archived reference audit reports reproduction of every frozen V1.2 object indicator after production rounding and verifies the X~0~/X~100~ version relationship described in Section 4.2.
+
+## 10. Results
+
+| Reporting area | V1.1G direct area weight | V1.2 GRUK calibrated | 95% interval |
+|:--|--:|--:|:--|
+| Norway | 0.9670 | **0.9170** | 0.8910--0.9392 |
+| Northern Norway | 0.9905 | **0.9313** | 0.8904--0.9630 |
+| Central Norway | 0.9495 | **0.8963** | 0.8425--0.9402 |
+| Eastern Norway | 0.9542 | **0.9259** | 0.8685--0.9636 |
+| Western Norway | 0.8704 | **0.9612** | 0.9237--0.9829 |
+| Southern Norway | 0.9216 | **0.7795** | 0.6295--0.9037 |
+
+The national ANO frame contains one T2-C-7/T2-C-8 point among 1,081 open-lowland points, corresponding to 0.0925%. Approximate national source weights after calibration are 89.21% ANO, 10.70% ASO and 0.0925% GRUK. Four regions contain no observed GRUK point in the ANO frame, while Southern Norway contains one among 114 points; regional estimates are therefore provisional.
+
+## 11. Export file
+
+The delivery exports a polygon GeoPackage, an object-level CSV, national and regional result tables, an ANO mapping-code audit, a GRUK-share table and machine-readable provenance. Large delivery products are not stored in GitHub.
+
+```{r export}
+#| eval: false
+# See R/calculate_gruk_calibrated_results_v1_2.R for CSV and GeoPackage export.
+```
+
+## 12. Author contributions
+
+Contributor roles should be confirmed by all authors before submission.
+
+**CRediT statement**
+
+* Conceptualization: AG, VB, IMM, ZV
+* Methodology: AG, VB, IMM, ZV
+* Software: VB
+* Formal analysis: VB
+* Validation: VB
+* Writing – original draft: AG, VB, IMM, ZV
+* Writing – review & editing: AG, VB, IMM, ZV
+
+**MeRIT attribution**
+
+**Study design**
+The study design and final attribution will be confirmed by the author group before submission.
+
+**Data processing**
+The 1 m processing workflow and reference audit were implemented by Vegar Bakkestuen.
+
+**Statistical analysis**
+The V1.2 GRUK calibration and spatial uncertainty analysis were implemented by Vegar Bakkestuen and are subject to author-group review.
+
+**Reproducibility**
+The synthetic and numerical contract tests and the frozen-reference audit are included with the workflow.
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+:::

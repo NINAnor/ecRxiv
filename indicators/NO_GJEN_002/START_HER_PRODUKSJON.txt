@@ -1,0 +1,36 @@
+NO_GJEN_002 0.3.0-rc1 - POWERSHELL-STYRT PRODUKSJON
+===================================================
+
+Pakken viderefoerer eksisterende NO_GJEN_002-metode. Rapporteringsaaret er
+2024. Fotograferingsaaret beholdes separat for hver ortofotoflis.
+
+VIKTIG: Meta-modellen er evaluert ved 0,5 og 1 m, ikke 2 m. Resultatene fra
+det landsdekkende 2 m-arkivet merkes derfor EKSPERIMENTELL_2M. X0/X100 fra
+LiDAR-baserte NO_GJEN_001 maa rekalibreres mot flyfotoprediksjonene foer
+offisiell indikatorpublisering.
+
+1. Pakk mappen til en lokal disk, for eksempel C:\NO_GJEN_002.
+2. Legg godkjente datalag i data-mappen som beskrevet i data\INPUTS.md.
+3. Installer/pinn Meta-modellen med SETUP_META_MODELL.ps1.
+4. Kjoer forhaandskontroll:
+
+   & "C:\NO_GJEN_002\START_PRODUKSJON_NO_GJEN_002.ps1" -Mode Kontroll
+
+5. Kjoer geografisk pilot paa 40 ortofotofliser:
+
+   & "C:\NO_GJEN_002\START_PRODUKSJON_NO_GJEN_002.ps1" -Mode Pilot -PilotTiles 40 -ByggManifestPaaNytt
+
+6. Etter visuell og numerisk godkjenning av piloten, start eller fortsett full
+   produksjon:
+
+   & "C:\NO_GJEN_002\START_PRODUKSJON_NO_GJEN_002.ps1" -Mode Full
+
+Inferensen er gjenopptakbar. Gyldige prediksjonsrastre hoppes over. Full modus
+lager polygonresultater, Norge og fem regioner, dekningsrapport etter faktisk
+fotograferingsaar, GeoPackage og komplett modellproveniens med SHA-256.
+
+Forventede regioner:
+  Nord-Norge, Midt-Norge, Oestlandet, Vestlandet, Soerlandet.
+
+Ikke bruk -Overwrite i en gjenopptaking. Slett eller overskriv heller ikke
+work\predictions mellom Pilot og Full.

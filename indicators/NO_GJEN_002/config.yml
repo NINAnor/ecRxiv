@@ -1,0 +1,64 @@
+project:
+  indicator_id: NO_GJEN_002
+  version: 0.3.0-rc1
+  reporting_year: 2024
+  target_crs: 25833
+
+paths:
+  aoi: data/AOIs.gpkg
+  regions: data/regions_indicator.gpkg
+  bioclimatic_zones: data/bioclimatic_zones.gpkg
+  good_reference: data/reference_good.csv
+  forest_reference: data/reference_forest.csv
+  # Root folder produced by host_norge_master.ps1. Forward slashes work in R
+  # on Windows and avoid YAML escaping of backslashes.
+  ortho_archive: C:/PATH/TO/ORTHOFOTO_ARCHIVE
+  tile_manifest: work/tile_manifest.csv
+  tile_aoi_map: work/tile_aoi_map.csv
+  predictions: work/predictions
+  inference_manifest: work/inference_manifest.csv
+  zonal_statistics: work/polygon_statistics.gpkg
+  outputs: outputs
+
+fields:
+  aoi_id: id
+  ecosystem: ecosystem
+  region_id: region_id
+  region_name: region_name
+  bioclimatic_zone: KLASSE
+imagery:
+  source: existing_nib_archive
+  resolution_m: 2
+  source_tile_pixels: 1000
+  source_tile_width_m: 2000
+  # Meta-modellen tar 256 x 256 piksler. Overlapp reduserer modellens
+  # dokumenterte kanteffekter; bare den blendede midtdelen veier fullt.
+  model_chip_pixels: 256
+  chip_overlap_pixels: 64
+  # Modellen er hittil evaluert ved 0,5 og 1 m, ikke ved 2 m. Denne bryteren
+  # gjÃ¸r den tekniske testkjÃ¸ringen mulig, men resultatet er eksperimentelt.
+  allow_untested_resolution: true
+
+model:
+  # Kjoer SETUP_META_MODELL.ps1; skriptet fyller inn python og Git-revisjon.
+  python: C:/PATH/TO/CONDA_ENV/python.exe
+  script: python/run_inference.py
+  model_repository: external/HighResCanopyHeight
+  repository_revision: 84971392fb3a017e53d19e28ee0409d0de5d5d61
+  checkpoint: external/HighResCanopyHeight/saved_checkpoints/compressed_SSLhuge_aerial.pth
+  normalization_checkpoint: external/HighResCanopyHeight/saved_checkpoints/aerial_normalization_quantiles_predictor.ckpt
+  batch_size: 16
+  workers: 4
+  device: auto
+  # Meta sin publiserte inferenskode bruker 5/95-percentiler og 10 x
+  # modellutgangen. Endres bare ved dokumentert, versjonert rekalibrering.
+  input_low_quantile: 0.05
+  input_high_quantile: 0.95
+  output_scale: 10.0
+  output_offset_m: 0.0
+
+indicator:
+  minimum_raster_coverage: 0.80
+  aggregation: area_weighted
+  resolution_status: experimental_2m
+  calibration_status: requires_aerial_recalibration
