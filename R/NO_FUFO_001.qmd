@@ -86,22 +86,19 @@ codeReviewers:
 #| include: false
 #| cache: false
 # load packages
+library(knitr)
 library(tidyverse)
-library(pwr)
-library(lme4)
-library(simr)
-library(readxl)
-library(formattable)
-library(sf)
-library(tmap)
-library(WorldFlora)
-library(zen4R)
-library(tidylog)
-library(rgbif)
+library(kableExtra)
 library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+library(sf)
 library(ecTools)
 library(glmmTMB)
-library(conflicted)
+library(MASS)
+library(emmeans)
 # weird workarounds for cache issues
 conflicts_prefer(tidylog::filter)
 conflicts_prefer(tidylog::select)
@@ -226,7 +223,7 @@ meta |>
 ## Log
 
 <!--# Update this logg with short messages for each update -->
-Presentation of moisture indicator for ANO, GRUK and ASO datasets
+Presentation of phosphorus indicator for ANO, GRUK and ASO datasets
 
 :::
   
@@ -237,7 +234,7 @@ Presentation of moisture indicator for ANO, GRUK and ASO datasets
 ## 1. Summary
   
 1. **Background and rationale**: 
-Phosporus is a limiting micronutrient in many plant communities and terrestrial ecosystems. Fertilisation by phosphorus, for example from manual application or airborne deposition, can increase plant productivity, change the community composition, and most likely also decrease the species diversity. This indicator represents plant community responses to increased phosphorus. It represents the deviations from an optimal state and towards higher nitrogen phosphorus levels. 
+Phosporus is a limiting micronutrient in many plant communities and terrestrial ecosystems. Fertilisation by phosphorus, for example from manual application or airborne deposition, can increase plant productivity, change the community composition, and most likely also decrease the species diversity. This indicator represents plant community responses to increased phosphorus. It represents the deviations from an optimal state and towards higher phosphorus levels. 
 
 2. **Methods**: 
 The data originate from field sampled plant community data collected through three monitoring programmes: 1. the Norwegian nature monitoring program ANO (Tingstad et al. 2019), 2. GRUK, an open calcareous grasslands monitoring programme (Evju & Vang 2026), and finally 3. the ASO monitoring programme (Bär et al. 2025). We combine these with plant functional trait values from Tyler et al. (2021). Indicator values are based on calculating community-weighted means (Diekmann 2003, Töpper et al. 2018) or cumulative abundance (see Framstad et al. 2022) of functional trait values for plant community data. Deviations in such an indicator beyond a certain range of indicator values indicate a directional shift in the plant community. As reference communities we use ‘generalized species lists’ underlying the Norwegian categorization system for eco-diversity (Halvorsen et al. 2020, see Evju et al. 2023 for naturally open lowland ecosystems). For each major ecosystem type a separate set of indicators, related to the main drivers of change today, is computed. For open lowland ecosystems these are the vegetation indicators for nitrogen, light, moisture, pH, phosphorus, mowing/grazing, and soil disturbance. This file documents the 1-sided phosphorus indicator for open lowland.
@@ -308,7 +305,7 @@ Functional plant community indicators can potentially exhibit co-linearities wit
 
 
 ### 3.4 Impact factors
-The plant community composition in open lowland ecosystems is subject to changes with climate warming and precipitation changes as well as pollution (including phosphorus fertilisation) and disturbance from human infrastructure..
+The plant community composition in open lowland ecosystems is subject to climatic changes in temperature and precipitation, land use changes (disturbance from human infrastructure, abandonment) as well as pollution (including fertilisation). The phosphorus indicator in open lowland systems responds primarily to pollution.
 
 ### 3.5 Spatial aggregation
 The variable is scaled, transformed (piece-wise linear) and truncated at the initial ANO-point level and the indicator estimate is a beta-regression-modelled mean of all ANO-, ASO, and GRUK-units.
@@ -316,7 +313,7 @@ The variable is scaled, transformed (piece-wise linear) and truncated at the ini
 ## 4. Reference condition and levels
 
 ### 4.1 Reference condition
-In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. In terms of Moisture, the reference condition is defined by a reference community.
+In Norway, the reference condition for natural ecosystems has been one of largely intact ecosystems without large-scale human modifications (Nybø and Evju 2017). For semi-natural ecosystems, human influence is allowed, and indeed a prerequisite, but then in the sense of appropriate, stable and traditional land-use practices. In terms of phosphorus, the reference condition is defined by a reference community.
 
 ### 4.2 Reference levels
 Reference and limit values (scaling values) for this one-sided functional plant community indicator are derived as the 0.5 and 0.95 quantiles (reference value and upper limit value, respectively) from distributions of community weighted means of the respective plant indicators originating from bootstrapped generalized species lists.
@@ -423,7 +420,7 @@ For the purpose of this project, these steps are simplified to maximum expected 
 Import ANO testing data:
 First, download from  Miljødirektoratet (downloaded spring 2026). Then upload from local storage.
 The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and point data including alien plant species cover.
-```{r, eval = F, echo = F}
+```{r, eval = T, echo = F}
 
 ANO_species_ind <- read_rds(paste0(here::here(), "/data/cache/ANO_species_ind.RDS"))
 ano_all <- read_rds(paste0(here::here(), "/data/cache/ano_geo.RDS"))
@@ -445,7 +442,7 @@ GRUK_variables <- read_rds(paste0(here::here(), "/data/cache/GRUK_variables.RDS"
 ### 7.6 Dataset F
   Import ASO data
 
-```{r, eval = F, echo = F}
+```{r, eval = T, echo = F}
 
 ASO_species_ind <- read_rds(paste0(here::here(), "/data/cache/ASO_species_ind.RDS"))
 ASO_all <- read_rds(paste0(here::here(), "/data/cache/ASO_all.RDS"))
@@ -763,7 +760,6 @@ The national and regional estimates are computed separately.
 
 ```{r tmbs}
 #| warning: false
-#| warning: false
 
 ## Fit ordered beta regression null-model with a random effect
 # Norway
@@ -801,23 +797,23 @@ NO_FUFO_001_table <- tibble(
     "Western Norway"
     ),
   indicator_value = c(
-    plogis(summary(Nitrogen_no)$coef$cond[, 1]),
-    plogis(summary(Nitrogen_re)$coef$cond[, 1])
+    plogis(summary(Phosphorus_no)$coef$cond[, 1]),
+    plogis(summary(Phosphorus_re)$coef$cond[, 1])
     ),
   CI_upper = c(
     plogis(
-      summary(Nitrogen_no)$coef$cond[, 1] + 1.96 * summary(Nitrogen_no)$coef$cond[, 2]
+      summary(Phosphorus_no)$coef$cond[, 1] + 1.96 * summary(Phosphorus_no)$coef$cond[, 2]
       ),
     plogis(
-      summary(Nitrogen_re)$coef$cond[, 1] + 1.96 * summary(Nitrogen_re)$coef$cond[, 2]
+      summary(Phosphorus_re)$coef$cond[, 1] + 1.96 * summary(Phosphorus_re)$coef$cond[, 2]
       )
     ),
   CI_lower = c(
     plogis(
-      summary(Nitrogen_no)$coef$cond[, 1] - 1.96 * summary(Nitrogen_no)$coef$cond[, 2]
+      summary(Phosphorus_no)$coef$cond[, 1] - 1.96 * summary(Phosphorus_no)$coef$cond[, 2]
       ),
     plogis(
-      summary(Nitrogen_re)$coef$cond[, 1] - 1.96 * summary(Nitrogen_re)$coef$cond[, 2]
+      summary(Phosphorus_re)$coef$cond[, 1] - 1.96 * summary(Phosphorus_re)$coef$cond[, 2]
       )
     )
   )
@@ -839,10 +835,10 @@ To express the results as a distribution, we need to simulate mean estimates bas
 
 ## Norway
 # Fixed-effect intercept and SE
-b0 <- fixef(Moisture_no)$cond["(Intercept)"]
-se_b0 <- sqrt(vcov(Moisture_no)$cond["(Intercept)", "(Intercept)"])
+b0 <- fixef(Phosphorus_no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(Phosphorus_no)$cond["(Intercept)", "(Intercept)"])
 # Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
-phi <- sigma(Moisture_no)
+phi <- sigma(Phosphorus_no)
 
 
 # draw estimates and backtransform from logit-scale
@@ -851,9 +847,9 @@ mu_draws  <- plogis(eta_draws)
 
 
 ## regions
-b_re <- fixef(Moisture_re)$cond
-vc_re <- vcov(Moisture_re)$cond
-phi <- sigma(Moisture_re)
+b_re <- fixef(Phosphorus_re)$cond
+vc_re <- vcov(Phosphorus_re)$cond
+phi <- sigma(Phosphorus_re)
 
 eta_draws_reg <- MASS::mvrnorm(
   n = 1000,
@@ -864,7 +860,7 @@ eta_draws_reg <- MASS::mvrnorm(
 mu_draws_reg <- plogis(eta_draws_reg)
 
 
-# combining Moisture_no_sim and Moisture_re_sim
+# combining Phosphorus_no_sim and Phosphorus_re_sim
 mu <- mu_draws_reg |>
   as_tibble() |>
   add_column(Norway = mu_draws) |>
@@ -881,7 +877,7 @@ mu <- mu_draws_reg |>
 ```
 
 
-```{r tbl-results}
+```{r tbl-results, eval = F}
 #| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUMO_005, calculated for Norwegian open lowland ecosystems.'
 mu |>
   group_by(part) |>
@@ -902,14 +898,14 @@ mu |>
 
 -->
 
-```{r export}
+```{r export, eval = F}
 #| eval: false
 arrow::write_parquet(mu,"data/results_NO_FUMO_004.parquet")
 ```
 
 Demonstrating how to read back the data:
 
-```{r readingBack}
+```{r readingBack, eval = F}
 arrow::read_parquet(here::here("data/results_NO_FUMO_004.parquet"))
 ```
 

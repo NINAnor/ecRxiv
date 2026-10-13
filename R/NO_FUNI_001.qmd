@@ -315,7 +315,7 @@ Functional plant community indicators can potentially exhibit co-linearities wit
 
 
 ### 3.4 Impact factors
-The plant community composition in open lowland ecosystems is subject to changes with climate warming and precipitation changes as well as pollution (including nitrogen fertilisation) and disturbance from human infrastructure.
+The plant community composition in open lowland ecosystems is subject to climatic changes in temperature and precipitation, land use changes (disturbance from human infrastructure, abandonment) as well as pollution (including fertilisation). The nitrogen indicator in open lowland systems responds primarily to pollution.
 
 ### 3.5 Spatial aggregation
 The variable is scaled, transformed (piece-wise linear) and truncated at the initial ANO-point level and the indicator estimate is a beta-regression-modelled mean of all ANO-, ASO, and GRUK-units.
@@ -432,7 +432,7 @@ For the purpose of this project, these steps are simplified to maximum expected 
 Import ANO testing data:
 First, download from  Miljødirektoratet (downloaded spring 2026). Then upload from local storage.
 The geodatabase contains several layers; 'ANO_SurveyPoint' contains site and point data including alien plant species cover.
-```{r, eval = F, echo = F}
+```{r, eval = T, echo = F}
 # These are the processed ANO species and site data. See cleaning script cleaning_ano.R for details
 ANO_species_ind <- read_rds(paste0(here::here(), "/data/cache/ANO_species_ind.RDS"))
 ano_all <- read_rds(paste0(here::here(), "/data/cache/ano_geo.RDS"))
@@ -849,10 +849,10 @@ To express the results as a distribution, we need to simulate mean estimates bas
 
 ## Norway
 # Fixed-effect intercept and SE
-b0 <- fixef(Moisture_no)$cond["(Intercept)"]
-se_b0 <- sqrt(vcov(Moisture_no)$cond["(Intercept)", "(Intercept)"])
+b0 <- fixef(Nitrogen_no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(Nitrogen_no)$cond["(Intercept)", "(Intercept)"])
 # Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
-phi <- sigma(Moisture_no)
+phi <- sigma(Nitrogen_no)
 
 
 # draw estimates and backtransform from logit-scale
@@ -861,9 +861,9 @@ mu_draws  <- plogis(eta_draws)
 
 
 ## regions
-b_re <- fixef(Moisture_re)$cond
-vc_re <- vcov(Moisture_re)$cond
-phi <- sigma(Moisture_re)
+b_re <- fixef(Nitrogen_re)$cond
+vc_re <- vcov(Nitrogen_re)$cond
+phi <- sigma(Nitrogen_re)
 
 eta_draws_reg <- MASS::mvrnorm(
   n = 1000,
@@ -874,7 +874,7 @@ eta_draws_reg <- MASS::mvrnorm(
 mu_draws_reg <- plogis(eta_draws_reg)
 
 
-# combining Moisture_no_sim and Moisture_re_sim
+# combining Nitrogen_no_sim and Nitrogen_re_sim
 mu <- mu_draws_reg |>
   as_tibble() |>
   add_column(Norway = mu_draws) |>
@@ -891,8 +891,8 @@ mu <- mu_draws_reg |>
 ```
 
 
-```{r tbl-results}
-#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUMO_005, calculated for Norwegian open lowland ecosystems.'
+```{r tbl-results, eval = F}
+#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUNI_001, calculated for Norwegian open lowland ecosystems.'
 mu |>
   group_by(part) |>
   summarise(
@@ -912,14 +912,14 @@ mu |>
 
 -->
 
-```{r export}
+```{r export, eval = F}
 #| eval: false
 arrow::write_parquet(mu,"data/results_NO_FUMO_004.parquet")
 ```
 
 Demonstrating how to read back the data:
 
-```{r readingBack}
+```{r readingBack, eval = F}
 arrow::read_parquet(here::here("data/results_NO_FUMO_004.parquet"))
 ```
 
