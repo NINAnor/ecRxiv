@@ -244,7 +244,7 @@ An indicator value of 1 indicates no discernible difference in the functional pl
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state as a response to decreased pH.
 
 4. **Results and development needs**:
-The indicator value for Norway is 0.30 with 95%CI of 0.27-0.32, which means that the condition for this indicator is lower nor higher than 0.6, the threshold for good ecological condition. As for the regions, all regions score similarly to the national value, varying from 0.23 in Southern Norway, to 0.32 in Eastern Norway.
+The indicator value for Norway is 0.30 with 95%CI of 0.27-0.32, which means that the condition for this indicator is clearly lower than 0.6, the threshold for good ecological condition, and indicating a shift in plant community composition towards more acid conditions. As for the regions, all regions score similarly to the national value, varying from 0.23 in Southern Norway, to 0.32 in Eastern Norway. The results varied greatly between ANO/ASO with consistently low indicator values and GRUK with consistently high indicator values.
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
@@ -898,6 +898,24 @@ print(NO_FUPH_001_table)
 
 ```
 
+This analysis is based on data from three different monitoring programs. Here we show the results dissagregated by ANO, ASO & GRUK.
+```{r, eval=T}
+ggplot(combined_lowlands, aes(x = factor(dataset), y = Soil_reaction_pH)) +
+  geom_jitter(
+    width = 0.15, height = 0,
+    alpha = 0.5, size = 1.5,
+    colour = "grey30"
+  ) +
+  geom_violin(
+    fill = "skyblue",
+    alpha = 0.5,
+    trim = FALSE
+  ) + 
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Dataset", y = "Soil reaction (pH) indicator") +
+  theme_classic()
+```
+
 To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
 ```{r, eval = F}
 
@@ -946,7 +964,7 @@ mu <- mu_draws_reg |>
 
 
 ```{r tbl-results, eval = F}
-#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUMO_005, calculated for Norwegian open lowland ecosystems.'
+#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUPH_001, calculated for Norwegian open lowland ecosystems.'
 mu |>
   group_by(part) |>
   summarise(
@@ -955,7 +973,12 @@ mu |>
     high = round(quantile(value, probs = .975), 2)
   ) |>
   unite(col = "95% CI", c(low, high), sep = " - ") |>
-  gt::gt()
+  gt::gt() |>
+  write.table(
+    file = paste0(here(), "/results/NO_FUPH_001_boot_table.txt"),
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE)
 ```
 
 ## 11. Export file

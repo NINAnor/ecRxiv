@@ -243,7 +243,7 @@ An indicator value of 1 indicates no discernible difference in the functional pl
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state, either as a response to increased or decreased grazing/mowing.
 
 4. **Results and development needs**: 
-The functional plant community indicator for grazing/mowing in Norway is 0.64 with 95% CI of 0.62-0.66, which means that the condition for this indicator is significantly higher than 0.6, the threshold for good ecological condition, though very close to the threshold. The number of deviations towards lower and higher grazing/mowing values is balanced. The results vary slightly across the regions with Western and Southern, and Eastern Norway showing mean indicator values for the lower grazing/mowing indicator closer to the national mean than for Central and Northern Norway, indicating plant community composition shifts towards reduced grazing/mowing.
+The functional plant community indicator for grazing/mowing in Norway is 0.64 with 95% CI of 0.63-0.66, which means that the condition for this indicator is significantly higher than 0.6, the threshold for good ecological condition, though very close to the threshold. Deviations towards lower and higher grazing/mowing values are balanced, which means that deviations occur in both directions, indicating plant community composition shifts towards too little and too high grazing/mowing in all regions. The results are consistent for semi-natural types in both ANO and ASO.
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
@@ -876,8 +876,42 @@ NO_FUBS_001_table
 
 ```
 
+This analysis is based on data from two different monitoring programs. Here we show the results dissagregated by ANO and ASO.
+```{r, eval=T}
+ggplot(combined_lowlands, aes(x = factor(dataset), y = Grazing_mowing1)) +
+  geom_jitter(
+    width = 0.15, height = 0,
+    alpha = 0.5, size = 1.5,
+    colour = "grey30"
+  ) +
+  geom_violin(
+    fill = "skyblue",
+    alpha = 0.5,
+    trim = FALSE
+  ) + 
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Dataset", y = "Lower Grazing_mowing indicator") +
+  theme_classic()
+
+ggplot(combined_lowlands, aes(x = factor(dataset), y = Grazing_mowing2)) +
+  geom_jitter(
+    width = 0.15, height = 0,
+    alpha = 0.5, size = 1.5,
+    colour = "grey30"
+  ) +
+  geom_violin(
+    fill = "skyblue",
+    alpha = 0.5,
+    trim = FALSE
+  ) + 
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Dataset", y = "Upper Grazing_mowing indicator") +
+  theme_classic()
+
+```
+
 To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
-```{r, eval=FALSE}
+```{r, eval=T}
 
 ## Norway
 # Fixed-effect intercept and SE
@@ -923,8 +957,8 @@ mu <- mu_draws_reg |>
 ```
 
 
-```{r tbl-results, eval = F}
-#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUMO_005, calculated for Norwegian open lowland ecosystems.'
+```{r tbl-results, eval = T}
+#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUBS_001, calculated for Norwegian open lowland ecosystems.'
 mu |>
   group_by(part) |>
   summarise(
@@ -933,7 +967,12 @@ mu |>
     high = round(quantile(value, probs = .975), 2)
   ) |>
   unite(col = "95% CI", c(low, high), sep = " - ") |>
-  gt::gt()
+  gt::gt() |>
+  write.table(
+    file = paste0(here(), "/results/NO_FUBS_001_boot_table.txt"),
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE)
 ```
 
 ## 11. Export file

@@ -243,7 +243,7 @@ An indicator value of 1 indicates no discernible difference in the functional pl
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state as a response to reduced light availability.
 
 4. **Results and development needs**: 
-The indicator for Norway as a whole is 0.53 [95%CI: 0.52-0.54], signifying that the condition for this indicator is lower than 0.6, the threshold for good ecological condition. As for the regions, all regions score similarly to the national value, varying from 0.51 in Southern Norway, to 0.54 in Northern Norway.
+The indicator for Norway as a whole is 0.53 [95%CI: 0.52-0.55], signifying that the condition for this indicator is lower than 0.6, the threshold for good ecological condition, and indicating plant community shifts towards reduced light availablity. As for the regions, all regions score similarly to the national value, varying from 0.51 in Southern Norway, to 0.54 in Northern Norway. The results varied greatly between ANO/ASO with consistently low indicator values and GRUK with mostly higher indicator values.
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
@@ -897,15 +897,33 @@ NO_FULI_001_table
 
 ```
 
+This analysis is based on data from three different monitoring programs. Here we show the results dissagregated by ANO, ASO & GRUK.
+```{r, eval=T}
+ggplot(combined_lowlands, aes(x = factor(dataset), y = Light)) +
+  geom_jitter(
+    width = 0.15, height = 0,
+    alpha = 0.5, size = 1.5,
+    colour = "grey30"
+  ) +
+  geom_violin(
+    fill = "skyblue",
+    alpha = 0.5,
+    trim = FALSE
+  ) + 
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(x = "Dataset", y = "Light indicator") +
+  theme_classic()
+```
+
 To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
 ```{r, eval=FALSE}
 
 ## Norway
 # Fixed-effect intercept and SE
-b0 <- fixef(Moisture_no)$cond["(Intercept)"]
-se_b0 <- sqrt(vcov(Moisture_no)$cond["(Intercept)", "(Intercept)"])
+b0 <- fixef(Light_no)$cond["(Intercept)"]
+se_b0 <- sqrt(vcov(Light_no)$cond["(Intercept)", "(Intercept)"])
 # Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
-phi <- sigma(Moisture_no)
+phi <- sigma(Light_no)
 
 
 # draw estimates and backtransform from logit-scale
@@ -914,9 +932,9 @@ mu_draws  <- plogis(eta_draws)
 
 
 ## regions
-b_re <- fixef(Moisture_re)$cond
-vc_re <- vcov(Moisture_re)$cond
-phi <- sigma(Moisture_re)
+b_re <- fixef(Light_re)$cond
+vc_re <- vcov(Light_re)$cond
+phi <- sigma(Light_re)
 
 eta_draws_reg <- MASS::mvrnorm(
   n = 1000,
@@ -945,7 +963,7 @@ mu <- mu_draws_reg |>
 
 
 ```{r tbl-results, eval = F}
-#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUMO_005, calculated for Norwegian open lowland ecosystems.'
+#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FULI_001, calculated for Norwegian open lowland ecosystems.'
 mu |>
   group_by(part) |>
   summarise(
@@ -954,7 +972,12 @@ mu |>
     high = round(quantile(value, probs = .975), 2)
   ) |>
   unite(col = "95% CI", c(low, high), sep = " - ") |>
-  gt::gt()
+  gt::gt() |>
+  write.table(
+    file = paste0(here(), "/results/NO_FULI_001_boot_table.txt"),
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE)
 ```
 
 ## 11. Export file
