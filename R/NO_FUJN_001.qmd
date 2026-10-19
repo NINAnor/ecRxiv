@@ -269,7 +269,7 @@ ANO has no defined end date. 2025 is the first year of repeated sampling for abo
 
 The GRUK monitoring data follows a similar five-year sampling cycle from 2020-2024. Monitoring sites were randomly selected across the Oslo fjord basin, resulting in ~80 sites surveyed annually. The sites comprise open, shallow-soil calcareous grassland in three sub-areas - the inner, middle and outer Oslo fjord region.
 
-The ASO monitoring dataset is spatially representative of Norway, with each year's sampling pool representative at a national and regional scale. ASO follows a 5-year monitoring cycle, though only data from 2022 are represented here as species abundances were only accessible to us for that year.
+The ASO monitoring dataset is spatially representative of Norway, with each year's sampling pool representative at a national and regional scale. ASO follows a 5-year monitoring cycle, with data spanning 2020-2024.
 
 ### 2.2 Sampling design
 At every ANO site, the plant community is recorded (presence and percent cover of every vascular plant species) in the central 1 sqm plot of each of systematically arranged 18 monitoring points.
@@ -288,8 +288,12 @@ Abundance data for vascular plants in ANO is given as % cover within a 1 m2 samp
 The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054. See @sec-about for detail on the other datasets.  
 
 ### 2.5 Additional comments about the dataset
-The ANO, ASO and GRUK programs are run by the Norwegian Environment Agency. On their web sites you may also find some additional summary data. https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
+The ANO, ASO and GRUK programs are run by the Norwegian Environment Agency. On their web sites you may also find additional summary data:
+
+https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/arealrepresentativ-naturovervakning-ano/
+
 https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/semi-naturlig-eng/
+
 https://www.miljodirektoratet.no/ansvarsomrader/overvaking-arealplanlegging/miljoovervaking/overvakingsprogrammer/natur-pa-land/overvaking-av-apen-grunnlendt-kalkmark/
   
 ## 3. Indicator properties
@@ -406,13 +410,13 @@ Import Reference data from NiN:
 nin_sp_ind <- read_rds(paste0(here::here(), "/data/cache/nin_sp_ind.RDS"))
 ```
 
-The generalized species lists underlying the ecosystem categorization in NiN (Halvorsen et al. 2020) represent expert-compiled species lists based on empirical evidence from the literature and expert knowledge of the systems and their species. In these lists, every species is assigned an abundance value on a 6-step scale, with each step representing a range for the ‘expected combination of frequency and cover’ of occurrence
+The generalized species lists underlying the ecosystem categorization in NiN (Halvorsen et al. 2020) represent expert-compiled species lists based on empirical evidence from the literature and expert knowledge of the systems and their species. In these lists, every species is assigned an abundance value on a 6-step scale, with each step representing a range for the ‘expected combination of frequency and cover’ of occurrence:
 
-1 = < 1/32
-2 = 1/32 - 1/8
-3 = 1/8 - 3/8
-4 = 3/8 - 4/5
-5 = 3/8 - 4/5 + dominance
+1 = < 1/32,
+2 = 1/32 - 1/8,
+3 = 1/8 - 3/8,
+4 = 3/8 - 4/5,
+5 = 3/8 - 4/5 + dominance,
 6 = > 4/5
 
 For the purpose of this project, these steps are simplified to maximum expected combination of frequency and cover, whereby steps 4 & 5 are assigned 0.6 and 0.8, respectively, in order to distinguish between them.
@@ -509,7 +513,7 @@ head(ANO_species_ind) |>
   kable_styling("striped") |> scroll_box(width = "100%")
 ```
 
-```{r wetland_mountain_forest_seminatural-ref-data-tab, echo=FALSE}
+```{r open_lowlands_seminatural-ref-data-tab, echo=FALSE}
 head(nin_sp_ind) |> 
   kable("html", caption = "Reference data set for semi-natural ecosystems") |> 
   kable_styling("striped") |> scroll_box(width = "100%")
@@ -531,20 +535,15 @@ In order to get distributions of these metrics rather than one single value (for
 - with a given re-sampling ratio of the original species list (rat)
 - in every bootstrap iteration the abundance of the sampled species can be randomly changed by a limited amount if wished by introducing a re-sampling of abundance values from adjacent abundance steps with a certain probability (var.abun)
 
-```{r bootstrapping}
+```{r bootstrapping, results='hide'}
 indBoot.freq
-
 ```
 
-```{r}
-#colnames(NiN.forest.cov)
-# we choose 1000 iterations
-# species with abundance 0.8 or more (dominant species) must be included in each sample
-# each sample re-samples 1/3 of the number of species
-# the abundance of the re-sampled species may vary (see bootstrap function for details)
-```
-
-Running the bootstraps:
+##### Running the bootstraps:
+- we choose 1000 iterations
+- species with abundance 0.8 or more (dominant species) must be included in each sample
+- each sample re-samples 1/3 of the number of species
+- the abundance of the re-sampled species may vary (see bootstrap function for details)
 ```{r boot2, eval = F}
 source(paste0(here::here(), "/R/bootstrapping.R"))
 
@@ -560,7 +559,7 @@ head(lowland_ref_cov[[1]]) |>
   kable("html", caption = "Table showing the first 6 rows of the bootstrapped data set.") |> kable_styling("striped") |> scroll_box(width = "100%")
 ```
 
-This results in an R-list for forest ecosystem, with a data frame for every selected plant indicator and each data frame with as many columns as there are NiN species lists and as many rows as there were iterations in the bootstrap.
+This results in an R-list for open lowland and semi-natural ecosystem types, with a data frame for every selected plant indicator and each data frame with as many columns as there are NiN species lists and as many rows as there were iterations in the bootstrap.
 
 Next, we need to derive scaling values from these bootstrap-lists (the columns) for every mapping unit in NiN. Here, we define things in the following way:
   
@@ -581,11 +580,13 @@ source(paste0(here::here(), "/R/scaling.R"))
 
 
 
+We then merge the cleaned and scaled datasets for the test data.
 ```{r merging datasets, eval=FALSE}
 source(paste0(here::here(), "/R/merge_datasets.R"))
 
 ```
 
+Below, we load in the merged sepcies and environmental data, alongside the reference data.
 ```{r load in rds files}
 
 regnor <- read_rds(paste0(here::here(), "/data/cache/regnor.RDS"))
@@ -715,6 +716,7 @@ head(combined_lowlands) |>
 We can visualise the normalisation with a generic figure (@fig-norm).
 
 ```{r fig-norm}
+#| warning: false
 #| fig-cap: 'A figure illustrating the normalisation process.The placement of the x60 values are arbitrary in this figure and does not give a representative picture of the relationship between the variable and indicator values.'
 
 var <- seq(0, 100, by = 0.5)
@@ -735,6 +737,7 @@ ec_norm_plot(
 ```
 
 ```{r}
+#| warning: false
 #| eval: false
 #| include: false
 
@@ -830,7 +833,7 @@ NO_FUJN_001_table
 #    quote = FALSE)
 ```
 
-This analysis is based on data from two different monitoring programs. Here we show the results dissagregated by ANO & GRUK.
+This analysis is based on data from two different monitoring programs. Here we show the results disaggregated by ANO & GRUK.
 ```{r, eval=T}
 ggplot(combined_lowlands_all, aes(x = factor(dataset), y = Soil_disturbance_12)) +
   geom_jitter(
@@ -923,13 +926,13 @@ mu |>
 
 ```{r export, eval = F}
 #| eval: false
-arrow::write_parquet(mu,"data/results_NO_FUMO_004.parquet")
+arrow::write_parquet(mu,"data/results_NO_FUJN_001.parquet")
 ```
 
 Demonstrating how to read back the data:
 
 ```{r readingBack, eval = F}
-arrow::read_parquet(here::here("data/results_NO_FUMO_004.parquet"))
+arrow::read_parquet(here::here("data/results_NO_FUJN_001.parquet"))
 ```
 
 ## 12. Author contributions
