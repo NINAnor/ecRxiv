@@ -245,6 +245,39 @@ key$n_nosignal   <- tri[["No strong signal"]]
 key$ratio        <- key$n_succ / key$n_restor
 key$median_change <- median(sites$sj_change, na.rm = TRUE)
 
+# Trend confidence from the 90 % interval on sj_change, for the trend classes
+# (R/modules/temporal_trajectories.R, header items 1 and 6).
+CONF_ORDER <- c("High", "Medium", "Low")
+classed <- sites |> filter(!is.na(triage_class))
+conf_n <- function(classes, level) sum(classed$triage_class %in% classes & classed$trend_confidence %in% level)
+SUCC_CLASSES   <- c("Strong succession", "Moderate succession")
+RESTOR_CLASSES <- c("Strong restoration", "Moderate restoration")
+key$succ_high     <- conf_n(SUCC_CLASSES, "High")
+key$succ_medium   <- conf_n(SUCC_CLASSES, "Medium")
+key$succ_low      <- conf_n(SUCC_CLASSES, "Low")
+key$restor_high   <- conf_n(RESTOR_CLASSES, "High")
+key$restor_medium <- conf_n(RESTOR_CLASSES, "Medium")
+key$restor_low    <- conf_n(RESTOR_CLASSES, "Low")
+ye <- read_csv(out_path("temporal_trajectories", "02b_regional_year_effects.csv"), show_col_types = FALSE)
+ye_big <- ye |> filter(n_sites >= 500)   # counties with enough sites to quote
+key$ye_max     <- max(abs(ye_big$year_effect))
+key$ye_max_lab <- with(ye_big[which.max(abs(ye_big$year_effect)), ], paste0(ye_region, " ", year))
+key$change_se_med <- median(classed$sj_change_se, na.rm = TRUE)
+key$halfwidth_med <- median(classed$sj_change_hi - classed$sj_change, na.rm = TRUE)
+key$model_se_med  <- median(classed$model_se_mean, na.rm = TRUE)
+key$model_se_p10  <- quantile(classed$model_se_mean, 0.1, na.rm = TRUE, names = FALSE)
+key$model_se_p90  <- quantile(classed$model_se_mean, 0.9, na.rm = TRUE, names = FALSE)
+cleared20 <- coalesce(classed$prop_sj34, 0) > 0.2
+key$cleared20_n   <- sum(cleared20)
+key$change_se_cleared20 <- median(classed$sj_change_se[cleared20], na.rm = TRUE)
+key$change_se_other     <- median(classed$sj_change_se[coalesce(classed$n_sj34_12, 0) == 0 & !classed$burn_confirmed], na.rm = TRUE)
+key$moderate_thr  <- read_csv(out_path("temporal_trajectories", "02_triage_threshold_derivation.csv"),
+                              show_col_types = FALSE)$threshold_AE_SJ_units[1]
+key$prio_overgr_high <- sum(sites$priority %in% "Good/moderate condition, overgrowing" &
+                              sites$priority_confidence %in% "High")
+key$prio_overgr_dir  <- sum(sites$priority %in% "Good/moderate condition, overgrowing" &
+                              sites$priority_confidence %in% c("High", "Medium"))
+
 cls <- sites |> filter(!is.na(triage_class), !is.na(tilstand))
 is_succ   <- grepl("succession", cls$triage_class)
 is_restor <- grepl("restoration", cls$triage_class)
@@ -499,7 +532,8 @@ map_dat <- tibble(fid = pts$fid, E = round(xy_utm[, 1]), N = round(xy_utm[, 2]),
                   lng = round(xy_ll[, 1], 5), lat = round(xy_ll[, 2], 5)) |>
   left_join(sites |> select(fid, name, kommune, fylke, survey_year, field_sj, bt, tilstand,
                             triage_class, sj_base, sj_final, sj_change, picea_pct,
-                            ha_sj34_12, faktaark, priority, open_final), by = "fid") |>
+                            ha_sj34_12, faktaark, priority, open_final,
+                            trend_confidence, sj_change_lo, sj_change_hi), by = "fid") |>
   left_join(fire_site, by = "fid") |>
   left_join(clear |> transmute(fid, clear_ha = area_SJ34_to_SJ12_ha,
                                clear_fire_ha = area_SJ34_to_SJ12_burnt_ha,
@@ -528,6 +562,10 @@ SPRUCE_COL <- "#2E5E4E"
 DEV_COL    <- "#7A5289"
 PRIORITY_COLS <- c("Poor condition, open heath remaining" = "#C2185B",
                    "Good/moderate condition, overgrowing" = "#F2A900")
+# Marker opacity by trend confidence (trajectory and priority layers);
+# excluded sites have no confidence and keep the full opacity.
+CONF_OPACITY <- c(High = 0.95, Medium = 0.5, Low = 0.15)
+conf_opacity <- function(conf) unname(coalesce(CONF_OPACITY[conf], 0.9))
 ```
 
 > **Recommended citation**: Gray, A. M., Singh, G. and Mienna, I. M. 2026. Coastal heathland succession (ID: NO_KYST_001) v. 0.1.0. ecRxiv: <https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_KYST_001>
@@ -555,14 +593,14 @@ Modellen gjengir rekkefølgen av suksesjonstrinnene godt, men skiller dårligere
 
 Coastal heathland (*kystlynghei*) is a semi-natural habitat maintained by grazing and burning. Without management it becomes overgrown with scrub and then woodland [@velle2014]. This report uses annual satellite embeddings (AlphaEarth Foundations) and a model calibrated against 201,215 field-assessed samples to track the successional stage (SJ1-SJ4) of all `r fmt(key$n_sites)` mapped kystlynghei sites every year from 2018 to 2025.
 
-- **Trajectories 2018-2025:** `r fmt(key$n_succ)` sites show a clear trajectory towards overgrowth (succession), compared with `r fmt(key$n_restor)` moving towards more open heath (restoration). `r fmt(key$n_nosignal)` sites show no clear change.
+- **Trajectories 2018-2025:** `r fmt(key$n_succ)` sites show a clear trajectory towards overgrowth (succession), compared with `r fmt(key$n_restor)` moving towards more open heath (restoration). `r fmt(key$n_nosignal)` sites show no clear change. Of these, `r fmt(key$succ_high)` succession and `r fmt(key$restor_high)` restoration sites have high confidence of at least a moderate change.
 - **Widening gap:** sites already in poor condition (*dårlig*, *svært redusert*) are the most likely to keep overgrowing (`r fmt(100 * key$succ_poor, 0)` %), while sites with a restoration signal are more likely to already be in good condition (`r fmt(100 * key$restor_good, 0)` %, against `r fmt(100 * key$restor_poor, 0)` % of poor-condition sites).
 - **Burns:** satellite data (NASA FIRMS and Sentinel-2) show `r fmt(key$fire_siteyears)` burns on `r fmt(key$fire_sites)` sites between 2018 and 2025, with a total burnt area of `r fmt(key$fire_ha)` ha. Using the date of the fire as a provisional guide, `r fmt(key$rx_siteyears)` burns (`r fmt(key$rx_ha)` ha) fell in the lyngbrenning season and are probably prescribed, and `r fmt(key$wf_siteyears)` (`r fmt(key$wf_ha)` ha) fell in June-August and are probably wildfires. Burnt heath became more open (more SJ1-like) than unburnt heath on the same site, by `r fmt(key$eff_rx1, 2)` score units in the year after a prescribed burn, increasing to `r fmt(key$eff_rx4, 2)` after four years. Small burns are rarely detected, so these figures are minimum estimates.
 - **Scrub and tree clearance:** `r fmt(key$clear_sites)` sites on a restoring trajectory contain pixels that moved from overgrown (SJ3/SJ4) to open (SJ1/SJ2) condition, totalling `r fmt(key$clear_ha, 0)` ha. We estimate that `r fmt(key$spruce_ha, 1)` ha of invasive spruce was removed across `r fmt(key$spruce_sites)` sites.
 - **Grazing:** sites with signs of grazing are overgrowing more slowly than ungrazed sites, but the difference is small and partly confounded with the condition assessment.
 - **Development:** `r fmt(key$dev_ha, 1)` ha of heathland on `r fmt(key$dev_sites)` sites has been permanently converted to built land.
 
-The model reproduces the order of the successional stages well but separates adjacent stages less reliably. Nationwide year-to-year shifts in the score are of the same order as the threshold for a moderate change, so trends for individual sites should be interpreted with caution and verified in the field before management decisions are based on them.
+
 
 # Introduction
 
@@ -588,7 +626,7 @@ The methods are summarised here only as far as is needed to read the results. Fu
 
 **Succession score (AE-SJ).** Each 10 × 10 m pixel's annual AlphaEarth embedding [@alphaearth2025] is converted into a continuous score calibrated so that the typical SJ4 (overgrown) sample scores 0 and the typical SJ1 (open) sample scores 1. Pixels are assigned to an SJ-like class using boundaries midway between the class medians (Methodology Sections 3-4).
 
-**Trajectories.** For each site, a robust (Theil-Sen) trend [@sen1968] is fitted to the annual median score for 2018-2025. Sites are classed as *moderate* or *strong* restoration or succession when the change over the period exceeds `r fmt(key$thr_mod, 3)` or `r fmt(key$thr_strong, 3)` score units respectively. These thresholds equal half the distance between the SJ1 and SJ2 medians and half the distance between the SJ3 and SJ4 medians. Sites with heavy grazing (BT5-BT6), built development, fewer than six years of data or implausible jumps are excluded (Methodology Section 5).
+**Trajectories.** For each site, a robust (Theil-Sen) trend [@sen1968] is fitted to the annual median score for 2018-2025. Sites are classed as *moderate* or *strong* restoration or succession when the change over the period exceeds `r fmt(key$thr_mod, 3)` or `r fmt(key$thr_strong, 3)` score units respectively. These thresholds equal half the distance between the SJ1 and SJ2 medians and half the distance between the SJ3 and SJ4 medians. Sites with heavy grazing (BT5-BT6), built development, fewer than six years of data or implausible jumps are excluded (Methodology Section 5). Before the trend is fitted, the annual scores are corrected for regional year effects: in each county and year, the typical deviation of all sites from their own trend lines, which reflects weather, snow and the timing of the growing season shared across the region. Each trend is given a confidence level from its 90 % confidence interval (@sec-uncertainty).
 
 **Burns.** Burns are found in two steps (Methodology Section 7). NASA FIRMS active-fire detections [@firms_nasa] from four satellite products (VIIRS on NOAA-20, Suomi NPP and NOAA-21 [@schroeder2014], and MODIS [@giglio2016]) are first used to screen the MI sites for burn events, including the timing of the burn. Sentinel-2 imagery [@sentinel2_esa] is then used to identify the burn scar. For each fire detected, the normalised burn ratio (NBR) [@key2006] in the weeks after the detection is compared, pixel by pixel, with the same season of the previous year, a burn scar being defined as a patch of pixels of at least 0.25 ha whose NBR dropped clearly (dNBR) between the detection and the previous year. Burns are provisionally separated by the date of the FIRMS detection: a burn with any detection in June, July or August is treated as a probable wildfire, and all other burns, which fall in the lyngbrenning season in late winter and spring, as probable prescribed burns.
 
@@ -602,14 +640,20 @@ The methods are summarised here only as far as is needed to read the results. Fu
 
 ```{r tbl-headline}
 #| label: tbl-headline
-#| tbl-cap: "Headline results, all mapped kystlynghei sites, 2018-2025."
+#| tbl-cap: "Headline results, all mapped kystlynghei sites, 2018-2025. Trajectory confidence is from the 90 % interval on each site's trend (@sec-uncertainty): high = at least a moderate trend in the direction of the class, medium = the direction only."
 
-tibble::tribble(
+headline <- tibble::tribble(
   ~Theme, ~Result, ~Value,
   "Sites", "Mapped kystlynghei sites", fmt(key$n_sites),
   "Sites", "Sites with a trajectory classification", fmt(key$n_classified),
   "Trajectories", "Succession (moderate + strong)", fmt(key$n_succ),
+  "Trajectories", "- high confidence", fmt(key$succ_high),
+  "Trajectories", "- medium confidence", fmt(key$succ_medium),
+  "Trajectories", "- low confidence", fmt(key$succ_low),
   "Trajectories", "Restoration (moderate + strong)", fmt(key$n_restor),
+  "Trajectories", "- high confidence", fmt(key$restor_high),
+  "Trajectories", "- medium confidence", fmt(key$restor_medium),
+  "Trajectories", "- low confidence", fmt(key$restor_low),
   "Trajectories", "No strong signal", fmt(key$n_nosignal),
   "Burns 2018-2025", "Sites with a mapped burn", fmt(key$fire_sites),
   "Burns 2018-2025", "Burnt area (ha)", fmt(key$fire_ha),
@@ -622,7 +666,8 @@ tibble::tribble(
   "Clearance", "  - on sites with a summer fire (ha)", fmt(key$clear_fire_wf_ha, 1),
   "Clearance", "Spruce removed (ha, sites)", paste0(fmt(key$spruce_ha, 1), " (", key$spruce_sites, ")"),
   "Development", "Area converted to built land (ha, sites)", paste0(fmt(key$dev_ha, 1), " (", key$dev_sites, ")")
-) |>
+)
+headline |>
   show_table(group = "Theme")
 ```
 
@@ -654,24 +699,50 @@ confusion |>
 
 The model is therefore well suited to tracking movement along the successional gradient. It is less suited to deciding the exact class of a single site, particularly between SJ2 and SJ3.
 
+### Model uncertainty {#sec-uncertainty}
+
+Two kinds of uncertainty affect the results, and they matter for different questions.
+
+**Uncertainty in a site's score.** Pixels of the same field class spread across a range of AE-SJ scores, more widely for SJ3 and SJ4 than for SJ1 (Methodology Table 1). Assigning each pixel the spread of its class gives a standard error of a site's mean score in a given year. The median is `r fmt(key$model_se_med, 3)` score units (10-90 % of sites: `r fmt(key$model_se_p10, 3)`-`r fmt(key$model_se_p90, 3)`), larger for small sites and for sites dominated by SJ3- and SJ4-like pixels. Because errors in neighbouring pixels are correlated, this is a lower bound (Methodology Section 12). This uncertainty concerns where a site lies on the gradient, which is why the class of a single site is less certain than its direction of change. Much of it is a bias that stays the same from year to year: a site whose vegetation makes it look more overgrown than the field class suggests looks so in every year. It therefore largely cancels out when the trend is computed.
+
+**Uncertainty in a site's trend.** The annual scores of a site scatter around its trend. Part of this scatter is shared by all sites in a region: weather, snow and the timing of the growing season shift the scores of a whole county up or down in some years (up to `r fmt(key$ye_max, 3)` score units, in `r key$ye_max_lab`). These regional year effects were estimated as the median deviation of a county's sites from their own trend lines in each year, and removed before the trends were fitted. Because they are measured around each site's own trend, real regional trends are kept. What remains is the scatter of each site around its trend. Eight values give only a rough estimate of a single site's scatter, so it was combined with the typical scatter of similar sites, in the same county and field SJ score, by empirical Bayes [@smyth2004]. Each site's change over 2018-2025 then has a standard error (median `r fmt(key$change_se_med, 3)` score units) and a 90 % confidence interval (median half-width `r fmt(key$halfwidth_med, 3)`), which is of the same size as the moderate triage threshold (`r fmt(key$moderate_thr, 3)`). Each site with a succession or restoration trend was therefore given a confidence level:
+
+- **High:** the interval lies wholly beyond the moderate threshold in the direction of the class, so the site has at least a moderate trend in that direction.
+- **Medium:** the interval excludes zero, so the direction is clear but the size of the change is not.
+- **Low:** the interval includes zero.
+
+Of the `r fmt(key$n_succ)` succession sites, `r fmt(key$succ_high)` have high and `r fmt(key$succ_medium)` medium confidence; of the `r fmt(key$n_restor)` restoration sites, `r fmt(key$restor_high)` have high and `r fmt(key$restor_medium)` medium confidence (@tbl-headline, @fig-triage). The balance towards succession holds among the sites we are most confident about (`r fmt(key$succ_high / key$restor_high, 1)` succession sites for every restoration site, against `r fmt(key$ratio, 1)` for all classified sites). *No strong signal* sites have no confidence level: with eight annual values, the interval is too wide to show that a site has changed by less than the moderate threshold, so these sites have no detectable trend rather than a confirmed stable state.
+
+A low confidence does not mean that a site is unchanged, only that its change over the period cannot be separated from the year-to-year variation. Management changes a site in a step rather than gradually, but this widens the intervals little: sites where more than a fifth of the area was cleared (`r fmt(key$cleared20_n)` sites) have a median standard error of `r fmt(key$change_se_cleared20, 3)`, against `r fmt(key$change_se_other, 3)` for sites without detected clearance or burning. For managed sites, the clearance and burn results (@sec-clearance, @sec-fire) remain the more direct evidence of change. The confidence level, the interval and both standard errors are included in the site shapefiles, and the confidence is shown in the web map (@sec-webmap).
+
 ## Successional trajectories 2018-2025 {#sec-trajectories}
 
 Of the `r fmt(key$n_classified)` sites with a trajectory classification, `r fmt(key$n_succ)` (`r pct(key$n_succ / key$n_classified)`) moved towards overgrowth and `r fmt(key$n_restor)` (`r pct(key$n_restor / key$n_classified)`) towards more open heath (@fig-triage). Strong changes were rare in both directions: `r fmt(key$tri[["Strong succession"]])` strong succession and `r fmt(key$tri[["Strong restoration"]])` strong restoration sites. The median site changed by `r fmt(key$median_change, 3)` score units over the period, so the typical site is drifting slightly towards overgrowth.
 
 ```{r fig-triage}
 #| label: fig-triage
-#| fig-cap: "Number of sites in each trajectory class, 2018-2025. Excluded sites (heavy grazing, development, insufficient data) are not shown."
-#| fig-height: 3.6
+#| fig-cap: "Number of sites in each trajectory class, 2018-2025. Excluded sites (heavy grazing, development, insufficient data) are not shown. Shading shows the confidence in each site's trend (@sec-uncertainty): solid = high, mid-tone = medium, pale = low. *No strong signal* sites have no confidence level."
+#| fig-height: 3.8
 
-tibble(class = factor(names(key$tri), levels = TRIAGE_ORDER), n = as.numeric(key$tri)) |>
-  ggplot(aes(class, n, fill = class)) +
-  geom_col(width = 0.7) +
-  geom_text(aes(label = fmt(n)), vjust = -0.4, size = 3.4, family = FONT_SANS, colour = SKOG_THEME$ink2) +
+CONF_ALPHA <- c(High = 1, Medium = 0.55, Low = 0.22)
+triage_conf <- classed |>
+  count(class = factor(triage_class, levels = TRIAGE_ORDER),
+        conf = factor(trend_confidence, levels = rev(CONF_ORDER)))
+ggplot(triage_conf, aes(class, n, fill = class, alpha = conf)) +
+  geom_col(width = 0.7, colour = "white", linewidth = 0.5) +
+  geom_text(data = tibble(class = factor(names(key$tri), levels = TRIAGE_ORDER), n = as.numeric(key$tri)),
+            aes(class, n, label = fmt(n)), inherit.aes = FALSE,
+            vjust = -0.4, size = 3.4, family = FONT_SANS, colour = SKOG_THEME$ink2) +
   scale_fill_manual(values = TRIAGE_COLOURS, guide = "none") +
+  scale_alpha_manual(values = CONF_ALPHA, breaks = CONF_ORDER, name = "Trend confidence", na.value = 1,
+                     guide = guide_legend(override.aes = list(fill = SKOG_THEME$ink2))) +
   scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.12))) +
   labs(x = NULL, y = "Number of sites", title = "Trajectory class of kystlynghei sites, 2018-2025") +
-  theme_report()
+  theme_report() +
+  theme(legend.position = "top", legend.justification = "left")
 ```
+
+Confidence in the trends varies (@sec-uncertainty). `r fmt(key$succ_high)` succession sites and `r fmt(key$restor_high)` restoration sites have high confidence of at least a moderate trend, and a further `r fmt(key$succ_medium)` and `r fmt(key$restor_medium)` have a clear direction but an uncertain size of change.
 
 **Regional pattern.** The balance between succession and restoration differs strongly between counties (@fig-triage-fylke). Succession dominates in western Norway, most of all in Møre og Romsdal, Vestland, Agder and Rogaland. Nordland is the clear exception: `r pct(key$nordland_restor, 0)` of its sites are classed as restoring and only `r pct(key$nordland_succ, 0)` as succeeding. This contrast is large enough to warrant checking before it is interpreted as a management success. A regional difference in the satellite data, for example later snow melt or a shorter growing season in the north, could produce a similar pattern. Manual checks of a sample of the restoring Nordland sites is recommended.
 
@@ -1258,6 +1329,8 @@ The map shows every mapped kystlynghei site as a point on aerial imagery. Use th
 - **Field condition:** the *tilstand* assessment.
 - **Priority sites:** the two priorities for targeting measures suggested in the discussion (@sec-discussion): sites in poor condition (*dårlig*, *svært redusert*) where at least half the site is still open heath (SJ1/SJ2-like in 2024-2025), and sites in good or moderate condition with a succession trajectory.
 
+In the trajectory and priority layers, the transparency of a site shows the confidence in its trend (@sec-uncertainty): solid sites have high confidence, half-transparent sites medium and nearly transparent sites low confidence. The site details give the 90 % interval of the trend.
+
 When you zoom in (from zoom level 12), each site's outline appears, coloured to match the selected layer. Click a site point or outline for its details, including links to the Naturbase fact sheet and to aerial photographs in Norgeskart and Norge i bilder. A topographic background can be switched on in the layer menu.
 
 ```{r webmap}
@@ -1268,13 +1341,17 @@ tilst_cols <- c(TILSTAND_COLOURS, "Unknown" = "#B9BCAE")
 
 draw_order <- c("Excluded", "No strong signal", "Moderate restoration", "Moderate succession",
                 "Strong restoration", "Strong succession")
-md_traj   <- map_dat |> mutate(o = match(triage, draw_order)) |> arrange(o)
+# Within a class, low-confidence sites are drawn first, so confident sites lie on top.
+md_traj   <- map_dat |>
+  mutate(o = match(triage, draw_order), co = -match(trend_confidence, c("High", "Medium", "Low"), nomatch = 0),
+         op = conf_opacity(trend_confidence)) |>
+  arrange(o, co)
 md_change <- md_traj |> filter(grepl("succession|restoration", triage))
 md_fire   <- map_dat |> filter(!is.na(fire_ha)) |> arrange(desc(fire_ha))
 md_clear  <- map_dat |> filter(!is.na(clear_ha)) |> arrange(desc(clear_ha))
 md_spruce <- map_dat |> filter(coalesce(spruce_ha, 0) > 0) |> arrange(desc(spruce_ha))
 md_tilst  <- map_dat |> mutate(tilstand = coalesce(tilstand, "Unknown"))
-md_prio   <- map_dat |> filter(!is.na(priority))
+md_prio   <- md_traj |> filter(!is.na(priority))
 
 THEMES <- c(traj = "Trajectory: all sites", change = "Trajectory: changing sites only",
             fire = "Burns 2018-2025", clear = "Scrub and tree clearance",
@@ -1322,10 +1399,10 @@ m <- leaflet(options = leafletOptions(preferCanvas = TRUE, minZoom = 4)) |>
   addCircleMarkers(data = map_dat, lng = ~lng, lat = ~lat, radius = 2, stroke = FALSE,
                    fillColor = "#FFFFFF", fillOpacity = 0.45, group = "All sites (white)") |>
   addCircleMarkers(data = md_traj, lng = ~lng, lat = ~lat, radius = 3.5, color = "#FFFFFF", weight = 0.6,
-                   opacity = 0.8, fillColor = ~unname(TRAJ_MAP_COLS[triage]), fillOpacity = 0.9,
+                   opacity = ~0.8 * op, fillColor = ~unname(TRAJ_MAP_COLS[triage]), fillOpacity = ~op,
                    popup = ~as.character(fid), group = THEMES[["traj"]]) |>
   addCircleMarkers(data = md_change, lng = ~lng, lat = ~lat, radius = 4, color = "#FFFFFF", weight = 0.6,
-                   opacity = 0.8, fillColor = ~unname(TRAJ_MAP_COLS[triage]), fillOpacity = 0.95,
+                   opacity = ~0.8 * op, fillColor = ~unname(TRAJ_MAP_COLS[triage]), fillOpacity = ~op,
                    popup = ~as.character(fid), group = THEMES[["change"]]) |>
   addCircleMarkers(data = md_fire, lng = ~lng, lat = ~lat, radius = ~size_scale(fire_ha, 1.3),
                    color = "white", weight = 1,
@@ -1346,7 +1423,7 @@ m <- leaflet(options = leafletOptions(preferCanvas = TRUE, minZoom = 4)) |>
                    opacity = 0.8, fillColor = ~unname(tilst_cols[tilstand]), fillOpacity = 0.9,
                    popup = ~as.character(fid), group = THEMES[["tilst"]]) |>
   addCircleMarkers(data = md_prio, lng = ~lng, lat = ~lat, radius = 4, color = "#FFFFFF", weight = 0.6,
-                   opacity = 0.8, fillColor = ~unname(PRIORITY_COLS[priority]), fillOpacity = 0.95,
+                   opacity = ~0.8 * op, fillColor = ~unname(PRIORITY_COLS[priority]), fillOpacity = ~op,
                    popup = ~as.character(fid), group = THEMES[["prio"]]) |>
   addLegend("bottomright", colors = unname(TRAJ_MAP_COLS[c(TRIAGE_ORDER, "Excluded")]),
             labels = c(TRIAGE_ORDER, "Excluded"), title = "Trajectory 2018-2025",
@@ -1367,6 +1444,9 @@ m <- leaflet(options = leafletOptions(preferCanvas = TRUE, minZoom = 4)) |>
   addLegend("bottomright", colors = unname(PRIORITY_COLS), labels = names(PRIORITY_COLS),
             title = "Priority sites", opacity = 1,
             className = "info legend theme-legend lg-prio") |>
+  addLegend("bottomright", colors = rep("#57614E", 3), labels = c("High", "Medium", "Low"),
+            title = "Trend confidence", opacity = 1,
+            className = "info legend theme-legend lg-traj lg-change lg-prio lg-conf") |>
   addLayersControl(baseGroups = unname(THEMES),
                    overlayGroups = c("All sites (white)", "Topographic map (Kartverket)"),
                    options = layersControlOptions(collapsed = FALSE)) |>
@@ -1384,7 +1464,8 @@ popup_dat <- map_dat |>
             clear_fire_ha = round(clear_fire_ha, 2), clear_kind, spruce_ha = round(spruce_ha, 2),
             other_clear_ha = ifelse(is.na(clear_ha) & coalesce(ha_sj34_12, 0) > 0, round(ha_sj34_12, 2), NA),
             dev_ha = ifelse(coalesce(dev_ha, 0) > 0, round(dev_ha, 2), NA),
-            faktaark, priority, E, N)
+            faktaark, priority, conf = trend_confidence,
+            chg_lo = round(sj_change_lo, 3), chg_hi = round(sj_change_hi, 3), E, N)
 
 map_js <- r"---(
 function(el, x, data) {
@@ -1409,7 +1490,10 @@ function(el, x, data) {
     var c = P.traj[d.triage[i]] || '#999';
     h += row('Trajectory', '<span class="chip" style="background:' + c + '"></span>' + d.triage[i]);
     h += row('AE-SJ score', num(d.sj_base[i], 2) + ' (2018-19) → ' + num(d.sj_final[i], 2) +
-             ' (2024-25)<br><small>trend change ' + num(d.sj_change[i], 3) + '</small>');
+             ' (2024-25)<br><small>trend change ' + num(d.sj_change[i], 3) +
+             (has(d.chg_lo[i]) ? ' (90 % interval ' + num(d.chg_lo[i], 3) + ' to ' + num(d.chg_hi[i], 3) + ')' : '') +
+             '</small>');
+    if (has(d.conf[i])) h += row('Trend confidence', d.conf[i]);
     if (has(d.fire_years[i])) h += row('Burns', d.fire_detail[i] + ' · ' + num(d.fire_ha[i], 1) + ' ha' +
              '<br><small>' + (d.site_fire_type[i] === 'wildfire' ? 'summer fire: probable wildfire'
                                                                 : 'lyngbrenning season: probable prescribed burn') +
@@ -1469,7 +1553,9 @@ function(el, x, data) {
   }
   function styleFor(i) {
     var c = colourFor(i);
-    return c ? { color: c, weight: 2.5, opacity: 1, fill: true, fillColor: c, fillOpacity: 0.12 }
+    var k = data.theme_keys[theme];
+    var op = (k === 'traj' || k === 'change' || k === 'prio') && has(d.conf[i]) ? P.conf[d.conf[i]] : 1;
+    return c ? { color: c, weight: 2.5, opacity: op, fill: true, fillColor: c, fillOpacity: 0.12 * op }
              : { color: '#FFFFFF', weight: 1, opacity: 0.5, fill: true, fillOpacity: 0 };
   }
   function decode(str) {
@@ -1531,7 +1617,8 @@ m <- htmlwidgets::onRender(m, map_js, data = list(
   legends = as.list(setNames(paste0("lg-", names(THEMES)), unname(THEMES))),
   outline_zoom = 12,
   pal = list(traj = as.list(TRAJ_MAP_COLS), tilst = as.list(tilst_cols), clear = as.list(CLEAR_COLS),
-             burn = BURN_COL, wildfire = WILDFIRE_COL, spruce = SPRUCE_COL, prio = as.list(PRIORITY_COLS))
+             burn = BURN_COL, wildfire = WILDFIRE_COL, spruce = SPRUCE_COL, prio = as.list(PRIORITY_COLS),
+             conf = as.list(CONF_OPACITY))
 ))
 m$width  <- "100%"
 m$height <- 720
@@ -1547,6 +1634,9 @@ htmltools::tagList(
     .site-pop small { color: #8B927E; }
     .site-pop .chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
     .site-pop .links { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .lg-conf i:nth-of-type(1) { opacity: 0.95 !important; }
+    .lg-conf i:nth-of-type(2) { opacity: 0.5 !important; }
+    .lg-conf i:nth-of-type(3) { opacity: 0.15 !important; }
   ")),
   m
 )
@@ -1562,13 +1652,13 @@ The action plan for coastal heathland 2023-2037 aims to improve the national con
 - **The gap between good and poor sites is widening.** Sites already in good condition are the most likely to be restoring, and sites already in poor condition are more likely to be overgrowing further. This is consistent with management continuing where it is easiest or already established, whilst the sites abandoned for longest keep closing up.
 - **Detected management is small relative to the problem.** Clearance was detected on `r fmt(key$clear_sites)` restoring sites (`r fmt(key$clear_ha, 0)` ha) and burns on `r fmt(key$fire_sites)` sites (`r fmt(key$fire_ha)` ha), against `r fmt(key$n_succ)` sites that are succeeding.
 
-If these patterns continue, the national condition of kystlynghei will decline rather than improve, and the goal of the action plan will not be reached. We suggest two priorities for targeting measures: sites in poor condition that still have open heath to protect, and sites in good or moderate condition that have begun to overgrow. We have identified these two groups in the web map (@sec-webmap), where `r fmt(sum(sites$priority == "Poor condition, open heath remaining", na.rm = TRUE))` are sites given a condition score of *dårlig* or *svært redusert* during their MI survey, but where at least half the site is still open heath, and `r fmt(sum(sites$priority == "Good/moderate condition, overgrowing", na.rm = TRUE))` are sites given *good* or *moderate* condition scores but with a succession trajectory. Both groups are shown in the web map (@sec-webmap) and flagged in the site shapefiles.
+If these patterns continue, the national condition of kystlynghei will decline rather than improve, and the goal of the action plan will not be reached. We suggest two priorities for targeting measures: sites in poor condition that still have open heath to protect, and sites in good or moderate condition that have begun to overgrow. We have identified these two groups in the web map (@sec-webmap), where `r fmt(sum(sites$priority == "Poor condition, open heath remaining", na.rm = TRUE))` are sites given a condition score of *dårlig* or *svært redusert* during their MI survey, but where at least half the site is still open heath, and `r fmt(sum(sites$priority == "Good/moderate condition, overgrowing", na.rm = TRUE))` are sites given *good* or *moderate* condition scores but with a succession trajectory. Both groups are shown in the web map (@sec-webmap) and flagged in the site shapefiles. Of the overgrowing group, `r fmt(key$prio_overgr_high)` sites have high confidence of at least a moderate succession trend and `r fmt(key$prio_overgr_dir)` have a clear direction of change (high or medium confidence); these are the most secure targets. The confidence is shown with the priority flag in the web map and the shapefiles.
 
 ## Model Limitations
 
 Three limitations affect the trajectory results:
 
-- **Year effects.** National year-to-year shifts in the score are of the same order as the moderate threshold. They are visible in every class, including sites with no strong signal, so they are probably year-to-year differences in the satellite data rather than ecological change. The robust trend over eight years reduces their influence, but a single strong year at the start or end of a short series can still push a site across the threshold. The slight national drift towards overgrowth may partly reflect this effect.
+- **Year effects.** Year-to-year shifts in the score shared by a whole county reach `r fmt(key$ye_max, 3)` score units, of the same order as the moderate threshold. They are visible in every class, including sites with no strong signal, so they reflect weather, snow, the timing of the growing season and differences between embedding years rather than ecological change. They are removed county by county before the trends are fitted (@sec-uncertainty). Local weather within a county is not removed and remains part of the uncertainty of each trend.
 - **Few years.** Eight annual values are few for detecting slow change. Classifications of individual sites close to the moderate threshold are uncertain.
 - **Adjacent classes.** The model separates SJ1 from SJ4 almost perfectly but SJ2 from SJ3 much less well. Much of the clearance signal lies precisely at this boundary.
 
@@ -1609,7 +1699,7 @@ Grazed sites overgrow more slowly, but the effect is small and confounded with t
 The following steps are proposed for 2027:
 
 1. **Target manual verification** using the site results. Priorities: sites with strong succession, sites in good condition that are succeeding, the largest clearance and burn events, and a sample of the restoring sites in Nordland.
-2. **Correct for year effects** before the next annual update, for example by calibrating each year against stable reference sites. Then re-examine the national drift towards overgrowth.
+2. **Refine the year-effect correction.** The county-level correction could be made finer, for example with regions defined by climate or growing-season timing, or by calibrating each year against stable reference sites. Then re-examine the national drift towards overgrowth.
 3. **Use lyngbrenning registered by Landbruksdirektoratet as a further screen for fire effects.** Lyngbrenning supported through the agricultural schemes is recorded by Landbruksdirektoratet. Like the *naturtiltak* register, these records give the site and year of burns that are mostly too small for FIRMS. Matched to the MI sites, they would add the small prescribed burns to the burn layer, so that their effect on succession can be measured and they are no longer counted as clearance.
 4. **Keep FIRMS for near-real-time wildfire warning.** FIRMS detections are published within hours of a satellite overpass, and the large, intense fires typical of wildfires are those FIRMS detects most reliably. A FIRMS detection within reach of a kystlynghei site is therefore a good near-real-time warning of a wildfire, which the Sentinel-2 mapping can then follow up.
 5. **Quantify management effects against reference areas.** Compare treated *naturtiltak* polygons with reference heath in good condition to estimate effect sizes for burning, clearance and grazing.
