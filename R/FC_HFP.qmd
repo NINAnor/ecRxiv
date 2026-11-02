@@ -231,7 +231,7 @@ An indicator value of 1 signifies that the currently mapped forest landscape has
 
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
-In the current national aggregation, the indicator value for connected low-infrastructure forest habitat is 0.719. This means that current equivalent connected low-infrastructure forest habitat is approximately 72% of the modeled reference value under the current assumptions. The indicator is still incomplete, as uncertainty is not represented and the indicator has not yet been ecologically validated.
+In the current national aggregation, the indicator value for connected low-infrastructure forest habitat is 0.65. This means that current equivalent connected low-infrastructure forest habitat is approximately 65% of the modeled reference value under the current assumptions. The indicator is still incomplete, as uncertainty is not represented and the indicator has not yet been ecologically validated.
 
 
 ## 2. About the underlying data
@@ -242,11 +242,11 @@ The indicator is based on publicly available spatial datasets describing forest 
 
 #### Forest extent
 
-The forest extent is derived from the National base-map for area accounting (i.e. [Nasjonalt grunnkart for arealanalyse](https://kartkatalog.geonorge.no/metadata/grunnkart-for-bruk-i-arealregnskap-testversjon-1/28c28e3a-d88f-4a34-8c60-5efe6d56a44d)). This base-map has been developed in collaboration between NIBIO, Statistics Norway, the Norwegian Mapping Authority and the Norwegian Environment Agency, and is intended as a common data basis for various types of area analyses. The base-map is based on existing data from the public map basis (DOK), which shows land resource and land use data, and does not involve new mapping. For forest extent, we selected the polygons from the base-map with `okosystemtype_1 == "Forest and woodlands"`. 
+The forest extent is derived from the National base-map for area accounting (i.e. [Nasjonalt grunnkart for arealanalyse](https://kartkatalog.geonorge.no/metadata/nasjonalt-grunnkart-for-arealanalyse/28c28e3a-d88f-4a34-8c60-5efe6d56a44d)). This base-map has been developed in collaboration between NIBIO, Statistics Norway, the Norwegian Mapping Authority and the Norwegian Environment Agency, and is intended as a common data basis for various types of area analyses. The base-map is based on existing data from the public map basis (DOK), which shows land resource and land use data, and does not involve new mapping. For forest extent, we selected the polygons from the base-map with `"okosystemtypeniva1" == 'skog'`. 
 
 #### Water cover
 
-Water cover is derived from the same base-map for area accounting, using the ecosystem categories `okosystemtype_1 IN ('Lakes and reservoirs', 'Marine ecosystems', 'Rivers and canals')`. Water-covered areas are not assigned forest habitat, but they reduce permeability for ground-dwelling organisms in the connectivity model.
+Water cover is derived from the same base-map for area accounting, using the ecosystem categories `"okosystemtypeniva1" IN ('innsjoerVannmagasiner', 'hav','elverBekkerKanaler')`. Water-covered areas are not assigned forest habitat, but they reduce permeability for ground-dwelling organisms in the connectivity model.
 
 #### Land-use intensity
 
@@ -281,9 +281,9 @@ For **land-use intensity**, the raster layer is resampled to the analysis grid. 
 
 <!--# What are the original units for the most relevant  variables in the data-->
 
-For **forest extent**, we selected polygons from the base-map with `okosystemtype_1 == "Forest and woodlands"`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by forest.
+For **forest extent**, we selected polygons from the base-map with  `"okosystemtypeniva1" == 'skog'`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by forest.
 
-For **water cover**, we selected polygons from the base-map where `okosystemtype_1` is `Lakes and reservoirs`, `Marine ecosystems`, or `Rivers and canals`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by water.
+For **water cover**, we selected polygons from the base-map where `okosystemtypeniva1` is `innsjoerVannmagasiner`, `hav`, or `elverBekkerKanaler`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by water.
 
 For **land-use intensity**, the original index ranges from zero to around 13. During harmonization, the layer is divided by 13, and stored on a 0-to-200 integer scale. Conceptually, the indicator uses a 0-to-1 scaled LUI layer, where 0 means no land-use-intensity effect and higher values mean stronger reduction of habitat quality and permeability.
 
@@ -294,7 +294,7 @@ For **land-use intensity**, the original index ranges from zero to around 13. Du
 
 These data are publicly accessible:
 
-The base-map used for **forest extent** and **water cover** is available here: https://kartkatalog.geonorge.no/metadata/nasjonalt-grunnkart-for-arealanalyse-wms-aarsversjon-2025/c7dc425b-60cd-42f7-a84e-202c7d7b912a
+The base-map used for **forest extent** and **water cover** is available here: https://kartkatalog.geonorge.no/metadata/nasjonalt-grunnkart-for-arealanalyse/28c28e3a-d88f-4a34-8c60-5efe6d56a44d
 
 The **land-use intensity** index is described in @erikstad2023index: https://www.mdpi.com/2673-7418/3/1/10, and is available here: https://kartkatalog.miljodirektoratet.no/MapService/Details/nin_landskapstyper?lang=en-us
 
@@ -668,7 +668,7 @@ indir = "data/inputs_julia/"
 theta = 1.0
 
 # distance decay
-optimal_r = 0.659 # ecological distance to Euclidean distance equivalent
+optimal_r = 33 # ecological distance to Euclidean distance equivalent
 alpha = 1 / 1000
 Alpha = alpha .* optimal_r
 
@@ -950,8 +950,8 @@ Load complete Norwegian data, if precomputed:
 #| message: false
 #| warning: false
 
-if (file.exists(here("data/outputs/", "municipality_account.shp"))){
-  municipality_shp <- sf::st_read(here("data/outputs/", "municipality_account.shp"))
+if (file.exists(here("data/outputs/", "municipal_account.shp"))){
+  municipality_shp <- sf::st_read(here("data/outputs/", "municipal_account.shp"))
   names(municipality_shp)[c(1,11,12,16,17,18)] <- c("objtype", "kommunenummer", "kommunenavn", "variable_km4", "ref_km4", "indicator")
 } 
 
@@ -960,9 +960,9 @@ if (file.exists(here("data/outputs/", "county_account.shp"))){
   names(county_shp)[c(1,11,12,16,17,18)] <- c("objtype", "fylkesnummer", "fylkesnavn", "variable_km4", "ref_km4", "indicator")
 } 
 
-if (file.exists(here("data/outputs/", "region_account.shp"))){
-  region_shp <- sf::st_read(here("data/outputs/", "region_account.shp"))
-  names(region_shp)[c(6,7,8)] <- c("variable_km4", "ref_km4", "indicator")
+if (file.exists(here("data/outputs/", "landsdel_account.shp"))){
+  region_shp <- sf::st_read(here("data/outputs/", "landsdel_account.shp"))
+  names(region_shp)[c(2,3,5,6,7)] <- c("variable_km4", "ref_km4", "variable_km2", "ref_km2", "indicator")
 } 
 
 if (file.exists(here("data/outputs/", "national_account.csv"))){
@@ -1015,10 +1015,10 @@ Regional account:
 #| label: show - regional account
 #| echo: true
 
-df <- st_drop_geometry(region_shp)[,c("id", "region", "variable_km4", "ref_km4", "indicator")]
+df <- st_drop_geometry(region_shp)[,c("lndsdln", "variable_km4", "ref_km4", "indicator")]
 df$variable_km2 <- sqrt(df$variable_km4)
 df$ref_km2 <- sqrt(df$ref_km4)
-df <- df[,c("id", "region", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+df <- df[,c("lndsdln", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
 
 gt::gt(df) |>
   gt::tab_options(
@@ -1036,7 +1036,8 @@ National account:
 df <- national_df
 df$variable_km2 <- sqrt(df$variable_km4)
 df$ref_km2 <- sqrt(df$ref_km4)
-df <- df[,c("objtype", "variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
+df$indicator <- df$variable_km2/df$ref_km2 
+df <- df[,c("variable_km4", "variable_km2", "ref_km4", "ref_km2", "indicator")]
 
 knitr::kable(df, digits = 2)
 ```
