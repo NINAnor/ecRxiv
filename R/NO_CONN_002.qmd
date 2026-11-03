@@ -1090,28 +1090,32 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 -->
 
 ```{r export}
-#| label: save accounts
 #| eval: false
 
-st_write(municipality_shp, file=paste0("data/outputs/", "municipality_account.shp"), append=F)
+st_write(municipality_shp, file=paste0("data/outputs/", "municipal_account.shp"), append=F)
 st_write(county_shp, file=paste0("data/outputs/", "county_account.shp"), append=F)
-st_write(region_shp, file=paste0("data/outputs/", "region_account.shp"), append=F)
+st_write(region_shp, file=paste0("data/outputs/", "landsdel_account.shp"), append=F)
 write.csv2(national_df, paste0("data/outputs/", "national_account.csv"), row.names = F)
 ```
 
 ```{r exportResults}
 #| eval: true
+
 results <- national_df |>
-  select(value = indicator) |>
-  add_column(area = "Norway", year = 2024) |>
-  bind_rows(region_shp |>
-    select(
-      area = region,
-      value = indicator
-    ) |>
-      add_column(year = 2024)) |>
-      as_tibble() |>
-      select(-geometry)
+  transmute(
+    area = "Norway",
+    value = sqrt_indicator,
+    year = 2024
+  ) |>
+  bind_rows(
+    region_shp |>
+      sf::st_drop_geometry() |>
+      transmute(
+        area = lndsdln,
+        value = indicator,
+        year = 2024
+      )
+  )
 
 readr::write_csv(
   results |> select(year, area, value),
