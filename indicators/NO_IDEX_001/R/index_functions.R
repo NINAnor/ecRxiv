@@ -1971,12 +1971,15 @@ condition_scale_data <- function(ymin = 0, ymax = 1) {
 # ("Norway") value per row instead, with no region colour/shape legend.
 # `condition_scale = TRUE` (national only) adds a three-class coloured
 # condition band at the bottom of the plot (no class labels).
+# `include_direct_index = FALSE` drops the "Index (direct)" / "Indeks (direkte)"
+# row, keeping only the hierarchical ECT-based Index.
 plot_index_detailed <- function(
     index_result,
     year,
     title = "NO_IDEX_001",
     national_only = FALSE,
     condition_scale = FALSE,
+    include_direct_index = TRUE,
     lang = c("en", "nb"),
     registry = NULL) {
   lang <- rlang::arg_match(lang)
@@ -2152,8 +2155,14 @@ plot_index_detailed <- function(
       "median", "q025", "q975"
     )
 
+  total_ids <- if (isTRUE(include_direct_index)) {
+    c("Index", "Index (direct)")
+  } else {
+    "Index"
+  }
+
   total_summary <- agg_summary |>
-    dplyr::filter(.data$id %in% c("Index", "Index (direct)")) |>
+    dplyr::filter(.data$id %in% total_ids) |>
     dplyr::mutate(
       level = "Total",
       indicator_id = NA_character_,
@@ -2196,7 +2205,7 @@ plot_index_detailed <- function(
     ect_order[ect_order %in% unique(ect_summary$ect)]
   )
 
-  total_order <- c("Index", "Index (direct)")
+  total_order <- total_ids
 
   total_keys <- paste0(
     "Total::",
@@ -2472,6 +2481,66 @@ save_index_condition_figures <- function(
       dpi = 150,
       bg = "white"
     )
+  }
+
+  invisible(TRUE)
+}
+
+# Save Norwegian national figures without the direct-index row.
+# Writes separate *_national_nb_no_direct.png files so the existing
+# national figures (with Indeks / Indeks (direkte)) remain unchanged.
+save_index_national_nb_no_direct_figures <- function(
+    forest_index,
+    mountain_index,
+    registry_forest,
+    registry_mountain,
+    years,
+    out_dir = here::here("img")) {
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE)
+  }
+
+  specs <- list(
+    list(
+      index = forest_index,
+      registry = registry_forest,
+      title = "NO_IDEX_001 \u2014 skog",
+      slug = "skog",
+      height = 7
+    ),
+    list(
+      index = mountain_index,
+      registry = registry_mountain,
+      title = "NO_IDEX_001 \u2014 fjell",
+      slug = "fjell",
+      height = 5.5
+    )
+  )
+
+  for (spec in specs) {
+    for (yr in years) {
+      p <- plot_index_detailed(
+        spec$index,
+        year = yr,
+        title = spec$title,
+        national_only = TRUE,
+        include_direct_index = FALSE,
+        lang = "nb",
+        registry = spec$registry
+      )
+      out <- file.path(
+        out_dir,
+        sprintf("NO_IDEX_001_%s_%s_national_nb_no_direct.png", spec$slug, yr)
+      )
+      ggplot2::ggsave(
+        filename = out,
+        plot = p,
+        width = 7,
+        height = spec$height,
+        dpi = 150,
+        bg = "white"
+      )
+    }
   }
 
   invisible(TRUE)
