@@ -7,7 +7,7 @@ indicatorID:
 indicatorName: 
   - Moisture impact on vegetation
 verbatimName: 
-  - Fuktighetspåvirkning på vegetasjon # the indicator name that us used in the native language
+  - Vegetasjonsindkator for fuktighet # the indicator name that us used in the native language
 folderName: NO_FUMO_004 # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
 # If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
 # If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÅÅÅ.
@@ -27,8 +27,8 @@ verbatimEcosystem:
 yearAdded: 2026
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
-Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: This indicator has been calculated before under different names and codes. Most rencently NO_FUNC_004 version 000.001 on ecRxiv 
+Version: "0.1.1" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
+VersionComment: Changed verbatim name 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_FUMO_004
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
 SpatialAggregationPathway: Scale/Truncate - Aggregate (zero-one inflated beta-regression) 
@@ -171,7 +171,7 @@ license_badge()
 ::: 
  
 
-> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID: ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 
 ::: {.callout-tip collapse="true"}
@@ -212,6 +212,7 @@ meta |>
 <!--# Update this logg with short messages for each update -->
 - pre 2026 - Indicator was presented under different names, including NO_FUNC_004
 - July 1 2026 - Accepted
+- September 30 2026 - Changed verbatim name
 :::
 
 <hr />
@@ -229,7 +230,6 @@ An indicator value of 1 indicates no discernible difference in the functional pl
 Values decreasing toward zero reflect a shift in species composition and community trait values away from the reference state, either as a response to increased or decreased Moisture.
 
 4. **Results and development needs**:
-
 The functional plant community indicator for moisture and its 95% CI is slightly below 0.6 indicating that the functional plant community composition deviates more than accepted under good ecological condition. The result is mainly driven by deviations towards high moisture values, but deviations towards low moisture values also occur (ca. 3/4 upper deviations and 1/4 lower deviations).
 
 To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southhern and eastern Norway. The indicator values also need validation against independent datasets.
@@ -1439,7 +1439,7 @@ NO_FUMO_004_table <- tibble(
     as.vector(table(Moisture1.re$frame$region))
   )
 )
-NO_FUMO_004_table
+gt::gt(NO_FUMO_004_table)
 ```
 
 To express the results as a distribution, we need to simulate mean estimates based on the models' intercept and associated standard error.
