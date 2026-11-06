@@ -552,7 +552,60 @@ indicator_mc_slug <- function(indicator_id) {
   tolower(core)
 }
 
+# Version in results_<id>_v<major>.<minor>[.<patch>].<ext>.
+# Unversioned files rank below every versioned file.
+results_version_parts <- function(path) {
+  matched <- stringr::str_match(
+    basename(path),
+    "_v([0-9]+)\\.([0-9]+)(?:\\.([0-9]+))?\\.[^.]+$"
+  )
+  major <- suppressWarnings(as.integer(matched[, 2]))
+  minor <- suppressWarnings(as.integer(matched[, 3]))
+  patch <- suppressWarnings(as.integer(matched[, 4]))
+  patch[!is.na(major) & is.na(patch)] <- 0L
+  list(
+    major = major,
+    minor = minor,
+    patch = patch,
+    has_version = !is.na(major)
+  )
+}
+
+# Result files present in this clone, as repo-relative paths.
+local_versioned_results_paths <- function(indicator_id, folder = indicator_id) {
+  git_root <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+  for (i in seq_len(8L)) {
+    if (dir.exists(file.path(git_root, ".git")) || file.exists(file.path(git_root, ".git"))) {
+      break
+    }
+    parent <- dirname(git_root)
+    if (parent == git_root) {
+      return(character())
+    }
+    git_root <- parent
+  }
+  dirs <- unique(file.path(git_root, "indicators", c(folder, indicator_id), "data"))
+  files <- unlist(lapply(dirs, function(dir) {
+    if (!dir.exists(dir)) {
+      return(character())
+    }
+    list.files(
+      dir,
+      pattern = paste0("^results_", indicator_id, "_v[0-9]+.*\\.(csv|parquet)$"),
+      full.names = TRUE
+    )
+  }), use.names = FALSE)
+  if (!length(files)) {
+    return(character())
+  }
+  files <- normalizePath(files, winslash = "/", mustWork = TRUE)
+  prefix <- paste0(git_root, "/")
+  files <- files[startsWith(files, prefix)]
+  substring(files, nchar(prefix) + 1L)
+}
+
 # Prefer slug-matching MC RDS when several exist.
+# Among files with the same priority, the highest version is tried first.
 filter_indicator_source_candidates <- function(candidates, indicator_id) {
   if (nrow(candidates) == 0) {
     return(candidates)
@@ -570,9 +623,22 @@ filter_indicator_source_candidates <- function(candidates, indicator_id) {
       dplyr::filter(!.data$is_mc_rds | .data$slug_match)
   }
 
+  ver <- results_version_parts(candidates$results_path)
   candidates |>
-    dplyr::arrange(.data$priority, .data$ref, .data$results_path) |>
-    dplyr::select(-"is_mc_rds", -"slug_match")
+    dplyr::mutate(
+      ver_major = dplyr::coalesce(ver$major, -1L),
+      ver_minor = dplyr::coalesce(ver$minor, -1L),
+      ver_patch = dplyr::coalesce(ver$patch, -1L)
+    ) |>
+    dplyr::arrange(
+      .data$priority,
+      dplyr::desc(.data$ver_major),
+      dplyr::desc(.data$ver_minor),
+      dplyr::desc(.data$ver_patch),
+      .data$ref,
+      .data$results_path
+    ) |>
+    dplyr::select(-"is_mc_rds", -"slug_match", -"ver_major", -"ver_minor", -"ver_patch")
 }
 
 # Possible results file paths inside a repo.
@@ -628,6 +694,10 @@ results_path_candidates <- function(
       glue::glue("indicators/{indicator_id}/data/results_{indicator_id}_v0.1.0.parquet")
     )
   }
+
+  # Every versioned results file in the clone, so a newer file (for example
+  # v1.0.1) is tried before the default v1.0.0 path.
+  paths <- c(paths, local_versioned_results_paths(indicator_id, folder))
 
   unique(paths)
 }
@@ -707,7 +777,15 @@ find_local_results_path <- function(
   if (length(hits) == 0) {
     return(NA_character_)
   }
-  hits[[1]]
+  ver <- results_version_parts(hits)
+  ord <- order(
+    !ver$has_version,
+    -dplyr::coalesce(ver$major, 0L),
+    -dplyr::coalesce(ver$minor, 0L),
+    -dplyr::coalesce(ver$patch, 0L),
+    hits
+  )
+  hits[[ord[[1]]]]
 }
 
 # Resolve the best available results source for an ID.
@@ -1391,12 +1469,20 @@ load_registry_draws <- function(
   purrr::map_dfr(seq_len(nrow(use)), function(i) {
     row <- use[i, ]
     path <- if (!is.null(local_root)) {
-      file.path(
-        local_root,
-        row$folder,
-        "data",
-        glue::glue("results_{row$indicatorID}_v1.0.0.csv")
+      local_path <- find_local_results_path(
+        row$indicatorID,
+        local_dir = file.path(local_root, row$folder, "data")
       )
+      if (is.na(local_path)) {
+        file.path(
+          local_root,
+          row$folder,
+          "data",
+          glue::glue("results_{row$indicatorID}_v1.0.0.csv")
+        )
+      } else {
+        local_path
+      }
     } else if ("results_url" %in% names(row) && !is.na(row$results_url) && row$results_url != "") {
       row$results_url
     } else {
@@ -1645,7 +1731,9 @@ fill_missing_national_draws <- function(draws, n = 1000) {
         ecosystem = df$ecosystem[1],
         indicator_name = df$indicator_name[1],
         results_ref = df$results_ref[1],
-        results_source = df$results_source[1]
+        results_source = df$results_source[1],
+        imputed = FALSE,
+        source_year = .data$year
       )
   })
 
@@ -1883,12 +1971,15 @@ condition_scale_data <- function(ymin = 0, ymax = 1) {
 # ("Norway") value per row instead, with no region colour/shape legend.
 # `condition_scale = TRUE` (national only) adds a three-class coloured
 # condition band at the bottom of the plot (no class labels).
+# `include_direct_index = FALSE` drops the "Index (direct)" / "Indeks (direkte)"
+# row, keeping only the hierarchical ECT-based Index.
 plot_index_detailed <- function(
     index_result,
     year,
     title = "NO_IDEX_001",
     national_only = FALSE,
     condition_scale = FALSE,
+    include_direct_index = TRUE,
     lang = c("en", "nb"),
     registry = NULL) {
   lang <- rlang::arg_match(lang)
@@ -2064,8 +2155,14 @@ plot_index_detailed <- function(
       "median", "q025", "q975"
     )
 
+  total_ids <- if (isTRUE(include_direct_index)) {
+    c("Index", "Index (direct)")
+  } else {
+    "Index"
+  }
+
   total_summary <- agg_summary |>
-    dplyr::filter(.data$id %in% c("Index", "Index (direct)")) |>
+    dplyr::filter(.data$id %in% total_ids) |>
     dplyr::mutate(
       level = "Total",
       indicator_id = NA_character_,
@@ -2108,7 +2205,7 @@ plot_index_detailed <- function(
     ect_order[ect_order %in% unique(ect_summary$ect)]
   )
 
-  total_order <- c("Index", "Index (direct)")
+  total_order <- total_ids
 
   total_keys <- paste0(
     "Total::",
@@ -2384,6 +2481,66 @@ save_index_condition_figures <- function(
       dpi = 150,
       bg = "white"
     )
+  }
+
+  invisible(TRUE)
+}
+
+# Save Norwegian national figures without the direct-index row.
+# Writes separate *_national_nb_no_direct.png files so the existing
+# national figures (with Indeks / Indeks (direkte)) remain unchanged.
+save_index_national_nb_no_direct_figures <- function(
+    forest_index,
+    mountain_index,
+    registry_forest,
+    registry_mountain,
+    years,
+    out_dir = here::here("img")) {
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE)
+  }
+
+  specs <- list(
+    list(
+      index = forest_index,
+      registry = registry_forest,
+      title = "NO_IDEX_001 \u2014 skog",
+      slug = "skog",
+      height = 7
+    ),
+    list(
+      index = mountain_index,
+      registry = registry_mountain,
+      title = "NO_IDEX_001 \u2014 fjell",
+      slug = "fjell",
+      height = 5.5
+    )
+  )
+
+  for (spec in specs) {
+    for (yr in years) {
+      p <- plot_index_detailed(
+        spec$index,
+        year = yr,
+        title = spec$title,
+        national_only = TRUE,
+        include_direct_index = FALSE,
+        lang = "nb",
+        registry = spec$registry
+      )
+      out <- file.path(
+        out_dir,
+        sprintf("NO_IDEX_001_%s_%s_national_nb_no_direct.png", spec$slug, yr)
+      )
+      ggplot2::ggsave(
+        filename = out,
+        plot = p,
+        width = 7,
+        height = spec$height,
+        dpi = 150,
+        bg = "white"
+      )
+    }
   }
 
   invisible(TRUE)
