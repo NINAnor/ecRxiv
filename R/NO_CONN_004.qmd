@@ -8,6 +8,7 @@ subtitle: |
 # from each other, for example the ecosystem type that they cover
 indicatorID: 
   - NO_CONN_004
+# If you are presenting multiple indicators, and have multiple 
 # indicator IDs, then add them as a list here, and make sure you add
 # the same number of list entries, 
 # and in the same order that corresponds to the indicator IDs,  
@@ -22,7 +23,7 @@ verbatimName:
   - Strukturell konnektivitet og arealbruksintensitet  # the indicator name that us used in the native language
 folderName: XXX_YYY_ZZZ # Leave to be filled out by ecRxiv during typesetting (name of the folder under 'indicators/'). 
 # If it's a single indicator being reported, the folder name should be the same as the indicatorID. 
-# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÃÃÃ.
+# If there are multiple ID's then the folder name could look something like XX_YYY_ZZZ-ÃÂÃ.
 country: Norway
 continent: Europe
 ECT: C1 - Landscape and seascape characteristics # e.g. A2 - Chemical State characteristics
@@ -32,7 +33,7 @@ Biome:
   - T4 Savannas and grasslands biome # e.g. F1 Rivers and streams biome
 Ecosystem: 
   - T4.5 Temperate grasslands # e.g. F1.3 Freeze-thaw streams
-verbatimEcosystem: Ã¥pen lavland # add name of the ecosystem or naturetype according to any relevant local or national typology. E.g. fjell, skog, ... 
+verbatimEcosystem: Ãpen lavland # add name of the ecosystem or naturetype according to any relevant local or national typology. E.g. fjell, skog, ... 
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: incomplete # options are complete, incomplete, or deprecated
@@ -59,13 +60,13 @@ author:
     affiliations:
       - id: myID
         name: Norwegian Institute for Nature Research # Enter affiliations
-  - name: Joachim Paul TÃ¶pper              #  Enter subsequent authors like this, or remove if not relevant
+  - name: Joachim Paul Töpper              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
   - name: Manuela Panzacchi              #  Enter subsequent authors like this, or remove if not relevant
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
-AuthorList: Van Moorter, B. and TÃ¶pper, J.P. and Panzacchi, M.  
+AuthorList: Van Moorter, B. and Töpper, J.P. and Panzacchi, M.  
 date: June 1, 2026 # Enter date
 data_availability: gold
 code_reproducibility: bronze
@@ -240,7 +241,7 @@ The open habitats are derived from the National base-map for area accounting (i.
 
 #### Mountain areas
 
-Lowlands are not mountain areas, we inverted the mountain mask from the mountain ecosystem extent account. 
+The distinction between mountain and lowland areas is based on the mountain-area mask prepared for the mountain ecosystem extent account. We use its inverse to define the lowland domain: cells classified as mountain are excluded from the open-vegetation layer when calculating open-lowland habitat. The harmonised input is a binary raster (`mountain_bin_NO.tif`), rather than an elevation threshold calculated within this workflow. Thus, the mountain/lowland boundary follows the classification in the source account. 
 
 #### Land-use intensity
 
@@ -251,11 +252,11 @@ The land-use intensity (LUI) layer is based on the land-use-intensity index desc
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
 
-The analysis was conducted on a 50-by-50 m grid aligned with Statistics Norway (Statistisk sentralbyrå - SSB), all original data sources were aggregated to this resolution. We used the most recent data available in 2026.     
+The analysis was conducted on a 50-by-50 m grid aligned with Statistics Norway (Statistisk sentralbyrÃ¥ - SSB), all original data sources were aggregated to this resolution. We used the most recent data available in 2026.     
 
 For **open habitat extent**, the base-map is a vector map and is rasterised as the proportion of each 50-by-50 m pixel covered by open habitats.
 
-For **mountain areas**, xxx.
+For **mountain areas**, the mountain ecosystem extent account supplies a spatial mountain mask for Norway. The harmonised binary raster is aligned to the 50-by-50 m analysis grid and is used to distinguish mountain from non-mountain cells. The original spatial and temporal resolution of the source mountain classification is not documented in this file and should be verified against the mountain ecosystem extent account.
 
 For **land-use intensity**, the source raster is resampled from its original 100-by-100 m resolution to the 50-by-50 m analysis grid and scaled to a 0-to-1 index for use in the model.
 
@@ -266,7 +267,7 @@ For **land-use intensity**, the source raster is resampled from its original 100
 
 For **open habitat extent**, the vector base-map is rasterized as the proportion of each 50-by-50 m pixel covered by open habitat ecosystems.
 
-For **mountain areas**, the raster-map is resampled to the analysis grid.
+For **mountain areas**, the pre-existing mountain-area raster is harmonised to the analysis grid. It is used as a categorical mask, not as a sampled continuous environmental variable. The exact resampling method used in preparing the harmonised raster is not recorded in this document.
 
 For **land-use intensity**, the raster layer is resampled to the analysis grid. LUI is treated as a continuous local-pressure variable that affects both habitat quality and movement permeability.
 
@@ -277,7 +278,7 @@ For **land-use intensity**, the raster layer is resampled to the analysis grid. 
 
 For **open habitat extent**, we selected polygons from the base-map with `okosystemtype_1 IN ('Heathland and shrub', 'Sparsely vegetated ecosystems','Grassland')`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by open-lowland.
 
-For **mountain areas**.
+For **mountain areas**, the working raster is binary: a value of 1 identifies mountain cells, which are excluded from open-lowland habitat, while values outside that class remain eligible for open-lowland habitat if they contain mapped open vegetation. The unit is therefore a categorical presence/absence classification, not elevation in metres.
 
 For **land-use intensity**, the original index ranges from zero to around 13. During harmonization, the layer is divided by 13, and stored on a 0-to-200 integer scale. Conceptually, the indicator uses a 0-to-1 scaled LUI layer, where 0 means no land-use-intensity effect and higher values mean stronger reduction of habitat quality and permeability.
 
@@ -290,7 +291,7 @@ These data are publicly accessible:
 
 The base-map used for **open habitat extent** is available here: https://kartkatalog.geonorge.no/metadata/nasjonalt-grunnkart-for-arealanalyse-wms-aarsversjon-2025/c7dc425b-60cd-42f7-a84e-202c7d7b912a
 
-**mountain areas** ?
+For **mountain areas**, the classification was taken from the mountain ecosystem extent account. This analysis reads the harmonised raster `data/harmonised/mountain_bin_NO.tif`. A verified public URL and citation for the original mountain extent dataset should be added from the source account before publication; the local raster path is not itself a public download link.
 
 The **land-use intensity** index is described in @erikstad2023index: https://www.mdpi.com/2673-7418/3/1/10, and is available here: https://kartkatalog.miljodirektoratet.no/MapService/Details/nin_landskapstyper?lang=en-us
 
@@ -445,9 +446,11 @@ The open-lowland extent is derived from open-vegetation within the lowland exten
 
 <!--# Import and prepare the first dataset for analysis. Change the header from Dataset A to the name of the actual dataset. -->
 
-First, habitat quality is only defined within the open-vegetation ecosystem type from the base-map for area accounting (`okosystemtype_1 IN ('Heathland and shrub', 'Sparsely vegetated ecosystems','Grassland')`). The raster represents the proportion of each 50-by-50 m pixel covered by open-vegetation.
+First, habitat quality is only defined within the open-vegetation ecosystem type from the base-map for area accounting (`okosystemtype_1 IN ('Heathland and shrub', 'Sparsely vegetated ecosystems','Grassland')`). The raster represents the proportion of each 50-by-50 m pixel covered by open vegetation (Figure @fig-open-habitat).
 
 ```{r}
+#| label: fig-open-habitat
+#| fig-cap: "Mapped open-vegetation extent, expressed as the percentage of each 50-by-50 m cell covered by selected open ecosystems."
 #| echo: true
 #| warning: false
 #| message: false
@@ -460,9 +463,11 @@ plot(open_habitat, main="Open habitats")
 
 ### 7.2 Mountain vs. open-lowland areas
 
-Open-lowland is open-vegetation at low elevation -- outside mountain areas. The mountain areas are therefore masked out of the open-vegetation map, we first load the mountain areas:
+Open-lowland is mapped open vegetation outside areas classified as mountain, rather than all vegetation below a newly chosen elevation threshold. Figure @fig-mountain-mask shows the binary mountain mask loaded from the harmonised data:
 
 ```{r}
+#| label: fig-mountain-mask
+#| fig-cap: "Binary mountain-area mask from the mountain ecosystem extent account; mountain cells are excluded from the open-lowland habitat layer."
 #| echo: true
 #| warning: false
 #| message: false
@@ -471,9 +476,11 @@ mountain_mask <- focus(rast(here("data/harmonised", "mountain_bin_NO.tif")))
 plot(mountain_mask, main = "Mountain areas")
 ```
 
-Then, we mask the open-vegetation layer with the mountain areas:
+We then set mapped open vegetation in mountain cells to zero. The resulting open-lowland extent is shown in Figure @fig-open-lowland:
 
 ```{r}
+#| label: fig-open-lowland
+#| fig-cap: "Open-lowland habitat extent after excluding mountain cells from mapped open vegetation."
 #| echo: true
 #| warning: false
 #| message: false
@@ -489,9 +496,11 @@ The resulting open-lowland mask is important because it separates habitat assign
 
 ### 7.3 Land-use intensity
 
-The value of the open-lowland both for habitat quality and permeability is affected by land-use intensity (LUI). The source LUI raster was resampled to the 50-by-50 m raster grid used in this analysis. In the model calculation below, LUI is scaled to a 0-to-1 effect layer.
+Both habitat quality and permeability are affected by land-use intensity (LUI). The source LUI raster was resampled to the 50-by-50 m raster grid used in this analysis. In the model calculation below, LUI is scaled to a 0-to-1 effect layer (Figure @fig-land-use-intensity).
 
 ```{r}
+#| label: fig-land-use-intensity
+#| fig-cap: "Land-use intensity rescaled to the 0-to-1 effect range used in the model."
 #| echo: true
 #| warning: false
 #| message: false
@@ -535,7 +544,11 @@ $$Q_i = F_i \times (1 - LUI_i)$$
 
 where $Q_i$ is the habitat quality in pixel $i$, $F_i$ is the proportion of the pixel covered by open-lowland, and $LUI_i$ is the scaled land-use intensity. This means that a cell must have both open-lowland and sufficiently low LUI to receive high habitat quality.
 
+The resulting current-condition habitat-quality surface is shown in Figure @fig-habitat-quality.
+
 ```{r}
+#| label: fig-habitat-quality
+#| fig-cap: "Current-condition open-lowland habitat quality after accounting for land-use intensity."
 #| echo: true
 #| warning: false
 #| message: false
@@ -568,7 +581,11 @@ $$P_i = [(F_i \times (1 - B)) + B] \times (1 - LUI_i)$$
 
 where $P_i$ is the habitat permeability in pixel $i$, $F_i$ is the proportion of the pixel covered by open-lowland, $B$ is the permeability of the matrix, and $LUI_i$ is the scaled land-use intensity.
 
+Figure @fig-habitat-permeability shows the current-condition permeability surface used by the connectivity model.
+
 ```{r}
+#| label: fig-habitat-permeability
+#| fig-cap: "Current-condition landscape permeability for the open-lowland connectivity model."
 #| echo: true
 #| warning: false
 #| message: false
@@ -593,7 +610,11 @@ $$Q_{ref,i} = F_i$$
 
 because LUI = 0 in the reference condition.
 
+Reference-condition habitat quality, with the LUI effect removed, is shown in Figure @fig-reference-quality.
+
 ```{r}
+#| label: fig-reference-quality
+#| fig-cap: "Reference-condition habitat quality with the land-use-intensity effect removed."
 #| echo: true
 #| warning: false
 #| message: false
@@ -612,7 +633,11 @@ $$P_{ref,i} = [(F_i \times (1 - B)) + B]$$
 
 again because LUI = 0.
 
+Figure @fig-reference-permeability shows permeability under the reference condition.
+
 ```{r}
+#| label: fig-reference-permeability
+#| fig-cap: "Reference-condition landscape permeability with the land-use-intensity effect removed."
 #| echo: true
 #| warning: false
 #| message: false
@@ -643,9 +668,11 @@ ConScape uses ecological distance to describe how strongly cells are connected t
 
 $$k(d) = exp(-\alpha \times d)$$
 
-where $k(d)$ is the proximity, or remaining connection strength, at ecological distance $d$, and $\alpha$ controls how quickly connection strength declines with distance.
+where $k(d)$ is the proximity, or remaining connection strength, at ecological distance $d$, and $\alpha$ controls how quickly connection strength declines with distance (Figure @fig-distance-decay).
 
 ```{r}
+#| label: fig-distance-decay
+#| fig-cap: "Exponential decline in proximity with ecological distance for the assumed distance-decay parameter."
 #| echo: false
 
 alpha = 1 / 1000
@@ -755,9 +782,11 @@ Connected habitat describes where habitat contributes to the broader connected n
 
 Corridors describe areas that are important for movement between habitat areas. These areas may or may not be high-quality habitat themselves. Their importance comes from their role in linking other parts of the network.
 
-First, load the connected-habitat map:
+First, load the connected-habitat map (Figure @fig-connected-habitat):
 
 ```{r}
+#| label: fig-connected-habitat
+#| fig-cap: "Square-root-transformed current connected-habitat raster for visualisation; not an area-aggregated ECH value."
 #| echo: true
 #| warning: false
 #| message: false
@@ -768,9 +797,11 @@ plot(sqrt(func), col = viridis(100, option = "viridis"), main = "Connected habit
 
 This layer should be interpreted as an indicator of connected open-lowland habitat, when all open-lowland is equal except for the anthropocentric infrastructure footprint.
 
-The corridor output for the open-lowland network is loaded in the same way:
+The corridor output for the open-lowland network is shown in Figure @fig-corridors:
 
 ```{r}
+#| label: fig-corridors
+#| fig-cap: "Corridor output illustrating the relative importance of cells for connecting open-lowland habitats."
 #| echo: true
 #| warning: false
 #| message: false
@@ -785,9 +816,11 @@ These maps show where the open-lowland network depends on movement through the l
 
 The reference condition allows the current connectivity output to be expressed as a condition indicator. We calculate this by comparing connected habitat under the current condition with connected habitat under the reference condition.
 
-The connected habitat under the reference condition is:
+The connected habitat under the reference condition is shown in Figure @fig-reference-connected:
 
 ```{r}
+#| label: fig-reference-connected
+#| fig-cap: "Square-root-transformed connected-habitat raster under the reference condition; shown for visualisation."
 #| echo: true
 #| warning: false
 #| message: false
@@ -829,9 +862,11 @@ For spatial diagnosis, we map the cell-wise ratio between root-transformed curre
 
 $$I_{cell} = \frac{\sqrt{H_{current}}}{\sqrt{H_{reference}}}$$
 
-This map is not the ecosystem-accounting indicator itself. The accounting indicator is calculated after aggregating connected habitat across the accounting area. However, the root-transformed ratio is visually closer to the ECH logic than the raw connected-habitat ratio, because ECH is also based on a square-root transformation. The map should therefore be interpreted as a diagnostic layer showing where current connected habitat is low relative to the reference condition, not as a pixel-level ECH indicator.
+The cell-wise ratio is visualised in Figure @fig-cell-ratio. This map is not the ecosystem-accounting indicator itself. The accounting indicator is calculated after aggregating connected habitat across the accounting area. However, the root-transformed ratio is visually closer to the ECH logic than the raw connected-habitat ratio, because ECH is also based on a square-root transformation. The map should therefore be interpreted as a diagnostic layer showing where current connected habitat is low relative to the reference condition, not as a pixel-level ECH indicator.
 
 ```{r}
+#| label: fig-cell-ratio
+#| fig-cap: "Diagnostic cell-wise ratio of root-transformed current and reference connected habitat, capped at one for display."
 #| echo: true
 
 rindicator <- (sqrt(func) + 0.001) / (sqrt(ref) + 0.001)
@@ -870,10 +905,11 @@ conversion_factor <-  (1000/50)*(1000/50)
 ```
 
 
-For the county account:
+For the county account, the spatial distribution of the condition indicator is shown in Figure @fig-county-indicator:
 
 ```{r}
-#| label: compute - county account
+#| label: fig-county-indicator
+#| fig-cap: "Connectivity condition indicator aggregated by county."
 #| echo: true
 #| warning: false
 #| message: false
@@ -892,10 +928,11 @@ county_shp$indicator <- sqrt(county_shp$variable_km4/county_shp$ref_km4)
 plot(county_shp["indicator"])
 ```
 
-For the regional account:
+For the regional account, the spatial distribution of the condition indicator is shown in Figure @fig-region-indicator:
 
 ```{r}
-#| label: compute - region account
+#| label: fig-region-indicator
+#| fig-cap: "Connectivity condition indicator aggregated by reporting region."
 #| echo: true
 #| warning: false
 #| message: false
@@ -1095,7 +1132,7 @@ readr::write_csv(
 * Methodology: BvM
 * Data curation: BvM
 * Formal analysis: BvM
-* Code review: AHH
+* Code review: ??
 * Writing original draft: BvM
 * Writing review & editing: BvM, JT, MP
 * Project administration: JT, MP
@@ -1116,10 +1153,11 @@ Data were curated and processed [BvM].
 All analyses were conducted by [BvM] using [R, Julia].
 
 **Visualization**
-Figures were produced by [BvM].
+Figures were produced by [BvM], with input from [??].
 
 **Reproducibility**
-All code was reviewed and validated by [AHH].
+All code was reviewed and validated by [??].
+
 
 
 ::: {.callout-tip collapse="true"}
