@@ -252,7 +252,7 @@ The land-use intensity (LUI) layer is based on the land-use-intensity index desc
 
 <!--# Describe the temporal and spatial resolution and extent of the data used -->
 
-The analysis was conducted on a 50-by-50 m grid aligned with Statistics Norway (Statistisk sentralbyrÃ¥ - SSB), all original data sources were aggregated to this resolution. We used the most recent data available in 2026.     
+The analysis was conducted on a 50-by-50 m grid aligned with Statistics Norway (Statistisk sentralbyrå - SSB), all original data sources were aggregated to this resolution. We used the most recent data available in 2026.     
 
 For **open habitat extent**, the base-map is a vector map and is rasterised as the proportion of each 50-by-50 m pixel covered by open habitats.
 
@@ -267,7 +267,7 @@ For **land-use intensity**, the source raster is resampled from its original 100
 
 For **open habitat extent**, the vector base-map is rasterized as the proportion of each 50-by-50 m pixel covered by open habitat ecosystems.
 
-For **mountain areas**, the pre-existing mountain-area raster is harmonised to the analysis grid. It is used as a categorical mask, not as a sampled continuous environmental variable. The exact resampling method used in preparing the harmonised raster is not recorded in this document.
+For **mountain areas**, the pre-existing mountain-area raster is harmonised to the analysis grid. It is used as a categorical mask, not as a sampled continuous environmental variable.
 
 For **land-use intensity**, the raster layer is resampled to the analysis grid. LUI is treated as a continuous local-pressure variable that affects both habitat quality and movement permeability.
 
@@ -278,7 +278,7 @@ For **land-use intensity**, the raster layer is resampled to the analysis grid. 
 
 For **open habitat extent**, we selected polygons from the base-map with `okosystemtype_1 IN ('Heathland and shrub', 'Sparsely vegetated ecosystems','Grassland')`. After rasterisation, the working unit is the proportion of each 50-by-50 m pixel covered by open-lowland.
 
-For **mountain areas**, the working raster is binary: a value of 1 identifies mountain cells, which are excluded from open-lowland habitat, while values outside that class remain eligible for open-lowland habitat if they contain mapped open vegetation. The unit is therefore a categorical presence/absence classification, not elevation in metres.
+For **mountain areas**, the working raster is binary: a value of 1 identifies mountain cells, which are excluded from open-lowland habitat, while values outside that class remain eligible for open-lowland habitat if they contain mapped open vegetation. The unit is therefore a categorical presence/absence classification, not elevation in meters.
 
 For **land-use intensity**, the original index ranges from zero to around 13. During harmonization, the layer is divided by 13, and stored on a 0-to-200 integer scale. Conceptually, the indicator uses a 0-to-1 scaled LUI layer, where 0 means no land-use-intensity effect and higher values mean stronger reduction of habitat quality and permeability.
 
@@ -291,7 +291,7 @@ These data are publicly accessible:
 
 The base-map used for **open habitat extent** is available here: https://kartkatalog.geonorge.no/metadata/nasjonalt-grunnkart-for-arealanalyse-wms-aarsversjon-2025/c7dc425b-60cd-42f7-a84e-202c7d7b912a
 
-For **mountain areas**, the classification was taken from the mountain ecosystem extent account. This analysis reads the harmonised raster `data/harmonised/mountain_bin_NO.tif`. A verified public URL and citation for the original mountain extent dataset should be added from the source account before publication; the local raster path is not itself a public download link.
+For **mountain areas**, the classification was taken from the mountain ecosystem extent account. This analysis reads the harmonised raster `data/harmonised/mountain_bin_NO.tif`.
 
 The **land-use intensity** index is described in @erikstad2023index: https://www.mdpi.com/2673-7418/3/1/10, and is available here: https://kartkatalog.miljodirektoratet.no/MapService/Details/nin_landskapstyper?lang=en-us
 
@@ -689,7 +689,12 @@ The decay is applied to ecological distance rather than simple Euclidean distanc
 
 #### Run on high-performance cluster
 
-We run the equivalent to the following code outside this document on a high-performance computing cluster.
+We run the equivalent to the following code outside this document on a high-performance computing cluster:
+
+::: {.callout-note icon="false" collapse="true"}
+## Computation on HPC
+<!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+
 
 ```julia
 #| label: conscape-hpc
@@ -769,7 +774,10 @@ result = solve(windowed_problem, rast)
 write(("outputs_julia/" * "openlowland_functionality_ref.tif"), result["ch"]; force=true)
 ```
 
-These national-scale ConScape computations were run outside this document on a high-performance computing cluster. This document loads the resulting connected-habitat and corridor rasters and shows how they are interpreted and aggregated.
+:::
+
+
+These national-scale ConScape computations were run outside this document on the Sigma2 high-performance computing cluster. This document loads the resulting connected-habitat and corridor rasters and shows how they are interpreted and aggregated.
 
 
 ### 9.5 Connectivity indicators
@@ -1132,7 +1140,7 @@ readr::write_csv(
 * Methodology: BvM
 * Data curation: BvM
 * Formal analysis: BvM
-* Code review: ??
+* Code review: AHH
 * Writing original draft: BvM
 * Writing review & editing: BvM, JT, MP
 * Project administration: JT, MP
@@ -1153,10 +1161,10 @@ Data were curated and processed [BvM].
 All analyses were conducted by [BvM] using [R, Julia].
 
 **Visualization**
-Figures were produced by [BvM], with input from [??].
+Figures were produced by [BvM].
 
 **Reproducibility**
-All code was reviewed and validated by [??].
+R-code was reviewed and validated by [AHH].
 
 
 
