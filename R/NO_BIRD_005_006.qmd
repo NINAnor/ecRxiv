@@ -1,15 +1,15 @@
 ---
 title: "Breeding bird indicators"
 subtitle: |
-  [NO_BIRD_002] (Mountains) \
-  [NO_BIRD_004] (Forests)  
+  [NO_BIRD_005] (Mountains) \
+  [NO_BIRD_006] (Forests)  
 # delete the line with the second indicatorID (line 5) 
 # if it's not relevant for you.
 # In the parentheses you can add a word to distinguish multiple indicators 
 # from each other, for example the ecosystem type that they cover
 indicatorID: 
-  - NO_BIRD_002
-  - NO_BIRD_004 # delete whole line if not needed
+  - NO_BIRD_005
+  - NO_BIRD_006 # delete whole line if not needed
 # If you are presenting multiple indicators, and have multiple 
 # indicator IDs, then add them as a list here, and make sure you add
 # the same number of list entries, 
@@ -43,7 +43,7 @@ yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
 Version: "1.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: "Update of https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BIRD_001-004 bys using occupancy modelling instead of TRIM analysis."# Describe briefly how this version differs from earlier versions 
+VersionComment: "Update of https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BIRD_001-004 by using occupancy modelling instead of TRIM analysis."# Describe briefly how this version differs from earlier versions 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
 # To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
 Normalised: # Yes or no depending on whether the metric has been normliased or not.
@@ -77,7 +77,7 @@ author:
     email: brett.sandercock@nina.no # Enter email
     affiliations:
       - ref: myID               # To reuse affiliations reference the id like this
-AuthorList: Adjei, K.P., Snell, R. S. S., Pavón-Jordán, D. and Sandercock, B. K. 
+AuthorList: Adjei, K. P., Snell, R. S. S., Pavón-Jordán, D. and Sandercock, B. K. 
 date: November 11, 2026 # Enter date
 data_availability: none
 code_reproducibility: none
@@ -209,6 +209,8 @@ meta |>
 - 22.06.2026 - Complete draft of first version
 
 - 09.11.2026 - Updating the first draft with comments from co-authors
+
+- 13.11.2026 - Pull request for review by ecRxiv team
 :::
 
 
@@ -318,11 +320,6 @@ This transformation gives a standardized response suited to occupancy modelling 
 
 The data are publicly available on [GBIF](https://www.gbif.org/dataset/4a00502d-6342-4294-aad1-9727e5c24041) [@breedingBirdData].
 
-### 2.5 Additional comments about the dataset
-
-<!--# Optional. Text here -->
-
-*Diego can help with this*
 
 ## 3. Indicator properties
 
@@ -342,10 +339,6 @@ This approach accounts for species-specific differences in detectability and nat
 This doesnt need to be very long. Maybe just a single sentence. -->
 
 B1 – Compositional state characteristics.
-
-### 3.1.1 Other condition typologies
-
-<!--# Optional: Add text about other standards or typologies, such as alternative national condition typologies, and how the indicator relates to these -->
 
 
 ### 3.2 Ecosystem condition characteristic
@@ -848,7 +841,7 @@ The species list contains $18$ forest and $16$ mountain species (@tbl-expertRefe
 
 ### Expert reference categories
 
-For each characteristic species, experts were shown the average occupancy probability estimated by the model. They were asked whether occupancy under the reference condition, assuming perfect detection, would be the same as (*samme*) or higher than (*høyere*) this estimate. Each category is linked to a fixed quantile of the species' predicted occupancy: $0.75$ for *samme* and $0.95$ for *høyere*. The reference value for each species is calculated as this quantile of predicted occupancy within each nature region (see @sec-referenceValues). Species without a reference category are excluded from the indicator.
+For each characteristic species, experts were shown the average occupancy probability estimated by the model. They were asked whether occupancy under the reference condition, assuming perfect detection, would be the same as (*samme*) or higher than (*høyere*) this estimate. Each category is linked to a fixed quantile of the species' predicted occupancy: $0.75$ for *samme* and $0.95$ for *høyere*. The reference value for each species is calculated as this quantile of predicted occupancy within each nature region (see @sec-refValues). Species without a reference category are excluded from the indicator.
 
 The categories are read from the expert workbooks and converted to quantiles with `get_reference_quantiles()`:
 
@@ -938,7 +931,7 @@ The dataset can be processed in a format that `spOccupancy` can use for the mode
 
 ### 7.3. Expert-ellicited reference values
 
-@tbl-expertReferenceVals shows the expert reference categories for the characteristic bird species in the forest and mountain ecosystem indicators. For each species, experts were shown the average occupancy probability estimated by the model. They then judged whether occupancy under the reference condition, assuming perfect detection, would be the same as (*samme*) or higher than (*høyere*) this estimate. Each category is linked to a fixed quantile of the species' predicted occupancy distribution: $0.75$ for *samme* and $0.95$ for *høyere*. A higher quantile means that the species is expected to occur more widely under the reference condition than the model currently predicts. For each species, the reference value is the corresponding quantile of predicted occupancy within each nature region. Predicted occupancy is scaled against this reference value, and the scaled values are averaged across species to form the indicator (see @sec-referenceValues). Species without a reference category are excluded from the indicator.
+@tbl-expertReferenceVals shows the expert reference categories for the characteristic bird species in the forest and mountain ecosystem indicators. For each species, experts were shown the average occupancy probability estimated by the model. They then judged whether occupancy under the reference condition, assuming perfect detection, would be the same as (*samme*) or higher than (*høyere*) this estimate. Each category is linked to a fixed quantile of the species' predicted occupancy distribution: $0.75$ for *samme* and $0.95$ for *høyere*. A higher quantile means that the species is expected to occur more widely under the reference condition than the model currently predicts. For each species, the reference value is the corresponding quantile of predicted occupancy within each nature region. Predicted occupancy is scaled against this reference value, and the scaled values are averaged across species to form the indicator (see @sec-refValues). Species without a reference category are excluded from the indicator.
 
 ```{r}
 #| label: tbl-expertReferenceVals
@@ -1507,46 +1500,35 @@ Optional: Display the code (don't execute it) or the workflow for exporting the 
 
 **CRediT statement**
 
-* Conceptualization: [KPA, Initials]
-* Methodology: [KPA, Initials]
-* Data curation: [Initials]
-* Formal analysis: [KPA, Initials]
-* Investigation: [KPA, Initials]
-* Software: [KPA, Initials]
-* Validation: [KPA, Initials]
-* Visualization: [KPA, Initials]
+* Conceptualization: [KPA, KRSS, DPJ, BKS]
+* Methodology: [KPA, KSS, BKS]
+* Data curation: [DPJ, KRSS]
+* Formal analysis: [KPA, KRSS, BKS]
+* Investigation: [KPA, KRSS]
+* Software: [KPA, KRSS]
+* Validation: [KPA]
+* Visualization: [KPA]
 * Resources: [Initials]
-* Writing – original draft: [KPA, Initials]
-* Writing – review & editing: [Initials]
-* Supervision: [Initials]
-* Project administration: [Initials]
-* Funding acquisition: [Initials]
+* Writing – original draft: [KPA]
+* Writing – review & editing: [KPA, BKS]
+* Project administration: [BKS]
 
 
 **MeRIT attribution**
 
 This part supplements the CRediT statement with more granularity for method section.
 
-**Study design**
-The study was designed by [AB, CD].
-
-**Data collection / fieldwork**
-Field data were collected by [AB, EF] between [years]. Sampling protocol was developed by [CD].
-
-**Laboratory procedures**
-DNA extraction was performed by [GH]. Sequencing was conducted by [IJ].
-
 **Data processing**
-Raw data were curated and cleaned by [DPJ]. Code for preprocessing was written by [KL].
+Raw data were curated and cleaned by [DPJ]. Code for preprocessing was written by [DPJ, KPA].
 
 **Statistical analysis**
-All analyses were conducted by [KPA, ] using `spOccupancy`, with verification by [AB].
+All analyses were conducted by [KPA] using `spOccupancy`, with verification by [KRSS].
 
 **Visualization**
-Figures were produced by [KPA, ], with input from [CD].
+Figures were produced by [KPA], with input from [BKS, KRSS].
 
 **Reproducibility**
-All code was reviewed and validated by [AB, CD].
+All code was reviewed and validated by [KPA, KRSS].
 
 
 
