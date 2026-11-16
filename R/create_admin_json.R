@@ -597,7 +597,7 @@ stopifnot(
 # ================================================================
 
 report_link <-
-  "https://ninanor.github.io/ecRxiv/indicators/NO_IDEX_001/"
+  "https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_IDEX_001/"
 
 
 forest_total_json <- purrr::map(
