@@ -272,7 +272,9 @@ An indicator value of $1$ represents the upper reference level of pollinator pot
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
-The pollinator potential indicator provides a spatial assessment of ecosystem condition based on predicted pollinator potential and plant–pollinator interactions. Indicator values vary modestly among regions, ranging from $0.5337$ in West to $0.5851$ in South, with a national mean of $0.5855$ and relatively low uncertainty around regional estimates. Nearly half of Norway's area ($47.1\%$) exceeds the threshold value of $0.6$, although this proportion varies considerably among regions. The indicator is sufficiently developed to support regional comparisons of ecosystem condition, but some limitations remain. Several interacting plant species and butterfly genera were not included (see @fig-grukPlusAso), meaning that the indicator is likely most representative of semi-natural meadows and may under- or overestimate pollinator potential in other open lowland habitats. Calibration substantially influences indicator estimates and is necessary to account for differences in regional reference conditions. The indicator is also correlated with plant-host richness, suggesting caution when interpreting it alongside other plant-host indicators. Future work should focus on propagating uncertainty from species distribution models and plant–pollinator interaction data into the final indicator estimates and on further evaluating overlap with related biodiversity indicators.
+The pollinator potential indicator provides a spatial assessment of ecosystem condition based on predicted pollinator potential and plant–pollinator interactions. Based on the combined ASO and ANO dataset, indicator values varied among regions, ranging from $0.5384$ in the West to $0.7342$ in the South, with a national indicator value of $0.6453$ and relatively narrow bootstrap intervals around regional estimates. Three of the five regions (Central, East, and South) exceeded the threshold value of $0.6$ used to represent good ecological condition, while the North and West remained below this threshold. The national indicator value also exceeded the threshold, suggesting relatively high pollinator potential across the assessed locations.
+
+The indicator is sufficiently developed to support regional comparisons of ecosystem condition, but some limitations remain. Several interacting plant species and butterfly genera were not included (see @fig-grukPlusAso), meaning that the indicator is likely most representative of semi-natural meadows and may under- or overestimate pollinator potential in other open lowland habitats. Furthermore, indicator values derived from ASO and ANO locations may not be representative of the entire open lowland area. Calibration substantially influences indicator estimates and is necessary to account for differences in regional reference conditions. The indicator is also correlated with plant-host richness, suggesting caution when interpreting it alongside other plant-host indicators. Future work should focus on propagating uncertainty from species distribution models and plant–pollinator interaction data into the final indicator estimates, evaluating the representativeness of the assessment locations, and further investigating overlap with related biodiversity indicators.
 
 ```{r fig-grukPlusAso}
 #| fig-cap: 'Interactions between pollinator genus and their interracting plant species using data from both the ASO and GRUK datasets.'
@@ -409,20 +411,24 @@ Why was the current option chosen and how were the reference levels quantified? 
 
  -->
 
-X~100~: the maximum observed richness values among the reference locations
+The pollinator potential indicator was normalised relative to reference conditions to account for differences in pollinator potential among Norway's biogeographic regions. Two reference levels were defined:
 
-X~0~: 0 potential for pollinators (but this value is never realized in the data)
+$X_{100}$: the 95th percentile of pollinator potential across reference locations within each region, representing the reference level for high pollinator potential.
 
-The original indicator values are normalised following
+$X_0$: the minimum pollinator potential across all reference locations nationally, representing a common lower reference level for all regions.
+
+The original indicator values were normalised using the following equation:
+
 $$
-I = \frac{X}{X_{100}}
+I_{ij} = \frac{X_{ij} - X_0}{X_{100,j} - X_0}
 $$
 
-where $I$ is the normalised indicator value, $X$ is the cell-level pollinator potential, and $X_{100}$ is the maximum reference level (best condition) in the respective region (or nationally for the national index). 
+where $I_{ij}$ is the normalised indicator value for grid cell $i$ in region $j$, $X_{ij}$ is the corresponding cell-level pollinator potential, $X_{100,j}$ is the upper reference level for region $j$, and $X_0$ is the common lower reference level.
 
-We estimate normalised indicator values for each region using the respective reference levels, which we refer to as **regional indicators**. The regional approach accounts for differences in baseline pollinator potential among Norway's biogeographic regions.
+This normalisation accounts for regional differences in reference conditions while maintaining a consistent lower reference level across regions. The resulting indicator values express pollinator potential relative to the reference conditions of the respective region, allowing comparisons of relative ecosystem condition among regions.
 
-Additionally, we also estimate indicator values for the entire country using its reference level that are applied across all regions and we refer to it as the **national indicator**. For the regional indicator, these reference levels are calculated separately for each region, while for the national indicator, common reference levels (estimated across the entire nation) are applied across all regions. This provides a common national scale and allows spatial differences among regions to be retained rather than being normalised away.
+Regional and national indicator values were subsequently estimated from the normalised cell-level indicator values. The national indicator was estimated using an intercept-only beta regression model with region included as a random effect, thereby accounting for regional heterogeneity in pollinator potential.
+
 
 #### 4.2.1 Spatial resolution and validity
 
@@ -931,8 +937,10 @@ knitr::include_graphics("../img/validation_plots.png")
 
 ### 10.2. Reference levels
 
+Reference levels for the pollinator potential indicator varied substantially among the five regions [@tbl-insect-indicator-reference-levels]. The upper reference level ($X_{100}$) ranged from 52 in the North to 116 in the East, reflecting regional differences in pollinator potential. The lower reference level ($X_0$) was set to 16 across all regions, representing a common baseline for the lowest pollinator potential.
 
-Reference levels varied substantially among the five regions, with the highest upper reference level in the East and the lowest in the North [@tbl-insect-indicator-reference-levels]. The upper reference level ($X_{100}$) ranged from $71$ in the North to $163$ in the East, while the lower reference level ($X_0$) was $0$ in all regions, representing the absence of pollinator potential. The number of reference locations also varied among regions, ranging from $248$ in the South to $1,003$ in the West.
+The distribution of pollinator potential across reference locations also varied among regions, with minimum values ranging from $16$ to $27$ and maximum values ranging from $71$ to $165$. The number of reference locations ranged from 3,586 in the South to 14,380 in the West.
+
 
 ```{r}
 #| echo: false
@@ -940,75 +948,70 @@ Reference levels varied substantially among the five regions, with the highest u
 #| warning: false
 #| message: false
 
-tbl_refs <- readRDS(
-  "../data/insect_indicator_reference_values.rds"
-)
+tbl_refs <- readxl::read_excel("../data/regional_parameters.xlsx") |>
+  dplyr::select(nature_region, x_min, x_max, n_observed, X_0, X_95)
+  
+  #readRDS(
+  #"../data/insect_indicator_reference_values.rds"
+#)
 
-tbl_refs$min_cal_richness <- 0
+tbl_refs$X_0 <- 15.7
 
 names(tbl_refs) <- c(
   "Region",
-  "Mean richness (uncalibrated)",
-  "$X_0$ (uncalibrated)",
-  "$X_{100}$ (uncalibrated)",
-  "Mean richness (no interaction)",
-  "$X_0$ (no interaction)",
-  "$X_{100}$ (no interaction)",
-  "Mean richness",
+  "Minimum",
+  "Maximum",
+  "Reference locations",
   "$X_0$",
-  "$X_{100}$",
-  "Reference locations"
+  "$X_{100}$" 
 )
 
 knitr::kable(
-  tbl_refs %>% dplyr::select("Region", "$X_0$", "$X_{100}$", "Reference locations"),
+  tbl_refs %>% dplyr::select("Region", "$X_0$", "$X_{100}$", "Minimum", "Maximum", "Reference locations"),
   format = "markdown",
   digits = 0,
-    caption = "Regional reference levels for the pollinator potential indicator. For each region, the table reports the lower ($X_0$) and upper ($X_{100}$) reference levels and the number of reference locations used in their estimation. Reference locations were derived from aemi-natural NIN polygons in good condition. All the reference levels have been rounded to the nearest whole number."
+    caption = "Regional reference levels for the pollinator potential indicator. For each region, the table presents the lower ($X_0$) and upper ($X_{100}$) reference levels, the minimum and maximum values of pollinator potential across reference locations, and the number of reference locations used to estimate the reference levels. Reference locations were derived from semi-natural NiN polygons classified as being in good ecological condition. All reference levels and minimum and maximum values are rounded to the nearest whole number."
 )
 ```
 
 
 ### 10.3. Scaled indicator values
 
-We present the regional scaled indicator values for each region in @tbl-scaledIndicatorValues. 
+We present regional and national scaled indicator values for pollinator potential based on four datasets: ANO locations, ASO polygons, combined ASO and ANO locations (ASO + ANO), and the entire open lowland area [@tbl-scaledIndicatorValues]. 
 
-Pollinator potential varied among the five regions, with all regional mean scaled indicator values below the threshold of 0.6 used to represent good ecological condition [@tbl-insect-indicator-reference-levels]. The South had the highest mean indicator value ($0.5851$), followed by North ($0.5648$), East ($0.5542$), Central ($0.5379$), and West ($0.5337$). The national mean was $0.5855$, similar to the value for South. Thus, although regional differences were evident, all regional means were relatively close to the 0.6 threshold.
+Pollinator potential varied substantially among regions and datasets. Nationally, the highest indicator value was obtained using ASO polygons ($0.780$), followed by the combined ASO and ANO dataset ($0.645$) and ANO locations ($0.620$). In contrast, the national indicator value for the entire open lowland area was considerably lower ($0.317$). While the national indicator values for ANO, ASO, and the combined dataset exceeded the threshold of 0.6 used to represent good ecological condition, the indicator for the entire open lowland area was substantially below this threshold.
 
-The proportion of open lowland area with indicator values $\geq 0.6$ also varied among regions, ranging from $32.7\%$ in West to $52.2\%$ in South. Central had $34.9\%$, East $36.3\%$, and North $43.3\%$ of its area above the threshold. Nationally, 47.1% of the assessed area had indicator values $\geq 0.6$. These values indicate the proportion of the 50 m × 50 m grid cells exceeding the threshold and provide information on the spatial distribution of areas with relatively high pollinator potential.
+For the ANO dataset, regional indicator values ranged from $0.493$ in the West to $0.688$ in the South. The South and Central regions exceeded the threshold of 0.6 used to represent good ecological condition, while the East was slightly below this threshold. The North and West had lower indicator values.
+
+For the ASO dataset, all five regions had indicator values above the 0.6 threshold, ranging from $0.644$ in the North to $0.895$ in the South. Indicator values based on ASO polygons were consistently higher than those based on ANO locations across all regions.
+
+When combining ASO and ANO, the South had the highest indicator value ($0.734$), followed by Central ($0.649$), East ($0.616$), North ($0.552$), and West ($0.538$). The national indicator value was $0.645$. Three of the five regions exceeded the threshold for good ecological condition, while the North and West remained below it.
+
+In contrast, indicator values estimated across the entire open lowland area were substantially lower, with all regional values below the 0.6 threshold. The West had the highest indicator value (0.343), followed by Central ($0.329$), East ($0.313$), North ($0.284$), and South ($0.264$). Notably, the South, which had the highest indicator values in the ANO, ASO, and combined datasets, had the lowest indicator value when considering the entire open lowland area.
+
+These differences highlight the influence of the spatial extent and selection of locations used to estimate the indicator. Indicator values derived from ANO locations and ASO polygons were consistently higher than those estimated across the entire open lowland area, suggesting that these locations capture areas with relatively high pollinator potential compared with the broader open lowland landscape.
 
 ```{r tbl-scaledIndicatorValues}
 #| echo: false
 #| warning: false
 #| message: false
 
-tbl_refs <- readRDS(
-  "../data/region_results.rds"
-) %>%
-  
-  filter(
-    indicator == "Calibrated regional indicator"
-  ) %>%
+
+tbl_refs <- readxl::read_excel("../data/all_results.xlsx") |>
   
   select(
-    nature_region,
-    bootstrap_mean,
-    bootstrap_sd,
-    lower_quantile,
-    upper_quantile,
-    percentage_ge_0.6
+    Dataset,
+    Region,
+    Mean,
+    `Lower quantile`,
+    `Upper quantile`,
+    `Cell counts`
   ) %>%
   
   mutate(
-    nature_region = if_else(
-      nature_region == "national",
-      "National",
-      nature_region
-    ),
-    
     # Set the desired order explicitly, with National last.
-    nature_region = factor(
-      nature_region,
+    Region = factor(
+      Region,
       levels = c(
         "Central",
         "East",
@@ -1021,30 +1024,31 @@ tbl_refs <- readRDS(
   ) %>%
   
   arrange(
-    nature_region
+    Dataset
   )
 
 
 names(tbl_refs) <- c(
+  "Dataset",
   "Region",
   "Indicator value",
-  "Standard deviation",
   "Lower quantile",
   "Upper quantile",
-  "Percetage above threshold"
+  "Cell Counts"
 )
 
 knitr::kable(
   tbl_refs,
   format = "markdown",
-  digits = 4,
-    caption = "Regional mean, standard deviation, lower and upper quantiles of the scaled pollinator potential indicator across open lowland areas. Values are shown for each region and for the national level. Higher indicator values represent greater estimated pollinator potential relative to the reference conditions used for calibration. Standard deviation indicates the bootstrap variation around the indicator value. The lower and upper quantiles refer to the 2.5% and 97.5% quantiles from the boostrap. The percentage above threshold represents the percentage of the 50m x 50 m grid cells within the region that have scaled indicator values greater or equal to 0.6. "
+  digits = 3,
+    caption = "Regional and national scaled pollinator potential indicator values estimated using ANO locations, ASO polygons, combined ASO and ANO locations (ASO + ANO), and the entire open lowland area. For each dataset and region, the table presents the estimated indicator value, the lower (2.5%) and upper (97.5%) quantiles of the bootstrap distribution, and the number of 50 m × 50 m grid cells included in the assessment. National indicator values were estimated using an intercept-only beta regression model with region as a random effect. Higher indicator values represent greater estimated pollinator potential relative to the reference conditions used to calibrate the indicator. An indicator value of 0.6 represents the threshold for good ecological condition. "
 )
 ```
 
-The indicator values are relative scores rather than percentages or counts of pollinators. Higher values indicate greater estimated pollinator potential relative to the reference conditions used to calibrate the indicator. The regional means therefore provide a basis for comparing ecosystem condition, while the proportion of area above 0.6 provides complementary information on the spatial distribution of higher indicator values.
 
-The bootstrap standard deviations were small, ranging from 0.0050 in South to 0.0118 in North, indicating relatively low bootstrap variation in the estimated regional means. The corresponding $2.5\%–97.5\%$ bootstrap intervals ranged from $0.5234–0.5506$ in West to $0.5469–0.5859$ in North; nationally, the interval was $0.5749–0.5958$. These intervals describe uncertainty in the estimated mean indicator values from the bootstrap procedure and should not be interpreted as measures of spatial variability across the landscape.
+The bootstrap intervals indicated relatively low uncertainty in the estimated national indicator values, ranging from 0.607–0.633 for ANO, 0.765–0.795 for ASO, 0.635–0.656 for the combined dataset, and 0.311–0.322 for the entire open lowland area. Regional bootstrap intervals were generally wider, particularly for ASO, which had fewer assessed grid cells. These intervals describe uncertainty in the estimated mean indicator values arising from the bootstrap procedure and should not be interpreted as measures of spatial variability across the landscape.
+
+The scaled indicator values represent relative scores rather than percentages or counts of pollinators. Higher values indicate greater estimated pollinator potential relative to the reference conditions used to calibrate the indicator. Comparisons among regions and datasets therefore provide insights into differences in estimated pollinator potential and the influence of the spatial extent used in the assessment.
 
 
 ### 10.4 Evaluation of indicator against independent observations
@@ -1104,13 +1108,20 @@ knitr::include_graphics("../img/plant_calibration_difference_effect.png")
 
 ## 11. Summary and Implications
 
-The results indicate that the pollinator potential indicator provides a spatial measure of the relative capacity of open lowland ecosystems to support pollinator communities. Mean scaled indicator values varied among regions, from $0.5337$ in West to $0.5851$ in South, with a national mean of 0.5855. All regional means were below the $0.6$ threshold used to represent good ecological condition, although the proportion of area exceeding this threshold varied substantially, from $32.7\%$ in West to $52.2\%$ in South, and was $47.1\%$ nationally. This spatial variation is consistent with the dependence of pollinator communities on habitat and resource availability and landscape context [@ollerton2017pollinator; @steffan2008interplay]. The indicator should therefore be interpreted as a relative measure of pollinator potential rather than as a direct measure of pollinator abundance, population size, species richness or realised pollination service [@loy2022effects; @bartholomee2019disentangling].
+
+## Summary and Implications
+
+The results indicate that the pollinator potential indicator provides a spatial measure of the relative capacity of open lowland ecosystems to support pollinator communities. Indicator values varied substantially among regions and assessment datasets. National indicator values were highest for ASO (0.780), followed by the combined ASO and ANO dataset (0.645) and ANO (0.620), while the indicator value for the entire open lowland area was considerably lower (0.317). All regional indicator values based on ASO exceeded the threshold of 0.6 used to represent good ecological condition, whereas only two regions exceeded this threshold for ANO and three for the combined dataset. When considering the entire open lowland area, all regional indicator values were substantially below the threshold, ranging from 0.264 in the South to 0.343 in the West.
+
+The differences among datasets highlight the importance of the spatial extent and selection of locations used to assess ecosystem condition. Notably, the South had the highest indicator values for ANO, ASO, and the combined dataset, but the lowest value when considering the entire open lowland area. These contrasting results suggest that ANO locations and ASO polygons capture areas with relatively high pollinator potential compared with the broader open lowland landscape. Consequently, assessments based on these locations may not be representative of the condition of the entire open lowland area. Such spatial variation is consistent with the dependence of pollinator communities on habitat and resource availability and landscape context [@ollerton2017pollinator; @steffan2008interplay]. The indicator should therefore be interpreted as a relative measure of pollinator potential rather than as a direct measure of pollinator abundance, population size, species richness or realised pollination service [@loy2022effects; @bartholomee2019disentangling].
 
 Evaluation against independent observations provided support for the ecological relevance of the indicator. Unscaled pollinator potential showed a strong positive relationship with observed insect richness ($r = 0.78$), compared with a weaker relationship for expected insect richness from the uncalibrated model ($r = 0.21$). After regional scaling, the relationship with observed insect richness remained positive but was weaker ($r = 0.35$). Relationships with observed plant richness were generally weak and inconsistent: pollinator potential had correlations of $r = 0.02$ in ANO and $r = 0.30$ in ASO, while expected insect richness had correlations of $r = 0.15$ and $r = 0.07$, respectively. Thus, pollinator potential did not consistently correlate more strongly with observed plant richness than expected pollinator richness did. The strong relationship between modelled plant richness and modelled pollinator richness is nevertheless consistent with the importance of plant resources for pollinator communities [@kral2021meta; @orford2016modest].
 
-Calibration is important because it expresses pollinator potential relative to region-specific reference conditions. Reference levels differed substantially among regions, and calibration changed both the magnitude of the indicator and its relationship with observed insect richness. The calibrated indicator should therefore be used for ecosystem-condition assessments, with the reference framework clearly specified [@mcnellie2020reference]. At the same time, correlations with other plant- and pollinator-based indicators should be interpreted cautiously because the pollinator potential indicator incorporates modelled distributions of plants and pollinating insects; consequently, these measures are not fully independent. The indicator is best considered complementary to other biodiversity measures, particularly measures of habitat extent and configuration, because it describes condition within the defined open-lowland domain rather than whether sufficient habitat remains to sustain pollinator communities. Maintaining diverse and continuously available plant resources is likely to be important for pollinator communities [@kral2021meta; @orford2016modest; @loy2022effects].
+Calibration is important because it expresses pollinator potential relative to regional reference conditions. The upper reference levels varied substantially among regions, while a common lower reference level was applied nationally. Calibration changed both the magnitude of the indicator and its relationship with observed insect richness, reflecting the distinction between absolute ecological potential and ecosystem condition relative to reference conditions. The calibrated indicator should therefore be used for ecosystem-condition assessments, with the reference framework clearly specified [@mcnellie2020reference]. Furthermore, the national indicator values, estimated using an intercept-only beta regression model with region as a random effect, account for regional heterogeneity rather than representing simple area-weighted averages. The relatively narrow bootstrap intervals indicate limited bootstrap variation in the estimated indicator values, although they do not capture all sources of uncertainty associated with the underlying models and reference conditions.
 
-Overall, the results support the use of the indicator to assess and compare relative pollinator potential across open lowland ecosystems in Norway. The strong correspondence between unscaled pollinator potential and observed insect richness indicates that the underlying estimates capture meaningful spatial variation, while the effects of calibration and the challenges associated with defining the open-lowland boundary highlight important considerations for interpretation. The indicator is sufficiently developed for spatial assessment and monitoring, but further work should focus on propagating uncertainty from the underlying species-distribution models and plant–pollinator interaction data into the final indicator and on continued evaluation against independent biodiversity observations.
+Correlations with other plant- and pollinator-based indicators should be interpreted cautiously because the pollinator potential indicator incorporates modelled distributions of plants and pollinating insects; consequently, these measures are not fully independent. The indicator is best considered complementary to other biodiversity measures, particularly measures of habitat extent and configuration, because it describes condition within the defined open lowland domain rather than whether sufficient habitat remains to sustain pollinator communities. Maintaining diverse and continuously available plant resources is likely to be important for pollinator communities [@kral2021meta; @orford2016modest; @loy2022effects].
+
+Overall, the results support the use of the indicator to assess and compare relative pollinator potential across open lowland ecosystems in Norway. The strong correspondence between unscaled pollinator potential and observed insect richness indicates that the underlying estimates capture meaningful ecological variation. However, the substantial differences between indicator values derived from ANO and ASO and those derived from the entire open lowland area demonstrate that the definition of the assessment domain is critical to the interpretation of ecosystem condition. Further work should therefore focus on refining the delineation of open lowland ecosystems, evaluating the representativeness of ANO locations and ASO polygons, propagating uncertainty from the underlying species-distribution models and plant–pollinator interaction data into the final indicator, and continuing evaluation against independent biodiversity observations. These developments will strengthen the application of the indicator in national ecosystem-condition assessments and long-term monitoring.
 
 
 ## 12. Export file
