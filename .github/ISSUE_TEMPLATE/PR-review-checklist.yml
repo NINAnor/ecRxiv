@@ -7,9 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please add the PR number below, prefixed with #. 
-        Add the same PR number to the issue title above.
-        Then click 'create'. Then you can go through the tick boxes one by one. 
+        This form is to be filled out by an ecRxiv approved reviewer. Guidence material can be found on our [wiki page](https://github.com/NINAnor/ecRxiv/wiki/Admin#pr-review-checklist).
   - type: input
     id: prid
     attributes:
@@ -30,10 +28,17 @@ body:
     id: coi
     attributes:
       label: Conflict of Interest
-      description: I confirm that I have **no** conflict of interest that makes me unsuited to review this indicator. If not, I will declare my conflict of interest in a comment below.
+      description: I confirm that I have **no** conflict of interest that makes me unsuited to review this indicator. 
       options:
         - label: I confirm that I have **no** conflict of interest
           required: false
+  - type: input
+    id: coi_comment
+    attributes:
+      label: comment
+      description: Explain any conflict of interest      
+    validations:
+      required: false
   - type: checkboxes
     id: landing
     attributes:
@@ -60,7 +65,7 @@ body:
       description: You can read about the naming convention on the wiki page.
       options:
         - label: The indicator has an ID that follows the naming convention
-          required: false
+        - label: The PR is labeled with the indicator ID
   - type: checkboxes
     id: modfiles
     attributes:
@@ -81,6 +86,10 @@ body:
         - label: |
             The top yaml is fillout correctly with all the metadata.
           required: false
+  - type: input
+    id: meta_comment
+    attributes: 
+      decription: Comment
   - type: checkboxes
     id: permissions
     attributes:
@@ -106,8 +115,7 @@ body:
     attributes:
       label: Bibliography
       description: |
-        How are the references handled? Is there a bibliography file? 
-        If not, should there be? (note: hyperlinks break over time).
+        Check that in-text citations included in a reference list, alternatively as hyperlinks. 
       options:
         - label: References are in order
           required: false
@@ -118,7 +126,7 @@ body:
       description: |
         The HTML is included and looks good. To view it, open the html 
         from the PR and view it by pasting this string to the start of the URL: 
-        `http://htmlpreview.github.io/?`.
+        `http://htmlpreview.github.io/?`. You can also open the html from your IDE after you have cloned the PR (see next step). 
       options:
         - label: HTML is OK
           required: false        
@@ -127,13 +135,15 @@ body:
     attributes:
       label: Render
       description: |
-        We need to be able to render the .qmd locally, even if we don't have 
-        access to all the data via the PR. You can clone the PR with this command:
+        ecRxiv needs to be able to render the .qmd locally for typesetting purposes. 
+        This is required, even if we don't have access to all the data that the full workflow uses. 
+        Parts of the workflow that use external data therefore needs to be bypassed, or cached, 
+        so that the .qmd can still render. Start by cloning the PR with this command:
         `git fetch origin pull/ID/head:BRANCH_NAME`, where `ID` is the ID for the 
         PR which you can see in the PR's title following a hash tag. It's usually 
         a three or four digit number. `BRANCH_NAME` you can make up yourself. 
         A suggestion is to use the indicator ID followed by `code-review`.
-        Then switch to that branch: `git switch BRANCH_NAME`
+        Then switch to that branch: `git switch BRANCH_NAME`. Now try to render the .qmd file. 
       options:
         - label: The quarto file renders locally
           required: false        
@@ -142,20 +152,33 @@ body:
     attributes:
       label: Check existing issues
       description: |
-        Search within open and closed issues for the indicator ID and verify that they have been adressed in the PR.  
+        Search within open and closed issues for the indicator ID and verify that they have been addressed, 
+        i.e. that the authors have replied with a comment to the issues.
       options:
         - label: Existing issues adequately addressed
           required: false         
   - type: checkboxes
     id: review
     attributes:
-      label: Add a review
+      label: Code review (optoinal)
       description: |
-        Go to the PR and start a review. You can make general comments,
+        A more comprehensive code review can be done at this stage, 
+        depending on the project and the requests from the authors. 
+        **With code review we mean a review of the text and code, 
+        besides that which pertains to meta data and technical requirement for rendering the HTML.** 
+        Instead we are talking about the analysis part of the workflow, 
+        including code added as code chunks, as well as the textual part of the documentation. 
+        Go to the PR to start a review. You can make general comments, 
         or specific comments referring to specific lines of code. 
+        
+        You may need to start a similar review of the PR for addressing deficiencies 
+        retaining to some of the earier points in the checklist, 
+        but you should not check this box unless you have done a code review, defined as we have here.  
+
+        See the wiki page for how to to add reviewer information to the top YAML.
       options:
         - label: Code review started and completed
-          required: false                      
+        - label: Code reviewer credited in the top YAML and the final HTML, or lack of code review disclosed
   - type: checkboxes
     id: after
     attributes:
@@ -165,34 +188,20 @@ body:
         submission-INDICATORID branch. Then you put all the relevant 
         files into a folder named after the indicator ID(s).
       options:
-        - label: PR merged and folder added
-        - label: the qmd still renders. If not, you mught need to fix the paths.
-        - label: check top yaml, esp. folderName, url, and date, that they are correct and updated.
-        - label: check that the log is updated
+        - label: PR merged into ´submission-INDICATORID´
+        - label: New branch created from ´submission-INDICATORID´, named `typesetting-INDICATORID`
+        - label: check that the log and all dates in the metadata parts are updated
         - label: check that all the badges render nicely and that the open science badges are correct
         - label: check that the summary has correct line breaks. There should be no paragraphs within a subheader, and no blank line under the sub headers.
-        - label: references are in order
-  - type: checkboxes
-    id: readme
-    attributes:
-      label: Add README
-      description: |
-        The README.md should be placed directly under indicators/newfolder/
-      options:
+        - label: suppress unneccessary output messages or warning in the HTML (optional)
+        - label: tables are OK, i.e. scrollable if needed and not extreamly long or wide.
         - label: Add a README following the current structure of the READMEs used on ecRxiv.
-          required: false    
-  - type: checkboxes
-    id: stablehtml
-    attributes:
-      label: Stable HTML
-      description: |
-        Each version of the indicator should have a stable HTML located in the same  
-        folder as the most recent HTML. HTML's on ecRxiv are self-contained, so if 
-        there is a myHTML_files/ folder in the PR, it can be deleted and it should
-        not affect the HTML. This means you can simply make a copy of the HTML and 
-        rename it to make a stable HTML. Name it like this: 
-        INDICATORID_XXX_version_VVV_vvv; where XXX is the indicator ID number, 
-        and VVV and vvv is the version number, before and after the periond, respectively
-      options:
-        - label: Stable HTML created
-          required: false                    
+        - label: Open PR from `typesetting-INDICATORID` to ´submission-INDICATORID´ and label it with the INDICATORID
+        - label: `typesetting-INDICATORID` merged into ´submission-INDICATORID´
+        - label: New branch created from `main`, called ´upload-INDICATORID`.
+        - label: Add the neccessary files to this branch, in a folder called ìndicators/INDICATORID`. 
+        - label: Create a stable HTML under `R/`.  See the wiki page for help. 
+        - label: Open a PR from ´upload-INDICATORID` to `main`.
+        - label: Label this PR with INDICATORID.
+        - label: Merge ´upload-INDICATORID` into `main`.
+               
