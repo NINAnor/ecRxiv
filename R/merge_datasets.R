@@ -76,6 +76,7 @@ combined_lowlands <- bind_rows(ano_lowlands, gruk_lowlands, ASO_lowlands, .id = 
     join = st_nearest_feature
   ) |> 
   st_drop_geometry() |> 
+  # filtering for ecosystem types with available species lists
   filter(hovedtype_rute %in% c("T32", "T34" , "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
                                "T16", "T18", "T21", "T24", "T29", "T41")) |> #, "V9, "T33""
@@ -110,6 +111,7 @@ combined_species <-  bind_rows(ANO_species_ind |> select(-c(kartleggingsenhet_1m
     "2" ~ "GRUK",
     "3" ~ "ASO"
   )) |> 
+  # filtering for ecosystem types with available species lists
   filter(hovedtype_rute %in% c("T32", "T34", "V10",
                                "T2" , "T8" , "T11", "T12", "T13", "T15", 
                                "T16", "T18", "T21", "T24", "T29", "T41")) #, "V9, "T33"" 

@@ -3,7 +3,7 @@ title: "Vegetation indicator for nitrogen"
 subtitle: |
   [NO_FUNI_001] (open lowland) 
 indicatorID: 
-  - [NO_FUNI_001]
+  - NO_FUNI_001
 indicatorName: 
   - Vegetation indicator for nitrogen
 verbatimName: 
@@ -31,7 +31,7 @@ yearAdded: 2026
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
 Version: "0.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#versioning
-VersionComment: 
+VersionComment: all datasets have been cached, and data cleaning and processing have been outsourced to process-specific scripts
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_FUNI_001
 Normalised: Yes # Yes or no depending on whether the metric has been normliased or not.
 SpatialAggregationPathway: Scale - Aggregate (zero-one inflated beta-regression) 
@@ -47,11 +47,11 @@ format:
 execute: 
   cache: false
 author:
-  - name: Francesca Jaroszynska              # Enter name
-    email: francesca.jaroszynska@nina.no  # Enter email
+  - name: Francesca Jaroszynska
+    email: francesca.jaroszynska@nina.no
     affiliations:
       - id: myID
-        name: Norwegian institute for nature research # Enter affiliations
+        name: Norwegian institute for nature research
   - name: Joachim Töpper
     affiliations:
       - ref: myID     
@@ -75,7 +75,7 @@ codeReviewers:
       - id: reviewerInst
         name: University of Bergen
     reviewType: code review
-    github: 
+    github: audhalbritter
 ---
   
 <!--# This is a template for how to document the indicator analyses. Make sure also to not change the order, or modify, the headers, unless you really need to. This is because it easier to read if all the indicators are presented using the same layout. If there is one header where you don't have anything to write, just leave the header as is, and don't write anything below it. If you are providing code, be careful to annotate and comment on every step in the analysis. Before starting it is recommended to fill in as much as you can in the metadata file. This file will populate the initial table in your output.-->
@@ -105,6 +105,7 @@ library(glmmTMB)
 library(knitr)
 library(kableExtra)
 library(conflicted)
+library(broom.mixed)
 # weird workarounds for cache issues
 conflicts_prefer(tidylog::filter)
 conflicts_prefer(tidylog::select)
@@ -123,6 +124,8 @@ pull<-dplyr::pull
 library(arrow)
 library(gt)
 knitr::opts_chunk$set(echo = TRUE)
+
+source(here(), "/R/functions.R")
 ```
 
 ```{r source}
@@ -257,7 +260,7 @@ Values decreasing toward zero reflect a shift in species composition and communi
 4. **Results and development needs**:
 The indicator for Norway is 0.83 with 95%CI of 0.79-0.87, which means that the condition for this indicator is significantly higher than 0.6, the threshold for good ecological condition. The spatial heterogeneity indicates that local results vary somewhat across the country and within regions with a range of sites showing changes towards communities with higher nitrogen affinity/tolerance. As for the regions, Eastern Norway (0.75) shows lower indicator values than the other regions (>0.77). The results are consistent across the monitoring programs ANO, ASO, and GRUK - but notably ASO shows a higher proportion of deviations around and below 0.6, indicating sites with increased nitrogen levels. 
 
-To improve this indicator in the future, the perhaps most pressing issue it to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
+To improve this indicator in the future, the perhaps most pressing issue is to regionalise the generalised species list, as currently they have a bias towards southern and eastern Norway. The indicator values also need validation against independent datasets.
 
 Access to further years of data for the ASO monitoring scheme would strengthen its temporal and spatial representation, and thus the indicator's robustness.
 
@@ -274,27 +277,27 @@ For details see point 7 below.
 
 ### 2.1 Spatial and temporal resolution and extent
 The ANO monitoring data available now represent one cycle of sampling from 2019-2024 comprising ca. 1000 sites across Norway.
-ANO has no defined end date. 2025 is the first year of repeated sampling for about 20% of the approximately 1000 ANO sites for all of mainland Norway (i.e. the Ecosystem Accounting Area). Annual sampling is spatially representative, in principle allowing to compute area-representative estimates for single years but also multiple-yr-reporting periods. The indicator at hand is calculated based on the ANO data from 2020-2024.
+ANO has no defined end date. 2025 is the first year of repeated sampling for about 20% of the approximately 1000 ANO sites for all of mainland Norway (i.e. the Ecosystem Accounting Area). Annual sampling is spatially representative, in principle allowing to compute area-representative estimates for single years but also multiple-year-reporting periods. The indicator at hand is calculated based on the ANO data from 2020-2024.
 
 The GRUK monitoring data follows a similar five-year sampling cycle from 2020-2024. Monitoring sites were randomly selected across the Oslo fjord basin, resulting in ~80 sites surveyed annually. The sites comprise open, shallow-soil calcareous grassland in three sub-areas - the inner, middle and outer Oslo fjord region.
 
 The ASO monitoring dataset is spatially representative of Norway, with each year's sampling pool representative at a national and regional scale. ASO follows a 5-year monitoring cycle, with data spanning 2020-2024.
 
 ### 2.2 Sampling design
-At every ANO site, the plant community is recorded (presence and percent cover of every vascular plant species) in the central 1 sqm plot of each of systematically arranged 18 monitoring points.
+At every ANO site, the plant community is recorded (presence and percent cover of every vascular plant species) in the central 1 m^2^ plot of each of systematically arranged 18 monitoring points.
 
 Within each GRUK site, one or several polygons matching the NiN mapping units T2-C-7 and T2-C-8 were delineated, and 5, 10, or 15 0.5 x 0.5 m permanent plots established, randomly selected from a 10 x 10 m grid within the polygons. All vascular plant species were recorded, including their percentage cover (visual estimate). 
 
 ASO is structured using a nested design consisting of ASO areas (10x10 km), ASO plots (500x500 m), and semi-natural meadows. Within each semi-natural meadow up to three transects were established, the length of each chosen to reflect the size of the meadow. 
 
 ### 2.3 Original units
-Abundance data for vascular plants in ANO is given as % cover within a 1 m2 sample quadrat, and within a 0.5 x 0.5 m sample quadrat for GRUK. This is transformed to relative abundance data per quadrat. Each ANO and GRUK quadrat is classified to its respective ecosystem type according to ‘Nature in Norway’ (NiN; <https://artsdatabanken.no/NiN>). Species diversity in ASO was recorded using cover and frequency classes (cf. modified measurement scale A7 for NiN2). Environmental indicator values from Tyler et al. (2021) are given on an ordinal scale from 1 (lowest affinity to the respective variable) to n (highest affinity to the respective variable), the number of levels (n) varying between environmental indicators.
+Abundance data for vascular plants in ANO is given as % cover within a 1 m^2^ sample quadrat, and within a 0.5 x 0.5 m sample quadrat for GRUK. This is transformed to relative abundance data per quadrat. Each ANO and GRUK quadrat is classified to its respective ecosystem type according to ‘Nature in Norway’ (NiN; <https://artsdatabanken.no/NiN>). Species diversity in ASO was recorded using cover and frequency classes (cf. modified measurement scale A7 for NiN2). Environmental indicator values from Tyler et al. (2021) are given on an ordinal scale from 1 (lowest affinity to the respective variable) to n (highest affinity to the respective variable), the number of levels (n) varying between environmental indicators.
 
 
 
 
 ### 2.4 Instructions for citing, using and accessing data
-The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054. See @sec-about for detail on the other datasets.  
+The ANO data are openly available at https://kartkatalog.miljodirektoratet.no/Dataset/Details/2054. See @sec-about for details on the other datasets.  
 
 ### 2.5 Additional comments about the dataset
 The ANO, ASO and GRUK programs are run by the Norwegian Environment Agency. On their web sites you may also find additional summary data:
@@ -339,12 +342,12 @@ The same reference levels apply to all types of ecosystems and all regions.
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
-Uncertainties relate partly to sampling and observer variability (and possible observer bias) in the recording of the plant cover data. Presumably, there is also uncertainty related to the scoring of indicator values for species, and this will probably vary among species (cf. Tyler et al. 2021). These potential sources uncertainty can only be assumed and not quantified.
+Uncertainties relate partly to sampling and observer variability (and possible observer bias) in the recording of the plant cover data. Presumably, there is also uncertainty related to the scoring of indicator values for species, and this will probably vary among species (cf. Tyler et al. 2021). These potential sources of uncertainty can only be assumed and not quantified.
 Spatial variability as a source of uncertainty can be quantified. For every mean or median indicator value (after scaling) for every region (or any other delimited area of interest) we can calculate its corresponding standard error or confidence interval quantiles as a measure of spatial uncertainty for a geographical area.
 There is some uncertainty related to the ecosystem categorization at the field sites (see Ullerud et al. 2018 and Naas et al. 2023), but since ANO monitoring does not include spatial delineation of ecosystem polygons this problem is considered smaller than in spatial ecosystem mapping which these references mainly relate to. Similarly, this analysis is not crucially dependent on the exact delineation of the polygons, and the plots and transects in GRUK and ASO placed and assessed within the polygons hold little uncertainty of not being the target types of the two monitoring programmes.
 Other uncertainties connected to the indicator arise from community weighted means calculated from plant communities of different species richness in the observation data; since no uncertainty measure for these community-weighted means is calculated and propagated, the actual uncertainty of functional community signals for the single community observations is unknown.
 
-There is some uncertainty about the appropriateness of using (Halvorsen et al. 2020) as a reference dataset and a reference plant community for different nature types, and especially for different geographical and environenmetal regions of Norway. The dataset has a known bias towards south and eastern Norway, and may not reflect the natural plant communities equally well in the western and northern parts.
+There is some uncertainty about the appropriateness of using (Halvorsen et al. 2020) as a reference dataset and a reference plant community for different nature types, and especially for different geographical and environmental regions of Norway. The dataset has a known bias towards south and eastern Norway, and may not reflect the natural plant communities equally well in the western and northern parts.
 
 ### 5.2 Reported uncertainties
 For this indicator, we report 95% confidence intervals as inferential uncertainty based on a statistical model (zero-one inflated beta-regression).
@@ -366,7 +369,7 @@ Framstad, E., Kolstad, A. L., Nybø, S., Töpper, J. & Vandvik, V. 2022. The con
 
 Halvorsen, R., Skarpaas, O., Bryn, A., Bratli, H., Erikstad, L., Simensen, T., & Lieungh, E. (2020). Towards a systematics of ecodiversity: The EcoSyst framework. Global Ecology and Biogeography, 29(11), 1887-1906. doi:10.1111/geb.13164
 
-Jakobsson, S., Töpper, J.P., Evju, M., Framstad, E., Lyngstad, A., Pedersen, B., Sickel, H., Sverdrup-Thygeson, A., Vandvik. V., Velle, L.G., Aarrestad, P.A. & Nybø, S. 2020. Setting reference levels and limits for good ecological condition in terrestrial ecosystems. Insights from a case study based on the IBECA approach. Ecological Indicators 116: 106492.
+Jakobsson, S., Töpper, J.P., Evju, M., Framstad, E., Lyngstad, A., Pedersen, B., Sickel, H., Sverdrup-Thygeson, A., Vandvik, V., Velle, L.G., Aarrestad, P.A. & Nybø, S. 2020. Setting reference levels and limits for good ecological condition in terrestrial ecosystems. Insights from a case study based on the IBECA approach. Ecological Indicators 116: 106492.
 
 Jakobsson, S., Evju, M., Framstad, E., Imbert, A., Lyngstad, A., Sickel, H., Sverdrup-Thygeson, A., Töpper, J., Vandvik, V., Velle, L.G., Aarrestad, P.A. & Nybø, S. 2021. An index-based assessment of ecological condition and its links to international frameworks. Ecological Indicators 124: 107252.
 
@@ -378,7 +381,7 @@ Tingstad, L., Evju, M., Sickel, H., & Töpper, J. 2019. Utvikling av nasjonal ar
 
 Töpper, J., Velle, L.G. & Vandvik, V. 2018. Developing a method for assessment of ecological state based on indicator values after Ellenberg and Grime (revised edition). NINA Report 1529b. Norwegian Institute for Nature Research.
 
-Tyler, T., Herbertsson, L., Olofsson, J., & Olsson, P. A. 2021. Ecological indicator and traits values for Swedish vascular plants. Ecological In-dicators, 120. doi:10.1016/j.ecolind.2020.106923
+Tyler, T., Herbertsson, L., Olofsson, J., & Olsson, P. A. 2021. Ecological indicator and traits values for Swedish vascular plants. Ecological Indicators, 120. doi:10.1016/j.ecolind.2020.106923
 
 Ullerud HA, Bryn A, Halvorsen R, Hemsing LØ. Consistency in land-cover mapping: Influence of field workers, spatial scale and classification system. Appl Veg Sci. 2018; 21: 278–288. https://doi.org/10.1111/avsc.12368
 
@@ -387,24 +390,36 @@ Ullerud HA, Bryn A, Halvorsen R, Hemsing LØ. Consistency in land-cover mapping:
 
 <!--# All the data import and preparation should be done in this chapter, before the analysis chapter. As a minimum, add code for importing data, and describe or show the data structure. You may also explain certain variables, what they represent, and their distributions -->
 
+The datasets used in the indicator calculation undergo several cleaning and processing steps before they can be integrated into the analysis pipeline. The resulting cleaned and processed datasets have been cached; the indicators have been calculated on the cached version of the data. Please refer to @sec-cleaning for further details.
+
 ### 7.1 Dataset A
 Download and load the WFO plant list backbone from Zenodo:
-```{r, eval = FALSE, echo = F}
-# download WFO plant list from zenodo
-#download_zenodo("https://doi.org/10.5281/zenodo.20782718", files = "_DwC_backbone_R.zip", path = "/Users/francesca.jaroszynsk/OneDrive - NINA/nina_projects/ANO/lowlands/ecRxiv_veg_indicators/data")
+```{r}
+#| eval: false
+#| echo: true
+# World Flora Online backbone (needed for running name matching / cleaning)
+zenodo_doi <- "https://doi.org/10.5281/zenodo.20782718"
+wfo_dir <- here("data", "WFO_backbone")
+dir.create(wfo_dir, recursive = TRUE, showWarnings = FALSE)
+# download once, then unzip into data/WFO_backbone/
+# download_zenodo(zenodo_doi, files = "_DwC_backbone_R.zip", path = wfo_dir)
+wfo_backbone <- read_delim(
+  here("data", "WFO_backbone", "_DwC_backbone_R", "classification.csv"),
+  delim = "\t"
+)
 
 wfo_backbone <- read_rds("P:/41201785_okologisk_tilstand_2022_2023/data/WFO_backbone/wfo_backbone.RDS")
 ```
 
-```{r source_functions, eval=TRUE}
+```{r source_species_dictionary, eval=TRUE}
 # source the functions script and species dictionary
-source(paste0(here(), "/R/functions.R"))
-source(paste0(here(), "/R/species_dictionary.R"))
+
+source(here(), "/R/species_dictionary.R")
 ```
 
 
 ### 7.2. Dataset B
-Import plant indicator values from Tyler et al. (2021):
+Import plant functional trait values from Tyler et al. (2021):
 ```{r, eval=FALSE}
 # These are the processed Tyler indicator data. See cleaning script cleaning_tyler.R for details
 tyler_indicators <- read_rds(paste0(here(), "/data/cache/tyler_indicators.RDS"))
@@ -423,12 +438,25 @@ nin_sp_ind <- read_rds(paste0(here::here(), "/data/cache/nin_sp_ind.RDS"))
 
 The generalized species lists underlying the ecosystem categorization in NiN (Halvorsen et al. 2020) represent expert-compiled species lists based on empirical evidence from the literature and expert knowledge of the systems and their species. In these lists, every species is assigned an abundance value on a 6-step scale, with each step representing a range for the ‘expected combination of frequency and cover’ of occurrence:
 
-1 = < 1/32,
-2 = 1/32 - 1/8,
-3 = 1/8 - 3/8,
-4 = 3/8 - 4/5,
-5 = 3/8 - 4/5 + dominance,
-6 = > 4/5
+```{r}
+#| echo: false
+#| tbl-cap: "NiN abundance scale for generalized species lists (expected combination of frequency and cover), and the simplified values used in this analysis."
+tibble::tibble(
+  Step = 1:6,
+  `Expected frequency and cover` = c(
+    "< 1/32",
+    "1/32 – 1/8",
+    "1/8 – 3/8",
+    "3/8 – 4/5",
+    "3/8 – 4/5 + dominance",
+    "> 4/5"
+  ),
+  `Simplified value used` = c(1/32, 1/8, 3/8, 0.6, 0.8, 4/5)
+) |>
+  gt::gt() |>
+  gt::fmt_number(columns = `Simplified value used`, decimals = 3) |>
+  gt::cols_align(align = "center", columns = c(Step, `Simplified value used`))
+```
 
 For the purpose of this project, these steps are simplified to maximum expected combination of frequency and cover, whereby steps 4 & 5 are assigned 0.6 and 0.8, respectively, in order to distinguish between them.
   
@@ -469,7 +497,23 @@ ASO_all <- read_rds(paste0(here::here(), "/data/cache/ASO_all.RDS"))
 ## 8. Spatial units
 The spatial units for functional plant community indicators are governed by the ANO data, which consist of 1000 randomly chosen sites in Norway. Each site is a 500 x 500 m grid cell with 18 monitoring points of 250sqm and a central 1 x 1 m vegetation plot. The basic unit for which observational community data exist, and for which every functional plant community indicator is computed, is this central 1 x 1 m vegetation plot. Aggregation of these basic spatial units to higher ones - like sites, municipalities, counties, regions, or the national level - should be done with appropriate consideration of the spatial structure of the data, i.e. imbalances and clustering (highly unequal number of points of an ecosystem type between sites).
 
-## 9. Analyses
+1. Basic spatial unit — the unit where the indicator is calculated
+- ANO: central 1×1 m vegetation plot
+- GRUK: 0.5×0.5 m plot
+- ASO: plot/transect observations within semi-natural meadows
+
+2. Higher units — site / meadow / polygon, then region, then Norway
+- ANO:
+- GRUK:
+- ASO:
+
+
+3. Aggregation — clustering within sites (random effect nest_1), unequal sample sizes across regions and programmes
+- ANO:
+- ASO:
+- GRUK:
+
+## 9. Analyses {#sec-analyses}
 
 <!--# 
   
@@ -481,7 +525,7 @@ Caching is also activated (from the top YAML), meaning that rendering to html wi
 
 -->
   
-#### Data handling
+### Data cleaning and processing {#sec-cleaning}
 - Checking for errors
 - Checking species nomenclature in the different species lists to make species and indicator data possible to merge
 - Merging indicator data with monitoring data and indicator data with reference data
@@ -598,7 +642,7 @@ source(paste0(here::here(), "/R/merge_datasets.R"))
 
 ```
 
-Below, we load in the merged sepcies and environmental data, alongside the reference data.
+Below, we load in the merged species and environmental data, alongside the reference data.
 ```{r load in rds files}
 
 regnor <- read_rds(paste0(here::here(), "/data/cache/regnor.RDS"))
@@ -610,7 +654,7 @@ lowland_ref_cov_val <- read_rds(paste0(here::here(), "/data/cache/lowland_ref_co
 
 ```{r}
 lowland_ref_cov_val |>
-  kable("html", caption = "Reference values (Rv and threshold values (Gv) for each indicator and nature type combination") |> kable_styling("striped") |> scroll_box(width = "100%", height = "300px")
+  kable("html", caption = "Reference values (Rv) and threshold values (Gv) for each indicator and nature type combination") |> kable_styling("striped") |> scroll_box(width = "100%", height = "300px")
 ```
 
 
@@ -770,7 +814,7 @@ ggsave(here::here("img/norm_plot.png"))
 
 #### Calculating national and regional indices
 
-We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition dont follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
+We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition do not follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
 
 The uncertainty around the national and region indicator values is derived from the same statistical model.
 
@@ -786,7 +830,7 @@ Nitrogen_no <- glmmTMB(
   data = combined_lowlands,
   family = ordbeta
 )
-summary(Nitrogen_no)
+broom.mixed::tidy(Nitrogen_no)
 
 # regions
 
@@ -796,7 +840,7 @@ Nitrogen_re <- glmmTMB(
   family = ordbeta
 )
 
-summary(Nitrogen_re)
+broom.mixed::tidy(Nitrogen_re)
 ```
 
 
@@ -928,7 +972,6 @@ mu |>
     high = round(quantile(value, probs = .975), 2)
   ) |>
   unite(col = "95% CI", c(low, high), sep = " - ") |>
-  gt::gt() |>
   write.table(
     file = paste0(here(), "/results/NO_FUNI_001_boot_table.txt"),
     sep = "\t",
@@ -948,13 +991,13 @@ mu |>
 
 ```{r export, eval = F}
 #| eval: false
-arrow::write_parquet(mu,"data/results_NO_FUNI_001.parquet")
+arrow::write_parquet(mu,"results/results_NO_FUNI_001.parquet")
 ```
 
 Demonstrating how to read back the data:
 
 ```{r readingBack, eval = F}
-arrow::read_parquet(here::here("data/results_NO_FUNI_001.parquet"))
+arrow::read_parquet(here::here("results/results_NO_FUNI_001.parquet"))
 ```
 
 ## 12. Author contributions
@@ -996,6 +1039,13 @@ All code was reviewed and validated by [AH].
 ::: {.callout-tip collapse="true"}
 ## Session Info
 <!-- You can leave this last part as it is, unless you have a good reason to alter it. -->
+This information is mainly aimed at developers that need to recreate the R environment that produced the html.
+Important note: this information is about the R session that was running when the html was rendered, and if some of the code chunks were not evaluated when the html was rendered, they may have been executed in a different environment.  
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+
+```
 
 This workflow uses renv. Run `renv::restore()` to get started.
 
