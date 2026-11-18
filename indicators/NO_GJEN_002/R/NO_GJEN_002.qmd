@@ -29,12 +29,12 @@ verbatimEcosystem:
 yearAdded: 2024
 yearLastUpdate: 2026
 status: incomplete
-Version: "0.4.0"
-VersionComment: "Reimplemented the indicator with a reproducible 1 m orthophoto workflow; documented frozen X100 and X0 references, implicit X60, spatial uncertainty and GRUK calibration; the result remains provisional and coverage-limited."
+Version: "0.5.0"
+VersionComment: "Updated the 2024 assessment using vegetation cover above a fixed height threshold, with equal ANO and ASO program weights and a separate GRUK estimate."
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GJEN_002
 Normalised: Yes
-SpatialAggregationPathway: "Scale at object level - sigmoid transform - aggregate using calibrated area weights - truncate to [0,1]"
-Precision: "95% uncertainty interval from 20,000 Bayesian spatial cluster-bootstrap replicates over 10 x 10 km clusters"
+SpatialAggregationPathway: "Score cover at object level using a piecewise linear curve, then average marginal ANO and ASO model predictions with equal program weights."
+Precision: "Delta-method standard errors and 95% logit-Wald confidence intervals for marginal estimates."
 format:
   html:
     embed-resources: true
@@ -46,22 +46,22 @@ format:
 execute:
   cache: true
 author:
-  - name: Andrew Gray
-    email: andrew.gray@nina.no
-    affiliations:
-      - id: nina
-        name: Norwegian Institute for Nature Research (NINA)
   - name: Vegar Bakkestuen
     affiliations:
-      - ref: nina
+      - id: nina
+        name: The Norwegian Institute for Nature Research (NINA)
   - name: Ida M. Mienna
+    affiliations:
+      - ref: nina
+  - name: Andrew Gray
+    email: andrew.gray@nina.no
     affiliations:
       - ref: nina
   - name: Zander Venter
     affiliations:
       - ref: nina
-AuthorList: Gray, A.; Bakkestuen, V.; Mienna, I. M.; Venter, Z.
-date: October 6, 2026
+AuthorList: Bakkestuen, V.; Mienna, I. M.; Gray, A.; Venter, Z.
+date: November 18, 2026
 data_availability: none
 code_reproducibility: none
 open_science_badge: none
@@ -170,12 +170,75 @@ meta |>
 ::: {.callout-tip collapse="true"}
 ## Log
 
+- 18 Nov. 2026 - Version 0.5.0. Documented the 2024 vegetation-cover assessment, equal ANO and ASO program weights, separate GRUK results, and model-based confidence intervals.
 - 06 Oct. 2026 - Version 0.4.0. Migrated the documentation to the current ecRxiv template; documented the reproducible 1 m workflow, frozen references, GRUK calibration and spatial uncertainty.
 - 15 Sep. 2026 - Version 0.3.0-rc1. Added the national production workflow and an experimental 2 m technical result.
 - 11 Oct. 2024 - Original draft.
 :::
 
 <hr />
+
+# 2024 assessment using vegetation cover
+
+### Summary
+
+The indicator tracks vegetation structure in selected open lowland habitats. High values indicate that little of a sample unit is covered by vegetation reaching the height threshold. The indicator uses estimated vegetation height as a proxy for structural encroachment. It can also detect tall non-woody vegetation, and the height estimates may miss low shrubs beneath taller vegetation. The score describes one aspect of ecological condition. A single assessment provides no direct estimate of change over time.
+
+The current assessment uses vegetation cover above a fixed height threshold. Earlier V1.2 estimates used height-based reference values, a different set of sample units and different aggregation. The historical V1.2 result is retained with its own method and provenance. Differences between versions cannot be interpreted as temporal change.
+
+### Data and spatial units
+
+The assessment year is 2024. Vegetation height was estimated from 0.5 m aerial imagery. Image planning prioritised summer imagery, with locally checked acquisition dates and a maximum difference of two calendar years from the field year. Images were acquired by the end of 2024. The supplementary September runs added 39 scored ANO units in Østlandet and 39 scored ASO units in Midt-Norge. The acquisition years in the scored input span 2018–2024 for ANO and 2019–2024 for ASO. Of the 638 scored units, 46 ANO units and 17 ASO units use imagery from before 2020. The assessment combines acquisitions from different years.
+
+- **ANO (Arealrepresentativ naturovervåking).** We used the most recent recorded visit through 2024 for each point. The sample circle covers 250 m². The primary frame requires one eligible mapping unit to occupy the entire circle, thereby excluding a recorded forest share by the selection rule. The current frame has 446 points, of which 299 have a score. The underlying field coverage and the survey-plot identifiers have not yet been independently verified. The modelling data derive the survey-plot identifier from the point ID.
+- **ASO (Arealrepresentativ overvåking av semi-naturlig eng).** A polygon entered the working frame if its NiN code list contained at least one eligible main type. This gives 429 polygons, of which 339 have a score. The frame includes 426 D02 polygons and three additional polygons. Thirteen included polygons also list codes outside the eligible set. The code list gives no area shares for individual types. We excluded the outermost raster-cell layer of the polygon mask, using an eight-neighbour erosion on the 0.5 m grid. All 339 scored polygons could be compared before and after erosion. Their unweighted mean score changed from 0.631 to 0.635.
+- **GRUK (åpen grunnlendt kalkmark, calcareous open ground).** The separate analysis uses 263 surveyed polygons with images from 2020–2024 and the original GRUK polygon masks. It uses the same height threshold and scoring curve as ANO and ASO. GRUK contributes no observations to the combined estimates.
+
+The eligible NiN main types are T31, T32, T33, T34, T40, T41, T2, T8, T11, T12, T13, T15, T16, T18, T21 and T24. Several eligible types have few or no scored ANO observations. The five reporting regions are assigned using the regional layer and polygon overlap.
+
+### Reference values and scoring
+
+For each unit we calculate the percentage of valid pixels with an estimated vegetation height of at least 0.8 m. The score is piecewise linear from 1 at 0% cover (X100) to 0.6 at 25% cover (X60) and to 0 at 100% cover (X0). For cover `p` in percentage points, the score is `1 - 0.016*p` up to 25%, and `0.008*(100 - p)` above 25%. The 25% reference was motivated by the shrub-cover criterion for open shallow-soil calcareous grassland. Its use across the eligible types is an assessment choice.
+
+### Uncertainty and representativeness
+
+Standard errors are calculated on the 0–1 scale using the delta method and the joint estimated covariance of the model parameters. The 95% Wald intervals are calculated on the logit scale of the marginal mean and then transformed back to 0–1. They are conditional on the fitted model, analysed sample and fixed program weights. They do not include selection effects from missing imagery, error in the estimated vegetation heights or incomplete habitat representation.
+
+Equal weighting standardises the ANO and ASO contributions to 50% each nationally and within each region. The resulting score represents this program mix. T32 (semi-natural grassland) is strongly represented because it occurs in ANO and dominates ASO. Equal weighting does not correct the habitat composition or account for variation in image availability within each program. An ANO coastal-shore extension could improve the coverage of open lowland habitat types.
+
+### Analysis and code map
+
+The combined model uses ordered beta regression, which accommodates exact scores of 0 and 1. The primary specifications use a fixed program effect and a random plot intercept. The national model has an overall intercept, and the regional model fits separate regional intercepts. Plots are grouped within program. The ANO grouping is based on the derived survey-plot identifier. Each ASO polygon currently has a separate grouping identifier. We integrate over the fitted random plot effect and average the two program predictions with equal weights. Sensitivity analyses compare weighting by the number of scored units, a random program effect, and a specification without a random plot effect.
+
+GRUK is fitted separately with an intercept-only model that combines a point mass at score 1 with a beta distribution for the remaining scores. The script fits this model to one minus the score with a zero-inflated beta distribution and transforms its fitted mean back to the score scale.
+
+| Step | Code | Input and output |
+|---|---|---|
+| Recalculate scores and apply the eligibility rules | `beregn.py` in the new curve package | Object-level cover, type and region tables → object scores and sample summaries |
+| Apply and check the ASO boundary exclusion | `KJOR_ASO_KANT.ps1` and `kantkontroll.py` | Stored ASO height rasters and polygon masks → paired full-mask and core results |
+| Assemble ANO/ASO model input | `klargjor.py` in the combined model package | ANO object scores and ASO core scores → `modellgrunnlag.csv` |
+| Calculate GRUK scores | `beregn_gruk.py` in the GRUK package | Existing GRUK polygon height summaries → `gruk_modellgrunnlag.csv` |
+| Fit models and compute uncertainty | [KJOR_USIKKERHET.R](coverage2024/KJOR_USIKKERHET.R) and [delta.R](coverage2024/delta.R) | Both modelling tables → model diagnostics, full model results and the reporting table |
+
+The model script checks that the marginal estimates reproduce the previous point estimates before writing the reporting tables. The archived outputs are available as the [reporting table](../results/coverage2024/leveransetabell_se.csv), [full model results](../results/coverage2024/modellresultater_se.csv), and [model diagnostics](../results/coverage2024/modelldiagnostikk_se.csv). The object-level model inputs are stored in the accompanying analysis package.
+
+### Results
+
+| Area | Scored units | Estimate | SE | 95% CI |
+|---|---:|---:|---:|---:|
+| Norway (ANO/ASO) | 638 | 0.747 | 0.0123 | 0.722–0.770 |
+| Nord-Norge | 212 | 0.808 | 0.0185 | 0.769–0.842 |
+| Midt-Norge | 129 | 0.735 | 0.0255 | 0.682–0.782 |
+| Østlandet | 97 | 0.740 | 0.0346 | 0.666–0.801 |
+| Vestlandet | 141 | 0.741 | 0.0247 | 0.689–0.786 |
+| Sørlandet | 59 | 0.608 | 0.0404 | 0.526–0.683 |
+| GRUK sample (separate) | 263 | 0.841 | 0.0106 | 0.819–0.861 |
+
+The random-program model gives a similar national point estimate (0.746), with a wider 95% interval (0.581–0.862). The regional estimates are more sensitive to program weights. For Sørlandet, the primary model gives 0.608 under equal program weights and 0.523 when weighting by the scored sample sizes. The analysed sample there contains 8 ANO points and 51 ASO polygons.
+
+# Historical height-based assessment (V1.2)
+
+The following sections document the earlier height-based method and archived delivery.
 
 ## 1. Summary
 
