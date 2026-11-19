@@ -38,7 +38,7 @@ Biome:
 Ecosystem: 
   - T2.1 – Boreal/montane forests
   - T6.4 – Temperate alpine grasslands  # e.g. F1.3 Freeze-thaw streams
-verbatimEcosystem: Forest; Mountain # add name of the ecosystem or naturetype according to any relevant local or national typology. E.g. fjell, skog, ... 
+verbatimEcosystem: Skog; Fjell # add name of the ecosystem or naturetype according to any relevant local or national typology. E.g. fjell, skog, ... 
 yearAdded: 2026 # the year when the indicator was first submitted to ecRxiv
 yearLastUpdate: 2026
 status: complete # options are complete, incomplete, or deprecated
@@ -46,8 +46,8 @@ Version: "1.1.0" # See wiki page: https://github.com/NINAnor/ecRxiv/wiki#version
 VersionComment: "Update of https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_BIRD_001-004 by using occupancy modelling instead of TRIM analysis."# Describe briefly how this version differs from earlier versions 
 url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/XX_YYYY_ZZZ
 # To be filled out by ecRxiv during the typesetting, when they will replace XX_YYYY_ZZ with the name of the root folder for the current indicator(s). It should be the same as the indicatorID, but if there are more indicator IDs presented in the same folder, the folder name might be different, e.g. XX_YYYY_AAA-BBB 
-Normalised: # Yes or no depending on whether the metric has been normliased or not.
-SpatialAggregationPathway: Scale - Truncate - Aggregate # e.g. Scale - Transform - Aggregate (length-weighted arithmetic mean) - Truncate
+Normalised: Yes
+SpatialAggregationPathway: [Scale - Truncate] - thematic aggregation (mean across indicators) - spatial aggregation (regional or national estimates)
 Precision: Bootstrap 95% interval #Describe the precition metric you have used. Precision may be reported either as variation among observed values (e.g. standard deviation, variance, range, interquartile range) or as uncertainty around an estimated value (e.g. standard error, confidence interval, credible interval). 
 format: 
   html:
@@ -89,7 +89,7 @@ code-links:
       - text: Add a review
         icon: github
         href: https://github.com/NINAnor/ecRxiv
-hide: TRUE # Change to FALSE
+hide: FALSE # Change to FALSE
 bibliography: references.bib
 ---
 
@@ -224,6 +224,16 @@ meta |>
 With a maximum of 300 words, describe the indicator in general terms as you would to a non-expert. Think of this as a kind of common language summary. Follow the four numbers sub-headers below. under point 2, it is possible under  include a bullet point list of the specific steps in the workflow. 
  -->
 
+**Background and rationale**: Birds are important components of biodiversity and contribute to ecosystem functioning through seed dispersal, pollination, pest regulation and nutrient cycling. They are sensitive to environmental changes, including climate change, land-use change and habitat degradation, making them useful indicators of ecosystem condition. Breeding bird communities are particularly informative because species occurrence depends on habitat quality and resource availability. This study develops an occupancy-based indicator to assess breeding bird community condition relative to expert-defined reference values, accounting for differences in species distributions across nature regions.
+
+**Methods**: The indicator is based on long-term breeding bird observations from the Norwegian monitoring programme Hekkefuglovervåkingen (formerly TOV-E). Characteristic species were selected for forest (32 species) and mountain (16 species) ecosystems, excluding species without expert reference categories. Detection/non-detection data from 2020–2024 were analysed using occupancy models to account for imperfect detection. Environmental variables were standardised to a 1 km grid, and occupancy was predicted across 100,000 locations in each ecosystem. Experts defined species- and region-specific reference values based on predicted occupancy. Observed occupancy was scaled against these references and averaged across species to produce the indicator.
+
+**Interpretation**: An indicator value of 1 means that, on average, characteristic breeding bird species have occupancy probabilities at or above their expert-defined reference values. Values decreasing towards zero indicate lower occupancy relative to the expected reference condition. Each species contributes equally, regardless of how common or rare it is. The indicator does not capture increases above reference levels or the arrival of additional species.
+
+**Results and development needs**: The national indicator value was 0.67 for forest and 0.59 for mountain ecosystems. Forest values ranged from 0.54 in the North to 0.74 in the South, while mountain values ranged from 0.53 in the West to 0.64 in the North and East. Some regional differences reflect natural variation in species distributions rather than ecological degradation. The indicator can currently be used to compare ecosystem condition between regions but cannot assess temporal trends. Further development should include updating the indicator with new monitoring data, reviewing reference values and poorly performing models, incorporating occupancy prediction uncertainty and establishing guidance for interpreting changes over time.
+
+
+### 1.1 Extended summary
 1. **Background and rationale**:
 
 Birds are among the best-studied groups of organisms and a key part of global biodiversity, so they provide extensive data for assessing biodiversity patterns and environmental change [@barrowclough2016many; @stork1997measuring]. Because they are visible, widespread and familiar, they are also effective for communicating environmental change to non-specialists [@bibby1999making; @santos2026geographical]. Birds support ecosystem functioning through seed dispersal, pollination, pest regulation and nutrient cycling, which links them to human well-being [@whelan2015birds; @mariyappan2023ecological; @wenny2011need]. Bird communities also respond to environmental variation and disturbance. Shifts in their distributions, abundance and demographic performance reflect land-use change, climate change, habitat degradation and changes in food availability [@rigal2023farmland; @johnson2011global; @tscharntke2023agriculture]. This sensitivity, together with long-running monitoring programmes, makes birds useful indicators of environmental change.
@@ -253,7 +263,6 @@ In this study, we developed an occupancy-based indicator of breeding bird commun
 
 - *Scaling and aggregation*: Occupancy at each location was scaled linearly against its reference value and truncated to 0–1, so that occupancy at or above the reference value scores 1. Scaled values were then averaged across species. Regional estimates came from bootstrapped beta regressions and the national estimate from a beta mixed model with nature region as a random effect. Sensitivity was tested by varying the *same* quantile from 0.5 to 0.9.
 
-- *Interpretation*: Values near 1 indicate that species, on average, occur at or above their reference levels, while values near 0 indicate a strong departure from the reference condition.
 
 
 
@@ -267,7 +276,7 @@ An indicator value of $1$ means that, on average, the characteristic breeding bi
 4. **Results and development needs**:
 <!-- Briefly, what does the indicator say about the ecosystem condition. What is the current status of  the metric (can it be used or is it still in development), and what immediate tasks remain to improve the indicator or to make the indicator operational -->
 
-The indicator expresses how closely the occupancy of characteristic breeding bird species matches an expert-defined reference condition, with $1$ meaning that species occur at or above their reference levels and $0$ a strong departure (@tbl-representativeVals). Nationally, the indicator was $0.67$ for forest and $0.59$ for mountain ecosystems. Forest ecosystems showed the largest regional variation: values were highest in the South ($0.74$), similar in the West, East and Central regions ($0.67$–$0.69$), and lowest in the North ($0.54$). Mountain ecosystems showed a narrower range, from $0.53$ in the West and $0.54$ in the South to $0.64$ in the North and East. The lower forest values in the North and at higher elevations partly reflect natural limits on where forest birds occur, and should not be read as degradation alone. Absolute values also depend on the expert-based reference choice: varying it lowered the national indicator by about $0.09$ in forest and $0.10$ in mountain, but the main regional contrasts were largely unchanged (@sec-sensitivity).
+The indicator expresses how closely the occupancy of characteristic breeding bird species matches an expert-defined reference condition, with $1$ meaning that species occur at or above their reference levels and $0$ a strong departure (@tbl-representativeVals). Nationally, the indicator was $0.67$ for forest and $0.59$ for mountain ecosystems. Forest ecosystems showed the largest regional variation: values were highest in the South ($0.74$), similar in the West, East and Central regions ($0.67$–$0.69$), and lowest in the North ($0.54$). Mountain ecosystems showed a narrower range, from $0.53$ in the West and $0.54$ in the South to $0.64$ in the North and East. The lower forest values in the North and at higher elevations partly reflect natural limits on where forest birds occur, and should not be read as degradation alone. Absolute indicator values were sensitive to the choice of expert-based reference values. Increasing the same percentile from 0.7 to 0.9 reduced the national indicator by approximately 0.09 for forest and 0.10 for mountain ecosystems, whereas lowering the percentile increased indicator values. However, the main regional patterns remained largely unchanged (@sec-sensitivity).
 
 The indicator can be used to compare regions and to flag where the bird community lies further from its reference, with the caveats described in @sec-uncertainties. Model fit was poor for some widespread species, the reported intervals only reflect resampling of locations, and the indicator is based on a single time window (2020–2024) and therefore cannot yet show change over time. Priorities for further development are to (1) update the indicator as new monitoring data become available so that trends can be assessed, (2) review the expert reference values and the species with poor model fit, (3) include the uncertainty of the occupancy predictions in the reported intervals, and (4) agree guidance on how to interpret changes in indicator values in ecosystem assessments and management.
 
@@ -309,8 +318,6 @@ Potential sources of sampling bias include variation in observer skill, uneven a
 
 During field surveys, observers record the number of individuals of each species seen or heard at each sampling point. For this indicator, these counts were converted to detection/non-detection data: a species was coded as detected (1) if one or more individuals were recorded at a sampling point in a given year, and as not detected (0) otherwise. Because each point is surveyed once per year, the surveys from 2020–2024 were treated as repeated survey occasions, assuming that occupancy did not change over this period.
 
-**ADD DATAFRAME OF DATASET ENCOUNTER HISTORIES FOR SOME OF THE SPECIES.**
-
 This transformation gives a standardized response suited to occupancy modelling and shifts the focus from the number of individuals to whether a species is present. The count data contain many zeros, particularly for rare species. Detection/non-detection data are less sensitive to this and to variation in flock size than the raw counts. The repeated surveys allow the models to separate the probability that a species occupies a site from the probability that it is detected when present. The detection/non-detection data were analysed with point-level occupancy models to estimate species-specific occupancy probabilities, corrected for imperfect detection. These probabilities were then predicted across each ecosystem, scaled against species- and region-specific reference values, and averaged across species to produce the ecosystem-level ecological indicator.
 
 
@@ -319,7 +326,7 @@ This transformation gives a standardized response suited to occupancy modelling 
 <!--# Is the data openly available? If not, how can one access it? What are the key references to the datasets?   -->
 
 The data are publicly available on [GBIF](https://www.gbif.org/dataset/4a00502d-6342-4294-aad1-9727e5c24041) [@breedingBirdData].
-
+However, this workflow gets the same data from  the NINA monitoring database with the function `retrieve_breedingBirds_routesAndCounts()`, sourced from [here](https://github.com/NINAnor/breedingBirdIndicator_OccupancyModelling/blob/main/scripts/01_functions/dataProcessing/01_retrieveBreedingBirdRoutesAndCounts.R)
 
 ## 3. Indicator properties
 
@@ -424,7 +431,7 @@ Describe the spatial resolution of the reference levels. E.g. is it defined as a
 
  -->
 
-The reference levels vary spatially. Experts gave one reference category per species for the whole of Norway, but the reference level is calculated separately for each nature region as the corresponding quantile of the species' predicted occupancy within that region. Each species therefore has one reference level per nature region, which is constant within the region and differs between regions. This accounts for natural differences in occupancy along environmental gradients. Scaling is applied at the level of individual prediction locations, using the reference level for the nature region in which the location falls. The scaled values are then averaged across species and aggregated to regional and national estimates without recalculating the reference levels. Locations outside all nature regions have no reference level and are excluded.
+The reference levels vary spatially. Experts provided one reference category per species for the whole of Norway, without assessing whether regional adjustments were needed to account for differences in anthropogenic pressures or other regional conditions. These nationally defined expert judgements were subsequently disaggregated to the regional scale by calculating a separate reference level for each species and nature region, using the corresponding quantile of the species' predicted occupancy within that region. Each species therefore has one reference level per nature region, which is constant within the region but differs between regions. This approach accounts for natural differences in occupancy along environmental gradients, but does not explicitly account for potential regional differences in anthropogenic pressures when defining reference conditions. Scaling is applied at individual prediction locations, using the reference level for the nature region in which each location falls. The scaled values are then averaged across species and aggregated to regional and national estimates without recalculating the reference levels. Locations outside all nature regions have no reference level and are excluded.
 
 
 ## 5. Uncertainties {#sec-uncertainties}
@@ -467,7 +474,7 @@ Afterwards, the following should be run to set the parameters needed to run the 
 #| warning: false
 
 # If you are using the OneDrive, specify all. But if you are running on
-# your own local disk, specify youur woth USER in the 01_setPaths.R script
+# your own local disk, specify your own USER in the 01_setPaths.R script
 
 version <- 1
 
@@ -841,7 +848,7 @@ The species list contains $18$ forest and $16$ mountain species (@tbl-expertRefe
 
 ### Expert reference categories
 
-For each characteristic species, experts were shown the average occupancy probability estimated by the model. They were asked whether occupancy under the reference condition, assuming perfect detection, would be the same as (*samme*) or higher than (*høyere*) this estimate. Each category is linked to a fixed quantile of the species' predicted occupancy: $0.75$ for *samme* and $0.95$ for *høyere*. The reference value for each species is calculated as this quantile of predicted occupancy within each nature region (see @sec-refValues). Species without a reference category are excluded from the indicator.
+For each characteristic species, experts were presented with the average occupancy probability estimated by the model and asked whether occupancy under reference conditions, assuming perfect detection, would be the same as (*samme*) or higher than (*høyere*) this estimate. These expert judgements were translated into species-specific reference values using predefined quantiles of the predicted occupancy distribution. The samme category was assigned the 75th percentile, while the høyere category was assigned the 95th percentile. These quantiles provide an operational definition of the reference levels and represent an additional methodological choice beyond the experts' categorical assessments. Reference values were calculated separately for each species within each nature region (see @sec-refValues). Species without an expert-assigned reference category were excluded from the indicator.
 
 The categories are read from the expert workbooks and converted to quantiles with `get_reference_quantiles()`:
 
@@ -1252,10 +1259,10 @@ This section reports what the models and the indicator show for forest and mount
 
 ### 10.1 Reference values ($X_{100}$) {#sec-refValues}
 
-In forest, a group of widespread species had reference values close to $1$ in all regions (for example willow warbler, chaffinch, marsh tit *Poecile montanus* and song thrush *Turdus philomelos*; see @fig-forestX_100). Other species had low reference values, particularly in the North (for example the Siberian jay *Perisoreus infaustus*, icterine warbler *Hippolais icterina*, wood warbler *Phylloscopus sibilatrix* and mistle thrush *Turdus viscivorus*). Forest species were thus more variable among regions than among mountain species, and the North region stood out with low reference values for many species. 
+In forest, a group of widespread species had reference values close to $1$ in all regions, meaning they are assumed to be ubiquitous in the reference condition (for example willow warbler, chaffinch, marsh tit *Poecile montanus* and song thrush *Turdus philomelos*; see @fig-forestX_100). Other species had low reference values, particularly in the North (for example the Siberian jay *Perisoreus infaustus*, icterine warbler *Hippolais icterina*, wood warbler *Phylloscopus sibilatrix* and mistle thrush *Turdus viscivorus*). Forest species were thus more variable among regions than among mountain species, and the North region stood out with low reference values for many species. 
 
 ```{r fig-forestX_100}
-#| fig-cap: 'Reference values ($X_{100}$) of each characteristic forest species in each nature region. $X_{100}$ is the expert-assigned quantile of the species occupancy predicted within the region, and ranges from 0 to 1. Species are rows and nature regions are columns; yellow indicates values near 1 and dark purple values near 0.'
+#| fig-cap: 'Reference values ($X_{100}$) of each characteristic forest species in each nature region. $X_{100}$ is the expert-informed probability of the species occupancy predicted within the region, and ranges from 0 to 1. Species are rows and nature regions are columns; yellow indicates values near 1 and dark purple values near 0.'
 #| out-width: 100%
 #| echo: false
 #| warning: false
@@ -1272,7 +1279,7 @@ In mountain, four species (meadow pipit, European golden plover, northern wheate
 knitr::include_graphics("../img/mountain/x100_reference_values.png")
 ```
 
-Reference values at or near $1$ mean that a species only adds to the indicator in the locations where its occupancy is clearly high. Species with very low reference values have the opposite effect: they reach a scaled value of $1$ at almost any location and therefore add little information about differences in condition.
+Species with reference values close to $1$ require relatively high occupancy to achieve a scaled value of $1$. They can therefore contribute to identifying locations where occupancy falls below the reference condition, although they provide limited information about differences in occupancy once the reference level is reached. Conversely, species with very low reference values can achieve a scaled value of 1 even at relatively low occupancy. They therefore contribute less to distinguishing between locations with different but relatively high occupancy, but can still provide important information about negative changes if occupancy declines below their reference level. Overall, the reference values influence the sensitivity of individual species to differences in occupancy and their contribution to variation in the indicator.
 
 
 Only species with an expert reference category contribute to the indicator. In the figures above, 31 of the 32 forest species and 14 of the 16 mountain species are shown (golden eagle *Aquila chrysaetos* is missing from both ecosystems, and common kestrel *Falco tinnunculus* from the mountain ecosystem).
