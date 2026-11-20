@@ -812,15 +812,16 @@ ggsave(here::here("img/norm_plot.png"))
 
 #### Calculating national and regional indices
 
-We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition do not follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
+We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated, ordered beta-regression analysis. Since the indicator values are on a scale from 0-1, the data per definition do not follow a Gaussian distribution, hence the zero-one inflated, ordered beta-regression. Since the underlying monitoring, data are spatially aggregated (several points per site) and not all points are independent, hence the mixed-effects model.
+
+The national and regional estimates are computed via separate models. The models are based on ANO and ASO, as GRUK does not contain semi-natural meadows.
+The national model is a null-model with random intercepts for site (same for ANO and ASO). The regional model is specified with region as fixed effect and without an intercept, plus random intercept effects for site. In the case of a 2-sided indicator, for respectively the national and the regional analysis, We run one model for the overall indicator, and two additional models for each respective side.
 
 The uncertainty around the national and region indicator values is derived from the same statistical model.
 
-The national and regional estimates are computed separately.
-
 ```{r tmbs}
 #| warning: false
-## Fit ordered beta regression null-model with a random effect
+## Fit ordered beta regression null-model with a random effect (here, the ranef for site is called nest_1 across the monitoring programs)
 # Norway
 
 Grazing_mowing_no <- glmmTMB(

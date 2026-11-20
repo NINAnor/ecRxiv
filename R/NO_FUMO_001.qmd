@@ -810,11 +810,12 @@ ggsave(here::here("img/norm_plot.png"))
 
 #### Calculating national and regional indices
 
-We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated beta-regression analysis. Since the indicator values are on a scale from 0-1 the data per definition do not follow a Gaussian distribution, hence the zero-one inflated beta-regression. Since the underlying monitoring data are spatially aggregated (several points per site), not all points are independent, hence the mixed-effects model.
+We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated, ordered beta-regression analysis. Since the indicator values are on a scale from 0-1, the data per definition do not follow a Gaussian distribution, hence the zero-one inflated, ordered beta-regression. Since the underlying monitoring, data are spatially aggregated (several points per site) and not all points are independent, hence the mixed-effects model.
+
+The national and regional estimates are computed via separate models.
+The national model is run with a fixed effect for GRUK-data (for later calculating national estimates with down-weighted GRUK) and with random intercepts for site (same for ANO, ASO, and GRUK). The regional model is specified with region as fixed effect, a second fixed effect for GRUK-data (for later calculating national estimates with down-weighted GRUK), and random intercept effects for site. In the case of a 2-sided indicator, for respectively the national and the regional analysis, We run one model for the overall indicator, and two additional models for each respective side.
 
 The uncertainty around the national and region indicator values is derived from the same statistical model.
-
-The national and regional estimates are computed separately.
 
 ```{r tmbs}
 #| warning: false
@@ -834,7 +835,7 @@ combined_lowlands <- combined_lowlands %>%
     )
   )
 
-## Fit ordered beta regression model with a random effects for dataset and the spatial clustering, for the two different sides of the indicator we only do the ranef for spatial clustering (lacking enough data)
+## ## Fit ordered beta regression model with a random effects for dataset (here, the ranef for site is called nest_1 across the monitoring programs) and the spatial clustering (for the two different sides of the indicator we only do the ranef for spatial clustering as we are lacking enough data for convergence )
 # Norway
 Moisture_no <- glmmTMB(
   Moisture ~ hovedtype_rute_new + (1|dataset/nest_1),
