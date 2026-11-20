@@ -1,0 +1,318 @@
+---
+title: "Woody encroachment"
+subtitle: |
+  [NO_GJEN_002] (open ecosystems)
+indicatorID:
+  - NO_GJEN_002
+indicatorName:
+  - Woody encroachment
+verbatimName:
+  - Gjengroing
+folderName: NO_GJEN_002
+country: Norway
+continent: Europe
+ECT: B3 - Functional state characteristics
+Realm:
+  - Terrestrial (T)
+  - Freshwater (F)
+Biome:
+  - T4 Savannas and grasslands biome
+  - T3 Shrublands and shrubby woodlands biome
+Ecosystem:
+  - Naturally open areas below the forest line
+  - Semi-natural land
+  - Wetlands
+verbatimEcosystem:
+  - Naturlig åpne områder under skoggrensa
+  - Semi-naturlig mark
+  - Våtmark
+yearAdded: 2024
+yearLastUpdate: 2026
+status: incomplete
+Version: "0.5.0"
+VersionComment: "Updated the 2024 assessment using vegetation cover above a fixed height threshold, with equal ANO and ASO program weights and a separate GRUK estimate."
+url: https://github.com/NINAnor/ecRxiv/tree/main/indicators/NO_GJEN_002
+Normalised: Yes
+SpatialAggregationPathway: "Score cover at object level using a piecewise linear curve, then average marginal ANO and ASO model predictions with equal program weights."
+Precision: "Delta-method standard errors and 95% logit-Wald confidence intervals for marginal estimates."
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    toc: true
+    toc-title: Contents
+    toc-depth: 3
+    smooth-scroll: true
+execute:
+  cache: true
+author:
+  - name: Vegar Bakkestuen
+    affiliations:
+      - id: nina
+        name: The Norwegian Institute for Nature Research (NINA)
+  - name: Ida M. Mienna
+    affiliations:
+      - ref: nina
+  - name: Andrew Gray
+    email: andrew.gray@nina.no
+    affiliations:
+      - ref: nina
+  - name: Zander Venter
+    affiliations:
+      - ref: nina
+AuthorList: Bakkestuen, V.; Mienna, I. M.; Gray, A.; Venter, Z.
+date: November 20, 2026
+data_availability: bronze
+code_reproducibility: bronze
+open_science_badge: bronze
+callout-icon: false
+lightbox: true
+code-links:
+  - text: Add a review
+    icon: github
+    href: https://github.com/NINAnor/ecRxiv
+hide: FALSE
+bibliography: [references.bib, references_aud.bib]
+codeReviewers:
+  - name: Aud H. Halbritter
+    email: aud.halbritter@uib.no
+    affiliations:
+      - id: reviewerInst
+        name: UiB
+    reviewType: code review
+    github: audhalbritter
+---
+
+```{r setup}
+#| include: false
+#| cache: false
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(here)
+library(anybadger)
+library(yaml)
+library(tibble)
+library(conflicted)
+conflicts_prefer(dplyr::filter)
+conflicts_prefer(dplyr::lag)
+conflicts_prefer(dplyr::select)
+pull <- dplyr::pull
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source}
+#| echo: false
+#| cache: false
+#| message: false
+here::i_am("indicators/NO_GJEN_002/R/NO_GJEN_002.qmd")
+source(here::here("_common.R"))
+```
+
+```{r reviewers}
+#| echo: false
+#| results: asis
+if (!is.null(yaml_data$codeReviewers)) {
+  reviewers <- purrr::map_chr(yaml_data$codeReviewers, "name")
+  htmltools::HTML(paste0(
+    '<div id="title-block-header" class="quarto-title-block default"><div class="quarto-title-meta"><div><div class="quarto-title-meta-heading">Reviewed by</div><div class="quarto-title-meta-contents">',
+    paste(reviewers, collapse = "; "),
+    '</div></div></div></div>'
+  ))
+}
+```
+
+::: {layout-ncol="6"}
+
+```{r statusBadge}
+#| echo: false
+status_badge(as.character(st))
+```
+
+```{r versionBadge}
+#| echo: false
+version_badge(my_version_number = as.character(version[[1]]))
+```
+
+```{r dataBadge}
+#| echo: false
+data_badge(as.character(badges[[1]]))
+```
+
+```{r codeBadge}
+#| echo: false
+code_badge(as.character(badges[[2]]))
+```
+
+```{r openScienceBadge}
+#| echo: false
+open_science_badge(as.character(badges[[3]]))
+```
+
+```{r licenseBadge}
+#| echo: false
+license_badge()
+```
+
+:::
+
+> **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
+
+::: {.callout-tip collapse="true"}
+## Metadata
+
+```{r tbl-meta2}
+#| tbl-cap: 'Indicator metadata'
+#| echo: false
+#| warning: false
+meta |>
+  dplyr::filter(Variable %in% c(
+    "Indicator ID", "Indicator Name", "verbatimName", "Continent", "Country",
+    "Ecosystem Condition Typology Class", "Realm", "Biome", "Ecosystem",
+    "verbatimEcosystem", "Year added", "Last update", "Version",
+    "Version comment", "Normalised", "Spatial aggregation pathway", "Precision"
+  )) |>
+  kable()
+```
+:::
+
+::: {.callout-tip collapse="true"}
+## Log
+
+- 20 Nov. 2026 - Reorganised the current assessment to follow the ecRxiv template and archived the previous implementation by commit reference.
+- 18 Nov. 2026 - Version 0.5.0. Documented the 2024 vegetation-cover assessment, equal ANO and ASO program weights, separate GRUK results, and model-based confidence intervals.
+- 06 Oct. 2026 - Version 0.4.0. Migrated the documentation to the current ecRxiv template; documented the reproducible 1 m workflow, frozen references, GRUK calibration and spatial uncertainty.
+- 15 Sep. 2026 - Version 0.3.0-rc1. Added the national production workflow and an experimental 2 m technical result.
+- 11 Oct. 2024 - Original draft.
+:::
+
+<hr />
+
+## 1. Summary
+
+1. **Background and rationale**. Woody encroachment increases vegetation height and cover in characteristically open habitats. The indicator describes vegetation structure in selected open lowland habitats.
+
+2. **Methods**. We estimate vegetation height from 0.5 m RGB aerial imagery and calculate the percentage of pixels at least 0.8 m tall within each survey unit. A piecewise linear function gives scores of 1 at 0% cover, 0.6 at 25% cover and 0 at 100% cover. ANO and ASO contribute equally to marginal predictions from a model with fixed program effects and random plot intercepts. GRUK is analysed separately.
+
+3. **Interpretation**. High scores indicate open vegetation structure. The model can detect tall non-woody vegetation and may miss low shrubs. The indicator describes one component of condition. The earlier height-based method used different reference values, units and aggregation, so results across these methods cannot be interpreted as temporal change. The previous method is available in the [archived implementation](https://github.com/VegarBakkestuen/ecRxiv/tree/2bb3187/indicators/NO_GJEN_002).
+
+4. **Results and development needs**. The combined 2024 estimate is **0.747** (SE 0.0123, 95% CI 0.722–0.770; 638 units). GRUK has a separate estimate of **0.841** (SE 0.0106, 95% CI 0.819–0.861; 263 polygons). Priorities include verification of survey-plot identifiers and field shares, documenting the lowland target population, assessing image-selection effects and improving habitat representation. T32 strongly influences the current program mix.
+
+## 2. About the underlying data
+
+The analysis uses ordinary RGB orthophotos from Norge i bilder [@audit_nib] and the field and mapping sources below. Canopy height inference builds on the Meta High Resolution Canopy Height model [@audit_tolan2024].
+
+The assessment year is 2024. Vegetation height was estimated from 0.5 m aerial imagery. Image planning prioritised summer imagery, with locally checked acquisition dates and a maximum difference of two calendar years from the field year. Images were acquired by the end of 2024. The supplementary September runs added 39 scored ANO units in Østlandet and 39 scored ASO units in Midt-Norge. The acquisition years in the scored input span 2018–2024 for ANO and 2019–2024 for ASO. Of the 638 scored units, 46 ANO units and 17 ASO units use imagery from before 2020. The assessment combines acquisitions from different years.
+
+- **ANO (Arealrepresentativ naturovervåking)** [@audit_ano; @coverage_ano_data]. We used the most recent recorded visit through 2024 for each point. The sample circle covers 250 m². The primary frame requires one eligible mapping unit to occupy the entire circle, thereby excluding a recorded forest share by the selection rule. The current frame has 446 points, of which 299 have a score. The underlying field coverage and the survey-plot identifiers have not yet been independently verified. The modelling data derive the survey-plot identifier from the point ID.
+- **ASO (Arealrepresentativ overvåking av semi-naturlig eng)** [@audit_aso]. A polygon entered the working frame if its NiN code list contained at least one eligible main type. This gives 429 polygons, of which 339 have a score. The frame includes 426 D02 polygons and three additional polygons. Thirteen included polygons also list codes outside the eligible set. The code list gives no area shares for individual types. We excluded the outermost raster-cell layer of the polygon mask, using an eight-neighbour erosion on the 0.5 m grid. All 339 scored polygons could be compared before and after erosion. Their unweighted mean score changed from 0.631 to 0.635.
+- **GRUK (åpen grunnlendt kalkmark, calcareous open ground)** [@coverage_gruk]. The separate analysis uses 263 surveyed polygons with images from 2020–2024 and the original GRUK polygon masks. It uses the same height threshold and scoring curve as ANO and ASO. GRUK contributes no observations to the combined estimates.
+
+The eligible NiN main types are T31, T32, T33, T34, T40, T41, T2, T8, T11, T12, T13, T15, T16, T18, T21 and T24. Several eligible types have few or no scored ANO observations. The five reporting regions are assigned using the regional layer and polygon overlap.
+
+### 2.1 Data access and citation
+
+ANO data are published by the Norwegian Environment Agency through GBIF [@coverage_ano_data]. The ASO and GRUK programme descriptions document the monitoring sources [@audit_aso; @coverage_gruk]. The analysed local exports are not assumed identical to a subsequent public database release. The exact local input snapshots, image-date selection and modelling tables are described in [INPUTS.md](../data/coverage2024/INPUTS.md). Orthophoto access and reuse are subject to the terms of Norge i bilder. The regional layer was provided to the project; its provenance and release identifier should be added to the input register before publication.
+
+## 3. Indicator properties
+
+
+### 3.1 Ecosystem Condition Typology Class (ECT)
+
+Woody encroachment is assigned to B3, functional state characteristics, because it describes a change in vegetation structure and ecosystem functioning relative to characteristically open conditions.
+
+### 3.1.1 Other condition typologies
+
+The indicator contributes to Norwegian ecosystem-condition assessments and is methodologically related to the LiDAR-based indicator NO_GJEN_001.
+
+### 3.2 Ecosystem condition characteristic
+
+Open vegetation structure.
+
+### 3.3 Collinearities with other indicators
+
+Vegetation height can covary with vegetation productivity metrics such as NDVI. In wetlands, woody encroachment may also covary with drainage indicators. These relationships should be considered when indicators are combined in an ecosystem-condition assessment.
+
+### 3.4 Impact factors
+
+Important impact factors include abandonment or reduced intensity of grazing and haymaking, drainage, planting or removal of trees, altered fire and disturbance regimes, nitrogen deposition, invasive species and climate-driven shifts in the forest line and shrub growth.
+
+### 3.5 Spatial aggregation
+
+The indicator is scored within each ANO circle or ASO polygon core. Marginal model predictions are averaged with equal weights for ANO and ASO within each reporting area. GRUK is analysed separately.
+
+## 4. Reference condition and levels
+
+### 4.1 Reference condition
+
+The structural reference is open vegetation with zero modelled cover above the height threshold. The 25% threshold borrows a shrub-cover condition criterion from the mapping instruction. Applying a common threshold across the eligible types is an assessment choice, and trees may be characteristic in some mapped habitats.
+
+### 4.2 Reference levels
+
+For each unit we calculate the percentage of valid pixels with an estimated vegetation height of at least 0.8 m. The score is piecewise linear from 1 at 0% cover (X100) to 0.6 at 25% cover (X60) and to 0 at 100% cover (X0). For cover `p` in percentage points, the score is `1 - 0.016*p` up to 25%, and `0.008*(100 - p)` above 25%. The 25% reference was motivated by the shrub-cover criterion for open shallow-soil calcareous grassland [@coverage_instruction2024]. Its use across the eligible types is an assessment choice.
+
+## 5. Uncertainties
+
+Standard errors are calculated on the 0–1 scale using the delta method and the joint estimated covariance of the model parameters. The 95% Wald intervals are calculated on the logit scale of the marginal mean and then transformed back to 0–1. They are conditional on the fitted model, analysed sample and fixed program weights. They do not include selection effects from missing imagery, error in the estimated vegetation heights or incomplete habitat representation.
+
+Equal weighting standardises the ANO and ASO contributions to 50% each nationally and within each region. The resulting score represents this program mix. T32 (semi-natural grassland) is strongly represented because it occurs in ANO and dominates ASO. Equal weighting does not correct the habitat composition or account for variation in image availability within each program. An ANO coastal-shore extension could improve the coverage of open lowland habitat types.
+
+## 6. References
+
+::: {#refs}
+:::
+
+## 7. Import and prepare datasets
+
+The workflow selects the most recent ANO visit through 2024 before filtering for mapping-unit share. ASO eligibility is based on the full NiN code list. It then selects image projects, checks local acquisition dates, predicts height, checks raster validity and derives cover-based scores. The preprocessing scripts and their input requirements are listed in Chapter 9 and the input register. The full image and inference stage runs in the project environment.
+
+## 8. Spatial units
+
+ANO uses 250 m² circles. ASO uses polygon masks eroded by one raster-cell layer, including around holes and across tile boundaries. GRUK uses its original polygon masks. All grid operations use EPSG:25833 with 0.5 m pixels. The five reporting regions are assigned by polygon overlap. The analysed frame's geographic lowland restriction remains to be independently verified.
+
+## 9. Analyses
+
+The combined model uses ordered beta regression, which accommodates exact scores of 0 and 1. The primary specifications use a fixed program effect and a random plot intercept. The national model has an overall intercept, and the regional model fits separate regional intercepts. Plots are grouped within program. The ANO grouping is based on the derived survey-plot identifier. Each ASO polygon currently has a separate grouping identifier. We integrate over the fitted random plot effect and average the two program predictions with equal weights. Sensitivity analyses compare weighting by the number of scored units, a random program effect, and a specification without a random plot effect.
+
+GRUK is fitted separately with an intercept-only model that combines a point mass at score 1 with a beta distribution for the remaining scores. The script fits this model to one minus the score with a zero-inflated beta distribution and transforms its fitted mean back to the score scale.
+
+| Step | Code | Input and output |
+|---|---|---|
+| Recalculate scores and apply the eligibility rules | [beregn.py](coverage2024/preparation/beregn.py) | Object-level cover, type and region tables → object scores and sample summaries |
+| Apply and check the ASO boundary exclusion | [KJOR_ASO_KANT.ps1](coverage2024/preparation/KJOR_ASO_KANT.ps1) and [kantkontroll.py](coverage2024/preparation/kantkontroll.py) | Stored ASO height rasters and polygon masks → paired full-mask and core results |
+| Assemble ANO/ASO model input | [klargjor.py](coverage2024/preparation/klargjor.py) | ANO object scores and ASO core scores → `modellgrunnlag.csv` |
+| Calculate GRUK scores | [beregn_gruk.py](coverage2024/preparation/beregn_gruk.py) | Existing GRUK polygon height summaries → `gruk_modellgrunnlag.csv` |
+| Fit models and compute uncertainty | [KJOR_USIKKERHET.R](coverage2024/KJOR_USIKKERHET.R) and [delta.R](coverage2024/delta.R) | Both modelling tables → model diagnostics, full model results and the reporting table |
+
+The model script checks that the marginal estimates reproduce the previous point estimates before writing the reporting tables. The archived outputs are available as the [reporting table](../results/coverage2024/leveransetabell_se.csv), [full model results](../results/coverage2024/modellresultater_se.csv), and [model diagnostics](../results/coverage2024/modelldiagnostikk_se.csv). The object-level model inputs are stored in the accompanying analysis package.
+
+## 10. Results
+
+| Area | Scored units | Estimate | SE | 95% CI |
+|---|---:|---:|---:|---:|
+| Norway (ANO/ASO) | 638 | 0.747 | 0.0123 | 0.722–0.770 |
+| Nord-Norge | 212 | 0.808 | 0.0185 | 0.769–0.842 |
+| Midt-Norge | 129 | 0.735 | 0.0255 | 0.682–0.782 |
+| Østlandet | 97 | 0.740 | 0.0346 | 0.666–0.801 |
+| Vestlandet | 141 | 0.741 | 0.0247 | 0.689–0.786 |
+| Sørlandet | 59 | 0.608 | 0.0404 | 0.526–0.683 |
+| GRUK sample (separate) | 263 | 0.841 | 0.0106 | 0.819–0.861 |
+
+The random-program model gives a similar national point estimate (0.746), with a wider 95% interval (0.581–0.862). The regional estimates are more sensitive to program weights. For Sørlandet, the primary model gives 0.608 under equal program weights and 0.523 when weighting by the scored sample sizes. The analysed sample there contains 8 ANO points and 51 ASO polygons.
+
+## 11. Export file
+
+The [reporting table](../results/coverage2024/leveransetabell_se.csv) contains the estimate, standard error and 95% confidence interval for each area and GRUK separately. [Full model results](../results/coverage2024/modellresultater_se.csv) and [diagnostics](../results/coverage2024/modelldiagnostikk_se.csv) document the sensitivity specifications and convergence checks. Rendering this QMD displays the archived values. Re-estimation is a separate R job documented in the README.
+
+## 12. Author contributions
+
+Vegar Bakkestuen implemented the 2026 processing and statistical analyses and prepared the updated documentation. The conceptual basis and earlier implementation draw on the work of Andrew Gray, Ida M. Mienna and Zander Venter. Final contributor roles should be confirmed by the author group.
+
+::: {.callout-tip collapse="true"}
+## Session Info
+
+```{r sessionInfo}
+#| echo: false
+sessionInfo()
+```
+:::
