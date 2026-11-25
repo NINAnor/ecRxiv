@@ -189,6 +189,28 @@ license_badge()
 > **Recommended citation**: `r paste(auth, " ", year, ". ", name, " (ID(s): ", folder_name, ") ", "v. ", version, ". ecRxiv: ", url, sep="")`
 
 
+```{r indicator-issues}
+#| echo: false
+#| cache: false
+#| results: asis
+
+indicator_ids <- unique(trimws(as.character(unlist(yaml_data$indicatorID))))
+indicator_ids <- indicator_ids[
+  !is.na(indicator_ids) &
+    nzchar(indicator_ids) &
+    !indicator_ids %in% c("INDICATORID", "INDICATORID2")
+]
+
+for (id in indicator_ids) {
+  query <- sprintf('is:issue is:open label:"%s"', id)
+  issues_url <- paste0(
+    "https://github.com/NINAnor/ecRxiv/issues?q=",
+    utils::URLencode(query, reserved = TRUE)
+  )
+  cat(sprintf("[View open GitHub issues for `%s`](%s)\n\n", id, issues_url))
+}
+```
+
 
 ::: {.callout-tip collapse="true"}
 ## Metadata
