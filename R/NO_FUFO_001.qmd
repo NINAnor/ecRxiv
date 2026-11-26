@@ -334,7 +334,7 @@ Bootstraps were set up with resampling of the original generalized species lists
 All reference distributions, and thus all scaling values are unique to NiN mapping units at a scale of 1:5000.
 
 #### 4.2.1 Spatial resolution and validity
-The same reference levels apply to all types of ecosystems and all regions.
+The same reference levels apply to all regions.
 
 ## 5. Uncertainties
 ### 5.1 General uncertainties
@@ -444,7 +444,7 @@ tibble::tibble(
     "3/8 – 4/5 + dominance",
     "> 4/5"
   ),
-  `Simplified value used` = c(1/32, 1/8, 3/8, 0.6, 0.8, 4/5)
+  `Simplified value used` = c(1/32, 1/8, 3/8, 0.6, 0.8, 1)
 ) |>
   gt::gt() |>
   gt::fmt_number(columns = `Simplified value used`, decimals = 3) |>
@@ -656,7 +656,7 @@ lowland_ref_cov_val |>
   kable("html", caption = "Reference values (Rv) and threshold values (Gv) for each indicator and nature type combination") |> kable_styling("striped") |> scroll_box(width = "100%", height = "300px")
 ```
 
-Once test data and the scaling values from the reference data are in place, we can calculate CWMs of the selected indicator for the community data for each dataset and scale them against the scaling values from the reference distribution. Note that we scale each plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. A plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1.
+Once test data and the scaling values from the reference data are in place, we can calculate CWMs of the selected indicator for the community data for each dataset and scale them against the scaling values from the reference distribution. Note that we scale each plot's CWM against either the lower threshold value and the min value OR the upper threshold value and the max value based on whether the CWM is smaller or higher than the reference value. Since the scaled values for both sides range between 0 and 1, we generate separate lower and upper indicators for each plant functional indicator type. A plot can only have a scaled value in either the lower or the upper indicator (the other one will be 'NA'), except for the unlikely event that the CWM exactly matches the reference value, in which case both lower and upper indicator will receive a scaled indicator value of 1. As the vegetation indicator for phosphorus is a one-sided indicator evaluating deviations towards increased phosphorus values, the testing data will only be scaled against the upper scaling value.
 
 For scaling the data against the reference we use the normalisation function from package ecTools.
 
@@ -814,7 +814,7 @@ ggsave(here::here("img/norm_plot.png"))
 We can calculate national and region-wise indicator values using a mixed-effects, zero-one inflated, ordered beta-regression analysis. Since the indicator values are on a scale from 0-1, the data per definition do not follow a Gaussian distribution, hence the zero-one inflated, ordered beta-regression. Since the underlying monitoring, data are spatially aggregated (several points per site) and not all points are independent, hence the mixed-effects model.
 
 The national and regional estimates are computed via separate models. The models are based on ANO and ASO, because GRUK is not nationally representative and adjusting weights did not work for this indicator. However, the GRUK results are shown separately as supplementary information.
-The national model is a null-model with random intercepts for site (same for ANO and ASO). The regional model is specified with region as fixed effect and without an intercept, plus random intercept effects for site. In the case of a 2-sided indicator, for respectively the national and the regional analysis, We run one model for the overall indicator, and two additional models for each respective side.
+The national model is a null-model with random intercepts for site (same for ANO and ASO). The regional model is specified with region as fixed effect and without an intercept, plus random intercept effects for site.
 
 The uncertainty around the national and region indicator values is derived from the same statistical model.
 
