@@ -99,6 +99,7 @@ library(glmmTMB)
 library(MASS)
 library(emmeans)
 library(broom.mixed)
+library(WorldFlora)
 # weird workarounds for cache issues
 conflicts_prefer(tidylog::filter)
 conflicts_prefer(tidylog::select)
@@ -118,7 +119,7 @@ library(arrow)
 library(gt)
 knitr::opts_chunk$set(echo = TRUE)
 
-source(here(), "/R/functions.R")
+source(paste0(here(), "/R/functions.R"))
 ```
 
 ```{r source}
@@ -407,7 +408,7 @@ wfo_backbone <- read_rds("P:/41201785_okologisk_tilstand_2022_2023/data/WFO_back
 
 ```{r source_species_dictionary, eval=TRUE}
 
-source(here(), "/R/species_dictionary.R")
+source(paste0(here(), "/R/species_dictionary.R"))
 ```
 
 
@@ -1179,69 +1180,7 @@ ggplot(combined_lowlands, aes(x = factor(dataset), y = Moisture2)) +
 
 ```
 
-To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error.
-```{r, eval=F}
-
-## Norway
-# Fixed-effect intercept and SE
-b0 <- fixef(Moisture_no)$cond["(Intercept)"]
-se_b0 <- sqrt(vcov(Moisture_no)$cond["(Intercept)", "(Intercept)"])
-# Dispersion parameter (For glmmTMB this is usually on the response/positive scale via sigma() )
-phi <- sigma(Moisture_no)
-
-
-# draw estimates and backtransform from logit-scale
-eta_draws <- rnorm(1000, mean = b0, sd = se_b0)
-mu_draws  <- plogis(eta_draws)
-
-
-## regions
-b_re <- fixef(Moisture_re)$cond
-vc_re <- vcov(Moisture_re)$cond
-phi <- sigma(Moisture_re)
-
-eta_draws_reg <- MASS::mvrnorm(
-  n = 1000,
-  mu = b_re,
-  Sigma = vc_re
-)
-
-mu_draws_reg <- plogis(eta_draws_reg)
-
-
-# combining Moisture_no_sim and Moisture_re_sim
-mu <- mu_draws_reg |>
-  as_tibble() |>
-  add_column(Norway = mu_draws) |>
-  pivot_longer(everything(), names_to = "part") |>
-  mutate(part = case_when(
-    part == "regionCentral_Norway" ~ "C",
-    part == "regionEastern_Norway" ~ "E",
-    part == "regionNorthern_Norway" ~ "N",
-    part == "regionWestern_Norway" ~ "W",
-    part == "regionSouthern_Norway" ~ "S",
-    .default = part
-  )) #|>
-  #add_column(year = "2024")
-```
-
-
-```{r tbl-results, eval = F}
-#| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUMO_001, calculated for Norwegian open lowland ecosystems.'
-mu |>
-  group_by(part) |>
-  summarise(
-    indicator = mean(value),
-    low = round(quantile(value, probs = 0.025), 2),
-    high = round(quantile(value, probs = .975), 2)
-  ) |>
-  unite(col = "95% CI", c(low, high), sep = " - ") |>
-  write.table(
-    file = paste0(here(), "/results/NO_FUMO_001_boot_table.txt"),
-    sep = "\t",
-    row.names = FALSE,
-    quote = FALSE)
-```
+To express the results as a distribution, we need to simulate mean estimates based on the models intercept and associated standard error. For NO_FULI_001 there is issues with drawing estimates from the complex weighted model that still need sorting out. Alternatively, one can revert to the non-weighted modelling approach (without GRUK) taken in some of the other vegetation indicators.
 
 ## 11. Export file
 

@@ -106,6 +106,7 @@ library(knitr)
 library(kableExtra)
 library(conflicted)
 library(broom.mixed)
+library(WorldFlora)
 # weird workarounds for cache issues
 conflicts_prefer(tidylog::filter)
 conflicts_prefer(tidylog::select)
@@ -125,7 +126,7 @@ library(arrow)
 library(gt)
 knitr::opts_chunk$set(echo = TRUE)
 
-source(here(), "/R/functions.R")
+source(paste0(here(), "/R/functions.R"))
 ```
 
 ```{r source}
@@ -414,7 +415,7 @@ wfo_backbone <- read_rds("P:/41201785_okologisk_tilstand_2022_2023/data/WFO_back
 ```{r source_species_dictionary, eval=TRUE}
 # source the functions script and species dictionary
 
-source(here(), "/R/species_dictionary.R")
+source(paste0(here(), "/R/species_dictionary.R"))
 ```
 
 
@@ -970,14 +971,18 @@ mu <- mu_draws_reg |>
 
 ```{r tbl-results, eval = T}
 #| tbl-cap: 'Indicator values and 95% confidence intervals for NO_FUNI_001, calculated for Norwegian open lowland ecosystems.'
-mu |>
+NO_FUNI_001_boot_table <- mu |>
   group_by(part) |>
   summarise(
     indicator = mean(value),
     low = round(quantile(value, probs = 0.025), 2),
     high = round(quantile(value, probs = .975), 2)
   ) |>
-  unite(col = "95% CI", c(low, high), sep = " - ") |>
+  unite(col = "95% CI", c(low, high), sep = " - ")
+
+NO_FUNI_001_boot_table
+
+NO_FUNI_001_boot_table|>
   write.table(
     file = paste0(here(), "/results/NO_FUNI_001_boot_table.txt"),
     sep = "\t",
